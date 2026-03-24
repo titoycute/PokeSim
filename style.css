@@ -1,0 +1,32 @@
+body { margin: 0; background: #f0f2f5; font-family: sans-serif; }
+.hidden { display: none !important; }
+
+/* Auth */
+.auth-screen { height: 100vh; display: flex; align-items: center; justify-content: center; background: #2f3542; }
+.auth-card { background: white; padding: 40px; border-radius: 12px; width: 300px; text-align: center; }
+
+/* Map */
+#map-viewport { 
+    width: 640px; height: 400px; margin: 20px auto; 
+    border: 6px solid #2f3542; border-radius: 8px;
+    overflow: hidden; position: relative; background: #78C850;
+}
+#map-grid { display: grid; grid-template-columns: repeat(50, 40px); transition: 0.2s; }
+.tile { width: 40px; height: 40px; border: 1px solid rgba(0,0,0,0.05); }
+.tile.grass { background: #5faf41; }
+#player { 
+    position: absolute; width: 40px; height: 40px; 
+    background-size: contain; z-index: 10; transition: 0.1s;
+}
+
+/* Battle Panel */
+.integrated-panel { 
+    max-width: 640px; margin: 0 auto; background: #fff; 
+    border: 2px solid #ddd; border-top: none; padding: 20px;
+}
+.hp-bar { background: #eee; height: 10px; border-radius: 5px; overflow: hidden; }
+.fill { background: #2ecc71; height: 100%; width: 100%; transition: 0.4s; }
+
+/* Navbar */
+.navbar { background: #2f3542; color: white; display: flex; justify-content: space-between; padding: 10px 50px; }
+.menu button { background: none; border: none; color: white; margin-left: 20px; cursor: pointer; font-weight: bold; }

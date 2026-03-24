@@ -13,85 +13,89 @@
         body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #f0f2f5; overflow-x: hidden; }
         .hidden { display: none !important; }
 
-        /* --- AUTH SCREEN --- */
+        /* --- AUTH --- */
         #auth-screen { height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--dark); }
-        .auth-card { background: white; padding: 40px; border-radius: 20px; width: 320px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
-        .auth-card h1 { color: var(--primary); margin-top: 0; }
+        .auth-card { background: white; padding: 40px; border-radius: 20px; width: 320px; text-align: center; }
         input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
         .btn { padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; }
         .btn-main { background: var(--primary); color: white; width: 100%; }
 
-        /* --- NAVIGATION --- */
-        nav { background: var(--dark); color: white; padding: 10px 5%; display: flex; justify-content: space-between; align-items: center; }
+        /* --- NAV --- */
+        nav { background: var(--dark); color: white; padding: 10px 5%; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; }
         .nav-link { background: none; border: none; color: white; cursor: pointer; font-weight: bold; margin-left: 15px; }
         .nav-link:hover { color: var(--primary); }
 
-        /* --- MAP & VIEWPORT --- */
-       #map-viewport { 
-    width: 600px; 
-    height: 400px; 
-    margin: 20px auto; 
-    border: 6px solid var(--dark); 
-    border-radius: 12px;
-    overflow: hidden; 
-    position: relative; 
-    background: var(--dirt);
-}
-       #map-grid { 
-    display: grid; 
-    grid-template-columns: repeat(50, 50px); 
-    position: absolute;
-    top: 0;
-    left: 0;
-    z-index: 1; /* Low layer */
-    transition: transform 0.15s ease-out; 
-}
-
+        /* --- MAP --- */
+        #map-viewport { width: 600px; height: 400px; margin: 20px auto; border: 6px solid var(--dark); border-radius: 12px; overflow: hidden; position: relative; background: var(--dirt); }
+        #map-grid { display: grid; grid-template-columns: repeat(50, 50px); position: absolute; top: 0; left: 0; z-index: 1; transition: transform 0.15s ease-out; }
         .tile { width: 50px; height: 50px; border: 1px solid rgba(0,0,0,0.05); box-sizing: border-box; display: flex; align-items: center; justify-content: center; font-size: 20px; }
         .tile.grass { background: var(--grass); }
-       #player { 
-    position: absolute; 
-    width: 60px; /* Slightly larger to fit the GIF better */
-    height: 60px; 
-    /* This centers the sprite exactly in the middle of the 600x400 box */
-    top: 170px;  
-    left: 270px; 
-    z-index: 999; /* Force to the very top layer */
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
-    image-rendering: auto; 
-    pointer-events: none; /* So you can click through the trainer to the map */
-}
+        #player { position: absolute; width: 60px; height: 60px; top: 170px; left: 270px; z-index: 999; background-size: contain; background-repeat: no-repeat; background-position: center; pointer-events: none; }
 
-        /* --- BATTLE PANEL (INTEGRATED) --- */
-        #battle-area { 
-            max-width: 600px; margin: 0 auto 40px auto; background: white; 
-            border: 4px solid var(--dark); border-top: none; padding: 20px; border-radius: 0 0 12px 12px;
-        }
-        .battle-ui { display: flex; flex-wrap: wrap; justify-content: space-between; }
-        .hp-bar { background: #eee; height: 12px; border-radius: 6px; overflow: hidden; width: 100%; margin: 5px 0; border: 1px solid #ddd; }
-        .hp-fill { height: 100%; background: #2ecc71; width: 100%; transition: 0.4s; }
-        #battle-log { width: 100%; height: 60px; background: #f9f9f9; padding: 10px; font-family: monospace; overflow-y: auto; font-size: 13px; border: 1px solid #eee; margin: 10px 0; }
-        #battle-moves { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
-        #battle-moves button { padding: 10px; background: var(--dark); color: white; border: none; border-radius: 5px; cursor: pointer; }
+        /* --- BATTLE SYSTEM --- */
+        #battle-area { max-width: 600px; margin: 0 auto; background: #1a1a1a; border: 4px solid var(--dark); border-top: none; color: white; padding: 20px; border-radius: 0 0 12px 12px; }
+        .battle-ui { display: flex; flex-direction: column; gap: 20px; }
+        
+        .side { display: flex; align-items: center; width: 100%; }
+        /* Wild (Top Right) */
+        .enemy-side { justify-content: flex-end; }
+        /* Player (Bottom Left) */
+        .player-side { justify-content: flex-start; }
 
-        /* --- STARTER MODAL --- */
-        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 2000; }
-        .modal { background: white; padding: 30px; border-radius: 20px; max-width: 500px; text-align: center; }
-        .starter-grid { display: flex; gap: 20px; justify-content: center; margin-top: 20px; }
-        .starter-card { border: 2px solid #eee; padding: 15px; border-radius: 12px; cursor: pointer; transition: 0.2s; }
-        .starter-card:hover { border-color: var(--primary); transform: scale(1.05); }
+        .btl-sprite { width: 130px; height: 130px; image-rendering: pixelated; cursor: help; transition: transform 0.2s; }
+        .btl-sprite:hover { transform: scale(1.1); }
 
-        /* --- LISTS --- */
+        .stat-box { background: rgba(255,255,255,0.1); padding: 12px; border-radius: 8px; width: 220px; border-bottom: 3px solid var(--primary); margin: 0 10px; }
+        .hp-bar { background: #333; height: 10px; border-radius: 5px; overflow: hidden; margin: 5px 0; border: 1px solid #444; }
+        .hp-fill { height: 100%; background: #2ecc71; width: 100%; transition: width 0.4s; }
+
+        #battle-log { width: 100%; height: 90px; background: #000; color: #00ff00; padding: 10px; font-family: 'Courier New', monospace; overflow-y: auto; font-size: 13px; border: 1px solid #333; margin: 10px 0; box-sizing: border-box; text-align: left; }
+        #battle-moves { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        
+        /* Move Types */
+        .move-btn { display: flex; justify-content: space-between; align-items: center; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; transition: 0.2s; }
+        .type-fire { background: #FF421C; } .type-water { background: #2980EF; } .type-grass { background: #62B957; }
+        .type-electric { background: #FACC10; color: #333; } .type-normal { background: #A8A77A; }
+
+        /* --- MODALS --- */
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 5000; }
+        .modal { background: white; padding: 30px; border-radius: 20px; max-width: 450px; width: 90%; text-align: center; color: #333; position: relative;}
+        .starter-grid { display: flex; gap: 15px; justify-content: center; margin-top: 20px; }
+        .starter-card { border: 2px solid #eee; padding: 10px; border-radius: 12px; cursor: pointer; }
+        
+        .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin: auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
         .list-container { max-width: 800px; margin: 20px auto; padding: 20px; background: white; border-radius: 12px; }
-        .mon-item { display: flex; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
-        .mon-item img { width: 60px; margin-right: 20px; }
+        .mon-item { display: flex; align-items: center; padding: 10px; border-bottom: 1px solid #eee; cursor: help; }
     </style>
 </head>
 <body>
 
-    <!-- 1. AUTH -->
+    <!-- LOADING OVERLAY -->
+    <div id="loading-overlay" class="overlay hidden">
+        <div class="modal">
+            <div class="spinner"></div>
+            <h3 id="loading-status">Loading...</h3>
+        </div>
+    </div>
+
+    <!-- POKEMON INFO MODAL -->
+    <div id="info-overlay" class="overlay hidden" onclick="this.classList.add('hidden')">
+        <div class="modal" onclick="event.stopPropagation()">
+            <img id="info-img" src="" style="width:150px">
+            <h2 id="info-name"></h2>
+            <div id="info-types"></div>
+            <p id="info-desc" style="font-style: italic; color: #666; line-height: 1.6;"></p>
+            <div style="display: flex; justify-content: space-around; background: #f9f9f9; padding: 10px; border-radius: 10px; margin-top: 10px;">
+                <span>Height: <b id="info-h"></b></span>
+                <span>Weight: <b id="info-w"></b></span>
+            </div>
+            <button class="btn btn-main" style="margin-top:20px" onclick="document.getElementById('info-overlay').classList.add('hidden')">Close</button>
+        </div>
+    </div>
+
+    <!-- AUTH -->
     <div id="auth-screen">
         <div class="auth-card">
             <h1>PokeSim</h1>
@@ -102,19 +106,18 @@
         </div>
     </div>
 
-    <!-- 2. STARTER MODAL -->
+    <!-- STARTER MODAL -->
     <div id="starter-overlay" class="overlay hidden">
         <div class="modal">
             <h2>Welcome Trainer!</h2>
-            <p>Pick your very first partner (Level 10)</p>
             <div id="starter-grid" class="starter-grid"></div>
         </div>
     </div>
 
-    <!-- 3. MAIN GAME -->
+    <!-- MAIN GAME -->
     <div id="game-screen" class="hidden">
         <nav>
-            <div style="font-weight: bold; font-size: 1.5rem;">PokeSim</div>
+            <div style="font-weight: bold; font-size: 1.5rem; color: var(--primary);">PokeSim</div>
             <div>
                 <button class="nav-link" onclick="window.switchView('explore')">Map</button>
                 <button class="nav-link" onclick="window.switchView('team')">Team</button>
@@ -132,24 +135,36 @@
             
             <div id="battle-area" class="hidden">
                 <div class="battle-ui">
-                    <div style="width: 45%;">
-                        <strong id="e-name"></strong> <small id="e-lvl"></small>
-                        <div class="hp-bar"><div id="e-hp-fill" class="hp-fill"></div></div>
+                    <!-- Wild (Top Right) -->
+                    <div class="side enemy-side">
+                        <img id="e-sprite-btl" class="btl-sprite" title="Click for Info">
+                        <div class="stat-box">
+                            <strong id="e-name"></strong> <span id="e-types-icons"></span><br>
+                            <small id="e-lvl"></small>
+                            <div class="hp-bar"><div id="e-hp-fill" class="hp-fill"></div></div>
+                        </div>
                     </div>
-                    <div style="width: 45%; text-align: right;">
-                        <small id="p-lvl"></small> <strong id="p-name"></strong>
-                        <div class="hp-bar"><div id="p-hp-fill" class="hp-fill"></div></div>
+
+                    <!-- Player (Bottom Left) -->
+                    <div class="side player-side">
+                        <img id="p-sprite-btl" class="btl-sprite" title="Click for Info">
+                        <div class="stat-box">
+                            <strong id="p-name"></strong> <span id="p-types-icons"></span><br>
+                            <small id="p-lvl"></small>
+                            <div class="hp-bar"><div id="p-hp-fill" class="hp-fill"></div></div>
+                        </div>
                     </div>
-                    <div id="battle-log">A wild Pokemon appeared!</div>
+
+                    <div id="battle-log"></div>
                     <div id="battle-moves"></div>
                 </div>
             </div>
 
             <div style="text-align: center; margin-top: 10px;">
-                <button class="btn btn-main" style="width: 60px;" onclick="window.movePlayer(0,-1)">UP</button><br>
-                <button class="btn btn-main" style="width: 60px;" onclick="window.movePlayer(-1,0)">LEFT</button>
-                <button class="btn btn-main" style="width: 60px;" onclick="window.movePlayer(1,0)">RIGHT</button><br>
-                <button class="btn btn-main" style="width: 60px;" onclick="window.movePlayer(0,1)">DOWN</button>
+                <button class="btn btn-main" style="width: 80px;" onclick="window.movePlayer(0,-1)">UP</button><br>
+                <button class="btn btn-main" style="width: 80px;" onclick="window.movePlayer(-1,0)">LEFT</button>
+                <button class="btn btn-main" style="width: 80px;" onclick="window.movePlayer(1,0)">RIGHT</button><br>
+                <button class="btn btn-main" style="width: 80px;" onclick="window.movePlayer(0,1)">DOWN</button>
             </div>
         </div>
 
@@ -158,13 +173,11 @@
         <div id="view-records" class="list-container hidden"><h2>Encounter Records</h2><div id="records-list"></div></div>
     </div>
 
-    <!-- SCRIPTS -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // --- FIREBASE CONFIG ---
         const firebaseConfig = {
             apiKey: "AIzaSyDkCE0wBrsQ1s-7zplvTtWOSE28ISaCFfQ",
             authDomain: "pokesim-7f9b7.firebaseapp.com",
@@ -177,94 +190,75 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // --- GAME STATE ---
         let playerPos = { x: 25, y: 25 };
         let mapData = [];
         let currentBattle = null;
         let isProcessing = false;
         const TRAINER_SPRITE = "https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/078dadf7-4d9b-4bf4-9855-0112be351700/d54f6cb-230b552c-50d1-45ad-be7e-7eab211c1cf8.gif?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7InBhdGgiOiIvZi8wNzhkYWRmNy00ZDliLTRiZjQtOTg1NS0wMTEyYmUzNTE3MDAvZDU0ZjZjYi0yMzBiNTUyYy01MGQxLTQ1YWQtYmU3ZS03ZWFiMjExYzFjZjguZ2lmIn1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmZpbGUuZG93bmxvYWQiXX0.A8hNnEQQMDN-XZI-VOQkzR71AozVAvgQDF6FcAAqi6M";
 
+        const TYPE_ICONS = { fire: "🔥", water: "💧", grass: "🌿", electric: "⚡", normal: "🔘", ice: "❄️", fighting: "🥊", poison: "🧪", ground: "🏜️", flying: "🦅", psychic: "🔮", bug: "🐛", rock: "💎", ghost: "👻", dragon: "🐲", dark: "🌑", steel: "⚙️", fairy: "✨" };
+
         // --- AUTH ---
-        document.getElementById('login-btn').onclick = () => {
-            const e = document.getElementById('email').value;
-            const p = document.getElementById('password').value;
-            signInWithEmailAndPassword(auth, e, p).catch(err => alert(err.message));
-        };
-
-        document.getElementById('reg-btn').onclick = () => {
-            const e = document.getElementById('email').value;
-            const p = document.getElementById('password').value;
-            createUserWithEmailAndPassword(auth, e, p).then(res => {
-                setDoc(doc(db, "users", res.user.uid), { email: e, hasStarter: false });
-            }).catch(err => alert(err.message));
-        };
-
+        document.getElementById('login-btn').onclick = () => signInWithEmailAndPassword(auth, email.value, password.value).catch(e => alert(e.message));
+        document.getElementById('reg-btn').onclick = () => createUserWithEmailAndPassword(auth, email.value, password.value).then(r => setDoc(doc(db, "users", r.user.uid), { hasStarter: false })).catch(e => alert(e.message));
         document.getElementById('logout-btn').onclick = () => signOut(auth).then(() => location.reload());
 
-        // --- SESSION ROUTER ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 const uDoc = await getDoc(doc(db, "users", user.uid));
                 const data = uDoc.data();
                 document.getElementById('auth-screen').classList.add('hidden');
-                
-                if (!data.hasStarter) {
-                    document.getElementById('starter-overlay').classList.remove('hidden');
-                    loadStarters();
-                } else {
-                    document.getElementById('game-screen').classList.remove('hidden');
-                    initMap();
-                }
-            } else {
-                document.getElementById('auth-screen').classList.remove('hidden');
-                document.getElementById('game-screen').classList.add('hidden');
+                if (!data.hasStarter) { document.getElementById('starter-overlay').classList.remove('hidden'); loadStarters(); }
+                else { document.getElementById('game-screen').classList.remove('hidden'); initMap(); }
             }
         });
 
-        // --- STARTER SELECTION ---
+        // --- INFO SYSTEM ---
+        async function showPokeInfo(pokemonId) {
+            document.getElementById('loading-overlay').classList.remove('hidden');
+            const [p, s] = await Promise.all([
+                fetch(`https://pokeapi.co/api/v2/pokemon/${pokemonId}`).then(r => r.json()),
+                fetch(`https://pokeapi.co/api/v2/pokemon-species/${pokemonId}`).then(r => r.json())
+            ]);
+            
+            const desc = s.flavor_text_entries.find(e => e.language.name === 'en').flavor_text.replace(/\f/g, ' ');
+            document.getElementById('info-img').src = p.sprites.other['official-artwork'].front_default;
+            document.getElementById('info-name').innerText = p.name.toUpperCase();
+            document.getElementById('info-desc').innerText = `"${desc}"`;
+            document.getElementById('info-h').innerText = p.height / 10 + "m";
+            document.getElementById('info-w').innerText = p.weight / 10 + "kg";
+            document.getElementById('info-overlay').classList.remove('hidden');
+            document.getElementById('loading-overlay').classList.add('hidden');
+        }
+
+        // --- STARTERS ---
         async function loadStarters() {
             const grid = document.getElementById('starter-grid');
-            const starters = [1, 4, 7]; // Bulbasaur, Charmander, Squirtle
-            grid.innerHTML = "";
-            for (const id of starters) {
-                const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
-                const p = await res.json();
-                const div = document.createElement('div');
-                div.className = "starter-card";
+            const ids = [1, 4, 7]; grid.innerHTML = "";
+            for (const id of ids) {
+                const p = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`).then(r => r.json());
+                const div = document.createElement('div'); div.className = "starter-card";
                 div.innerHTML = `<img src="${p.sprites.front_default}"><br><b>${p.name.toUpperCase()}</b>`;
-                div.onclick = () => selectStarter(p);
+                div.onclick = async () => {
+                    const moves = await getMoveDetails(p.moves.slice(0, 4));
+                    const mon = { pokemonId: p.id, name: p.name, level: 10, exp: 0, sprite: p.sprites.front_default, moves, types: p.types.map(t => t.type.name), inTeam: true };
+                    await addDoc(collection(db, "users", auth.currentUser.uid, "pokemon"), mon);
+                    await updateDoc(doc(db, "users", auth.currentUser.uid), { hasStarter: true });
+                    location.reload();
+                };
                 grid.appendChild(div);
             }
         }
 
-        async function selectStarter(p) {
-            const moves = await Promise.all(p.moves.slice(0, 4).map(m => fetch(m.move.url).then(r => r.json())));
-            const mon = {
-                pokemonId: p.id,
-                uniqueId: crypto.randomUUID(),
-                name: p.name,
-                level: 10,
-                exp: 0,
-                sprite: p.sprites.front_default,
-                moves: moves.map(m => ({ name: m.name, power: m.power || 40, type: m.type.name })),
-                inTeam: true
-            };
-            await addDoc(collection(db, "users", auth.currentUser.uid, "pokemon"), mon);
-            await updateDoc(doc(db, "users", auth.currentUser.uid), { hasStarter: true });
-            location.reload();
-        }
-
-        // --- MAP SYSTEM ---
+        // --- MAP ---
         function initMap() {
             const grid = document.getElementById('map-grid');
             if (grid.innerHTML !== "") return;
             for (let y = 0; y < 50; y++) {
                 mapData[y] = [];
                 for (let x = 0; x < 50; x++) {
-                    const isGrass = Math.random() < 0.2;
-                    mapData[y][x] = isGrass ? 'grass' : 'dirt';
-                    const div = document.createElement('div');
-                    div.className = `tile ${isGrass ? 'grass' : ''}`;
+                    const isGrass = Math.random() < 0.2; mapData[y][x] = isGrass ? 'grass' : 'dirt';
+                    const div = document.createElement('div'); div.className = `tile ${isGrass ? 'grass' : ''}`;
                     grid.appendChild(div);
                 }
             }
@@ -273,195 +267,123 @@
 
         window.movePlayer = (dx, dy) => {
             if (currentBattle) return;
-            const nx = playerPos.x + dx;
-            const ny = playerPos.y + dy;
+            const nx = playerPos.x + dx; const ny = playerPos.y + dy;
             if (nx >= 0 && nx < 50 && ny >= 0 && ny < 50) {
-                playerPos.x = nx;
-                playerPos.y = ny;
-                renderPlayer();
+                playerPos.x = nx; playerPos.y = ny; renderPlayer();
                 if (mapData[ny][nx] === 'grass' && Math.random() < 0.15) startBattle();
             }
         };
 
-    function renderPlayer() {
-    const p = document.getElementById('player');
-    const g = document.getElementById('map-grid');
-    
-    // Set the GIF
-    p.style.backgroundImage = `url(${TRAINER_SPRITE})`;
-    
-    // CALCULATE MAP MOVEMENT
-    // We move the map in the OPPOSITE direction of the player
-    // 275 and 175 are the center points of the viewport
-    const offsetX = 275 - (playerPos.x * 50);
-    const offsetY = 175 - (playerPos.y * 50);
-    
-    g.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
-}
+        function renderPlayer() {
+            const g = document.getElementById('map-grid');
+            document.getElementById('player').style.backgroundImage = `url(${TRAINER_SPRITE})`;
+            g.style.transform = `translate(${275 - playerPos.x * 50}px, ${175 - playerPos.y * 50}px)`;
+        }
 
-        // --- BATTLE ENGINE ---
+        // --- BATTLE ---
+        async function getMoveDetails(moves) {
+            return Promise.all(moves.map(async m => {
+                const d = await fetch(m.move ? m.move.url : m.url).then(r => r.json());
+                return { name: d.name, power: d.power || 40, type: d.type.name, icon: TYPE_ICONS[d.type.name] || "⚔️" };
+            }));
+        }
+
         async function startBattle() {
+            document.getElementById('loading-overlay').classList.remove('hidden');
+            document.getElementById('loading-status').innerText = "Wild Encounter!";
             const wildId = Math.floor(Math.random() * 151) + 1;
-            const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${wildId}`);
-            const wild = await res.json();
-
+            const wild = await fetch(`https://pokeapi.co/api/v2/pokemon/${wildId}`).then(r => r.json());
             const teamSnap = await getDocs(collection(db, "users", auth.currentUser.uid, "pokemon"));
-            let myMon = null;
-            teamSnap.forEach(d => { if(d.data().inTeam) myMon = {id: d.id, ...d.data()} });
+            let myMon = null; teamSnap.forEach(d => { if(d.data().inTeam) myMon = {id: d.id, ...d.data()} });
 
-            const levelDiff = Math.floor(Math.random() * 11) - 5;
-            const wildLevel = Math.max(1, myMon.level + levelDiff);
-            const wildMoves = await Promise.all(wild.moves.slice(0, 4).map(m => fetch(m.move.url).then(r => r.json())));
-
+            const wildMoves = await getMoveDetails(wild.moves.slice(0, 4));
             currentBattle = {
-                player: { ...myMon, hp: myMon.level * 20, maxHp: myMon.level * 20 },
-                wild: { 
-                    pokemonId: wildId,
-                    name: wild.name, level: wildLevel, hp: wildLevel * 20, maxHp: wildLevel * 20,
-                    sprite: wild.sprites.front_default,
-                    moves: wildMoves.map(m => ({ name: m.name, power: m.power || 40 }))
-                }
+                player: { ...myMon, hp: myMon.level * 25, maxHp: myMon.level * 25 },
+                wild: { pokemonId: wildId, name: wild.name, level: myMon.level + (Math.floor(Math.random() * 5) - 2), hp: myMon.level * 25, maxHp: myMon.level * 25, sprite: wild.sprites.front_default, moves: wildMoves, types: wild.types.map(t => t.type.name) }
             };
 
-            document.getElementById('battle-area').classList.remove('hidden');
-            document.getElementById('battle-log').innerText = `A wild ${wild.name.toUpperCase()} appeared!`;
             renderBattleUI();
-            trackRecord(wildId, wild.name);
+            document.getElementById('loading-overlay').classList.add('hidden');
+            document.getElementById('battle-area').classList.remove('hidden');
+            document.getElementById('battle-log').innerHTML = "";
+            addBattleLog(`A wild ${wild.name.toUpperCase()} appeared!`);
         }
 
         function renderBattleUI() {
             const b = currentBattle;
+            document.getElementById('e-sprite-btl').src = b.wild.sprite;
+            document.getElementById('e-sprite-btl').onclick = () => showPokeInfo(b.wild.pokemonId);
+            document.getElementById('p-sprite-btl').src = b.player.sprite;
+            document.getElementById('p-sprite-btl').onclick = () => showPokeInfo(b.player.pokemonId);
+            
             document.getElementById('e-name').innerText = b.wild.name.toUpperCase();
             document.getElementById('e-lvl').innerText = "Lvl " + b.wild.level;
             document.getElementById('e-hp-fill').style.width = (b.wild.hp / b.wild.maxHp * 100) + "%";
+            document.getElementById('e-types-icons').innerHTML = b.wild.types.map(t => TYPE_ICONS[t]).join(" ");
 
             document.getElementById('p-name').innerText = b.player.name.toUpperCase();
             document.getElementById('p-lvl').innerText = "Lvl " + b.player.level;
             document.getElementById('p-hp-fill').style.width = (b.player.hp / b.player.maxHp * 100) + "%";
 
-            const movesDiv = document.getElementById('battle-moves');
-            movesDiv.innerHTML = "";
+            const movesDiv = document.getElementById('battle-moves'); movesDiv.innerHTML = "";
             b.player.moves.forEach(m => {
-                const btn = document.createElement('button');
-                btn.innerText = m.name.toUpperCase();
-                btn.onclick = () => runTurn(m);
-                movesDiv.appendChild(btn);
+                const btn = document.createElement('button'); btn.className = `move-btn type-${m.type}`;
+                btn.innerHTML = `<span>${m.name.toUpperCase()}</span> <span>${m.icon}</span>`;
+                btn.onclick = () => runTurn(m); movesDiv.appendChild(btn);
             });
         }
 
         async function runTurn(move) {
-            if (isProcessing) return;
-            isProcessing = true;
+            if (isProcessing) return; isProcessing = true;
             const b = currentBattle;
-
-            // Player Attack
             const pDmg = Math.floor((move.power / 5) * (b.player.level / 2));
-            b.wild.hp -= pDmg;
-            document.getElementById('battle-log').innerText = `Your ${b.player.name} used ${move.name}!`;
+            b.wild.hp = Math.max(0, b.wild.hp - pDmg);
+            addBattleLog(`${b.player.name} used ${move.name.toUpperCase()}! Deals ${pDmg} dmg.`);
             renderBattleUI();
 
-            if (b.wild.hp <= 0) {
-                document.getElementById('battle-log').innerText = "Wild Pokemon fainted! You won!";
-                await resolveBattle(true);
-                return;
-            }
+            if (b.wild.hp <= 0) { addBattleLog("Wild Pokemon fainted!"); return resolveBattle(true); }
 
-            // Wild Attack
             setTimeout(() => {
-                const wMove = b.wild.moves[Math.floor(Math.random() * b.wild.moves.length)];
+                const wMove = b.wild.moves[Math.floor(Math.random() * 4)];
                 const wDmg = Math.floor((wMove.power / 5) * (b.wild.level / 2));
-                b.player.hp -= wDmg;
-                document.getElementById('battle-log').innerText = `Wild ${b.wild.name} used ${wMove.name}!`;
-                renderBattleUI();
-                isProcessing = false;
-
-                if (b.player.hp <= 0) {
-                    alert("Your Pokemon fainted! Returning to safety.");
-                    location.reload();
-                }
+                b.player.hp = Math.max(0, b.player.hp - wDmg);
+                addBattleLog(`Wild ${b.wild.name} used ${wMove.name.toUpperCase()}! Deals ${wDmg} dmg.`);
+                renderBattleUI(); isProcessing = false;
+                if (b.player.hp <= 0) { alert("Fainted!"); location.reload(); }
             }, 1000);
         }
 
         async function resolveBattle(win) {
             if (win) {
                 const monRef = doc(db, "users", auth.currentUser.uid, "pokemon", currentBattle.player.id);
-                const expGain = currentBattle.wild.level * 20;
-                let newExp = (currentBattle.player.exp || 0) + expGain;
-                let newLvl = currentBattle.player.level;
-                
-                if (newExp >= 100) {
-                    newLvl++;
-                    newExp = 0;
-                    // Evolution check logic here
-                }
-                await updateDoc(monRef, { exp: newExp, level: newLvl });
+                await updateDoc(monRef, { exp: (currentBattle.player.exp || 0) + 50 });
             }
-            setTimeout(() => {
-                currentBattle = null;
-                isProcessing = false;
-                document.getElementById('battle-area').classList.add('hidden');
-            }, 2000);
+            setTimeout(() => { currentBattle = null; isProcessing = false; document.getElementById('battle-area').classList.add('hidden'); }, 2000);
         }
 
-        async function trackRecord(id, name) {
-            const recRef = doc(db, "users", auth.currentUser.uid, "records", id.toString());
-            const snap = await getDoc(recRef);
-            if (!snap.exists()) {
-                await setDoc(recRef, { name, count: 1 });
-            } else {
-                const newCount = snap.data().count + 1;
-                await updateDoc(recRef, { count: newCount });
-                if (newCount === 5) {
-                    alert(`Congratulations! You encountered ${name} 5 times and captured it!`);
-                    const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
-                    const p = await res.json();
-                    await addDoc(collection(db, "users", auth.currentUser.uid, "pokemon"), {
-                        pokemonId: id, name, level: 5, sprite: p.sprites.front_default, inTeam: false, uniqueId: crypto.randomUUID()
-                    });
-                }
-            }
+        function addBattleLog(msg) {
+            const logBox = document.getElementById('battle-log');
+            logBox.innerHTML += `<div>> ${msg}</div>`;
+            logBox.scrollTop = logBox.scrollHeight;
         }
 
-        // --- UI ROUTER ---
         window.switchView = async (v) => {
             document.querySelectorAll('.list-container, #view-explore').forEach(el => el.classList.add('hidden'));
             document.getElementById(`view-${v}`).classList.remove('hidden');
-            if (v !== 'explore') document.getElementById('battle-area').classList.add('hidden');
-
-            const uid = auth.currentUser.uid;
-            if (v === 'team' || v === 'collection') {
+            if (v !== 'explore') {
+                const snap = await getDocs(collection(db, "users", auth.currentUser.uid, "pokemon"));
                 const list = document.getElementById(v === 'team' ? 'team-list' : 'coll-list');
-                list.innerHTML = "Loading...";
-                const snap = await getDocs(collection(db, "users", uid, "pokemon"));
                 list.innerHTML = "";
                 snap.forEach(d => {
-                    const p = d.data();
-                    if (v === 'team' && !p.inTeam) return;
-                    const div = document.createElement('div');
-                    div.className = "mon-item";
-                    div.innerHTML = `<img src="${p.sprite}"> <div><strong>${p.name.toUpperCase()}</strong><br>Level: ${p.level}</div>`;
-                    list.appendChild(div);
-                });
-            }
-            if (v === 'records') {
-                const list = document.getElementById('records-list');
-                const snap = await getDocs(collection(db, "users", uid, "records"));
-                list.innerHTML = "";
-                snap.forEach(d => {
-                    const r = d.data();
-                    list.innerHTML += `<div class="mon-item"><strong>${r.name.toUpperCase()}</strong> &nbsp; Encounters: ${r.count}/5</div>`;
+                    const p = d.data(); if (v === 'team' && !p.inTeam) return;
+                    const div = document.createElement('div'); div.className = "mon-item";
+                    div.innerHTML = `<img src="${p.sprite}"> <div><strong>${p.name.toUpperCase()}</strong> (Lvl ${p.level})</div>`;
+                    div.onclick = () => showPokeInfo(p.pokemonId); list.appendChild(div);
                 });
             }
         };
 
-        // Keyboard Support
-        window.addEventListener('keydown', (e) => {
-            if (["ArrowUp", "w"].includes(e.key)) movePlayer(0, -1);
-            if (["ArrowDown", "s"].includes(e.key)) movePlayer(0, 1);
-            if (["ArrowLeft", "a"].includes(e.key)) movePlayer(-1, 0);
-            if (["ArrowRight", "d"].includes(e.key)) movePlayer(1, 0);
-        });
-
+        window.addEventListener('keydown', (e) => { if (["ArrowUp", "w"].includes(e.key)) movePlayer(0, -1); if (["ArrowDown", "s"].includes(e.key)) movePlayer(0, 1); if (["ArrowLeft", "a"].includes(e.key)) movePlayer(-1, 0); if (["ArrowRight", "d"].includes(e.key)) movePlayer(1, 0); });
     </script>
 </body>
 </html>

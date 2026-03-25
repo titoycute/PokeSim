@@ -67,6 +67,16 @@
             border-radius: 20px;
         }
 
+      /* Footer */
+footer {
+    text-align: center;
+    padding: 16px;
+    font-size: 0.8rem;
+    color: var(--text-light);
+    background: rgba(255,255,255,0.8);
+    margin-top: 40px;
+    border-top: 1px solid var(--border);
+}
         input {
             width: 100%;
             padding: 12px 16px;
@@ -634,6 +644,26 @@
             margin-top: 20px;
             color: var(--primary-dark);
         }
+
+        /* Volume control button */
+        .volume-btn {
+            background: rgba(255,255,255,0.8);
+            border: none;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 8px;
+            transition: 0.2s;
+        }
+        .volume-btn:hover {
+            background: white;
+            transform: scale(1.05);
+        }
     </style>
 </head>
 <body>
@@ -704,6 +734,7 @@
                 <button class="nav-link" onclick="window.switchView('records')">📖 Records</button>
                 <span id="user-email-display" style="margin: 0 10px; color: var(--text-dark); font-size: 0.9rem;"></span>
                 <button class="btn btn-outline" id="logout-btn">Logout</button>
+                <button id="volume-toggle" class="volume-btn" title="Mute/Unmute">🔊</button>
             </div>
         </nav>
 
@@ -758,6 +789,10 @@
         <div id="view-records" class="list-container hidden"><h2>Pokédex Records</h2><div id="records-list"></div></div>
     </div>
 
+    <!-- Audio elements -->
+    <audio id="bg-music" src="music1.mp3" loop preload="auto"></audio>
+    <audio id="battle-music" src="music2.mp3" loop preload="auto"></audio>
+<footer>Created by Tootzkie</footer>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -767,6 +802,56 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+
+        // Audio controls
+        const bgMusic = document.getElementById('bg-music');
+        const battleMusic = document.getElementById('battle-music');
+        let isMuted = false;
+
+        function playMainMusic() {
+            if (!isMuted) {
+                battleMusic.pause();
+                battleMusic.currentTime = 0;
+                bgMusic.play().catch(e => console.log("Autoplay blocked:", e));
+            }
+        }
+
+        function playBattleMusic() {
+            if (!isMuted) {
+                bgMusic.pause();
+                bgMusic.currentTime = 0;
+                battleMusic.play().catch(e => console.log("Autoplay blocked:", e));
+            }
+        }
+
+        function stopBattleMusic() {
+            battleMusic.pause();
+            battleMusic.currentTime = 0;
+            if (!isMuted) {
+                bgMusic.play().catch(e => console.log("Autoplay blocked:", e));
+            }
+        }
+
+        function toggleMute() {
+            isMuted = !isMuted;
+            const volumeBtn = document.getElementById('volume-toggle');
+            if (isMuted) {
+                bgMusic.pause();
+                battleMusic.pause();
+                volumeBtn.innerText = '🔇';
+            } else {
+                // Resume appropriate music based on current state
+                if (currentBattle && document.getElementById('battle-area') && !document.getElementById('battle-area').classList.contains('hidden')) {
+                    battleMusic.play().catch(e => console.log("Autoplay blocked:", e));
+                } else {
+                    bgMusic.play().catch(e => console.log("Autoplay blocked:", e));
+                }
+                volumeBtn.innerText = '🔊';
+            }
+        }
+
+        // Attach volume toggle
+        document.getElementById('volume-toggle').onclick = toggleMute;
 
         let playerPos = { x: 25, y: 25 };
         let mapData = [];
@@ -871,12 +956,17 @@
                     activePokemonId = data.activePokemonId || null;
                     initMap();
                     refreshTeamView();
+                    // Start main music after user is logged in (user interaction already happened)
+                    playMainMusic();
                 }
             } else {
                 document.getElementById('auth-screen').classList.remove('hidden');
                 document.getElementById('game-screen').classList.add('hidden');
                 const emailSpan = document.getElementById('user-email-display');
                 if (emailSpan) emailSpan.innerText = '';
+                // Stop any music when logged out
+                bgMusic.pause();
+                battleMusic.pause();
             }
         });
 
@@ -1008,7 +1098,7 @@
                     accuracy: 100,
                     effect: '-',
                     effectAccuracy: '-',
-                    icon: TYPE_ICONS[moveType] || moveType // fallback to type name if icon missing
+                    icon: TYPE_ICONS[moveType] || moveType
                 };
             });
             const pokemonRef = doc(db, "users", auth.currentUser.uid, "pokemon", currentEditingPokemon.id);
@@ -1041,6 +1131,7 @@
                         currentBattle = null;
                         isProcessing = false;
                         document.getElementById('battle-area').classList.add('hidden');
+                        stopBattleMusic();
                     }, 3000);
                     return;
                 }
@@ -1064,6 +1155,7 @@
                 currentBattle = null;
                 isProcessing = false;
                 document.getElementById('battle-area').classList.add('hidden');
+                stopBattleMusic();
             }, 3000);
         }
 
@@ -1160,7 +1252,7 @@
                     name: d.name,
                     power: d.power || 40,
                     type: d.type.name,
-                    icon: TYPE_ICONS[d.type.name] || d.type.name, // fallback to type name if icon missing
+                    icon: TYPE_ICONS[d.type.name] || d.type.name,
                     accuracy: d.accuracy || 100
                 };
             }));
@@ -1211,6 +1303,8 @@
                 document.getElementById('battle-log').innerHTML = `<div>> A wild ${wild.name.toUpperCase()} (Lv.${wildLevel}) appeared!</div>`;
                 updateCatchChance();
                 document.getElementById('loading-overlay').classList.add('hidden');
+                // Switch to battle music
+                playBattleMusic();
             }, 3000);
         }
 
@@ -1233,7 +1327,6 @@
             const mv = document.getElementById('battle-moves'); mv.innerHTML = "";
             b.player.moves.forEach(m => {
                 const btn = document.createElement('button'); btn.className = `move-btn type-${m.type}`;
-                // Show icon or type name
                 const iconText = (TYPE_ICONS[m.type] === undefined && m.icon !== m.type) ? m.icon : (TYPE_ICONS[m.type] || m.type);
                 btn.innerHTML = `<span>${m.name.toUpperCase()}</span> <span>${iconText}</span>`;
                 btn.onclick = () => runTurn(m); mv.appendChild(btn);
@@ -1274,50 +1367,78 @@
         function updateCatchChance() {
             if (!currentBattle) return;
             const b = currentBattle;
+            const catchBtn = document.getElementById('catch-btn');
+            
             if (b.player.level <= 10) {
                 document.getElementById('catch-chance').innerHTML = "Catch requires Pokémon Lv > 10";
                 document.getElementById('catch-chance').style.color = "var(--danger)";
+                if (catchBtn) catchBtn.disabled = true;
                 return;
             }
+            
+            const expNeeded = getExpNeededForNextLevel(b.player.level);
+            const currentExp = b.player.exp || 0;
+            const xpProgress = (currentExp / expNeeded) * 100;
+            if (xpProgress < 20) {
+                document.getElementById('catch-chance').innerHTML = "Catch requires at least 20% XP progress";
+                document.getElementById('catch-chance').style.color = "var(--danger)";
+                if (catchBtn) catchBtn.disabled = true;
+                return;
+            }
+            
             const hpPercent = b.wild.hp / b.wild.maxHp;
             let chance = (1 - hpPercent) * 0.8 + 0.2;
             chance = Math.min(0.95, Math.max(0.1, chance));
             document.getElementById('catch-chance').innerHTML = `Catch chance: ${Math.floor(chance * 100)}%`;
             document.getElementById('catch-chance').style.color = "";
+            if (catchBtn) catchBtn.disabled = false;
         }
 
         async function attemptCatch() {
             if (!currentBattle || isProcessing) return;
-            if (currentBattle.player.level <= 10) {
+            const b = currentBattle;
+            const catchBtn = document.getElementById('catch-btn');
+            
+            if (b.player.level <= 10) {
                 alert("Your active Pokémon must be above level 10 to attempt catching!");
                 return;
             }
+            
+            const expNeeded = getExpNeededForNextLevel(b.player.level);
+            const currentExp = b.player.exp || 0;
+            const xpProgress = (currentExp / expNeeded) * 100;
+            if (xpProgress < 20) {
+                alert("Your Pokémon needs at least 20% XP progress to attempt catching!");
+                return;
+            }
+            
             isProcessing = true;
-
-            const activeRef = doc(db, "users", auth.currentUser.uid, "pokemon", currentBattle.player.id);
+            if (catchBtn) catchBtn.disabled = true;
+            
+            const activeRef = doc(db, "users", auth.currentUser.uid, "pokemon", b.player.id);
             const activeSnap = await getDoc(activeRef);
-            let currentExp = activeSnap.data().exp || 0;
-            let penalty = Math.floor(currentExp * 0.2);
-            let newExp = Math.max(0, currentExp - penalty);
+            let firestoreExp = activeSnap.data().exp || 0;
+            let penalty = Math.floor(firestoreExp * 0.2);
+            let newExp = Math.max(0, firestoreExp - penalty);
             await updateDoc(activeRef, { exp: newExp });
             addBattleLog(`Attempted to catch! Lost ${penalty} XP.`);
             refreshTeamView();
 
-            const hpPercent = currentBattle.wild.hp / currentBattle.wild.maxHp;
+            const hpPercent = b.wild.hp / b.wild.maxHp;
             let catchChance = (1 - hpPercent) * 0.8 + 0.2;
             catchChance = Math.min(0.95, Math.max(0.1, catchChance));
             const success = Math.random() < catchChance;
 
             if (success) {
-                addBattleLog(`Success! You caught ${currentBattle.wild.name.toUpperCase()}!`);
-                const p = await fetch(`https://pokeapi.co/api/v2/pokemon/${currentBattle.wild.pokemonId}`).then(r => r.json());
+                addBattleLog(`Success! You caught ${b.wild.name.toUpperCase()}!`);
+                const p = await fetch(`https://pokeapi.co/api/v2/pokemon/${b.wild.pokemonId}`).then(r => r.json());
                 await addDoc(collection(db, "users", auth.currentUser.uid, "pokemon"), {
-                    pokemonId: currentBattle.wild.pokemonId,
-                    name: currentBattle.wild.name,
-                    level: currentBattle.wild.level,
+                    pokemonId: b.wild.pokemonId,
+                    name: b.wild.name,
+                    level: b.wild.level,
                     exp: 0,
                     moves: await getMoveDetails(p.moves.slice(0, 4)),
-                    types: currentBattle.wild.types,
+                    types: b.wild.types,
                     inTeam: false
                 });
                 refreshTeamView();
@@ -1325,20 +1446,22 @@
                 document.getElementById('battle-area').classList.add('hidden');
                 isProcessing = false;
                 updateCatchChance();
+                stopBattleMusic();
             } else {
-                addBattleLog(`The wild ${currentBattle.wild.name} broke free!`);
+                addBattleLog(`The wild ${b.wild.name} broke free!`);
                 setTimeout(() => {
                     if (!currentBattle) return;
-                    const wM = currentBattle.wild.moves[Math.floor(Math.random() * 4)];
-                    let effectivenessWild = getTypeEffectiveness(wM.type, currentBattle.player.types);
-                    let wildDamage = Math.floor((wM.power/5)*(currentBattle.wild.level/2) * effectivenessWild);
+                    const wM = b.wild.moves[Math.floor(Math.random() * 4)];
+                    let effectivenessWild = getTypeEffectiveness(wM.type, b.player.types);
+                    let wildDamage = Math.floor((wM.power/5)*(b.wild.level/2) * effectivenessWild);
                     if (wildDamage < 1 && effectivenessWild > 0) wildDamage = 1;
-                    currentBattle.player.hp = Math.max(0, currentBattle.player.hp - wildDamage);
+                    b.player.hp = Math.max(0, b.player.hp - wildDamage);
                     let effText = effectivenessWild === 2 ? "It's super effective!" : (effectivenessWild === 0.5 ? "It's not very effective..." : "");
-                    addBattleLog(`Wild ${currentBattle.wild.name} used ${wM.name.toUpperCase()}! Deals ${wildDamage} dmg. ${effText}`);
+                    addBattleLog(`Wild ${b.wild.name} used ${wM.name.toUpperCase()}! Deals ${wildDamage} dmg. ${effText}`);
                     renderBattleUI();
                     isProcessing = false;
-                    if (currentBattle.player.hp <= 0) {
+                    if (catchBtn) catchBtn.disabled = false;
+                    if (b.player.hp <= 0) {
                         alert("You fainted!");
                         location.reload();
                     }
@@ -1584,5 +1707,7 @@
             if (["ArrowRight", "d"].includes(e.key)) movePlayer(1, 0);
         });
     </script>
+
+
 </body>
 </html>

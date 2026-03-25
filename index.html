@@ -2,64 +2,638 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PokeSim | Kanto Noybi</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>PokeSim | Kanto Noybi - Enhanced</title>
     <style>
-        :root {
-            --primary: #ff4757; --dark: #2f3542; --light: #f1f2f6;
-            --grass: #5faf41; --dirt: #78C850; --water: #54a0ff;
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Inter', system-ui, sans-serif;
         }
 
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #f0f2f5; overflow-x: hidden; color: #333; }
-        .hidden { display: none !important; }
+        /* ========== CLEAN BLUE THEME VARIABLES ========== */
+        :root {
+            --bg: #f0f2f5;
+            --card-bg: #ffffff;
+            --primary: #3b4cca;
+            --primary-dark: #00238f;
+            --accent: #ffde00;
+            --text-dark: #2d3748;
+            --text-light: #5a6e8a;
+            --border: #e2e8f0;
+            --success: #48bb78;
+            --danger: #f56565;
+            --grass: #78cd54;
+            --dirt: #c2b280;
+            --water: #6390f0;
+            --fire: #ff421c;
+        }
 
-        /* --- AUTH & UI --- */
-        #auth-screen { height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--dark); }
-        .auth-card { background: white; padding: 40px; border-radius: 20px; width: 320px; text-align: center; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        .btn { padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        .btn-main { background: var(--primary); color: white; width: 100%; }
+        body {
+            background: var(--bg);
+            min-height: 100vh;
+            color: var(--text-dark);
+        }
 
-        nav { background: var(--dark); color: white; padding: 10px 5%; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; }
-        .nav-link { background: none; border: none; color: white; cursor: pointer; font-weight: bold; margin-left: 15px; }
-        .nav-link:hover { color: var(--primary); }
+        .hidden {
+            display: none !important;
+        }
 
-        /* --- MAP SYSTEM --- */
-        #map-viewport { width: 600px; height: 400px; margin: 20px auto; border: 6px solid var(--dark); border-radius: 12px; overflow: hidden; position: relative; background: var(--dirt); }
-        #map-grid { display: grid; grid-template-columns: repeat(50, 50px); position: absolute; top: 0; left: 0; z-index: 1; transition: transform 0.15s ease-out; }
-        .tile { width: 50px; height: 50px; border: 1px solid rgba(0,0,0,0.05); display: flex; align-items: center; justify-content: center; font-size: 20px; }
-        .tile.grass { background: var(--grass); }
-        #player { position: absolute; width: 60px; height: 60px; top: 170px; left: 270px; z-index: 999; background-size: contain; background-repeat: no-repeat; background-position: center; pointer-events: none; }
+        /* ========== AUTH SCREEN ========== */
+        #auth-screen {
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--primary-dark), #1e2a6e);
+        }
 
-        /* --- BATTLE SYSTEM --- */
-        #battle-area { max-width: 600px; margin: 0 auto 40px; background: #1a1a1a; border: 4px solid var(--dark); border-top: none; color: white; padding: 20px; border-radius: 0 0 12px 12px; }
-        .battle-header { text-align: center; color: var(--primary); font-weight: bold; font-size: 14px; margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 5px; }
-        .battle-ui { display: flex; flex-direction: column; gap: 20px; }
-        
-        .side { display: flex; align-items: center; width: 100%; }
-        .enemy-side { justify-content: flex-end; } /* Top Right */
-        .player-side { justify-content: flex-start; } /* Bottom Left */
+        .auth-card {
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 24px;
+            width: 360px;
+            text-align: center;
+            box-shadow: 0 20px 35px -10px rgba(0,0,0,0.2);
+            border: 1px solid var(--border);
+        }
 
-        .btl-sprite { width: 150px; height: 150px; cursor: help; object-fit: contain; }
-        .stat-box { background: rgba(255,255,255,0.1); padding: 12px; border-radius: 8px; width: 220px; border-bottom: 3px solid var(--primary); margin: 0 10px; }
-        .hp-bar { background: #333; height: 10px; border-radius: 5px; overflow: hidden; margin-top: 5px; border: 1px solid #444; }
-        .hp-fill { height: 100%; background: #2ecc71; width: 100%; transition: width 0.4s; }
+        .auth-card img {
+            width: 280px;
+            height: auto;
+            margin-bottom: 10px;
+            border-radius: 20px;
+        }
 
-        #battle-log { width: 100%; height: 90px; background: #000; color: #00ff00; padding: 10px; font-family: 'Courier New', monospace; overflow-y: auto; font-size: 12px; border: 1px solid #333; box-sizing: border-box; text-align: left; }
-        #battle-moves { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        
-        /* Attack Button Type Colors */
-        .move-btn { display: flex; justify-content: space-between; align-items: center; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; transition: 0.2s; text-shadow: 1px 1px 1px #000; }
-        .type-fire { background: #FF421C; } .type-water { background: #2980EF; } .type-grass { background: #62B957; }
-        .type-electric { background: #FACC10; color: #333; } .type-normal { background: #A8A77A; } 
-        .type-psychic { background: #FF5587; } .type-poison { background: #A040A0; }
+        input {
+            width: 100%;
+            padding: 12px 16px;
+            margin: 10px 0;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            font-size: 0.95rem;
+            transition: 0.2s;
+        }
 
-        /* --- MODALS --- */
-        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 5000; }
-        .modal { background: white; padding: 30px; border-radius: 20px; max-width: 450px; width: 90%; text-align: center; color: #333; }
-        .list-container { max-width: 800px; margin: 20px auto; padding: 20px; background: white; border-radius: 12px; }
-        .mon-item { display: flex; align-items: center; padding: 10px; border-bottom: 1px solid #eee; cursor: help; }
-        .mon-item img { width: 50px; margin-right: 15px; }
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59,76,202,0.1);
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 40px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            width: 100%;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-light);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #e53e3e;
+        }
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        /* ========== NAVIGATION ========== */
+        nav {
+            background: var(--card-bg);
+            padding: 12px 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 800;
+            font-size: 1.5rem;
+            color: var(--primary-dark);
+            letter-spacing: -0.5px;
+        }
+        .logo img {
+            height: 40px;
+            width: auto;
+            border-radius: 12px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .nav-link {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            padding: 8px 12px;
+            border-radius: 40px;
+            transition: 0.2s;
+            color: var(--text-dark);
+        }
+
+        .nav-link:hover {
+            background: #eef2ff;
+            color: var(--primary);
+        }
+
+        #logout-btn {
+            background: #f1f5f9;
+            color: var(--text-light);
+            padding: 6px 16px;
+            border-radius: 40px;
+        }
+
+        #user-email-display {
+            background: #eef2ff;
+            padding: 4px 12px;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        /* ========== MAP SECTION ========== */
+        #map-viewport {
+            width: 600px;
+            height: 400px;
+            margin: 20px auto;
+            border: 4px solid var(--primary);
+            border-radius: 20px;
+            overflow: hidden;
+            position: relative;
+            background: var(--dirt);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.1);
+        }
+
+        #map-grid {
+            display: grid;
+            grid-template-columns: repeat(50, 50px);
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            transition: transform 0.15s ease-out;
+        }
+
+        .tile {
+            width: 50px;
+            height: 50px;
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+        .tile.grass {
+            background: var(--grass);
+        }
+
+        #player {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            top: 170px;
+            left: 270px;
+            z-index: 999;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            pointer-events: none;
+            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.2));
+        }
+
+        /* ========== BATTLE AREA (animated background & sprites) ========== */
+        #battle-area {
+            max-width: 700px;
+            margin: 20px auto;
+            background: linear-gradient(145deg, #87CEEB 0%, #c0e0ff 40%, #78c850 100%);
+            border-radius: 24px;
+            box-shadow: 0 12px 28px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            overflow: hidden;
+            position: relative;
+        }
+        #battle-area::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 20% 30%, rgba(255,255,200,0.2) 0%, rgba(0,0,0,0) 70%);
+            pointer-events: none;
+        }
+
+        .battle-header {
+            background: var(--primary-dark);
+            color: white;
+            text-align: center;
+            padding: 12px;
+            font-weight: bold;
+            font-size: 1rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        .battle-ui {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .side {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            opacity: 0;
+            transform: translateX(-100px);
+            animation: slideIn 0.5s forwards;
+        }
+        .enemy-side {
+            justify-content: flex-end;
+            transform: translateX(100px);
+            animation-delay: 0.2s;
+        }
+        .player-side {
+            transform: translateX(-100px);
+            animation-delay: 0.4s;
+        }
+        @keyframes slideIn {
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .btl-sprite {
+            width: 120px;
+            height: 120px;
+            object-fit: contain;
+            cursor: pointer;
+            transition: transform 0.2s;
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.2));
+        }
+        .btl-sprite:hover {
+            transform: scale(1.05);
+        }
+
+        .stat-box {
+            background: rgba(255,255,255,0.9);
+            backdrop-filter: blur(4px);
+            padding: 12px 16px;
+            border-radius: 20px;
+            width: 240px;
+            border-left: 4px solid var(--primary);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .hp-bar {
+            background: #e2e8f0;
+            height: 8px;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        .hp-fill {
+            height: 100%;
+            background: var(--success);
+            width: 100%;
+            transition: width 0.3s;
+        }
+
+        #battle-log {
+            background: rgba(0,0,0,0.7);
+            color: #e0e0e0;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            height: 90px;
+            overflow-y: auto;
+            border-radius: 16px;
+            margin: 10px 0;
+            backdrop-filter: blur(4px);
+        }
+
+        #battle-moves {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .move-btn {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 40px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.2s;
+            color: white;
+            text-shadow: 0 1px 1px rgba(0,0,0,0.2);
+            font-size: 1rem;
+            gap: 8px;
+        }
+        .move-btn span:first-child {
+            text-transform: uppercase;
+        }
+        .move-btn span:last-child {
+            font-size: 1.1rem;
+        }
+        .move-btn:hover {
+            filter: brightness(0.9);
+            transform: translateY(-2px);
+        }
+
+        /* Type button colors */
+        .type-fire { background: #ff421c; }
+        .type-water { background: #6390f0; }
+        .type-grass { background: #78cd54; }
+        .type-electric { background: #f8d030; color: #333; text-shadow: none; }
+        .type-normal { background: #a8a878; }
+        .type-psychic { background: #f85888; }
+        .type-poison { background: #a040a0; }
+        .type-ground { background: #e0c068; color: #333; }
+        .type-flying { background: #a890f0; }
+        .type-ice { background: #98d8d8; color: #333; }
+        .type-dragon { background: #7038f8; }
+        .type-dark { background: #705848; }
+        .type-steel { background: #b8b8d0; color: #333; }
+        .type-fairy { background: #ee99ac; }
+        .type-fighting { background: #c03028; }
+        .type-rock { background: #b8a038; }
+        .type-bug { background: #a8b820; }
+        .type-ghost { background: #705898; }
+
+        .catch-area {
+            margin-top: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .catch-chance {
+            font-size: 0.8rem;
+            background: rgba(255,255,255,0.8);
+            padding: 6px 12px;
+            border-radius: 40px;
+            font-weight: bold;
+        }
+
+        /* ========== MODALS ========== */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 5000;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 32px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 25px 40px rgba(0,0,0,0.3);
+        }
+
+        .move-list {
+            max-height: 400px;
+            overflow-y: auto;
+            margin: 16px 0;
+            text-align: left;
+        }
+        .move-option {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+        }
+        .move-option.selected {
+            background: #eef2ff;
+        }
+        .move-name {
+            flex: 1;
+            font-weight: 500;
+        }
+        .move-type {
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 20px;
+            color: white;
+            margin-left: 8px;
+        }
+
+        .starter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 16px;
+            max-height: 60vh;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+
+        .starter-card {
+            background: #f8fafc;
+            border-radius: 24px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .starter-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 20px rgba(0,0,0,0.1);
+            border-color: var(--primary);
+        }
+
+        .starter-card img {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+        }
+
+        /* ========== LIST VIEWS ========== */
+        .list-container {
+            max-width: 800px;
+            margin: 30px auto;
+            background: var(--card-bg);
+            border-radius: 24px;
+            padding: 24px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
+        }
+
+        .list-container h2 {
+            margin-bottom: 20px;
+            color: var(--primary-dark);
+            border-left: 4px solid var(--primary);
+            padding-left: 16px;
+        }
+
+        .mon-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: 0.2s;
+            flex-wrap: wrap;
+        }
+
+        .mon-item:hover {
+            background: #f8fafc;
+            transform: translateX(4px);
+        }
+
+        .mon-item img {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+            margin-right: 20px;
+        }
+
+        .mon-info {
+            flex: 1;
+        }
+
+        .mon-buttons {
+            display: flex;
+            gap: 8px;
+            margin-left: auto;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            border-radius: 30px;
+        }
+
+        .active-badge {
+            background: var(--success);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            margin-left: 8px;
+        }
+
+        /* ========== MAP CONTROLS ========== */
+        .map-controls-t {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            margin: 20px auto;
+        }
+        .arrow-row {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+        .arrow-row.middle {
+            gap: 30px;
+        }
+        .arrow-up, .arrow-down, .arrow-left, .arrow-right {
+            width: 70px;
+            padding: 12px;
+            border-radius: 40px;
+            font-weight: bold;
+            background: var(--primary);
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .arrow-up:hover, .arrow-down:hover, .arrow-left:hover, .arrow-right:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        /* Encounter preview */
+        #encounter-preview {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 6000;
+            backdrop-filter: blur(8px);
+            transition: opacity 0.3s;
+        }
+        .encounter-card {
+            background: var(--card-bg);
+            border-radius: 48px;
+            padding: 40px;
+            text-align: center;
+            animation: bounceIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .encounter-sprite {
+            width: 180px;
+            height: 180px;
+            object-fit: contain;
+            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.2));
+        }
+        .encounter-name {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-top: 20px;
+            color: var(--primary-dark);
+        }
     </style>
 </head>
 <body>
@@ -74,39 +648,62 @@
             <div id="info-types" style="margin-bottom:10px"></div>
             <p id="info-desc" style="font-style:italic; color:#666; line-height:1.4"></p>
             <div id="info-stats" style="font-size:13px; background:#f4f4f4; padding:10px; border-radius:8px"></div>
-            <button class="btn btn-main" style="margin-top:15px" onclick="document.getElementById('info-overlay').classList.add('hidden')">Close</button>
+            <button class="btn btn-primary" style="margin-top:15px" onclick="document.getElementById('info-overlay').classList.add('hidden')">Close</button>
         </div>
     </div>
 
-    <!-- 1. AUTH -->
+    <!-- Move Editor Modal -->
+    <div id="move-editor" class="overlay hidden">
+        <div class="modal" style="max-width: 600px;">
+            <h3>Edit Moves for <span id="move-pokemon-name"></span></h3>
+            <p>Select up to 4 moves (click to toggle)</p>
+            <div id="move-list-container" class="move-list"></div>
+            <button id="save-moves-btn" class="btn btn-primary">Save Moves</button>
+            <button id="close-move-editor" class="btn btn-outline" style="margin-top: 10px;">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Encounter Preview Modal -->
+    <div id="encounter-preview" class="hidden">
+        <div class="encounter-card">
+            <img id="preview-sprite" class="encounter-sprite" src="" alt="">
+            <div id="preview-name" class="encounter-name"></div>
+            <div style="margin-top: 20px;">A wild Pokémon appeared!</div>
+        </div>
+    </div>
+
+    <!-- AUTH SCREEN -->
     <div id="auth-screen">
         <div class="auth-card">
-            <h1>PokeSim</h1>
+            <img src="PokeSim_Pokemon.png" alt="PokeSim Logo">
             <input type="email" id="email" placeholder="Email">
             <input type="password" id="password" placeholder="Password">
-            <button class="btn btn-main" id="login-btn">Login</button>
-            <button class="btn" id="reg-btn" style="background:none; text-decoration: underline; color: #888;">Register</button>
+            <button class="btn btn-primary" id="login-btn">Login</button>
+            <button class="btn btn-outline" id="reg-btn" style="margin-top: 12px;">Register</button>
         </div>
     </div>
 
-    <!-- 2. STARTER -->
+    <!-- STARTER SELECTION -->
     <div id="starter-overlay" class="overlay hidden">
         <div class="modal">
-            <h2>Select Starter</h2>
-            <div id="starter-grid" style="display:flex; gap:10px; justify-content:center; margin-top:20px;"></div>
+            <h2>Choose Your First Partner</h2>
+            <div id="starter-grid" class="starter-grid"></div>
         </div>
     </div>
 
-    <!-- 3. GAME -->
+    <!-- GAME SCREEN -->
     <div id="game-screen" class="hidden">
         <nav>
-            <div style="font-weight: bold; font-size: 1.5rem; color: var(--primary);">PokeSim</div>
-            <div>
-                <button class="nav-link" onclick="window.switchView('explore')">Map</button>
-                <button class="nav-link" onclick="window.switchView('team')">Team</button>
-                <button class="nav-link" onclick="window.switchView('collection')">My Pokemon</button>
-                <button class="nav-link" onclick="window.switchView('records')">Records</button>
-                <button class="btn" id="logout-btn" style="background: #555; color: white; padding: 5px 10px;">Logout</button>
+            <div class="logo">
+                <img src="PokeSim Word.png" alt="PokeSim">
+            </div>
+            <div class="nav-links">
+                <button class="nav-link" onclick="window.switchView('explore')">🌍 Map</button>
+                <button class="nav-link" onclick="window.switchView('team')">⚔️ Team</button>
+                <button class="nav-link" onclick="window.switchView('collection')">📦 Collection</button>
+                <button class="nav-link" onclick="window.switchView('records')">📖 Records</button>
+                <span id="user-email-display" style="margin: 0 10px; color: var(--text-dark); font-size: 0.9rem;"></span>
+                <button class="btn btn-outline" id="logout-btn">Logout</button>
             </div>
         </nav>
 
@@ -117,9 +714,8 @@
             </div>
             
             <div id="battle-area" class="hidden">
-                <div class="battle-header">BATTLE IN PROGRESS</div>
+                <div class="battle-header">⚔️ WILD BATTLE ⚔️</div>
                 <div class="battle-ui">
-                    <!-- Wild (Top Right) -->
                     <div class="side enemy-side">
                         <img id="e-sprite-btl" class="btl-sprite" title="Click for Info">
                         <div class="stat-box">
@@ -128,7 +724,6 @@
                             <div class="hp-bar"><div id="e-hp-fill" class="hp-fill"></div></div>
                         </div>
                     </div>
-                    <!-- Player (Bottom Left) -->
                     <div class="side player-side">
                         <img id="p-sprite-btl" class="btl-sprite" title="Click for Info">
                         <div class="stat-box">
@@ -139,336 +734,855 @@
                     </div>
                     <div id="battle-log"></div>
                     <div id="battle-moves"></div>
+                    <div class="catch-area">
+                        <button id="catch-btn" class="btn btn-success">Catch</button>
+                        <div id="catch-chance" class="catch-chance">Catch chance: --%</div>
+                    </div>
                 </div>
             </div>
 
-            <div style="text-align: center; margin-top: 10px; padding-bottom: 20px;">
-                <button class="btn btn-main" style="width: 70px;" onclick="window.movePlayer(0,-1)">UP</button><br>
-                <button class="btn btn-main" style="width: 70px;" onclick="window.movePlayer(-1,0)">LEFT</button>
-                <button class="btn btn-main" style="width: 70px;" onclick="window.movePlayer(1,0)">RIGHT</button><br>
-                <button class="btn btn-main" style="width: 70px;" onclick="window.movePlayer(0,1)">DOWN</button>
+            <div class="map-controls-t">
+                <div class="arrow-row">
+                    <button class="btn btn-primary arrow-up" onclick="window.movePlayer(0,-1)">▲</button>
+                </div>
+                <div class="arrow-row middle">
+                    <button class="btn btn-primary arrow-left" onclick="window.movePlayer(-1,0)">◀</button>
+                    <button class="btn btn-primary arrow-down" onclick="window.movePlayer(0,1)">▼</button>
+                    <button class="btn btn-primary arrow-right" onclick="window.movePlayer(1,0)">▶</button>
+                </div>
             </div>
         </div>
 
         <div id="view-team" class="list-container hidden"><h2>My Team</h2><div id="team-list"></div></div>
         <div id="view-collection" class="list-container hidden"><h2>My Collection</h2><div id="coll-list"></div></div>
-        <div id="view-records" class="list-container hidden"><h2>Pokedex Records</h2><div id="records-list"></div></div>
+        <div id="view-records" class="list-container hidden"><h2>Pokédex Records</h2><div id="records-list"></div></div>
     </div>
 
     <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    const firebaseConfig = { apiKey: "AIzaSyDkCE0wBrsQ1s-7zplvTtWOSE28ISaCFfQ", authDomain: "pokesim-7f9b7.firebaseapp.com", projectId: "pokesim-7f9b7", storageBucket: "pokesim-7f9b7.firebasestorage.app", messagingSenderId: "1087100425430", appId: "1:1087100425430:web:9558a79ee5330d4a792577" };
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+        const firebaseConfig = { apiKey: "AIzaSyDkCE0wBrsQ1s-7zplvTtWOSE28ISaCFfQ", authDomain: "pokesim-7f9b7.firebaseapp.com", projectId: "pokesim-7f9b7", storageBucket: "pokesim-7f9b7.firebasestorage.app", messagingSenderId: "1087100425430", appId: "1:1087100425430:web:9558a79ee5330d4a792577" };
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
-    let playerPos = { x: 25, y: 25 };
-    let mapData = [];
-    let currentBattle = null;
-    let isProcessing = false;
-    
-    const TRAINER_GIF = "https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/078dadf7-4d9b-4bf4-9855-0112be351700/d54f6cb-230b552c-50d1-45ad-be7e-7eab211c1cf8.gif?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7InBhdGgiOiIvZi8wNzhkYWRmNy00ZDliLTRiZjQtOTg1NS0wMTEyYmUzNTE3MDAvZDU0ZjZjYi0yMzBiNTUyYy01MGQxLTQ1YWQtYmU3ZS03ZWFiMjExYzFjZjguZ2lmIn1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmZpbGUuZG93bmxvYWQiXX0.A8hNnEQQMDN-XZI-VOQkzR71AozVAvgQDF6FcAAqi6M";
-    const TYPE_ICONS = { fire: "🔥", water: "💧", grass: "🌿", electric: "⚡", normal: "🔘", ice: "❄️", psychic: "🔮", poison: "🧪", ground: "🏜️", flying: "🦅", dragon: "🐲" };
+        let playerPos = { x: 25, y: 25 };
+        let mapData = [];
+        let currentBattle = null;
+        let isProcessing = false;
+        let activePokemonId = null;
+        let currentEditingPokemon = null;
+        let lastMoveTime = 0;
+        const MOVE_DELAY = 200; // ms
 
-    function getGif(p, side = 'front') { 
-        return side === 'front' ? 
-            (p.sprites.other?.showdown?.front_default || p.sprites.front_default) : 
-            (p.sprites.other?.showdown?.back_default || p.sprites.back_default || p.sprites.front_default);
-    }
+        const TRAINER_GIF = "https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/078dadf7-4d9b-4bf4-9855-0112be351700/d54f6cb-230b552c-50d1-45ad-be7e-7eab211c1cf8.gif?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7InBhdGgiOiIvZi8wNzhkYWRmNy00ZDliLTRiZjQtOTg1NS0wMTEyYmUzNTE3MDAvZDU0ZjZjYi0yMzBiNTUyYy01MGQxLTQ1YWQtYmU3ZS03ZWFiMjExYzFjZjguZ2lmIn1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmZpbGUuZG93bmxvYWQiXX0.A8hNnEQQMDN-XZI-VOQkzR71AozVAvgQDF6FcAAqi6M";
+        const TYPE_ICONS = { fire: "🔥", water: "💧", grass: "🌿", electric: "⚡", normal: "🔘", ice: "❄️", psychic: "🔮", poison: "🧪", ground: "🏜️", flying: "🦅", dragon: "🐲", bug: "🐛", rock: "🪨", ghost: "👻", dark: "🌙", steel: "⚙️", fairy: "✨", fighting: "👊" };
 
-    // --- AUTH ---
-    document.getElementById('login-btn').onclick = () => signInWithEmailAndPassword(auth, email.value, password.value).catch(e => alert(e.message));
-    document.getElementById('reg-btn').onclick = () => createUserWithEmailAndPassword(auth, email.value, password.value).then(r => setDoc(doc(db, "users", r.user.uid), { hasStarter: false })).catch(e => alert(e.message));
-    document.getElementById('logout-btn').onclick = () => signOut(auth).then(() => location.reload());
-
-    onAuthStateChanged(auth, async (user) => {
-        if (user) {
-            const uDoc = await getDoc(doc(db, "users", user.uid));
-            const data = uDoc.data();
-            document.getElementById('auth-screen').classList.add('hidden');
-            if (!data.hasStarter) { document.getElementById('starter-overlay').classList.remove('hidden'); loadStarters(); }
-            else { document.getElementById('game-screen').classList.remove('hidden'); initMap(); }
+        // ========== SPRITE FUNCTIONS ==========
+        function getStaticSpriteUrl(id) {
+            return [
+                `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`,
+                `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`
+            ];
         }
-    });
 
-    // --- EVOLUTION ENGINE ---
-    async function checkEvolution(monDocId, currentLvl, apiId) {
-        try {
-            const speciesRes = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${apiId}`).then(r => r.json());
-            const evoChainRes = await fetch(speciesRes.evolution_chain.url).then(r => r.json());
-            
-            let currentStage = evoChainRes.chain;
-            let nextForm = null;
-
-            // Traverse chain to find current species and see if there's a next stage
-            while (currentStage && currentStage.species.name !== speciesRes.name) {
-                currentStage = currentStage.evolves_to[0];
-            }
-
-            if (currentStage && currentStage.evolves_to.length > 0) {
-                const evoDetails = currentStage.evolves_to[0];
-                const minLevel = evoDetails.evolution_details[0]?.min_level;
-
-                if (minLevel && currentLvl >= minLevel) {
-                    nextForm = evoDetails.species.name;
-                }
-            }
-
-            if (nextForm) {
-                addBattleLog(`WHAT? ${nextForm.toUpperCase()} is evolving!`);
-                const newPokeData = await fetch(`https://pokeapi.co/api/v2/pokemon/${nextForm}`).then(r => r.json());
-                
-                await updateDoc(doc(db, "users", auth.currentUser.uid, "pokemon", monDocId), {
-                    name: newPokeData.name,
-                    pokemonId: newPokeData.id,
-                    sprite: getGif(newPokeData, 'front'),
-                    backSprite: getGif(newPokeData, 'back'),
-                    types: newPokeData.types.map(t => t.type.name)
-                });
-                return true;
-            }
-        } catch (e) { console.error("Evo Error:", e); }
-        return false;
-    }
-
-    // --- BATTLE RESOLUTION (XP & LEVELING) ---
-    async function resolveBattle(win) {
-        if (win) {
-            const monRef = doc(db, "users", auth.currentUser.uid, "pokemon", currentBattle.player.id);
-            const expGain = Math.floor(currentBattle.wild.level * 15);
-            
-            let newExp = (currentBattle.player.exp || 0) + expGain;
-            let newLvl = currentBattle.player.level;
-
-            addBattleLog(`Gained ${expGain} XP!`);
-
-            // Level up logic (100 XP per level)
-            while (newExp >= 100) {
-                newLvl++;
-                newExp -= 100;
-                addBattleLog(`LEVEL UP! Reached Level ${newLvl}!`);
-                // Check for evolution on every level up
-                await checkEvolution(currentBattle.player.id, newLvl, currentBattle.player.pokemonId);
-            }
-
-            await updateDoc(monRef, { exp: newExp, level: newLvl });
-        }
-        
-        setTimeout(() => { 
-            currentBattle = null; 
-            isProcessing = false; 
-            document.getElementById('battle-area').classList.add('hidden'); 
-        }, 3000);
-    }
-
-    // --- POKEMON INFO MODAL ---
-    async function showInfo(id) {
-        document.getElementById('loading-overlay').classList.remove('hidden');
-        const [p, s] = await Promise.all([
-            fetch(`https://pokeapi.co/api/v2/pokemon/${id}`).then(r => r.json()),
-            fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}`).then(r => r.json())
-        ]);
-        const desc = s.flavor_text_entries.find(e => e.language.name === 'en').flavor_text.replace(/\f/g, ' ');
-        document.getElementById('info-img').src = getGif(p, 'front');
-        document.getElementById('info-name').innerText = p.name.toUpperCase();
-        document.getElementById('info-desc').innerText = `"${desc}"`;
-        document.getElementById('info-stats').innerText = `Height: ${p.height/10}m | Weight: ${p.weight/10}kg | Types: ${p.types.map(t=>t.type.name).join('/')}`;
-        document.getElementById('info-overlay').classList.remove('hidden');
-        document.getElementById('loading-overlay').classList.add('hidden');
-    }
-
-    // --- MAP SYSTEM ---
-    function initMap() {
-        const grid = document.getElementById('map-grid'); if (grid.innerHTML !== "") return;
-        for (let y = 0; y < 50; y++) {
-            mapData[y] = [];
-            for (let x = 0; x < 50; x++) {
-                const isG = Math.random() < 0.2; mapData[y][x] = isG ? 'grass' : 'dirt';
-                const div = document.createElement('div'); div.className = `tile ${isG ? 'grass' : ''}`; grid.appendChild(div);
+        function getBattleSpriteUrl(id, side = 'front') {
+            const showdownBase = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown`;
+            if (side === 'back') {
+                return [
+                    `${showdownBase}/back/${id}.gif`,
+                    `${showdownBase}/${id}.gif`,
+                    `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/${id}.png`,
+                    getStaticSpriteUrl(id)[0]
+                ];
+            } else {
+                return [
+                    `${showdownBase}/${id}.gif`,
+                    ...getStaticSpriteUrl(id)
+                ];
             }
         }
-        renderPlayer();
-    }
 
-    window.movePlayer = (dx, dy) => {
-        if (currentBattle) return;
-        const nx = playerPos.x + dx; const ny = playerPos.y + dy;
-        if (nx >= 0 && nx < 50 && ny >= 0 && ny < 50) {
-            playerPos.x = nx; playerPos.y = ny;
-            if (dx !== 0) document.getElementById('player').style.transform = dx < 0 ? 'scaleX(-1)' : 'scaleX(1)';
-            renderPlayer();
-            if (mapData[ny][nx] === 'grass' && Math.random() < 0.15) startBattle();
+        function loadImageWithFallback(imgElement, urls) {
+            let idx = 0;
+            function tryNext() {
+                if (idx >= urls.length) return;
+                imgElement.src = urls[idx];
+                imgElement.onerror = () => { idx++; tryNext(); };
+            }
+            tryNext();
         }
-    };
 
-    function renderPlayer() {
-        document.getElementById('player').style.backgroundImage = `url(${TRAINER_GIF})`;
-        document.getElementById('map-grid').style.transform = `translate(${275 - playerPos.x * 50}px, ${175 - playerPos.y * 50}px)`;
-    }
-
-    // --- BATTLE ENGINE ---
-    async function getMoveDetails(moves) {
-        return Promise.all(moves.slice(0, 4).map(async m => {
-            const d = await fetch(m.move ? m.move.url : m.url).then(r => r.json());
-            return { name: d.name, power: d.power || 40, type: d.type.name, icon: TYPE_ICONS[d.type.name] || "⚔️" };
-        }));
-    }
-
-    async function startBattle() {
-        document.getElementById('loading-overlay').classList.remove('hidden');
-        const wildId = Math.floor(Math.random() * 151) + 1;
-        const wild = await fetch(`https://pokeapi.co/api/v2/pokemon/${wildId}`).then(r => r.json());
-        const teamSnap = await getDocs(collection(db, "users", auth.currentUser.uid, "pokemon"));
-        let myMon = null; teamSnap.forEach(d => { if(d.data().inTeam && !myMon) myMon = {id: d.id, ...d.data()} });
-
-        const wildMoves = await getMoveDetails(wild.moves.slice(0, 4));
-        currentBattle = {
-            player: { ...myMon, hp: myMon.level * 25, maxHp: myMon.level * 25 },
-            wild: { pokemonId: wildId, name: wild.name, level: myMon.level + (Math.floor(Math.random() * 5) - 2), hp: myMon.level * 25, maxHp: myMon.level * 25, sprite: getGif(wild, 'front'), moves: wildMoves, types: wild.types.map(t => t.type.name) }
+        // ========== TYPE EFFECTIVENESS ==========
+        const typeEffectiveness = {
+            normal: { rock: 0.5, ghost: 0, steel: 0.5 },
+            fire: { fire: 0.5, water: 0.5, grass: 2, ice: 2, bug: 2, rock: 0.5, dragon: 0.5, steel: 2 },
+            water: { fire: 2, water: 0.5, grass: 0.5, ground: 2, rock: 2, dragon: 0.5 },
+            electric: { water: 2, electric: 0.5, grass: 0.5, ground: 0, flying: 2, dragon: 0.5 },
+            grass: { fire: 0.5, water: 2, grass: 0.5, poison: 0.5, ground: 2, flying: 0.5, bug: 0.5, rock: 2, dragon: 0.5, steel: 0.5 },
+            ice: { fire: 0.5, water: 0.5, grass: 2, ice: 0.5, ground: 2, flying: 2, dragon: 2, steel: 0.5 },
+            fighting: { normal: 2, ice: 2, rock: 2, dark: 2, steel: 2, poison: 0.5, flying: 0.5, psychic: 0.5, bug: 0.5, ghost: 0, fairy: 0.5 },
+            poison: { grass: 2, fairy: 2, poison: 0.5, ground: 0.5, rock: 0.5, ghost: 0.5, steel: 0 },
+            ground: { fire: 2, electric: 2, poison: 2, rock: 2, steel: 2, grass: 0.5, bug: 0.5, flying: 0 },
+            flying: { grass: 2, fighting: 2, bug: 2, electric: 0.5, rock: 0.5, steel: 0.5 },
+            psychic: { fighting: 2, poison: 2, psychic: 0.5, dark: 0, steel: 0.5 },
+            bug: { grass: 2, psychic: 2, dark: 2, fire: 0.5, fighting: 0.5, poison: 0.5, flying: 0.5, ghost: 0.5, steel: 0.5, fairy: 0.5 },
+            rock: { fire: 2, ice: 2, flying: 2, bug: 2, fighting: 0.5, ground: 0.5, steel: 0.5 },
+            ghost: { psychic: 2, ghost: 2, normal: 0, dark: 0.5 },
+            dragon: { dragon: 2, steel: 0.5, fairy: 0 },
+            dark: { psychic: 2, ghost: 2, fighting: 0.5, dark: 0.5, fairy: 0.5 },
+            steel: { ice: 2, rock: 2, fairy: 2, fire: 0.5, water: 0.5, electric: 0.5, steel: 0.5 },
+            fairy: { fighting: 2, dragon: 2, dark: 2, fire: 0.5, poison: 0.5, steel: 0.5 }
         };
 
-        renderBattleUI();
-        document.getElementById('battle-area').classList.remove('hidden');
-        document.getElementById('loading-overlay').classList.add('hidden');
-        document.getElementById('battle-log').innerHTML = `<div>> A wild ${wild.name.toUpperCase()} appeared!</div>`;
-        trackRecord(wildId, wild.name);
-    }
+        function getTypeEffectiveness(attackType, defenderTypes) {
+            let multiplier = 1;
+            for (let defType of defenderTypes) {
+                const chart = typeEffectiveness[attackType];
+                if (chart && chart[defType] !== undefined) multiplier *= chart[defType];
+            }
+            return multiplier;
+        }
 
-    function renderBattleUI() {
-        const b = currentBattle;
-        document.getElementById('e-sprite-btl').src = b.wild.sprite;
-        document.getElementById('e-sprite-btl').onclick = () => showInfo(b.wild.pokemonId);
-        document.getElementById('p-sprite-btl').src = b.player.backSprite;
-        document.getElementById('p-sprite-btl').onclick = () => showInfo(b.player.pokemonId);
-        
-        document.getElementById('e-name').innerText = b.wild.name.toUpperCase();
-        document.getElementById('e-lvl').innerText = "Lvl " + b.wild.level;
-        document.getElementById('e-hp-fill').style.width = (b.wild.hp / b.wild.maxHp * 100) + "%";
-        document.getElementById('e-types-icons').innerText = b.wild.types.map(t => TYPE_ICONS[t] || "").join("");
+        // ========== XP & LEVEL ==========
+        function getExpNeededForNextLevel(level) {
+            return level * 300;
+        }
 
-        document.getElementById('p-name').innerText = b.player.name.toUpperCase();
-        document.getElementById('p-lvl').innerText = "Lvl " + b.player.level;
-        document.getElementById('p-hp-fill').style.width = (b.player.hp / b.player.maxHp * 100) + "%";
+        // ========== AUTH ==========
+        document.getElementById('login-btn').onclick = () => signInWithEmailAndPassword(auth, email.value, password.value).catch(e => alert(e.message));
+        document.getElementById('reg-btn').onclick = () => createUserWithEmailAndPassword(auth, email.value, password.value).then(r => setDoc(doc(db, "users", r.user.uid), { hasStarter: false })).catch(e => alert(e.message));
+        document.getElementById('logout-btn').onclick = () => signOut(auth).then(() => location.reload());
 
-        const mv = document.getElementById('battle-moves'); mv.innerHTML = "";
-        b.player.moves.forEach(m => {
-            const btn = document.createElement('button'); btn.className = `move-btn type-${m.type}`;
-            btn.innerHTML = `<span>${m.name.toUpperCase()}</span> <span>${m.icon}</span>`;
-            btn.onclick = () => runTurn(m); mv.appendChild(btn);
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                const uDoc = await getDoc(doc(db, "users", user.uid));
+                const data = uDoc.data();
+                document.getElementById('auth-screen').classList.add('hidden');
+                const emailSpan = document.getElementById('user-email-display');
+                if (emailSpan) emailSpan.innerText = user.email;
+                if (!data || !data.hasStarter) {
+                    document.getElementById('starter-overlay').classList.remove('hidden');
+                    loadStarters();
+                } else {
+                    document.getElementById('game-screen').classList.remove('hidden');
+                    activePokemonId = data.activePokemonId || null;
+                    initMap();
+                    refreshTeamView();
+                }
+            } else {
+                document.getElementById('auth-screen').classList.remove('hidden');
+                document.getElementById('game-screen').classList.add('hidden');
+                const emailSpan = document.getElementById('user-email-display');
+                if (emailSpan) emailSpan.innerText = '';
+            }
         });
-    }
 
-    async function runTurn(m) {
-        if (isProcessing) return; isProcessing = true;
-        const b = currentBattle;
-        const pDmg = Math.floor((m.power / 5) * (b.player.level / 2));
-        b.wild.hp = Math.max(0, b.wild.hp - pDmg);
-        addBattleLog(`${b.player.name} used ${m.name.toUpperCase()}! Deals ${pDmg} dmg.`);
-        renderBattleUI();
+        // ========== RELEASE & ACTIVE ==========
+        async function releasePokemon(pokemonId, pokemonName) {
+            if (!confirm(`Release ${pokemonName}? This action cannot be undone.`)) return;
+            const teamSnap = await getDocs(collection(db, "users", auth.currentUser.uid, "pokemon"));
+            let teamCount = 0;
+            teamSnap.forEach(d => { if (d.data().inTeam) teamCount++; });
+            if (teamCount === 1 && activePokemonId === pokemonId) {
+                alert("Cannot release your last Pokémon! You need at least one in your team.");
+                return;
+            }
+            await deleteDoc(doc(db, "users", auth.currentUser.uid, "pokemon", pokemonId));
+            if (activePokemonId === pokemonId) {
+                let newActive = null;
+                teamSnap.forEach(d => {
+                    if (d.id !== pokemonId && d.data().inTeam && !newActive) newActive = d.id;
+                });
+                if (newActive) {
+                    await updateDoc(doc(db, "users", auth.currentUser.uid), { activePokemonId: newActive });
+                    activePokemonId = newActive;
+                } else {
+                    activePokemonId = null;
+                }
+            }
+            refreshTeamView();
+        }
 
-        if (b.wild.hp <= 0) { addBattleLog("Wild Pokemon fainted! Victory!"); return resolveBattle(true); }
+        async function setActivePokemon(pokemonId) {
+            await updateDoc(doc(db, "users", auth.currentUser.uid), { activePokemonId: pokemonId });
+            activePokemonId = pokemonId;
+            refreshTeamView();
+        }
 
-        setTimeout(() => {
-            const wM = b.wild.moves[Math.floor(Math.random() * 4)];
-            const wDmg = Math.floor((wM.power/5)*(b.wild.level/2));
-            b.player.hp = Math.max(0, b.player.hp - wDmg);
-            addBattleLog(`Wild ${b.wild.name} used ${wM.name.toUpperCase()}! Deals ${wDmg} dmg.`);
-            renderBattleUI(); isProcessing = false;
-            if (b.player.hp <= 0) { alert("You fainted!"); location.reload(); }
-        }, 1000);
-    }
+        // ========== MOVE EDITOR ==========
+        async function openMoveEditor(pokemonId, pokemonName, speciesId, currentMoves) {
+            currentEditingPokemon = { id: pokemonId, name: pokemonName, speciesId, currentMoves };
+            document.getElementById('move-pokemon-name').innerText = pokemonName;
+            const container = document.getElementById('move-list-container');
+            container.innerHTML = '<div>Loading moves...</div>';
+            document.getElementById('move-editor').classList.remove('hidden');
+            
+            try {
+                const pokeData = await fetch(`https://pokeapi.co/api/v2/pokemon/${speciesId}`).then(r => r.json());
+                const levelUpMoves = [];
+                for (let m of pokeData.moves) {
+                    const versionDetails = m.version_details.find(vd => vd.version_group.name === 'red-blue' || vd.version_group.name === 'sword-shield');
+                    if (versionDetails && versionDetails.learn_method.name === 'level-up') {
+                        levelUpMoves.push({
+                            name: m.move.name,
+                            level: versionDetails.level_learned_at,
+                            url: m.move.url
+                        });
+                    }
+                }
+                levelUpMoves.sort((a,b) => a.level - b.level);
+                const moveDetails = await Promise.all(levelUpMoves.map(async m => {
+                    const detail = await fetch(m.url).then(r => r.json());
+                    return {
+                        name: m.name,
+                        type: detail.type.name,
+                        power: detail.power || 40,
+                        level: m.level
+                    };
+                }));
+                const unique = [];
+                const seen = new Set();
+                for (let md of moveDetails) {
+                    if (!seen.has(md.name)) {
+                        seen.add(md.name);
+                        unique.push(md);
+                    }
+                }
+                container.innerHTML = '';
+                unique.forEach(move => {
+                    const div = document.createElement('div');
+                    div.className = 'move-option';
+                    if (currentMoves.some(m => m.name === move.name)) div.classList.add('selected');
+                    div.onclick = () => {
+                        if (div.classList.contains('selected')) {
+                            div.classList.remove('selected');
+                        } else {
+                            const selected = Array.from(container.querySelectorAll('.move-option.selected')).length;
+                            if (selected >= 4) {
+                                alert('You can only select up to 4 moves.');
+                                return;
+                            }
+                            div.classList.add('selected');
+                        }
+                    };
+                    div.innerHTML = `
+                        <span class="move-name">${move.name.toUpperCase()}</span>
+                        <span class="move-type" style="background: ${getTypeColor(move.type)};">${move.type}</span>
+                        <span style="font-size:0.7rem;">Power: ${move.power}</span>
+                    `;
+                    container.appendChild(div);
+                });
+            } catch (err) {
+                console.error(err);
+                container.innerHTML = '<div>Error loading moves. Try again.</div>';
+            }
+        }
 
-    async function trackRecord(id, name) {
-        const ref = doc(db, "users", auth.currentUser.uid, "records", id.toString());
-        const snap = await getDoc(ref);
-        const count = snap.exists() ? snap.data().count + 1 : 1;
-        await setDoc(ref, { name, count, pokemonId: id });
-        if (count === 5) {
-            alert(`5th Encounter! ${name.toUpperCase()} captured!`);
-            const p = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`).then(r => r.json());
-            await addDoc(collection(db, "users", auth.currentUser.uid, "pokemon"), { 
-                pokemonId: id, name, level: 5, exp: 0, 
-                sprite: getGif(p, 'front'), backSprite: getGif(p, 'back'), 
-                moves: await getMoveDetails(p.moves), types: p.types.map(t=>t.type.name), inTeam: false 
+        function getTypeColor(type) {
+            const colors = { fire: '#ff421c', water: '#6390f0', grass: '#78cd54', electric: '#f8d030', normal: '#a8a878', ice: '#98d8d8', psychic: '#f85888', poison: '#a040a0', ground: '#e0c068', flying: '#a890f0', dragon: '#7038f8', bug: '#a8b820', rock: '#b8a038', ghost: '#705898', dark: '#705848', steel: '#b8b8d0', fairy: '#ee99ac', fighting: '#c03028' };
+            return colors[type] || '#a0aec0';
+        }
+
+        async function saveMoves() {
+            if (!currentEditingPokemon) return;
+            const container = document.getElementById('move-list-container');
+            const selectedDivs = container.querySelectorAll('.move-option.selected');
+            if (selectedDivs.length !== 4) {
+                alert('You must select exactly 4 moves.');
+                return;
+            }
+            const selectedMoves = Array.from(selectedDivs).map(div => {
+                const nameSpan = div.querySelector('.move-name');
+                const typeSpan = div.querySelector('.move-type');
+                const powerSpan = div.querySelector('span:last-child');
+                const moveName = nameSpan.innerText.toLowerCase();
+                const moveType = typeSpan.innerText;
+                const power = parseInt(powerSpan.innerText.split(':')[1]) || 40;
+                return {
+                    name: moveName,
+                    type: moveType,
+                    power: power,
+                    accuracy: 100,
+                    effect: '-',
+                    effectAccuracy: '-',
+                    icon: TYPE_ICONS[moveType] || moveType // fallback to type name if icon missing
+                };
+            });
+            const pokemonRef = doc(db, "users", auth.currentUser.uid, "pokemon", currentEditingPokemon.id);
+            await updateDoc(pokemonRef, { moves: selectedMoves });
+            document.getElementById('move-editor').classList.add('hidden');
+            refreshTeamView();
+            if (currentBattle && currentBattle.player.id === currentEditingPokemon.id) {
+                currentBattle.player.moves = selectedMoves;
+                renderBattleUI();
+            }
+        }
+
+        // ========== BATTLE RESOLUTION ==========
+        async function resolveBattle(win) {
+            if (win && currentBattle) {
+                if (currentBattle.wild.encounterCount === 5) {
+                    addBattleLog(`5th encounter! ${currentBattle.wild.name.toUpperCase()} is automatically captured!`);
+                    const p = await fetch(`https://pokeapi.co/api/v2/pokemon/${currentBattle.wild.pokemonId}`).then(r => r.json());
+                    await addDoc(collection(db, "users", auth.currentUser.uid, "pokemon"), {
+                        pokemonId: currentBattle.wild.pokemonId,
+                        name: currentBattle.wild.name,
+                        level: currentBattle.wild.level,
+                        exp: 0,
+                        moves: await getMoveDetails(p.moves.slice(0, 4)),
+                        types: currentBattle.wild.types,
+                        inTeam: false
+                    });
+                    refreshTeamView();
+                    setTimeout(() => {
+                        currentBattle = null;
+                        isProcessing = false;
+                        document.getElementById('battle-area').classList.add('hidden');
+                    }, 3000);
+                    return;
+                }
+
+                const monRef = doc(db, "users", auth.currentUser.uid, "pokemon", currentBattle.player.id);
+                let currentExp = currentBattle.player.exp || 0;
+                const expGain = Math.floor(currentBattle.wild.level * 15);
+                let newExp = currentExp + expGain;
+                let newLvl = currentBattle.player.level;
+                addBattleLog(`Gained ${expGain} XP!`);
+                while (newExp >= getExpNeededForNextLevel(newLvl)) {
+                    newExp -= getExpNeededForNextLevel(newLvl);
+                    newLvl++;
+                    addBattleLog(`LEVEL UP! Reached Level ${newLvl}!`);
+                    await checkEvolution(currentBattle.player.id, newLvl, currentBattle.player.pokemonId);
+                }
+                await updateDoc(monRef, { exp: newExp, level: newLvl });
+                refreshTeamView();
+            }
+            setTimeout(() => {
+                currentBattle = null;
+                isProcessing = false;
+                document.getElementById('battle-area').classList.add('hidden');
+            }, 3000);
+        }
+
+        async function checkEvolution(monDocId, currentLvl, apiId) {
+            try {
+                const speciesRes = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${apiId}`).then(r => r.json());
+                const evoChainRes = await fetch(speciesRes.evolution_chain.url).then(r => r.json());
+                let currentStage = evoChainRes.chain;
+                let nextForm = null;
+                while (currentStage && currentStage.species.name !== speciesRes.name) {
+                    currentStage = currentStage.evolves_to[0];
+                }
+                if (currentStage && currentStage.evolves_to.length > 0) {
+                    const evoDetails = currentStage.evolves_to[0];
+                    const minLevel = evoDetails.evolution_details[0]?.min_level;
+                    if (minLevel && currentLvl >= minLevel) {
+                        nextForm = evoDetails.species.name;
+                    }
+                }
+                if (nextForm) {
+                    addBattleLog(`WHAT? ${nextForm.toUpperCase()} is evolving!`);
+                    const newPokeData = await fetch(`https://pokeapi.co/api/v2/pokemon/${nextForm}`).then(r => r.json());
+                    await updateDoc(doc(db, "users", auth.currentUser.uid, "pokemon", monDocId), {
+                        name: newPokeData.name,
+                        pokemonId: newPokeData.id,
+                        types: newPokeData.types.map(t => t.type.name),
+                        moves: await getMoveDetails(newPokeData.moves.slice(0, 4))
+                    });
+                    return true;
+                }
+            } catch (e) { console.error("Evo Error:", e); }
+            return false;
+        }
+
+        async function showInfo(id) {
+            document.getElementById('loading-overlay').classList.remove('hidden');
+            const [p, s] = await Promise.all([
+                fetch(`https://pokeapi.co/api/v2/pokemon/${id}`).then(r => r.json()),
+                fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}`).then(r => r.json())
+            ]);
+            const desc = s.flavor_text_entries.find(e => e.language.name === 'en').flavor_text.replace(/\f/g, ' ');
+            const img = document.getElementById('info-img');
+            loadImageWithFallback(img, getBattleSpriteUrl(id, 'front'));
+            document.getElementById('info-name').innerText = p.name.toUpperCase();
+            document.getElementById('info-desc').innerText = `"${desc}"`;
+            document.getElementById('info-stats').innerHTML = `Height: ${p.height/10}m | Weight: ${p.weight/10}kg | Types: ${p.types.map(t=>t.type.name).join('/')}`;
+            document.getElementById('info-overlay').classList.remove('hidden');
+            document.getElementById('loading-overlay').classList.add('hidden');
+        }
+        window.showInfo = showInfo;
+
+        // ========== MAP SYSTEM ==========
+        function initMap() {
+            const grid = document.getElementById('map-grid');
+            if (grid.innerHTML !== "") return;
+            for (let y = 0; y < 50; y++) {
+                mapData[y] = [];
+                for (let x = 0; x < 50; x++) {
+                    const isG = Math.random() < 0.2;
+                    mapData[y][x] = isG ? 'grass' : 'dirt';
+                    const div = document.createElement('div');
+                    div.className = `tile ${isG ? 'grass' : ''}`;
+                    grid.appendChild(div);
+                }
+            }
+            renderPlayer();
+        }
+
+        function movePlayer(dx, dy) {
+            if (currentBattle) return;
+            const now = Date.now();
+            if (now - lastMoveTime < MOVE_DELAY) return;
+            lastMoveTime = now;
+            const nx = playerPos.x + dx; const ny = playerPos.y + dy;
+            if (nx >= 0 && nx < 50 && ny >= 0 && ny < 50) {
+                playerPos.x = nx; playerPos.y = ny;
+                if (dx !== 0) document.getElementById('player').style.transform = dx < 0 ? 'scaleX(-1)' : 'scaleX(1)';
+                renderPlayer();
+                if (mapData[ny][nx] === 'grass' && Math.random() < 0.15) startBattle();
+            }
+        }
+        window.movePlayer = movePlayer;
+
+        function renderPlayer() {
+            document.getElementById('player').style.backgroundImage = `url(${TRAINER_GIF})`;
+            document.getElementById('map-grid').style.transform = `translate(${275 - playerPos.x * 50}px, ${175 - playerPos.y * 50}px)`;
+        }
+
+        // ========== BATTLE ENGINE ==========
+        async function getMoveDetails(moves) {
+            return Promise.all(moves.slice(0, 4).map(async m => {
+                const d = await fetch(m.move ? m.move.url : m.url).then(r => r.json());
+                return {
+                    name: d.name,
+                    power: d.power || 40,
+                    type: d.type.name,
+                    icon: TYPE_ICONS[d.type.name] || d.type.name, // fallback to type name if icon missing
+                    accuracy: d.accuracy || 100
+                };
+            }));
+        }
+
+        async function startBattle() {
+            if (!activePokemonId) {
+                alert("No active Pokémon! Please set a Pokémon as active in the Team view.");
+                return;
+            }
+            document.getElementById('loading-overlay').classList.remove('hidden');
+            const wildId = Math.floor(Math.random() * 151) + 1;
+            const wild = await fetch(`https://pokeapi.co/api/v2/pokemon/${wildId}`).then(r => r.json());
+            const activeDoc = await getDoc(doc(db, "users", auth.currentUser.uid, "pokemon", activePokemonId));
+            if (!activeDoc.exists()) { alert("Active Pokémon not found!"); return; }
+            const myMon = { id: activeDoc.id, ...activeDoc.data() };
+            let wildLevel = myMon.level + (Math.floor(Math.random() * 21) - 10);
+            wildLevel = Math.min(100, Math.max(1, wildLevel));
+            const wildMoves = await getMoveDetails(wild.moves.slice(0, 4));
+            const count = await trackRecord(wildId, wild.name);
+            
+            // Show encounter preview
+            const previewDiv = document.getElementById('encounter-preview');
+            const previewSprite = document.getElementById('preview-sprite');
+            const previewName = document.getElementById('preview-name');
+            loadImageWithFallback(previewSprite, getBattleSpriteUrl(wildId, 'front'));
+            previewName.innerText = wild.name.toUpperCase();
+            previewDiv.classList.remove('hidden');
+            
+            // Wait 3 seconds, then start battle with animations
+            setTimeout(() => {
+                previewDiv.classList.add('hidden');
+                currentBattle = {
+                    player: { ...myMon, hp: myMon.level * 25, maxHp: myMon.level * 25 },
+                    wild: { 
+                        pokemonId: wildId, 
+                        name: wild.name, 
+                        level: wildLevel, 
+                        hp: wildLevel * 25, 
+                        maxHp: wildLevel * 25, 
+                        types: wild.types.map(t => t.type.name), 
+                        moves: wildMoves,
+                        encounterCount: count
+                    }
+                };
+                renderBattleUI();
+                document.getElementById('battle-area').classList.remove('hidden');
+                document.getElementById('battle-log').innerHTML = `<div>> A wild ${wild.name.toUpperCase()} (Lv.${wildLevel}) appeared!</div>`;
+                updateCatchChance();
+                document.getElementById('loading-overlay').classList.add('hidden');
+            }, 3000);
+        }
+
+        function renderBattleUI() {
+            const b = currentBattle;
+            loadImageWithFallback(document.getElementById('e-sprite-btl'), getBattleSpriteUrl(b.wild.pokemonId, 'front'));
+            document.getElementById('e-sprite-btl').onclick = () => showInfo(b.wild.pokemonId);
+            loadImageWithFallback(document.getElementById('p-sprite-btl'), getBattleSpriteUrl(b.player.pokemonId, 'back'));
+            document.getElementById('p-sprite-btl').onclick = () => showInfo(b.player.pokemonId);
+            
+            document.getElementById('e-name').innerText = b.wild.name.toUpperCase();
+            document.getElementById('e-lvl').innerText = "Lvl " + b.wild.level;
+            document.getElementById('e-hp-fill').style.width = (b.wild.hp / b.wild.maxHp * 100) + "%";
+            document.getElementById('e-types-icons').innerText = b.wild.types.map(t => TYPE_ICONS[t] || t[0].toUpperCase()).join("");
+
+            document.getElementById('p-name').innerText = b.player.name.toUpperCase();
+            document.getElementById('p-lvl').innerText = "Lvl " + b.player.level;
+            document.getElementById('p-hp-fill').style.width = (b.player.hp / b.player.maxHp * 100) + "%";
+
+            const mv = document.getElementById('battle-moves'); mv.innerHTML = "";
+            b.player.moves.forEach(m => {
+                const btn = document.createElement('button'); btn.className = `move-btn type-${m.type}`;
+                // Show icon or type name
+                const iconText = (TYPE_ICONS[m.type] === undefined && m.icon !== m.type) ? m.icon : (TYPE_ICONS[m.type] || m.type);
+                btn.innerHTML = `<span>${m.name.toUpperCase()}</span> <span>${iconText}</span>`;
+                btn.onclick = () => runTurn(m); mv.appendChild(btn);
             });
         }
-    }
 
-    function addLog(m) { const l = document.getElementById('battle-log'); l.innerHTML += `<div>> ${m}</div>`; l.scrollTop = l.scrollHeight; }
-    function addBattleLog(m) { const l = document.getElementById('battle-log'); l.innerHTML += `<div>> ${m}</div>`; l.scrollTop = l.scrollHeight; }
+        async function runTurn(m) {
+            if (isProcessing) return; isProcessing = true;
+            const b = currentBattle;
+            let effectiveness = getTypeEffectiveness(m.type, b.wild.types);
+            let effectivenessText = "";
+            if (effectiveness === 2) effectivenessText = "It's super effective!";
+            else if (effectiveness === 0.5) effectivenessText = "It's not very effective...";
+            else if (effectiveness === 0) effectivenessText = "It doesn't affect the wild Pokémon!";
+            let damage = Math.floor((m.power / 5) * (b.player.level / 2) * effectiveness);
+            if (damage < 1 && effectiveness > 0) damage = 1;
+            b.wild.hp = Math.max(0, b.wild.hp - damage);
+            addBattleLog(`${b.player.name} used ${m.name.toUpperCase()}! Deals ${damage} dmg. ${effectivenessText}`);
+            renderBattleUI();
+            updateCatchChance();
 
-    window.switchView = async (v) => {
-        document.querySelectorAll('.list-container, #view-explore').forEach(el => el.classList.add('hidden'));
-        document.getElementById(`view-${v}`).classList.remove('hidden');
-        if (v !== 'explore') document.getElementById('battle-area').classList.add('hidden');
-        
-        if (v === 'team' || v === 'collection') {
+            if (b.wild.hp <= 0) { addBattleLog("Wild Pokemon fainted! Victory!"); return resolveBattle(true); }
+
+            setTimeout(() => {
+                const wM = b.wild.moves[Math.floor(Math.random() * 4)];
+                let effectivenessWild = getTypeEffectiveness(wM.type, b.player.types);
+                let wildDamage = Math.floor((wM.power/5)*(b.wild.level/2) * effectivenessWild);
+                if (wildDamage < 1 && effectivenessWild > 0) wildDamage = 1;
+                b.player.hp = Math.max(0, b.player.hp - wildDamage);
+                let effText = effectivenessWild === 2 ? "It's super effective!" : (effectivenessWild === 0.5 ? "It's not very effective..." : "");
+                addBattleLog(`Wild ${b.wild.name} used ${wM.name.toUpperCase()}! Deals ${wildDamage} dmg. ${effText}`);
+                renderBattleUI(); isProcessing = false;
+                if (b.player.hp <= 0) { alert("You fainted!"); location.reload(); }
+            }, 1000);
+        }
+
+        // ========== CATCH MECHANICS ==========
+        function updateCatchChance() {
+            if (!currentBattle) return;
+            const b = currentBattle;
+            if (b.player.level <= 10) {
+                document.getElementById('catch-chance').innerHTML = "Catch requires Pokémon Lv > 10";
+                document.getElementById('catch-chance').style.color = "var(--danger)";
+                return;
+            }
+            const hpPercent = b.wild.hp / b.wild.maxHp;
+            let chance = (1 - hpPercent) * 0.8 + 0.2;
+            chance = Math.min(0.95, Math.max(0.1, chance));
+            document.getElementById('catch-chance').innerHTML = `Catch chance: ${Math.floor(chance * 100)}%`;
+            document.getElementById('catch-chance').style.color = "";
+        }
+
+        async function attemptCatch() {
+            if (!currentBattle || isProcessing) return;
+            if (currentBattle.player.level <= 10) {
+                alert("Your active Pokémon must be above level 10 to attempt catching!");
+                return;
+            }
+            isProcessing = true;
+
+            const activeRef = doc(db, "users", auth.currentUser.uid, "pokemon", currentBattle.player.id);
+            const activeSnap = await getDoc(activeRef);
+            let currentExp = activeSnap.data().exp || 0;
+            let penalty = Math.floor(currentExp * 0.2);
+            let newExp = Math.max(0, currentExp - penalty);
+            await updateDoc(activeRef, { exp: newExp });
+            addBattleLog(`Attempted to catch! Lost ${penalty} XP.`);
+            refreshTeamView();
+
+            const hpPercent = currentBattle.wild.hp / currentBattle.wild.maxHp;
+            let catchChance = (1 - hpPercent) * 0.8 + 0.2;
+            catchChance = Math.min(0.95, Math.max(0.1, catchChance));
+            const success = Math.random() < catchChance;
+
+            if (success) {
+                addBattleLog(`Success! You caught ${currentBattle.wild.name.toUpperCase()}!`);
+                const p = await fetch(`https://pokeapi.co/api/v2/pokemon/${currentBattle.wild.pokemonId}`).then(r => r.json());
+                await addDoc(collection(db, "users", auth.currentUser.uid, "pokemon"), {
+                    pokemonId: currentBattle.wild.pokemonId,
+                    name: currentBattle.wild.name,
+                    level: currentBattle.wild.level,
+                    exp: 0,
+                    moves: await getMoveDetails(p.moves.slice(0, 4)),
+                    types: currentBattle.wild.types,
+                    inTeam: false
+                });
+                refreshTeamView();
+                currentBattle = null;
+                document.getElementById('battle-area').classList.add('hidden');
+                isProcessing = false;
+                updateCatchChance();
+            } else {
+                addBattleLog(`The wild ${currentBattle.wild.name} broke free!`);
+                setTimeout(() => {
+                    if (!currentBattle) return;
+                    const wM = currentBattle.wild.moves[Math.floor(Math.random() * 4)];
+                    let effectivenessWild = getTypeEffectiveness(wM.type, currentBattle.player.types);
+                    let wildDamage = Math.floor((wM.power/5)*(currentBattle.wild.level/2) * effectivenessWild);
+                    if (wildDamage < 1 && effectivenessWild > 0) wildDamage = 1;
+                    currentBattle.player.hp = Math.max(0, currentBattle.player.hp - wildDamage);
+                    let effText = effectivenessWild === 2 ? "It's super effective!" : (effectivenessWild === 0.5 ? "It's not very effective..." : "");
+                    addBattleLog(`Wild ${currentBattle.wild.name} used ${wM.name.toUpperCase()}! Deals ${wildDamage} dmg. ${effText}`);
+                    renderBattleUI();
+                    isProcessing = false;
+                    if (currentBattle.player.hp <= 0) {
+                        alert("You fainted!");
+                        location.reload();
+                    }
+                }, 1000);
+            }
+        }
+
+        // ========== TRACK RECORDS ==========
+        async function trackRecord(id, name) {
+            const ref = doc(db, "users", auth.currentUser.uid, "records", id.toString());
+            const snap = await getDoc(ref);
+            const count = snap.exists() ? snap.data().count + 1 : 1;
+            await setDoc(ref, { name, count, pokemonId: id });
+            return count;
+        }
+
+        function addBattleLog(m) {
+            const l = document.getElementById('battle-log');
+            l.innerHTML += `<div>> ${m}</div>`;
+            l.scrollTop = l.scrollHeight;
+        }
+
+        // ========== TEAM & COLLECTION VIEWS ==========
+        async function refreshTeamView() {
             const snap = await getDocs(collection(db, "users", auth.currentUser.uid, "pokemon"));
-            const list = document.getElementById(v === 'team' ? 'team-list' : 'coll-list'); list.innerHTML = "";
-            snap.forEach(d => {
-                const p = d.data(); if (v === 'team' && !p.inTeam) return;
-                const div = document.createElement('div'); div.className = "mon-item";
-                div.innerHTML = `<img src="${p.sprite}"> <div><b>${p.name.toUpperCase()}</b> (Lvl ${p.level} | XP: ${p.exp}/100)</div>`;
-                div.onclick = () => showInfo(p.pokemonId); list.appendChild(div);
-            });
+            const teamList = document.getElementById('team-list');
+            const collList = document.getElementById('coll-list');
+            teamList.innerHTML = "";
+            collList.innerHTML = "";
+
+            let teamSize = 0;
+            snap.forEach(d => { if (d.data().inTeam) teamSize++; });
+
+            for (const docSnap of snap.docs) {
+                const p = docSnap.data();
+                const div = document.createElement('div');
+                div.className = "mon-item";
+
+                const img = document.createElement('img');
+                loadImageWithFallback(img, getStaticSpriteUrl(p.pokemonId));
+                div.appendChild(img);
+
+                const infoDiv = document.createElement('div');
+                infoDiv.className = "mon-info";
+
+                const expNeeded = getExpNeededForNextLevel(p.level);
+                const expCurrent = p.exp || 0;
+                const expProgress = Math.floor((expCurrent / expNeeded) * 100);
+                infoDiv.innerHTML = `
+                    <b>${p.name.toUpperCase()}</b> (Lvl ${p.level} | XP: ${expCurrent}/${expNeeded} [${expProgress}%])<br>
+                    <small>${p.types.join(', ')}</small><br>
+                    <small style="font-size:0.7rem;">Moves: ${p.moves.map(m => m.name.toUpperCase()).join(', ')}</small>
+                `;
+
+                if (p.inTeam && activePokemonId === docSnap.id) {
+                    const badge = document.createElement('span');
+                    badge.className = "active-badge";
+                    badge.innerText = "ACTIVE";
+                    infoDiv.appendChild(badge);
+                }
+                div.appendChild(infoDiv);
+
+                const btnDiv = document.createElement('div');
+                btnDiv.className = "mon-buttons";
+
+                const editMovesBtn = document.createElement('button');
+                editMovesBtn.className = "btn btn-small btn-outline";
+                editMovesBtn.innerText = "Edit Moves";
+                editMovesBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    openMoveEditor(docSnap.id, p.name, p.pokemonId, p.moves);
+                };
+                btnDiv.appendChild(editMovesBtn);
+
+                if (p.inTeam) {
+                    if (activePokemonId !== docSnap.id) {
+                        const setActiveBtn = document.createElement('button');
+                        setActiveBtn.className = "btn btn-small btn-primary";
+                        setActiveBtn.innerText = "Set Active";
+                        setActiveBtn.onclick = (e) => {
+                            e.stopPropagation();
+                            setActivePokemon(docSnap.id);
+                        };
+                        btnDiv.appendChild(setActiveBtn);
+                    }
+
+                    const moveToCollBtn = document.createElement('button');
+                    moveToCollBtn.className = "btn btn-small btn-outline";
+                    moveToCollBtn.innerText = "Move to Collection";
+                    moveToCollBtn.onclick = async (e) => {
+                        e.stopPropagation();
+                        const teamSnap = await getDocs(collection(db, "users", auth.currentUser.uid, "pokemon"));
+                        let teamCount = 0;
+                        teamSnap.forEach(d => { if (d.data().inTeam) teamCount++; });
+                        if (teamCount === 1) {
+                            alert("You must have at least one Pokémon in your team.");
+                            return;
+                        }
+                        await updateDoc(doc(db, "users", auth.currentUser.uid, "pokemon", docSnap.id), { inTeam: false });
+                        if (activePokemonId === docSnap.id) {
+                            let newActive = null;
+                            teamSnap.forEach(d => {
+                                if (d.id !== docSnap.id && d.data().inTeam && !newActive) newActive = d.id;
+                            });
+                            if (newActive) {
+                                await updateDoc(doc(db, "users", auth.currentUser.uid), { activePokemonId: newActive });
+                                activePokemonId = newActive;
+                            } else {
+                                activePokemonId = null;
+                            }
+                        }
+                        refreshTeamView();
+                    };
+                    btnDiv.appendChild(moveToCollBtn);
+
+                    const releaseBtn = document.createElement('button');
+                    releaseBtn.className = "btn btn-small btn-danger";
+                    releaseBtn.innerText = "Release";
+                    releaseBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        releasePokemon(docSnap.id, p.name);
+                    };
+                    btnDiv.appendChild(releaseBtn);
+                } else {
+                    if (teamSize < 6) {
+                        const addToTeamBtn = document.createElement('button');
+                        addToTeamBtn.className = "btn btn-small btn-primary";
+                        addToTeamBtn.innerText = "Add to Team";
+                        addToTeamBtn.onclick = async (e) => {
+                            e.stopPropagation();
+                            await updateDoc(doc(db, "users", auth.currentUser.uid, "pokemon", docSnap.id), { inTeam: true });
+                            if (teamSize === 0) {
+                                await updateDoc(doc(db, "users", auth.currentUser.uid), { activePokemonId: docSnap.id });
+                                activePokemonId = docSnap.id;
+                            }
+                            refreshTeamView();
+                        };
+                        btnDiv.appendChild(addToTeamBtn);
+                    } else {
+                        const fullMsg = document.createElement('span');
+                        fullMsg.className = "btn-small";
+                        fullMsg.innerText = "Team Full";
+                        fullMsg.style.opacity = "0.5";
+                        btnDiv.appendChild(fullMsg);
+                    }
+                }
+
+                div.appendChild(btnDiv);
+                div.onclick = () => showInfo(p.pokemonId);
+
+                if (p.inTeam) teamList.appendChild(div);
+                else collList.appendChild(div);
+            }
+
+            if (teamList.children.length === 0) teamList.innerHTML = "<p>No Pokémon in team. Add some from your collection!</p>";
+            if (collList.children.length === 0) collList.innerHTML = "<p>No Pokémon captured yet. Explore the tall grass!</p>";
         }
-       if (v === 'records') {
-    const snap = await getDocs(collection(db, "users", auth.currentUser.uid, "records"));
-    const list = document.getElementById('records-list'); 
-    list.innerHTML = "";
-    
-    if (snap.empty) {
-        list.innerHTML = "<p style='padding:20px; color:#666;'>No encounters recorded yet. Explore the grass!</p>";
-    }
 
-    snap.forEach(d => { 
-        const r = d.data();
-        // Construct the Animated GIF URL using the pokemonId
-        const animatedGif = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/${r.pokemonId}.gif`;
-        const staticFallback = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${r.pokemonId}.png`;
+        window.switchView = async (v) => {
+            document.querySelectorAll('.list-container, #view-explore').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`view-${v}`).classList.remove('hidden');
+            if (v !== 'explore') document.getElementById('battle-area').classList.add('hidden');
+            if (v === 'team' || v === 'collection') refreshTeamView();
+            if (v === 'records') {
+                const snap = await getDocs(collection(db, "users", auth.currentUser.uid, "records"));
+                const list = document.getElementById('records-list');
+                list.innerHTML = "";
+                if (snap.empty) list.innerHTML = "<p style='padding:20px; color:#666;'>No encounters recorded yet. Explore the grass!</p>";
+                snap.forEach(d => {
+                    const r = d.data();
+                    const div = document.createElement('div'); div.className = "mon-item";
+                    div.onclick = () => showInfo(r.pokemonId);
+                    const img = document.createElement('img');
+                    loadImageWithFallback(img, getStaticSpriteUrl(r.pokemonId));
+                    div.appendChild(img);
+                    const textDiv = document.createElement('div');
+                    textDiv.style.flexGrow = "1";
+                    textDiv.innerHTML = `<b>${r.name.toUpperCase()}</b><br><small>Seen: ${r.count}/5 ${r.count >= 5 ? '<span style="color:green">✅ Captured</span>' : ''}</small>`;
+                    div.appendChild(textDiv);
+                    const arrow = document.createElement('div');
+                    arrow.style.color = "var(--primary)";
+                    arrow.style.fontWeight = "bold";
+                    arrow.innerText = "VIEW DATA ▶";
+                    div.appendChild(arrow);
+                    list.appendChild(div);
+                });
+            }
+        };
 
-        const div = document.createElement('div');
-        div.className = "mon-item";
-        div.style.cursor = "pointer";
-        // When the whole row is clicked, showInfo is triggered
-        div.onclick = () => showInfo(r.pokemonId);
+        // ========== STARTERS ==========
+        const startersList = [
+            { id: 1, name: "Bulbasaur" }, { id: 4, name: "Charmander" }, { id: 7, name: "Squirtle" },
+            { id: 152, name: "Chikorita" }, { id: 155, name: "Cyndaquil" }, { id: 158, name: "Totodile" },
+            { id: 252, name: "Treecko" }, { id: 255, name: "Torchic" }, { id: 258, name: "Mudkip" },
+            { id: 387, name: "Turtwig" }, { id: 390, name: "Chimchar" }, { id: 393, name: "Piplup" },
+            { id: 495, name: "Snivy" }, { id: 498, name: "Tepig" }, { id: 501, name: "Oshawott" },
+            { id: 650, name: "Chespin" }, { id: 653, name: "Fennekin" }, { id: 656, name: "Froakie" },
+            { id: 722, name: "Rowlet" }, { id: 725, name: "Litten" }, { id: 728, name: "Popplio" },
+            { id: 810, name: "Grookey" }, { id: 813, name: "Scorbunny" }, { id: 816, name: "Sobble" },
+            { id: 906, name: "Sprigatito" }, { id: 909, name: "Fuecoco" }, { id: 912, name: "Quaxly" }
+        ];
 
-        div.innerHTML = `
-            <img src="${animatedGif}" 
-                 onerror="this.src='${staticFallback}'" 
-                 style="width:60px; height:60px; margin-right:20px; object-fit:contain;"
-            >
-            <div style="flex-grow: 1;">
-                <b style="font-size: 16px;">${r.name.toUpperCase()}</b><br>
-                <small style="color:#888;">Seen: ${r.count}/5 ${r.count >= 5 ? '<span style="color:green">✅ Captured</span>' : ''}</small>
-            </div>
-            <div style="color: var(--primary); font-size: 12px; font-weight: bold;">VIEW DATA ▶</div>
-        `;
-        list.appendChild(div);
-    });
-}
-    };
-
-    async function loadStarters() {
-        const g = document.getElementById('starter-grid');
-        for (const id of [1, 4, 7]) {
-            const p = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`).then(r => r.json());
-            const div = document.createElement('div'); div.className = "starter-card";
-            div.innerHTML = `<img src="${p.sprites.front_default}"><br><b>${p.name.toUpperCase()}</b>`;
-            div.onclick = async () => {
-                const moves = await getMoveDetails(p.moves.slice(0, 4));
-                const mon = { pokemonId: id, name: p.name, level: 10, exp: 0, sprite: getGif(p, 'front'), backSprite: getGif(p, 'back'), moves, types: p.types.map(t=>t.type.name), inTeam: true };
-                await addDoc(collection(db, "users", auth.currentUser.uid, "pokemon"), mon);
-                await updateDoc(doc(db, "users", auth.currentUser.uid), { hasStarter: true }); location.reload();
-            };
-            g.appendChild(div);
+        async function loadStarters() {
+            const g = document.getElementById('starter-grid');
+            g.innerHTML = "";
+            for (const starter of startersList) {
+                const p = await fetch(`https://pokeapi.co/api/v2/pokemon/${starter.id}`).then(r => r.json());
+                const div = document.createElement('div'); div.className = "starter-card";
+                const img = document.createElement('img');
+                loadImageWithFallback(img, getStaticSpriteUrl(starter.id));
+                div.appendChild(img);
+                const nameSpan = document.createElement('div');
+                nameSpan.innerHTML = `<b>${p.name.toUpperCase()}</b>`;
+                div.appendChild(nameSpan);
+                div.onclick = async () => {
+                    const moves = await getMoveDetails(p.moves.slice(0, 4));
+                    const mon = {
+                        pokemonId: starter.id,
+                        name: p.name,
+                        level: 10,
+                        exp: 0,
+                        moves,
+                        types: p.types.map(t=>t.type.name),
+                        inTeam: true
+                    };
+                    const addedDoc = await addDoc(collection(db, "users", auth.currentUser.uid, "pokemon"), mon);
+                    await updateDoc(doc(db, "users", auth.currentUser.uid), { hasStarter: true, activePokemonId: addedDoc.id });
+                    location.reload();
+                };
+                g.appendChild(div);
+            }
         }
-    }
 
-    window.addEventListener('keydown', (e) => { if (["ArrowUp", "w"].includes(e.key)) movePlayer(0, -1); if (["ArrowDown", "s"].includes(e.key)) movePlayer(0, 1); if (["ArrowLeft", "a"].includes(e.key)) movePlayer(-1, 0); if (["ArrowRight", "d"].includes(e.key)) movePlayer(1, 0); });
-</script>
+        // Event listeners
+        document.getElementById('save-moves-btn').onclick = saveMoves;
+        document.getElementById('close-move-editor').onclick = () => document.getElementById('move-editor').classList.add('hidden');
+        document.getElementById('catch-btn').onclick = attemptCatch;
+
+        window.addEventListener('keydown', (e) => {
+            if (["ArrowUp", "w"].includes(e.key)) movePlayer(0, -1);
+            if (["ArrowDown", "s"].includes(e.key)) movePlayer(0, 1);
+            if (["ArrowLeft", "a"].includes(e.key)) movePlayer(-1, 0);
+            if (["ArrowRight", "d"].includes(e.key)) movePlayer(1, 0);
+        });
+    </script>
 </body>
 </html>

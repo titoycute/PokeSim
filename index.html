@@ -279,7 +279,7 @@
         .catch-btn:hover { background: #c22e2e; transform: scale(0.98); }
         .catch-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
-        /* Type badge (battle and ranking) */
+        /* Type badge */
         .type-badge {
             display: inline-block;
             padding: 2px 8px;
@@ -309,12 +309,10 @@
             background: var(--card-bg);
             padding: 30px;
             border-radius: 32px;
-            max-width: 800px;
+            max-width: 500px;
             width: 90%;
             text-align: center;
             box-shadow: 0 25px 40px rgba(0,0,0,0.3);
-            max-height: 80vh;
-            overflow-y: auto;
         }
         .move-list { max-height: 400px; overflow-y: auto; margin: 16px 0; text-align: left; }
         .starter-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 16px; max-height: 60vh; overflow-y: auto; margin-top: 20px; }
@@ -429,36 +427,6 @@
         .about-badge.warning { background: #fef3c7; color: #f59e0b; }
         .about-badge.danger { background: #fee2e2; color: var(--danger); }
 
-        /* Ranking table */
-        .ranking-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        .ranking-table th, .ranking-table td {
-            padding: 10px;
-            text-align: left;
-            border-bottom: 1px solid var(--border);
-        }
-        .ranking-table th {
-            cursor: pointer;
-            background: #f8fafc;
-        }
-        .ranking-table th:hover {
-            background: #eef2ff;
-        }
-        .ranking-table tr:hover {
-            background: #f8fafc;
-            cursor: pointer;
-        }
-        .search-input {
-            width: 100%;
-            padding: 8px 12px;
-            margin: 10px 0;
-            border: 1px solid var(--border);
-            border-radius: 20px;
-        }
-
         @media (max-width: 768px) {
             nav { flex-direction: column; align-items: stretch; text-align: center; }
             .logo { justify-content: center; }
@@ -553,42 +521,6 @@
         </div>
     </div>
 
-    <!-- Ranking Modal -->
-    <div id="ranking-modal" class="overlay hidden" onclick="this.classList.add('hidden')">
-        <div class="modal" style="max-width: 900px;" onclick="event.stopPropagation()">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h2>🏆 Trainer Ranking</h2>
-                <button onclick="document.getElementById('ranking-modal').classList.add('hidden')" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
-            </div>
-            <input type="text" id="ranking-search" class="search-input" placeholder="Search by trainer name or email...">
-            <div style="overflow-x: auto;">
-                <table class="ranking-table" id="ranking-table">
-                    <thead>
-                        <tr>
-                            <th data-sort="name">Trainer</th>
-                            <th data-sort="totalLevels">Total Level ⬇️</th>
-                            <th data-sort="totalEncounters">Total Encounters</th>
-                        </tr>
-                    </thead>
-                    <tbody id="ranking-body">
-                        <tr><td colspan="3">Loading...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- Trainer Team Modal -->
-    <div id="trainer-team-modal" class="overlay hidden" onclick="this.classList.add('hidden')">
-        <div class="modal" style="max-width: 700px;" onclick="event.stopPropagation()">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h2 id="trainer-team-name">Trainer Team</h2>
-                <button onclick="document.getElementById('trainer-team-modal').classList.add('hidden')" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
-            </div>
-            <div id="trainer-team-list" style="display: flex; flex-direction: column; gap: 10px;"></div>
-        </div>
-    </div>
-
     <!-- Trainer + Starter Modal -->
     <div id="trainer-starter-modal" class="overlay hidden">
         <div class="modal" style="max-width: 600px;">
@@ -640,7 +572,7 @@
                 <button class="nav-link" onclick="window.switchView('collection')">📦 Collection</button>
                 <button class="nav-link" onclick="window.switchView('records')">📖 Records</button>
                 <button class="nav-link" onclick="window.showAbout()">ℹ️ About</button>
-                <button class="nav-link" id="ranking-btn">🏆 Ranking</button>
+                <a href="ranking.html" class="nav-link" style="text-decoration: none;">🏆 Ranking</a>
                 <div id="user-display">
                     <span id="trainer-name-display"></span>
                     <button id="change-name-btn" class="btn-small" style="background: none; border: none; cursor: pointer; font-size: 0.7rem; padding: 2px 6px;">✏️</button>
@@ -700,7 +632,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, updateDoc, deleteDoc, writeBatch, increment, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, updateDoc, deleteDoc, writeBatch, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = { apiKey: "AIzaSyDkCE0wBrsQ1s-7zplvTtWOSE28ISaCFfQ", authDomain: "pokesim-7f9b7.firebaseapp.com", projectId: "pokesim-7f9b7", storageBucket: "pokesim-7f9b7.firebasestorage.app", messagingSenderId: "1087100425430", appId: "1:1087100425430:web:9558a79ee5330d4a792577" };
         const app = initializeApp(firebaseConfig);
@@ -1275,11 +1207,8 @@
                     addBattleLog(`WHAT? ${next.toUpperCase()} is evolving!`);
                     const np=await fetch(`https://pokeapi.co/api/v2/pokemon/${next}`).then(r=>r.json());
                     const newMoves = await getMoveDetails(np.moves.slice(0,4));
-                    const oldLevel = (await getDoc(doc(db,"users",auth.currentUser.uid,"pokemon",id))).data().level;
                     await updateDoc(doc(db,"users",auth.currentUser.uid,"pokemon",id),{name:np.name,pokemonId:np.id,types:np.types.map(t=>t.type.name),moves:newMoves});
                     trackWrite();
-                    // Update totalLevels: subtract old level, add new level (same level, no change)
-                    // Actually level remains same, but we may have a level-up before evolution, but we already accounted.
                     return true;
                 }
             } catch(e) { console.error("Evo Error:",e); } return false;
@@ -1758,95 +1687,6 @@
             location.reload();
         };
 
-        // ========== RANKING MODAL ==========
-        async function loadRanking() {
-            const usersSnap = await getDocs(collection(db, "users"));
-            trackRead(usersSnap.size);
-            const trainers = [];
-            for (const docSnap of usersSnap.docs) {
-                const data = docSnap.data();
-                if (!data.hasStarter) continue; // ignore incomplete accounts
-                const trainerName = data.trainerName || docSnap.id.split('@')[0];
-                trainers.push({
-                    uid: docSnap.id,
-                    name: trainerName,
-                    email: docSnap.id, // email is the document ID
-                    totalLevels: data.totalLevels || 0,
-                    totalEncounters: data.totalEncounters || 0
-                });
-            }
-            return trainers;
-        }
-
-        function renderRankingTable(trainers, sortBy = 'totalLevels', order = 'desc') {
-            const tbody = document.getElementById('ranking-body');
-            if (!tbody) return;
-            trainers.sort((a, b) => {
-                let aVal = a[sortBy], bVal = b[sortBy];
-                if (sortBy === 'name') {
-                    aVal = a.name.toLowerCase();
-                    bVal = b.name.toLowerCase();
-                }
-                if (order === 'desc') return bVal - aVal;
-                else return aVal - bVal;
-            });
-            tbody.innerHTML = trainers.map(t => `
-                <tr data-uid="${t.uid}">
-                    <td>${t.name}</td>
-                    <td>${t.totalLevels}</td>
-                    <td>${t.totalEncounters}</td>
-                </tr>
-            `).join('');
-            // Add click handlers
-            document.querySelectorAll('#ranking-body tr').forEach(row => {
-                row.onclick = () => showTrainerTeam(row.dataset.uid);
-            });
-        }
-
-        async function showTrainerTeam(uid) {
-            const teamSnap = await getDocs(collection(db, "users", uid, "pokemon"));
-            trackRead(teamSnap.size);
-            const team = [];
-            teamSnap.forEach(doc => {
-                const p = doc.data();
-                if (p.inTeam) {
-                    team.push(p);
-                }
-            });
-            const userDoc = await getDoc(doc(db, "users", uid));
-            trackRead();
-            const userData = userDoc.data();
-            const trainerName = userData?.trainerName || uid.split('@')[0];
-            document.getElementById('trainer-team-name').innerText = `${trainerName}'s Team`;
-            const container = document.getElementById('trainer-team-list');
-            container.innerHTML = '';
-            if (team.length === 0) {
-                container.innerHTML = '<p>This trainer has no Pokémon in their team.</p>';
-            } else {
-                for (const mon of team) {
-                    const div = document.createElement('div');
-                    div.className = 'mon-item';
-                    const img = document.createElement('img');
-                    loadImageWithFallback(img, getStaticSpriteUrl(mon.pokemonId));
-                    div.appendChild(img);
-                    const info = document.createElement('div');
-                    info.className = 'mon-info';
-                    const expNeeded = getExpNeededForNextLevel(mon.level);
-                    const expCur = mon.exp || 0;
-                    const prog = Math.floor((expCur/expNeeded)*100);
-                    const moveBadges = mon.moves.map(m => `<span class="move-badge" style="background: ${getTypeColor(m.type)};">${m.name.toUpperCase()}</span>`).join('');
-                    info.innerHTML = `
-                        <b>${mon.name.toUpperCase()}</b> (Lvl ${mon.level} | XP: ${expCur}/${expNeeded} [${prog}%])<br>
-                        <small>${mon.types.join(', ')}</small><br>
-                        <div style="margin-top: 6px;">${moveBadges}</div>
-                    `;
-                    div.appendChild(info);
-                    container.appendChild(div);
-                }
-            }
-            document.getElementById('trainer-team-modal').classList.remove('hidden');
-        }
-
         // ========== AUTH STATE ==========
         onAuthStateChanged(auth, async (user) => {
             if(user) {
@@ -1873,33 +1713,6 @@
                 playMainMusic();
                 updateNavDisplay();
                 document.getElementById('change-name-btn').onclick = changeTrainerName;
-                
-                // Setup ranking button
-                document.getElementById('ranking-btn').onclick = async () => {
-                    const trainers = await loadRanking();
-                    renderRankingTable(trainers);
-                    document.getElementById('ranking-modal').classList.remove('hidden');
-                };
-                // Sorting
-                document.querySelectorAll('#ranking-table th').forEach(th => {
-                    th.onclick = () => {
-                        const sortBy = th.dataset.sort;
-                        if (!sortBy) return;
-                        const currentOrder = th.classList.contains('desc') ? 'desc' : 'asc';
-                        const newOrder = currentOrder === 'desc' ? 'asc' : 'desc';
-                        renderRankingTable(trainers, sortBy, newOrder);
-                        th.classList.toggle('desc', newOrder === 'desc');
-                    };
-                });
-                // Search
-                const searchInput = document.getElementById('ranking-search');
-                if (searchInput) {
-                    searchInput.oninput = () => {
-                        const term = searchInput.value.toLowerCase();
-                        const filtered = trainers.filter(t => t.name.toLowerCase().includes(term) || t.email.toLowerCase().includes(term));
-                        renderRankingTable(filtered);
-                    };
-                }
             } else {
                 document.getElementById('auth-screen').classList.remove('hidden');
                 document.getElementById('game-screen').classList.add('hidden');
@@ -1908,7 +1721,6 @@
             }
         });
 
-        // ========== AUXILIARY FUNCTIONS ==========
         document.getElementById('login-btn').onclick = () => signInWithEmailAndPassword(auth, email.value, password.value).catch(e=>alert(e.message));
         document.getElementById('logout-btn').onclick = () => signOut(auth).then(()=>location.reload());
         document.getElementById('catch-btn').onclick = attemptCatch;

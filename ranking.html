@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>PokeSim - Trainer Ranking</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Inter', system-ui, sans-serif;
+        }
+        :root {
+            --bg: #f0f2f5;
+            --card-bg: #ffffff;
+            --primary: #3b4cca;
+            --primary-dark: #00238f;
+            --border: #e2e8f0;
+            --text-dark: #2d3748;
+            --text-light: #5a6e8a;
+            --success: #48bb78;
+            --danger: #f56565;
+        }
+        body {
+            background: var(--bg);
+            min-height: 100vh;
+            color: var(--text-dark);
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            border-radius: 24px;
+            padding: 30px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
+        }
+        h1 {
+            color: var(--primary-dark);
+            margin-bottom: 20px;
+            border-left: 4px solid var(--primary);
+            padding-left: 16px;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        .search-input {
+            width: 100%;
+            padding: 10px 16px;
+            margin: 10px 0 20px;
+            border: 1px solid var(--border);
+            border-radius: 40px;
+            font-size: 1rem;
+        }
+        .ranking-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        .ranking-table th, .ranking-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        .ranking-table th {
+            cursor: pointer;
+            background: #f8fafc;
+            font-weight: 600;
+        }
+        .ranking-table th:hover {
+            background: #eef2ff;
+        }
+        .ranking-table tr:hover {
+            background: #f8fafc;
+            cursor: pointer;
+        }
+        .type-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 16px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            margin: 0 2px;
+            color: white;
+            text-shadow: 0 1px 1px rgba(0,0,0,0.2);
+        }
+        .move-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin: 2px 4px;
+            color: white;
+            text-shadow: 0 0 1px rgba(0,0,0,0.3);
+        }
+        .mon-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+        }
+        .mon-item img {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+            margin-right: 20px;
+        }
+        .mon-info {
+            flex: 1;
+        }
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 5000;
+            backdrop-filter: blur(4px);
+        }
+        .modal {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 32px;
+            max-width: 800px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 25px 40px rgba(0,0,0,0.3);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .hidden {
+            display: none !important;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 40px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.2s;
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-light);
+        }
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            .ranking-table th, .ranking-table td {
+                padding: 8px;
+                font-size: 0.8rem;
+            }
+            .mon-item img {
+                width: 40px;
+                height: 40px;
+                margin-right: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" class="back-link">← Back to Game</a>
+        <h1>🏆 Trainer Ranking</h1>
+        <input type="text" id="ranking-search" class="search-input" placeholder="Search by trainer name or email...">
+        <div style="overflow-x: auto;">
+            <table class="ranking-table" id="ranking-table">
+                <thead>
+                    <tr>
+                        <th data-sort="name">Trainer</th>
+                        <th data-sort="totalLevels">Total Level ⬇️</th>
+                        <th data-sort="totalEncounters">Total Encounters</th>
+                    </tr>
+                </thead>
+                <tbody id="ranking-body">
+                    <tr><td colspan="3">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Trainer Team Modal -->
+    <div id="trainer-team-modal" class="overlay hidden" onclick="this.classList.add('hidden')">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 id="trainer-team-name">Trainer Team</h2>
+                <button onclick="document.getElementById('trainer-team-modal').classList.add('hidden')" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+            </div>
+            <div id="trainer-team-list" style="display: flex; flex-direction: column; gap: 10px;"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = { apiKey: "AIzaSyDkCE0wBrsQ1s-7zplvTtWOSE28ISaCFfQ", authDomain: "pokesim-7f9b7.firebaseapp.com", projectId: "pokesim-7f9b7", storageBucket: "pokesim-7f9b7.firebasestorage.app", messagingSenderId: "1087100425430", appId: "1:1087100425430:web:9558a79ee5330d4a792577" };
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Helper functions (copied from main game)
+        function getTypeColor(type) {
+            const colors = {
+                normal: '#A8A77A', fire: '#EE8130', water: '#6390F0', electric: '#F7D02C',
+                grass: '#7AC74C', ice: '#96D9D6', fighting: '#C22E28', poison: '#A33EA1',
+                ground: '#E2BF65', flying: '#A98FF3', psychic: '#F95587', bug: '#A6B91A',
+                rock: '#B6A136', ghost: '#735797', dragon: '#6F35FC', dark: '#705746',
+                steel: '#B7B7CE', fairy: '#D685AD'
+            };
+            return colors[type] || '#777777';
+        }
+
+        function getStaticSpriteUrl(id) {
+            return [`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`, `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`];
+        }
+
+        function loadImageWithFallback(img, urls) {
+            let i=0;
+            function next() {
+                if(i>=urls.length) return;
+                img.src=urls[i];
+                img.onerror=()=>{ i++; next(); };
+            }
+            next();
+        }
+
+        function getExpNeededForNextLevel(l) { return l*300; }
+
+        // Load ranking data
+        async function loadRanking() {
+            const usersSnap = await getDocs(collection(db, "users"));
+            const trainers = [];
+            for (const docSnap of usersSnap.docs) {
+                const data = docSnap.data();
+                if (!data.hasStarter) continue;
+                const trainerName = data.trainerName || docSnap.id.split('@')[0];
+                trainers.push({
+                    uid: docSnap.id,
+                    name: trainerName,
+                    email: docSnap.id,
+                    totalLevels: data.totalLevels || 0,
+                    totalEncounters: data.totalEncounters || 0
+                });
+            }
+            return trainers;
+        }
+
+        function renderRankingTable(trainers, sortBy = 'totalLevels', order = 'desc') {
+            const tbody = document.getElementById('ranking-body');
+            if (!tbody) return;
+            trainers.sort((a, b) => {
+                let aVal = a[sortBy], bVal = b[sortBy];
+                if (sortBy === 'name') {
+                    aVal = a.name.toLowerCase();
+                    bVal = b.name.toLowerCase();
+                }
+                if (order === 'desc') return bVal - aVal;
+                else return aVal - bVal;
+            });
+            tbody.innerHTML = trainers.map(t => `
+                <tr data-uid="${t.uid}">
+                    <td>${escapeHtml(t.name)}</td>
+                    <td>${t.totalLevels}</td>
+                    <td>${t.totalEncounters}</td>
+                </tr>
+            `).join('');
+            // Add click handlers
+            document.querySelectorAll('#ranking-body tr').forEach(row => {
+                row.onclick = () => showTrainerTeam(row.dataset.uid);
+            });
+        }
+
+        async function showTrainerTeam(uid) {
+            const teamSnap = await getDocs(collection(db, "users", uid, "pokemon"));
+            const team = [];
+            teamSnap.forEach(doc => {
+                const p = doc.data();
+                if (p.inTeam) {
+                    team.push(p);
+                }
+            });
+            const userDoc = await getDoc(doc(db, "users", uid));
+            const userData = userDoc.data();
+            const trainerName = userData?.trainerName || uid.split('@')[0];
+            document.getElementById('trainer-team-name').innerText = `${escapeHtml(trainerName)}'s Team`;
+            const container = document.getElementById('trainer-team-list');
+            container.innerHTML = '';
+            if (team.length === 0) {
+                container.innerHTML = '<p>This trainer has no Pokémon in their team.</p>';
+            } else {
+                for (const mon of team) {
+                    const div = document.createElement('div');
+                    div.className = 'mon-item';
+                    const img = document.createElement('img');
+                    loadImageWithFallback(img, getStaticSpriteUrl(mon.pokemonId));
+                    div.appendChild(img);
+                    const info = document.createElement('div');
+                    info.className = 'mon-info';
+                    const expNeeded = getExpNeededForNextLevel(mon.level);
+                    const expCur = mon.exp || 0;
+                    const prog = Math.floor((expCur/expNeeded)*100);
+                    const moveBadges = mon.moves.map(m => `<span class="move-badge" style="background: ${getTypeColor(m.type)};">${m.name.toUpperCase()}</span>`).join('');
+                    info.innerHTML = `
+                        <b>${escapeHtml(mon.name.toUpperCase())}</b> (Lvl ${mon.level} | XP: ${expCur}/${expNeeded} [${prog}%])<br>
+                        <small>${mon.types.join(', ')}</small><br>
+                        <div style="margin-top: 6px;">${moveBadges}</div>
+                    `;
+                    div.appendChild(info);
+                    container.appendChild(div);
+                }
+            }
+            document.getElementById('trainer-team-modal').classList.remove('hidden');
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+
+        // Authentication check
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                // Not logged in, redirect to main page to login
+                window.location.href = 'index.html';
+                return;
+            }
+            // Load ranking
+            const trainers = await loadRanking();
+            renderRankingTable(trainers);
+            
+            // Setup search
+            const searchInput = document.getElementById('ranking-search');
+            if (searchInput) {
+                searchInput.oninput = () => {
+                    const term = searchInput.value.toLowerCase();
+                    const filtered = trainers.filter(t => t.name.toLowerCase().includes(term) || t.email.toLowerCase().includes(term));
+                    renderRankingTable(filtered);
+                };
+            }
+            // Setup sorting
+            const headers = document.querySelectorAll('#ranking-table th');
+            headers.forEach(th => {
+                th.onclick = () => {
+                    const sortBy = th.dataset.sort;
+                    if (!sortBy) return;
+                    const currentOrder = th.classList.contains('desc') ? 'desc' : 'asc';
+                    const newOrder = currentOrder === 'desc' ? 'asc' : 'desc';
+                    renderRankingTable(trainers, sortBy, newOrder);
+                    th.classList.toggle('desc', newOrder === 'desc');
+                };
+            });
+        });
+    </script>
+</body>
+</html>

@@ -571,85 +571,90 @@
     }
 
     // Display moves for selected Pokémon using the detailed learnset
-    async function displayPokemonMoves(pokemonId) {
-        const container = document.getElementById('pokemonMovesContainer');
-        container.innerHTML = '<div class="loader"><i class="fas fa-spinner fa-pulse"></i> Loading learnset...</div>';
+   // Display moves for selected Pokémon using the detailed learnset
+async function displayPokemonMoves(pokemonId) {
+    const container = document.getElementById('pokemonMovesContainer');
+    container.innerHTML = '<div class="loader"><i class="fas fa-spinner fa-pulse"></i> Loading learnset...</div>';
+    
+    const learnset = await fetchPokemonLearnset(pokemonId);
+    if (!learnset.length) {
+        container.innerHTML = '<div class="info-message">No move data found for this Pokémon.</div>';
+        return;
+    }
+
+    // Create a map of normalized move names (lowercase, spaces) -> move details
+    const moveMap = new Map();
+    for (const move of enrichedMoves) {
+        // Normalize: lowercase and replace hyphens with spaces
+        const normalized = move.name.toLowerCase().replace(/-/g, ' ');
+        moveMap.set(normalized, move);
+    }
+
+    const rows = [];
+    for (const learned of learnset) {
+        // Normalize the learned move name as well (lowercase, hyphens -> spaces)
+        const normalizedLearned = learned.name.toLowerCase().replace(/-/g, ' ');
+        const moveDetail = moveMap.get(normalizedLearned);
         
-        const learnset = await fetchPokemonLearnset(pokemonId);
-        if (!learnset.length) {
-            container.innerHTML = '<div class="info-message">No move data found for this Pokémon.</div>';
-            return;
-        }
-
-        // Merge with enrichedMoves to get move attributes (type, power, etc.)
-        const moveMap = new Map();
-        for (const move of enrichedMoves) {
-            moveMap.set(move.name.toLowerCase(), move);
-        }
-
-        const rows = [];
-        for (const learned of learnset) {
-            const moveNameLower = learned.name.toLowerCase();
-            const moveDetail = moveMap.get(moveNameLower);
-            if (!moveDetail) {
-                // Move might not be in enrichedMoves (unlikely, but we can still show basic info)
-                rows.push({
-                    name: capitalize(learned.name.replace(/-/g, ' ')),
-                    type: '?',
-                    power: '?',
-                    accuracy: '?',
-                    effect: '?',
-                    effectAccuracy: '?',
-                    levelMethod: learned.levelMethod
-                });
-                continue;
-            }
+        if (!moveDetail) {
+            // Fallback: show basic info if move not found in main list
             rows.push({
-                name: moveDetail.name,
-                type: moveDetail.type,
-                power: moveDetail.power,
-                accuracy: moveDetail.accuracy,
-                effect: moveDetail.effect,
-                effectAccuracy: moveDetail.effectAccuracy,
+                name: capitalize(learned.name.replace(/-/g, ' ')),
+                type: '?',
+                power: '?',
+                accuracy: '?',
+                effect: '?',
+                effectAccuracy: '?',
                 levelMethod: learned.levelMethod
             });
+            continue;
         }
-
-        // Sort by level (if numeric) then name
-        rows.sort((a,b) => {
-            const aLevel = a.levelMethod.startsWith('Lv.') ? parseInt(a.levelMethod.split(' ')[1]) : 999;
-            const bLevel = b.levelMethod.startsWith('Lv.') ? parseInt(b.levelMethod.split(' ')[1]) : 999;
-            if (aLevel !== bLevel) return aLevel - bLevel;
-            return a.name.localeCompare(b.name);
-        });
-
-        let html = `<div class="move-table-container"><table id="pokemonMovesTable" class="display" style="width:100%"><thead><tr>
-            <th>Move Name</th><th>Type</th><th>Power</th><th>Accuracy</th><th>Effect</th><th>Effect Accuracy</th><th>Learned At</th>
-        </tr></thead><tbody>`;
-        for (const row of rows) {
-            const typeColor = getTypeColor(row.type);
-            const typeBadge = `<span class="type-badge" style="background: ${typeColor};">${capitalize(row.type)}</span>`;
-            html += `<tr>
-                <td>${escapeHtml(row.name)}</td>
-                <td>${typeBadge}</td>
-                <td>${row.power}</td>
-                <td>${row.accuracy}</td>
-                <td>${escapeHtml(row.effect)}</td>
-                <td>${row.effectAccuracy}</td>
-                <td>${row.levelMethod}</td>
-            </tr>`;
-        }
-        html += `</tbody></table></div>`;
-        container.innerHTML = html;
-        $('#pokemonMovesTable').DataTable({
-            pageLength: 25,
-            order: [[6, 'asc']], // sort by Learned At by default
-            columnDefs: [{ targets: 2, type: 'num' }, { targets: 3, type: 'num' }],
-            autoWidth: false,
-            language: { search: "🔍 Filter moves:" }
+        
+        rows.push({
+            name: moveDetail.name,
+            type: moveDetail.type,
+            power: moveDetail.power,
+            accuracy: moveDetail.accuracy,
+            effect: moveDetail.effect,
+            effectAccuracy: moveDetail.effectAccuracy,
+            levelMethod: learned.levelMethod
         });
     }
 
+    // Sort by level (if numeric) then name
+    rows.sort((a,b) => {
+        const aLevel = a.levelMethod.startsWith('Lv.') ? parseInt(a.levelMethod.split(' ')[1]) : 999;
+        const bLevel = b.levelMethod.startsWith('Lv.') ? parseInt(b.levelMethod.split(' ')[1]) : 999;
+        if (aLevel !== bLevel) return aLevel - bLevel;
+        return a.name.localeCompare(b.name);
+    });
+
+    let html = `<div class="move-table-container"><table id="pokemonMovesTable" class="display" style="width:100%"><thead>
+        <th>Move Name</th><th>Type</th><th>Power</th><th>Accuracy</th><th>Effect</th><th>Effect Accuracy</th><th>Learned At</th>
+    </thead><tbody>`;
+    for (const row of rows) {
+        const typeColor = getTypeColor(row.type);
+        const typeBadge = `<span class="type-badge" style="background: ${typeColor};">${capitalize(row.type)}</span>`;
+        html += `<tr>
+            <td>${escapeHtml(row.name)}</td>
+            <td>${typeBadge}</td>
+            <td>${row.power}</td>
+            <td>${row.accuracy}</td>
+            <td>${escapeHtml(row.effect)}</td>
+            <td>${row.effectAccuracy}</td>
+            <td>${row.levelMethod}</td>
+        </tr>`;
+    }
+    html += `</tbody></table></div>`;
+    container.innerHTML = html;
+    $('#pokemonMovesTable').DataTable({
+        pageLength: 25,
+        order: [[6, 'asc']],
+        columnDefs: [{ targets: 2, type: 'num' }, { targets: 3, type: 'num' }],
+        autoWidth: false,
+        language: { search: "🔍 Filter moves:" }
+    });
+}
     // Tab switching
     function initTabs() {
         const tabs = document.querySelectorAll('.tab-button');

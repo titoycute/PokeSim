@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Support PokeSim | Buy Me a Coffee</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Inter', system-ui, sans-serif;
+        }
+
+        :root {
+            --bg: #f0f2f5;
+            --card-bg: #ffffff;
+            --primary: #3b4cca;
+            --primary-dark: #00238f;
+            --accent: #ffde00;
+            --text-dark: #2d3748;
+            --text-light: #5a6e8a;
+            --border: #e2e8f0;
+            --success: #48bb78;
+            --danger: #f56565;
+        }
+
+        body {
+            background: var(--bg);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .support-card {
+            max-width: 500px;
+            width: 100%;
+            background: var(--card-bg);
+            border-radius: 32px;
+            box-shadow: 0 20px 35px -10px rgba(0,0,0,0.2);
+            overflow: hidden;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary-dark), #1e2a6e);
+            padding: 30px 20px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .header p {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px 25px;
+        }
+
+        .coffee-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .qr-code {
+            background: #f8fafc;
+            border-radius: 20px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 1px solid var(--border);
+        }
+
+        .qr-placeholder {
+            width: 150px;
+            height: 150px;
+            background: #e2e8f0;
+            margin: 0 auto 10px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            color: var(--text-light);
+        }
+
+        .gcash-number {
+            background: #eef2ff;
+            padding: 12px;
+            border-radius: 48px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            font-family: monospace;
+            letter-spacing: 2px;
+            margin: 15px 0;
+            color: var(--primary-dark);
+        }
+
+        .instruction {
+            margin: 20px 0;
+            color: var(--text-light);
+            line-height: 1.5;
+        }
+
+        .btn-back {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            text-decoration: none;
+            padding: 12px 30px;
+            border-radius: 40px;
+            font-weight: bold;
+            margin-top: 20px;
+            transition: 0.2s;
+        }
+
+        .btn-back:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .footer-note {
+            font-size: 0.7rem;
+            color: var(--text-light);
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+        }
+    </style>
+</head>
+<body>
+    <div class="support-card">
+        <div class="header">
+            <h1>
+                <span>☕</span> Support PokeSim
+            </h1>
+            <p>Help keep the game alive and ad‑free</p>
+        </div>
+        <div class="content">
+            <div class="coffee-icon">❤️</div>
+            <p style="font-size: 1.1rem; font-weight: 600;">Your support means a lot!</p>
+            <div class="gcash-number">0966 651 7133</div>
+            <div class="instruction">
+                <strong>How to support:</strong><br>
+                1. Open GCash app<br>
+                2. Tap "Send Money" → "Send to Other"<br>
+                3. Enter number <strong>0966 651 7133</strong><br>
+                   T*** A*****<br>
+                4. Enter any amount (even a small coffee helps!)<br>
+                5. Add a note: "PokeSim"<br>
+                6. Confirm and send 🎉
+            </div>
+            <div class="qr-code">
+                <div class="qr-placeholder">
+                    📱 Scan with GCash
+                </div>
+                <div style="font-size: 0.75rem; color: var(--text-light);">GCash QR Code (if available)</div>
+            </div>
+            <a href="index.html" class="btn-back">← Back to Game</a>
+            <div class="footer-note">
+                * 100% of donations go towards server costs and new features.<br>
+                Thank you for being awesome! 💙
+            </div>
+        </div>
+    </div>
+</body>
+</html>

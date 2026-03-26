@@ -5,15 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <meta name="description" content="PokeSim – catch, train, and battle Pokémon online. Build your team, explore the map, and challenge wild Pokémon with a full type‑effectiveness system.">
     <title>PokeSim | Kanto Noybi - By Tootzkie Custodio</title>
-    <link rel="icon" type="image/png" href="favicon.ico">
-
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    
+    <!-- Open Graph / Social Media Meta Tags -->
     <meta property="og:title" content="PokeSim - Pokémon Battle & Collection Game">
     <meta property="og:description" content="Catch, train, and battle Pokémon in this online RPG. Choose from over 1000 species, edit moves, and explore a living world.">
     <meta property="og:image" content="https://pokesim.ph.gamer.gd/PokeSim_Pokemon.png">
     <meta property="og:url" content="https://pokesim.ph.gamer.gd">
     <meta name="twitter:card" content="summary_large_image">
+    
     <style>
-
         * {
             margin: 0;
             padding: 0;
@@ -21,7 +22,75 @@
             font-family: 'Segoe UI', 'Inter', system-ui, sans-serif;
         }
 
-        /* ========== CLEAN BLUE THEME VARIABLES ========== */
+        /* Game features section */
+/* Game features section */
+/* Game features section */
+.game-features {
+    background: rgba(255,255,255,0.9);
+    border-top: 1px solid var(--border);
+    margin-top: 20px;
+    padding: 20px;
+    text-align: center;
+}
+
+.features-container {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.features-container h3 {
+    color: var(--primary-dark);
+    font-size: 1.2rem;
+    margin-bottom: 15px;
+}
+
+.features-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px 24px;
+    margin-bottom: 20px;
+}
+
+.features-grid p {
+    font-size: 0.85rem;
+    color: var(--text-dark);
+    background: #f8fafc;
+    padding: 4px 12px;
+    border-radius: 40px;
+    margin: 0;
+}
+
+.support-section {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-size: 0.9rem;
+}
+
+.support-section a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: bold;
+    transition: 0.2s;
+}
+
+.support-section a:hover {
+    text-decoration: underline;
+    color: var(--primary-dark);
+}
+
+@media (max-width: 600px) {
+    .features-grid p {
+        font-size: 0.75rem;
+        padding: 3px 10px;
+    }
+    .support-section {
+        font-size: 0.8rem;
+    }
+}
+
+
         :root {
             --bg: #f0f2f5;
             --card-bg: #ffffff;
@@ -45,11 +114,9 @@
             color: var(--text-dark);
         }
 
-        .hidden {
-            display: none !important;
-        }
+        .hidden { display: none !important; }
 
-        /* ========== AUTH SCREEN ========== */
+        /* Auth Screen */
         #auth-screen {
             height: 100vh;
             display: flex;
@@ -57,7 +124,6 @@
             justify-content: center;
             background: linear-gradient(135deg, var(--primary-dark), #1e2a6e);
         }
-
         .auth-card {
             background: var(--card-bg);
             padding: 40px;
@@ -66,16 +132,14 @@
             text-align: center;
             box-shadow: 0 20px 35px -10px rgba(0,0,0,0.2);
             border: 1px solid var(--border);
+            transition: all 0.3s ease;
         }
-
         .auth-card img {
             width: 280px;
             height: auto;
             margin-bottom: 10px;
             border-radius: 20px;
         }
-
-        /* Footer */
         footer {
             text-align: center;
             padding: 16px;
@@ -85,7 +149,6 @@
             margin-top: 40px;
             border-top: 1px solid var(--border);
         }
-
         input {
             width: 100%;
             padding: 12px 16px;
@@ -95,13 +158,11 @@
             font-size: 0.95rem;
             transition: 0.2s;
         }
-
         input:focus {
             outline: none;
             border-color: var(--primary);
             box-shadow: 0 0 0 3px rgba(59,76,202,0.1);
         }
-
         .btn {
             padding: 12px 20px;
             border: none;
@@ -110,37 +171,14 @@
             font-weight: 600;
             transition: 0.2s;
         }
+        .btn-primary { background: var(--primary); color: white; width: 100%; }
+        .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-light); }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { background: #e53e3e; }
+        .btn-success { background: var(--success); color: white; }
 
-        .btn-primary {
-            background: var(--primary);
-            color: white;
-            width: 100%;
-        }
-
-        .btn-primary:hover {
-            background: var(--primary-dark);
-            transform: translateY(-1px);
-        }
-
-        .btn-outline {
-            background: transparent;
-            border: 1px solid var(--border);
-            color: var(--text-light);
-        }
-
-        .btn-danger {
-            background: var(--danger);
-            color: white;
-        }
-        .btn-danger:hover {
-            background: #e53e3e;
-        }
-        .btn-success {
-            background: var(--success);
-            color: white;
-        }
-
-        /* ========== NAVIGATION ========== */
+        /* Navigation */
         nav {
             background: var(--card-bg);
             padding: 12px 5%;
@@ -155,116 +193,23 @@
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
             border-bottom: 1px solid var(--border);
         }
+        .logo { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.5rem; color: var(--primary-dark); letter-spacing: -0.5px; }
+        .logo img { height: 40px; width: auto; border-radius: 12px; }
+        .nav-links { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .nav-link { background: none; border: none; cursor: pointer; font-weight: 500; padding: 6px 10px; border-radius: 40px; transition: 0.2s; color: var(--text-dark); font-size: 0.9rem; }
+        .nav-link:hover { background: #eef2ff; color: var(--primary); }
+        #logout-btn { background: #f1f5f9; color: var(--text-light); padding: 6px 12px; border-radius: 40px; }
+        #user-email-display { background: #eef2ff; padding: 4px 10px; border-radius: 40px; font-size: 0.75rem; font-weight: 500; white-space: nowrap; }
 
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-weight: 800;
-            font-size: 1.5rem;
-            color: var(--primary-dark);
-            letter-spacing: -0.5px;
-        }
-        .logo img {
-            height: 40px;
-            width: auto;
-            border-radius: 12px;
-        }
+        /* Map */
+        .map-wrapper { width: 100%; overflow-x: auto; display: flex; justify-content: center; margin: 20px 0; }
+        #map-viewport { width: 600px; height: 400px; border: 4px solid var(--primary); border-radius: 20px; overflow: hidden; position: relative; background: var(--dirt); box-shadow: 0 12px 24px rgba(0,0,0,0.1); flex-shrink: 0; }
+        #map-grid { display: grid; grid-template-columns: repeat(50, 50px); position: absolute; top: 0; left: 0; z-index: 1; transition: transform 0.15s ease-out; }
+        .tile { width: 50px; height: 50px; border: 1px solid rgba(0,0,0,0.05); }
+        .tile.grass { background: var(--grass); }
+        #player { position: absolute; width: 60px; height: 60px; top: 170px; left: 270px; z-index: 999; background-size: contain; background-repeat: no-repeat; background-position: center; pointer-events: none; filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.2)); }
 
-        .nav-links {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .nav-link {
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-weight: 500;
-            padding: 6px 10px;
-            border-radius: 40px;
-            transition: 0.2s;
-            color: var(--text-dark);
-            font-size: 0.9rem;
-        }
-
-        .nav-link:hover {
-            background: #eef2ff;
-            color: var(--primary);
-        }
-
-        #logout-btn {
-            background: #f1f5f9;
-            color: var(--text-light);
-            padding: 6px 12px;
-            border-radius: 40px;
-        }
-
-        #user-email-display {
-            background: #eef2ff;
-            padding: 4px 10px;
-            border-radius: 40px;
-            font-size: 0.75rem;
-            font-weight: 500;
-            white-space: nowrap;
-        }
-
-        /* ========== MAP SECTION ========== */
-        .map-wrapper {
-            width: 100%;
-            overflow-x: auto;
-            display: flex;
-            justify-content: center;
-            margin: 20px 0;
-        }
-        #map-viewport {
-            width: 600px;
-            height: 400px;
-            border: 4px solid var(--primary);
-            border-radius: 20px;
-            overflow: hidden;
-            position: relative;
-            background: var(--dirt);
-            box-shadow: 0 12px 24px rgba(0,0,0,0.1);
-            flex-shrink: 0;
-        }
-
-        #map-grid {
-            display: grid;
-            grid-template-columns: repeat(50, 50px);
-            position: absolute;
-            top: 0;
-            left: 0;
-            z-index: 1;
-            transition: transform 0.15s ease-out;
-        }
-
-        .tile {
-            width: 50px;
-            height: 50px;
-            border: 1px solid rgba(0,0,0,0.05);
-        }
-        .tile.grass {
-            background: var(--grass);
-        }
-
-        #player {
-            position: absolute;
-            width: 60px;
-            height: 60px;
-            top: 170px;
-            left: 270px;
-            z-index: 999;
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: center;
-            pointer-events: none;
-            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.2));
-        }
-
-        /* ========== BATTLE AREA ========== */
+        /* Battle Area */
         #battle-area {
             max-width: 700px;
             width: 95%;
@@ -276,107 +221,20 @@
             overflow: hidden;
             position: relative;
         }
-        /* ... rest of battle styles (keep unchanged) ... */
-        .battle-header {
-            background: var(--primary-dark);
-            color: white;
-            text-align: center;
-            padding: 12px;
-            font-weight: bold;
-            font-size: 1rem;
-            position: relative;
-            z-index: 2;
-        }
-
-        .battle-ui {
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            position: relative;
-            z-index: 2;
-        }
-
-        .side {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            opacity: 0;
-            transform: translateX(-100px);
-            animation: slideIn 0.5s forwards;
-            flex-wrap: wrap;
-        }
-        .enemy-side {
-            justify-content: flex-end;
-            transform: translateX(100px);
-            animation-delay: 0.2s;
-        }
-        .player-side {
-            transform: translateX(-100px);
-            animation-delay: 0.4s;
-        }
-        @keyframes slideIn {
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-
-        .btl-sprite {
-            width: 100px;
-            height: 100px;
-            object-fit: contain;
-            cursor: pointer;
-            transition: transform 0.2s;
-            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.2));
-        }
-        .btl-sprite:hover {
-            transform: scale(1.05);
-        }
-
-        .stat-box {
-            background: rgba(255,255,255,0.9);
-            backdrop-filter: blur(4px);
-            padding: 12px 16px;
-            border-radius: 20px;
-            width: 220px;
-            border-left: 4px solid var(--primary);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .hp-bar {
-            background: #e2e8f0;
-            height: 8px;
-            border-radius: 10px;
-            overflow: hidden;
-            margin-top: 8px;
-        }
-        .hp-fill {
-            height: 100%;
-            background: var(--success);
-            width: 100%;
-            transition: width 0.3s;
-        }
-
-        #battle-log {
-            background: rgba(0,0,0,0.7);
-            color: #e0e0e0;
-            padding: 12px;
-            font-family: monospace;
-            font-size: 0.8rem;
-            height: 80px;
-            overflow-y: auto;
-            border-radius: 16px;
-            margin: 10px 0;
-            backdrop-filter: blur(4px);
-        }
-
-        #battle-moves {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-
+        #battle-area::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at 20% 30%, rgba(255,255,200,0.2) 0%, rgba(0,0,0,0) 70%); pointer-events: none; }
+        .battle-header { background: var(--primary-dark); color: white; text-align: center; padding: 12px; font-weight: bold; font-size: 1rem; position: relative; z-index: 2; }
+        .battle-ui { padding: 20px; display: flex; flex-direction: column; gap: 20px; position: relative; z-index: 2; }
+        .side { display: flex; align-items: center; gap: 15px; opacity: 0; transform: translateX(-100px); animation: slideIn 0.5s forwards; flex-wrap: wrap; }
+        .enemy-side { justify-content: flex-end; transform: translateX(100px); animation-delay: 0.2s; }
+        .player-side { transform: translateX(-100px); animation-delay: 0.4s; }
+        @keyframes slideIn { to { opacity: 1; transform: translateX(0); } }
+        .btl-sprite { width: 100px; height: 100px; object-fit: contain; cursor: pointer; transition: transform 0.2s; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.2)); }
+        .btl-sprite:hover { transform: scale(1.05); }
+        .stat-box { background: rgba(255,255,255,0.9); backdrop-filter: blur(4px); padding: 12px 16px; border-radius: 20px; width: 220px; border-left: 4px solid var(--primary); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .hp-bar { background: #e2e8f0; height: 8px; border-radius: 10px; overflow: hidden; margin-top: 8px; }
+        .hp-fill { height: 100%; background: var(--success); width: 100%; transition: width 0.3s; }
+        #battle-log { background: rgba(0,0,0,0.7); color: #e0e0e0; padding: 12px; font-family: monospace; font-size: 0.8rem; height: 80px; overflow-y: auto; border-radius: 16px; margin: 10px 0; backdrop-filter: blur(4px); }
+        #battle-moves { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .move-btn {
             display: flex;
             justify-content: center;
@@ -391,19 +249,11 @@
             text-shadow: 0 1px 1px rgba(0,0,0,0.2);
             font-size: 0.9rem;
             gap: 6px;
+            background: var(--type-color, #a0aec0);
         }
-        .move-btn span:first-child {
-            text-transform: uppercase;
-        }
-        .move-btn span:last-child {
-            font-size: 1rem;
-        }
-        .move-btn:hover {
-            filter: brightness(0.9);
-            transform: translateY(-2px);
-        }
-
-        /* Type button colors (keep existing) */
+        .move-btn span:first-child { text-transform: uppercase; }
+        .move-btn:hover { filter: brightness(0.9); transform: translateY(-2px); }
+        /* Type button colors (also used for move badges) */
         .type-fire { background: #ff421c; }
         .type-water { background: #6390f0; }
         .type-grass { background: #78cd54; }
@@ -422,23 +272,26 @@
         .type-rock { background: #b8a038; }
         .type-bug { background: #a8b820; }
         .type-ghost { background: #705898; }
-
-        .catch-area {
-            margin-top: 12px;
+        .catch-area { margin-top: 12px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+        .catch-chance { font-size: 0.8rem; background: rgba(255,255,255,0.8); padding: 6px 12px; border-radius: 40px; font-weight: bold; }
+        .catch-btn {
+            background: #e33535;
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-        }
-        .catch-chance {
-            font-size: 0.8rem;
-            background: rgba(255,255,255,0.8);
-            padding: 6px 12px;
+            gap: 8px;
+            padding: 8px 20px;
             border-radius: 40px;
+            color: white;
             font-weight: bold;
+            border: none;
+            cursor: pointer;
+            transition: 0.2s;
         }
+        .catch-btn i { font-size: 1.2rem; }
+        .catch-btn:hover { background: #c22e2e; transform: scale(0.98); }
+        .catch-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
-        /* ========== MODALS ========== */
+        /* Modals */
         .overlay {
             position: fixed;
             top: 0;
@@ -452,7 +305,6 @@
             z-index: 5000;
             backdrop-filter: blur(4px);
         }
-
         .modal {
             background: var(--card-bg);
             padding: 30px;
@@ -462,167 +314,42 @@
             text-align: center;
             box-shadow: 0 25px 40px rgba(0,0,0,0.3);
         }
+        .move-list { max-height: 400px; overflow-y: auto; margin: 16px 0; text-align: left; }
+        .starter-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 16px; max-height: 60vh; overflow-y: auto; margin-top: 20px; }
+        .starter-card { background: #f8fafc; border-radius: 24px; padding: 12px; cursor: pointer; transition: all 0.2s; border: 2px solid transparent; }
+        .starter-card:hover { transform: translateY(-5px); box-shadow: 0 12px 20px rgba(0,0,0,0.1); border-color: var(--primary); }
+        .starter-card img { width: 80px; height: 80px; object-fit: contain; }
 
-        .move-list {
-            max-height: 400px;
-            overflow-y: auto;
-            margin: 16px 0;
-            text-align: left;
-        }
-        .move-option {
-            display: flex;
-            align-items: center;
-            padding: 10px;
-            border-bottom: 1px solid var(--border);
-            cursor: pointer;
-        }
-        .move-option.selected {
-            background: #eef2ff;
-        }
-        .move-name {
-            flex: 1;
-            font-weight: 500;
-        }
-        .move-type {
-            font-size: 0.7rem;
-            padding: 2px 8px;
-            border-radius: 20px;
-            color: white;
-            margin-left: 8px;
-        }
-
-        .starter-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-            gap: 16px;
-            max-height: 60vh;
-            overflow-y: auto;
-            margin-top: 20px;
-        }
-
-        .starter-card {
-            background: #f8fafc;
-            border-radius: 24px;
-            padding: 12px;
-            cursor: pointer;
-            transition: all 0.2s;
-            border: 2px solid transparent;
-        }
-
-        .starter-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 20px rgba(0,0,0,0.1);
-            border-color: var(--primary);
-        }
-
-        .starter-card img {
-            width: 80px;
-            height: 80px;
-            object-fit: contain;
-        }
-
-        /* ========== LIST VIEWS ========== */
-        .list-container {
-            max-width: 800px;
-            width: 95%;
-            margin: 30px auto;
-            background: var(--card-bg);
-            border-radius: 24px;
-            padding: 20px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
-            border: 1px solid var(--border);
-        }
-
-        .list-container h2 {
-            margin-bottom: 20px;
-            color: var(--primary-dark);
-            border-left: 4px solid var(--primary);
-            padding-left: 16px;
-            font-size: 1.4rem;
-        }
-
-        .mon-item {
-            display: flex;
-            align-items: center;
-            padding: 12px;
-            border-bottom: 1px solid var(--border);
-            cursor: pointer;
-            transition: 0.2s;
-            flex-wrap: wrap;
-        }
-
-        .mon-item:hover {
-            background: #f8fafc;
-            transform: translateX(4px);
-        }
-
-        .mon-item img {
-            width: 60px;
-            height: 60px;
-            object-fit: contain;
-            margin-right: 20px;
-        }
-
-        .mon-info {
-            flex: 1;
-        }
-
-        .mon-buttons {
-            display: flex;
-            gap: 8px;
-            margin-left: auto;
-            flex-wrap: wrap;
-        }
-
-        .btn-small {
-            padding: 4px 10px;
-            font-size: 0.7rem;
-            border-radius: 30px;
-        }
-
-        .active-badge {
-            background: var(--success);
-            color: white;
+        /* Lists */
+        .list-container { max-width: 800px; width: 95%; margin: 30px auto; background: var(--card-bg); border-radius: 24px; padding: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.05); border: 1px solid var(--border); }
+        .list-container h2 { margin-bottom: 20px; color: var(--primary-dark); border-left: 4px solid var(--primary); padding-left: 16px; font-size: 1.4rem; }
+        .mon-item { display: flex; align-items: center; padding: 12px; border-bottom: 1px solid var(--border); cursor: pointer; transition: 0.2s; flex-wrap: wrap; }
+        .mon-item:hover { background: #f8fafc; transform: translateX(4px); }
+        .mon-item img { width: 60px; height: 60px; object-fit: contain; margin-right: 20px; }
+        .mon-info { flex: 1; }
+        .mon-buttons { display: flex; gap: 8px; margin-left: auto; flex-wrap: wrap; }
+        .btn-small { padding: 4px 10px; font-size: 0.7rem; border-radius: 30px; }
+        .active-badge { background: var(--success); color: white; padding: 2px 8px; border-radius: 20px; font-size: 0.7rem; margin-left: 8px; }
+        /* Move badge styling */
+        .move-badge {
+            display: inline-block;
             padding: 2px 8px;
             border-radius: 20px;
             font-size: 0.7rem;
-            margin-left: 8px;
-        }
-
-        /* ========== MAP CONTROLS ========== */
-        .map-controls-t {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-            margin: 15px auto;
-        }
-        .arrow-row {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-        }
-        .arrow-row.middle {
-            gap: 20px;
-        }
-        .arrow-up, .arrow-down, .arrow-left, .arrow-right {
-            width: 60px;
-            padding: 10px;
-            border-radius: 40px;
-            font-weight: bold;
-            background: var(--primary);
+            font-weight: 600;
+            margin: 2px 4px;
             color: white;
-            border: none;
-            cursor: pointer;
-            transition: 0.2s;
-            font-size: 1.2rem;
-        }
-        .arrow-up:hover, .arrow-down:hover, .arrow-left:hover, .arrow-right:hover {
-            background: var(--primary-dark);
-            transform: translateY(-2px);
+            text-shadow: 0 0 1px rgba(0,0,0,0.3);
         }
 
-        /* Encounter preview */
+        /* Map Controls */
+        .map-controls-t { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 15px auto; }
+        .arrow-row { display: flex; justify-content: center; gap: 15px; }
+        .arrow-row.middle { gap: 20px; }
+        .arrow-up, .arrow-down, .arrow-left, .arrow-right { width: 60px; padding: 10px; border-radius: 40px; font-weight: bold; background: var(--primary); color: white; border: none; cursor: pointer; transition: 0.2s; font-size: 1.2rem; }
+        .arrow-up:hover, .arrow-down:hover, .arrow-left:hover, .arrow-right:hover { background: var(--primary-dark); transform: translateY(-2px); }
+
+        /* Encounter Preview */
         #encounter-preview {
             position: fixed;
             top: 0;
@@ -635,171 +362,64 @@
             justify-content: center;
             z-index: 6000;
             backdrop-filter: blur(8px);
-            transition: opacity 0.3s;
         }
-        .encounter-card {
-            background: var(--card-bg);
-            border-radius: 48px;
-            padding: 40px;
-            text-align: center;
-            animation: bounceIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-        }
-        @keyframes bounceIn {
-            0% { transform: scale(0.3); opacity: 0; }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); opacity: 1; }
-        }
-        .encounter-sprite {
-            width: 180px;
-            height: 180px;
-            object-fit: contain;
-            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.2));
-        }
-        .encounter-name {
-            font-size: 2rem;
-            font-weight: bold;
-            margin-top: 20px;
-            color: var(--primary-dark);
-        }
+        .encounter-card { background: var(--card-bg); border-radius: 48px; padding: 40px; text-align: center; animation: bounceIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55); }
+        @keyframes bounceIn { 0% { transform: scale(0.3); opacity: 0; } 50% { transform: scale(1.05); } 100% { transform: scale(1); opacity: 1; } }
+        .encounter-sprite { width: 180px; height: 180px; object-fit: contain; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.2)); }
+        .encounter-name { font-size: 2rem; font-weight: bold; margin-top: 20px; color: var(--primary-dark); }
 
-        /* Volume control button */
-        .volume-btn {
-            background: rgba(255,255,255,0.8);
-            border: none;
-            border-radius: 50%;
-            width: 36px;
-            height: 36px;
-            cursor: pointer;
-            font-size: 1.2rem;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            margin-left: 8px;
-            transition: 0.2s;
-        }
-        .volume-btn:hover {
-            background: white;
-            transform: scale(1.05);
-        }
+        .volume-btn { background: rgba(255,255,255,0.8); border: none; border-radius: 50%; width: 36px; height: 36px; cursor: pointer; font-size: 1.2rem; display: inline-flex; align-items: center; justify-content: center; margin-left: 8px; transition: 0.2s; }
+        .volume-btn:hover { background: white; transform: scale(1.05); }
 
-        /* ========== RESPONSIVE MEDIA QUERIES ========== */
+        /* About Stats */
+        .about-stats { text-align: left; margin: 20px 0; padding: 15px; background: #f8fafc; border-radius: 16px; font-family: monospace; }
+        .about-stats p { margin: 8px 0; }
+        .stat-progress { width: 100%; height: 8px; background: #e2e8f0; border-radius: 10px; overflow: hidden; margin: 5px 0 10px 0; }
+        .stat-progress-fill { height: 100%; background: var(--primary); transition: width 0.3s; border-radius: 10px; }
+        .stat-progress-fill.warning { background: #f59e0b; }
+        .stat-progress-fill.danger { background: var(--danger); }
+        .about-badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: bold; margin-left: 8px; }
+        .about-badge.free { background: #eef2ff; color: var(--primary); }
+        .about-badge.warning { background: #fef3c7; color: #f59e0b; }
+        .about-badge.danger { background: #fee2e2; color: var(--danger); }
+
         @media (max-width: 768px) {
-            nav {
-                flex-direction: column;
-                align-items: stretch;
-                text-align: center;
-            }
-            .logo {
-                justify-content: center;
-            }
-            .nav-links {
-                justify-content: center;
-                gap: 8px;
-            }
-            .nav-link {
-                font-size: 0.8rem;
-                padding: 4px 8px;
-            }
-            #user-email-display {
-                font-size: 0.7rem;
-                margin: 0 4px;
-            }
-            .auth-card {
-                width: 90%;
-                padding: 30px;
-            }
-            .auth-card img {
-                width: 200px;
-            }
-            #map-viewport {
-                width: 500px;
-                height: 333px;
-            }
-            #map-grid {
-                transform-origin: top left;
-            }
-            .btl-sprite {
-                width: 80px;
-                height: 80px;
-            }
-            .stat-box {
-                width: 180px;
-                padding: 8px 12px;
-            }
-            .side {
-                gap: 8px;
-            }
-            .move-btn {
-                padding: 8px 10px;
-                font-size: 0.75rem;
-            }
-            .catch-chance {
-                font-size: 0.7rem;
-            }
-            .list-container {
-                padding: 15px;
-            }
-            .mon-item img {
-                width: 50px;
-                height: 50px;
-                margin-right: 12px;
-            }
-            .mon-info {
-                font-size: 0.85rem;
-            }
-            .btn-small {
-                padding: 3px 8px;
-                font-size: 0.65rem;
-            }
-            .encounter-sprite {
-                width: 120px;
-                height: 120px;
-            }
-            .encounter-name {
-                font-size: 1.5rem;
-            }
-            .encounter-card {
-                padding: 30px;
-            }
-            .map-controls-t {
-                margin: 10px auto;
-            }
-            .arrow-up, .arrow-down, .arrow-left, .arrow-right {
-                width: 50px;
-                padding: 8px;
-                font-size: 1rem;
-            }
+            nav { flex-direction: column; align-items: stretch; text-align: center; }
+            .logo { justify-content: center; }
+            .nav-links { justify-content: center; gap: 8px; }
+            .nav-link { font-size: 0.8rem; padding: 4px 8px; }
+            #user-email-display { font-size: 0.7rem; margin: 0 4px; }
+            .auth-card { width: 90%; padding: 30px; }
+            .auth-card img { width: 200px; }
+            #map-viewport { width: 500px; height: 333px; }
+            .btl-sprite { width: 80px; height: 80px; }
+            .stat-box { width: 180px; padding: 8px 12px; }
+            .side { gap: 8px; }
+            .move-btn { padding: 8px 10px; font-size: 0.75rem; }
+            .catch-chance { font-size: 0.7rem; }
+            .list-container { padding: 15px; }
+            .mon-item img { width: 50px; height: 50px; margin-right: 12px; }
+            .mon-info { font-size: 0.85rem; }
+            .btn-small { padding: 3px 8px; font-size: 0.65rem; }
+            .encounter-sprite { width: 120px; height: 120px; }
+            .encounter-name { font-size: 1.5rem; }
+            .encounter-card { padding: 30px; }
+            .arrow-up, .arrow-down, .arrow-left, .arrow-right { width: 50px; padding: 8px; font-size: 1rem; }
         }
-
         @media (max-width: 520px) {
-            #map-viewport {
-                width: 100%;
-                height: auto;
-                aspect-ratio: 600 / 400;
-            }
-            .btl-sprite {
-                width: 60px;
-                height: 60px;
-            }
-            .stat-box {
-                width: 140px;
-                font-size: 0.75rem;
-            }
-            .move-btn {
-                font-size: 0.7rem;
-                padding: 6px 8px;
-            }
-            .move-btn span:last-child {
-                font-size: 0.8rem;
-            }
+            #map-viewport { width: 100%; height: auto; aspect-ratio: 600 / 400; }
+            .btl-sprite { width: 60px; height: 60px; }
+            .stat-box { width: 140px; font-size: 0.75rem; }
+            .move-btn { font-size: 0.7rem; padding: 6px 8px; }
         }
     </style>
+    <!-- Font Awesome for Pokéball icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
 
-    <!-- OVERLAYS (unchanged) -->
+    <!-- Overlays -->
     <div id="loading-overlay" class="overlay hidden"><div class="modal"><h3>Processing...</h3><p id="load-status">Preparing Battle</p></div></div>
-    
     <div id="info-overlay" class="overlay hidden" onclick="this.classList.add('hidden')">
         <div class="modal" onclick="event.stopPropagation()">
             <img id="info-img" src="" style="width:130px">
@@ -810,19 +430,16 @@
             <button class="btn btn-primary" style="margin-top:15px" onclick="document.getElementById('info-overlay').classList.add('hidden')">Close</button>
         </div>
     </div>
-
-    <!-- Move Editor Modal -->
-    <div id="move-editor" class="overlay hidden">
-        <div class="modal" style="max-width: 600px;">
-            <h3>Edit Moves for <span id="move-pokemon-name"></span></h3>
-            <p>Select up to 4 moves (click to toggle)</p>
-            <div id="move-list-container" class="move-list"></div>
-            <button id="save-moves-btn" class="btn btn-primary">Save Moves</button>
-            <button id="close-move-editor" class="btn btn-outline" style="margin-top: 10px;">Cancel</button>
+    <div id="move-editor" class="overlay hidden" onclick="this.classList.add('hidden')">
+    <div class="modal" style="max-width: 600px;" onclick="event.stopPropagation()">
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
+            <button onclick="document.getElementById('move-editor').classList.add('hidden')" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
         </div>
+        <h3>Edit Moves for <span id="move-pokemon-name"></span></h3>
+        <p>Select up to 4 moves (click to toggle)</p>
+        <div id="move-list-container" class="move-list"></div>
     </div>
-
-    <!-- Encounter Preview Modal -->
+</div>
     <div id="encounter-preview" class="hidden">
         <div class="encounter-card">
             <img id="preview-sprite" class="encounter-sprite" src="" alt="">
@@ -830,19 +447,51 @@
             <div style="margin-top: 20px;">A wild Pokémon appeared!</div>
         </div>
     </div>
+    <div id="about-modal" class="overlay hidden" onclick="this.classList.add('hidden')">
+        <div class="modal" style="max-width: 500px;" onclick="event.stopPropagation()">
+            <h2 style="color: var(--primary-dark); margin-bottom: 20px;">📊 PokeSim Status</h2>
+            <div class="about-stats">
+                <h3>Data Management Usage</h3>
+                <div id="read-stats"><p>📖 Reads: <strong id="read-count">0</strong> / 25,000 <span id="read-percent" class="about-badge free">0%</span></p><div class="stat-progress"><div id="read-progress" class="stat-progress-fill" style="width: 0%"></div></div></div>
+                <div id="write-stats"><p>✍️ Writes: <strong id="write-count">0</strong> / 10,000 <span id="write-percent" class="about-badge free">0%</span></p><div class="stat-progress"><div id="write-progress" class="stat-progress-fill" style="width: 0%"></div></div></div>
+                <div id="delete-stats"><p>🗑️ Deletes: <strong id="delete-count">0</strong> / 10,000 <span id="delete-percent" class="about-badge free">0%</span></p><div class="stat-progress"><div id="delete-progress" class="stat-progress-fill" style="width: 0%"></div></div></div>
+            </div>
+            <hr style="margin: 15px 0;">
+            <div style="font-size: 0.85rem; color: var(--text-light); text-align: left;">
+                <p>✨ <strong>Game Features:</strong></p>
+                    <p>🎮 Over 1,000+ Pokémon from Gen 1 to Gen 9</p>
+                    <p>⚔️ Full type effectiveness system</p>
+                    <p>🎯 Custom move sets (all damaging moves)</p>
+                    <p>🔄 Evolution system (automatic upon level up)</p>
+                    <p>⭐ 5th encounter of the same species = auto‑capture</p>
+                    <p>💰 Catching costs 20% of current XP</p>
+                    <p>🎵 Dynamic battle music</p>
+                     <div class="support-section">
+            <p>☕ Enjoying the game? <a href="support.html">Buy me a coffee</a> to support further development!</p>   </div>
+    
+                <br>
+                
+                <p>📅 <strong>Last Updated:</strong> March 26, 2026</p>
+                <p>👨‍💻 <strong>Created by:</strong> Tootzkie Custodio</p>
+               </div>
+            <button class="btn btn-primary" style="margin-top: 20px;" onclick="document.getElementById('about-modal').classList.add('hidden')">Close</button>
+        </div>
+    </div>
 
-    <!-- AUTH SCREEN -->
-    <div id="auth-screen">
-        <div class="auth-card">
-            <img src="PokeSim_Pokemon.png" alt="PokeSim Logo">
+    <!-- Auth Screen -->
+ <div id="auth-screen">
+    <div class="auth-card">
+        <img src="PokeSim_Pokemon.png" alt="PokeSim Logo">
+        <div id="auth-fields" style="display: none;">
             <input type="email" id="email" placeholder="Email">
             <input type="password" id="password" placeholder="Password">
             <button class="btn btn-primary" id="login-btn">Login</button>
             <button class="btn btn-outline" id="reg-btn" style="margin-top: 12px;">Register</button>
         </div>
     </div>
+</div>
 
-    <!-- STARTER SELECTION -->
+    <!-- Starter Selection -->
     <div id="starter-overlay" class="overlay hidden">
         <div class="modal">
             <h2>Choose Your First Partner</h2>
@@ -850,17 +499,16 @@
         </div>
     </div>
 
-    <!-- GAME SCREEN -->
+    <!-- Game Screen -->
     <div id="game-screen" class="hidden">
         <nav>
-            <div class="logo">
-                <img src="PokeSim Word.png" alt="PokeSim">
-            </div>
+            <div class="logo"><img src="PokeSim Word.png" alt="PokeSim"></div>
             <div class="nav-links">
                 <button class="nav-link" onclick="window.switchView('explore')">🌍 Map</button>
                 <button class="nav-link" onclick="window.switchView('team')">⚔️ Team</button>
                 <button class="nav-link" onclick="window.switchView('collection')">📦 Collection</button>
                 <button class="nav-link" onclick="window.switchView('records')">📖 Records</button>
+                <button class="nav-link" onclick="window.showAbout()">ℹ️ About</button>
                 <span id="user-email-display" style="margin: 0 10px; color: var(--text-dark); font-size: 0.9rem;"></span>
                 <button class="btn btn-outline" id="logout-btn">Logout</button>
                 <button id="volume-toggle" class="volume-btn" title="Mute/Unmute">🔊</button>
@@ -868,51 +516,21 @@
         </nav>
 
         <div id="view-explore">
-            <div class="map-wrapper">
-                <div id="map-viewport">
-                    <div id="map-grid"></div>
-                    <div id="player"></div>
-                </div>
-            </div>
-            
+            <div class="map-wrapper"><div id="map-viewport"><div id="map-grid"></div><div id="player"></div></div></div>
             <div id="battle-area" class="hidden">
                 <div class="battle-header">⚔️ WILD BATTLE ⚔️</div>
                 <div class="battle-ui">
-                    <div class="side enemy-side">
-                        <img id="e-sprite-btl" class="btl-sprite" title="Click for Info">
-                        <div class="stat-box">
-                            <strong id="e-name"></strong> <span id="e-types-icons"></span><br>
-                            <small id="e-lvl"></small>
-                            <div class="hp-bar"><div id="e-hp-fill" class="hp-fill"></div></div>
-                        </div>
-                    </div>
-                    <div class="side player-side">
-                        <img id="p-sprite-btl" class="btl-sprite" title="Click for Info">
-                        <div class="stat-box">
-                            <strong id="p-name"></strong> <span id="p-types-icons"></span><br>
-                            <small id="p-lvl"></small>
-                            <div class="hp-bar"><div id="p-hp-fill" class="hp-fill"></div></div>
-                        </div>
-                    </div>
+                    <div class="side enemy-side"><img id="e-sprite-btl" class="btl-sprite" title="Click for Info"><div class="stat-box"><strong id="e-name"></strong> <span id="e-types-icons"></span><br><small id="e-lvl"></small><div class="hp-bar"><div id="e-hp-fill" class="hp-fill"></div></div></div></div>
+                    <div class="side player-side"><img id="p-sprite-btl" class="btl-sprite" title="Click for Info"><div class="stat-box"><strong id="p-name"></strong> <span id="p-types-icons"></span><br><small id="p-lvl"></small><div class="hp-bar"><div id="p-hp-fill" class="hp-fill"></div></div></div></div>
                     <div id="battle-log"></div>
                     <div id="battle-moves"></div>
                     <div class="catch-area">
-                        <button id="catch-btn" class="btn btn-success">Catch</button>
+                    <button id="catch-btn" class="catch-btn"><img src="PokeSim_Icon.png" alt="Catch" style="width: 100%; height: 50px; vertical-align: middle; margin-right: 4px;"> Catch</button>
                         <div id="catch-chance" class="catch-chance">Catch chance: --%</div>
                     </div>
                 </div>
             </div>
-
-            <div class="map-controls-t">
-                <div class="arrow-row">
-                    <button class="btn btn-primary arrow-up" onclick="window.movePlayer(0,-1)">▲</button>
-                </div>
-                <div class="arrow-row middle">
-                    <button class="btn btn-primary arrow-left" onclick="window.movePlayer(-1,0)">◀</button>
-                    <button class="btn btn-primary arrow-down" onclick="window.movePlayer(0,1)">▼</button>
-                    <button class="btn btn-primary arrow-right" onclick="window.movePlayer(1,0)">▶</button>
-                </div>
-            </div>
+            <div class="map-controls-t"><div class="arrow-row"><button class="btn btn-primary arrow-up" onclick="window.movePlayer(0,-1)">▲</button></div><div class="arrow-row middle"><button class="btn btn-primary arrow-left" onclick="window.movePlayer(-1,0)">◀</button><button class="btn btn-primary arrow-down" onclick="window.movePlayer(0,1)">▼</button><button class="btn btn-primary arrow-right" onclick="window.movePlayer(1,0)">▶</button></div></div>
         </div>
 
         <div id="view-team" class="list-container hidden"><h2>My Team</h2><div id="team-list"></div></div>
@@ -920,926 +538,711 @@
         <div id="view-records" class="list-container hidden"><h2>Pokédex Records</h2><div id="records-list"></div></div>
     </div>
 
-    <!-- Audio elements -->
     <audio id="bg-music" src="music1.mp3" loop preload="auto"></audio>
     <audio id="battle-music" src="music2.mp3" loop preload="auto"></audio>
-    <footer>Created by Tootzkie</footer>
+    
+    
+
+   <div class="game-features">
+    <div class="features-container">
+        <h3>✨ Game Features ✨</h3>
+        <div class="features-grid">
+            <p>🎮 Over 1,000+ Pokémon from Gen 1 to Gen 9</p>
+            <p>⚔️ Full type effectiveness system</p>
+            <p>🎯 Custom move sets (all damaging moves)</p>
+            <p>🔄 Evolution system (automatic upon level up)</p>
+            <p>⭐ 5th encounter of the same species = auto‑capture</p>
+            <p>💰 Catching costs 20% of current XP</p>
+            <p>🎵 Dynamic battle music</p>
+        </div>
+        <div class="support-section">
+            <p>☕ Enjoying the game? <a href="support.html">Buy me a coffee</a> to support further development!</p>   </div>
+    </div>
+</div>
+    
+    <!-- FOOTER -->
+    <footer>Created by Tootzkie Custodio</footer>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, updateDoc, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = { apiKey: "AIzaSyDkCE0wBrsQ1s-7zplvTtWOSE28ISaCFfQ", authDomain: "pokesim-7f9b7.firebaseapp.com", projectId: "pokesim-7f9b7", storageBucket: "pokesim-7f9b7.firebasestorage.app", messagingSenderId: "1087100425430", appId: "1:1087100425430:web:9558a79ee5330d4a792577" };
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // Audio controls
-        const bgMusic = document.getElementById('bg-music');
-        const battleMusic = document.getElementById('battle-music');
-        let isMuted = false;
+        // Firestore usage tracking (simulated)
+        let totalReads = parseInt(localStorage.getItem('pokesim_reads') || '0');
+        let totalWrites = parseInt(localStorage.getItem('pokesim_writes') || '0');
+        let totalDeletes = parseInt(localStorage.getItem('pokesim_deletes') || '0');
+        const READ_LIMIT = 50000, WRITE_LIMIT = 20000, DELETE_LIMIT = 20000;
 
-        function playMainMusic() {
-            if (!isMuted) {
-                battleMusic.pause();
-                battleMusic.currentTime = 0;
-                bgMusic.play().catch(e => console.log("Autoplay blocked:", e));
+        function trackRead(count = 1) { totalReads += count; localStorage.setItem('pokesim_reads', totalReads); }
+        function trackWrite(count = 1) { totalWrites += count; localStorage.setItem('pokesim_writes', totalWrites); }
+        function trackDelete(count = 1) { totalDeletes += count; localStorage.setItem('pokesim_deletes', totalDeletes); }
+
+setTimeout(() => {
+    const fields = document.getElementById('auth-fields');
+    if (fields) {
+        fields.style.display = 'block';
+        // Optional: add a fade-in effect
+        fields.style.opacity = '0';
+        fields.style.transition = 'opacity 0.5s';
+        setTimeout(() => { fields.style.opacity = '1'; }, 10);
+    }
+}, 5000);
+        
+
+        function resetDailyCountersIfNeeded() {
+            const lastDate = localStorage.getItem('pokesim_last_date');
+            const today = new Date().toDateString();
+            if (lastDate !== today) {
+                totalReads = 0; totalWrites = 0; totalDeletes = 0;
+                localStorage.setItem('pokesim_reads', '0'); localStorage.setItem('pokesim_writes', '0');
+                localStorage.setItem('pokesim_deletes', '0'); localStorage.setItem('pokesim_last_date', today);
             }
         }
 
-        function playBattleMusic() {
-            if (!isMuted) {
-                bgMusic.pause();
-                bgMusic.currentTime = 0;
-                battleMusic.play().catch(e => console.log("Autoplay blocked:", e));
-            }
+        window.showAbout = function() {
+            resetDailyCountersIfNeeded();
+            const readPercent = (totalReads / READ_LIMIT) * 100;
+            const writePercent = (totalWrites / WRITE_LIMIT) * 100;
+            const deletePercent = (totalDeletes / DELETE_LIMIT) * 100;
+            document.getElementById('read-count').innerText = totalReads.toLocaleString();
+            document.getElementById('write-count').innerText = totalWrites.toLocaleString();
+            document.getElementById('delete-count').innerText = totalDeletes.toLocaleString();
+            document.getElementById('read-progress').style.width = `${Math.min(readPercent, 100)}%`;
+            document.getElementById('write-progress').style.width = `${Math.min(writePercent, 100)}%`;
+            document.getElementById('delete-progress').style.width = `${Math.min(deletePercent, 100)}%`;
+            const readBadge = document.getElementById('read-percent'), writeBadge = document.getElementById('write-percent'), deleteBadge = document.getElementById('delete-percent');
+            readBadge.innerText = `${Math.floor(readPercent)}%`; writeBadge.innerText = `${Math.floor(writePercent)}%`; deleteBadge.innerText = `${Math.floor(deletePercent)}%`;
+            const setBadge = (el, p) => { el.className = p >= 90 ? 'about-badge danger' : (p >= 70 ? 'about-badge warning' : 'about-badge free'); };
+            setBadge(readBadge, readPercent); setBadge(writeBadge, writePercent); setBadge(deleteBadge, deletePercent);
+            document.getElementById('about-modal').classList.remove('hidden');
+        }
+        setTimeout(() => {
+    const authFields = document.getElementById('auth-fields');
+    if (authFields) authFields.style.opacity = '1';
+}, 5000);
+        resetDailyCountersIfNeeded();
+
+        // Move database (loaded once after login)
+        let moveDatabase = [];        // array of { name, type, power, accuracy, learners }
+        let isMoveDatabaseLoaded = false;
+        let moveDatabaseLoading = false;
+
+        // Type color mapping (for move badges and buttons)
+        function getTypeColor(type) {
+            const colors = {
+                normal: '#A8A77A', fire: '#EE8130', water: '#6390F0', electric: '#F7D02C',
+                grass: '#7AC74C', ice: '#96D9D6', fighting: '#C22E28', poison: '#A33EA1',
+                ground: '#E2BF65', flying: '#A98FF3', psychic: '#F95587', bug: '#A6B91A',
+                rock: '#B6A136', ghost: '#735797', dragon: '#6F35FC', dark: '#705746',
+                steel: '#B7B7CE', fairy: '#D685AD'
+            };
+            return colors[type] || '#777777';
         }
 
-        function stopBattleMusic() {
-            battleMusic.pause();
-            battleMusic.currentTime = 0;
-            if (!isMuted) {
-                bgMusic.play().catch(e => console.log("Autoplay blocked:", e));
-            }
-        }
+        async function loadMoveDatabase() {
+            if (moveDatabaseLoading || isMoveDatabaseLoaded) return;
+            moveDatabaseLoading = true;
+            console.log("Loading move database...");
+            try {
+                const listRes = await fetch('https://pokeapi.co/api/v2/move?limit=2000&offset=0');
+                const listData = await listRes.json();
+                const allMoves = listData.results;
+                const totalMoves = allMoves.length;
+                const batchSize = 12;
+                const moveDetails = [];
 
-        function toggleMute() {
-            isMuted = !isMuted;
-            const volumeBtn = document.getElementById('volume-toggle');
-            if (isMuted) {
-                bgMusic.pause();
-                battleMusic.pause();
-                volumeBtn.innerText = '🔇';
-            } else {
-                // Resume appropriate music based on current state
-                if (currentBattle && document.getElementById('battle-area') && !document.getElementById('battle-area').classList.contains('hidden')) {
-                    battleMusic.play().catch(e => console.log("Autoplay blocked:", e));
-                } else {
-                    bgMusic.play().catch(e => console.log("Autoplay blocked:", e));
+                for (let i = 0; i < allMoves.length; i += batchSize) {
+                    const batch = allMoves.slice(i, i + batchSize);
+                    const batchPromises = batch.map(async move => {
+                        try {
+                            const detailRes = await fetch(move.url);
+                            const detail = await detailRes.json();
+                            const learners = detail.learned_by_pokemon.map(pokemon => {
+                                const parts = pokemon.url.split('/').filter(part => part);
+                                return parseInt(parts[parts.length - 1], 10);
+                            });
+                            return {
+                                name: detail.name,
+                                type: detail.type.name,
+                                power: detail.power !== null ? detail.power : 0,
+                                accuracy: detail.accuracy !== null ? detail.accuracy : 0,
+                                learners: learners
+                            };
+                        } catch (err) {
+                            console.error("Failed to fetch move", move.url, err);
+                            return null;
+                        }
+                    });
+                    const batchResults = await Promise.all(batchPromises);
+                    for (const move of batchResults) if (move) moveDetails.push(move);
+                    console.log(`Loaded ${moveDetails.length}/${totalMoves} moves...`);
                 }
-                volumeBtn.innerText = '🔊';
+                // Keep only damaging moves (power > 0, accuracy > 0)
+                moveDatabase = moveDetails.filter(m => m.power > 0 && m.accuracy > 0);
+                isMoveDatabaseLoaded = true;
+                console.log(`Move database ready: ${moveDatabase.length} damaging moves.`);
+            } catch (err) {
+                console.error("Failed to load move database:", err);
+                isMoveDatabaseLoaded = false;
+            } finally {
+                moveDatabaseLoading = false;
             }
         }
 
-        // Attach volume toggle
-        document.getElementById('volume-toggle').onclick = toggleMute;
-
-        let playerPos = { x: 25, y: 25 };
-        let mapData = [];
-        let currentBattle = null;
-        let isProcessing = false;
-        let activePokemonId = null;
-        let currentEditingPokemon = null;
-        let lastMoveTime = 0;
-        const MOVE_DELAY = 200; // ms
-
+        let playerPos = { x: 25, y: 25 }, mapData = [], currentBattle = null, isProcessing = false;
+        let activePokemonId = null, cachedActivePokemon = null, currentEditingPokemon = null, lastMoveTime = 0, lastTeamUpdate = 0, pendingXPDebounce = null, pendingRecordUpdates = {};
+        const MOVE_DELAY = 200, TEAM_CACHE_TIME = 5000;
         const TRAINER_GIF = "https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/078dadf7-4d9b-4bf4-9855-0112be351700/d54f6cb-230b552c-50d1-45ad-be7e-7eab211c1cf8.gif?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7InBhdGgiOiIvZi8wNzhkYWRmNy00ZDliLTRiZjQtOTg1NS0wMTEyYmUzNTE3MDAvZDU0ZjZjYi0yMzBiNTUyYy01MGQxLTQ1YWQtYmU3ZS03ZWFiMjExYzFjZjguZ2lmIn1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmZpbGUuZG93bmxvYWQiXX0.A8hNnEQQMDN-XZI-VOQkzR71AozVAvgQDF6FcAAqi6M";
         const TYPE_ICONS = { fire: "🔥", water: "💧", grass: "🌿", electric: "⚡", normal: "🔘", ice: "❄️", psychic: "🔮", poison: "🧪", ground: "🏜️", flying: "🦅", dragon: "🐲", bug: "🐛", rock: "🪨", ghost: "👻", dark: "🌙", steel: "⚙️", fairy: "✨", fighting: "👊" };
+        const bgMusic = document.getElementById('bg-music'), battleMusic = document.getElementById('battle-music');
+        let isMuted = false;
+        function playMainMusic() { if (!isMuted) { battleMusic.pause(); battleMusic.currentTime = 0; bgMusic.play().catch(e => console.log("Autoplay blocked:", e)); } }
+        function playBattleMusic() { if (!isMuted) { bgMusic.pause(); bgMusic.currentTime = 0; battleMusic.play().catch(e => console.log("Autoplay blocked:", e)); } }
+        function stopBattleMusic() { battleMusic.pause(); battleMusic.currentTime = 0; if (!isMuted) bgMusic.play().catch(e => console.log("Autoplay blocked:", e)); }
+        function toggleMute() { isMuted = !isMuted; const v = document.getElementById('volume-toggle'); if (isMuted) { bgMusic.pause(); battleMusic.pause(); v.innerText = '🔇'; } else { if (currentBattle && document.getElementById('battle-area') && !document.getElementById('battle-area').classList.contains('hidden')) battleMusic.play().catch(e=>{}); else bgMusic.play().catch(e=>{}); v.innerText = '🔊'; } }
+        document.getElementById('volume-toggle').onclick = toggleMute;
 
-        // ========== SPRITE FUNCTIONS ==========
-        function getStaticSpriteUrl(id) {
-            return [
-                `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`,
-                `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`
-            ];
-        }
+        function getStaticSpriteUrl(id) { return [`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`, `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`]; }
+        function getBattleSpriteUrl(id, side='front') { const base = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown`; if(side==='back') return [`${base}/back/${id}.gif`, `${base}/${id}.gif`, `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/${id}.png`, getStaticSpriteUrl(id)[0]]; else return [`${base}/${id}.gif`, ...getStaticSpriteUrl(id)]; }
+        function loadImageWithFallback(img, urls) { let i=0; function next() { if(i>=urls.length) return; img.src=urls[i]; img.onerror=()=>{ i++; next(); }; } next(); }
+        const typeEffectiveness = { normal:{rock:0.5,ghost:0,steel:0.5}, fire:{fire:0.5,water:0.5,grass:2,ice:2,bug:2,rock:0.5,dragon:0.5,steel:2}, water:{fire:2,water:0.5,grass:0.5,ground:2,rock:2,dragon:0.5}, electric:{water:2,electric:0.5,grass:0.5,ground:0,flying:2,dragon:0.5}, grass:{fire:0.5,water:2,grass:0.5,poison:0.5,ground:2,flying:0.5,bug:0.5,rock:2,dragon:0.5,steel:0.5}, ice:{fire:0.5,water:0.5,grass:2,ice:0.5,ground:2,flying:2,dragon:2,steel:0.5}, fighting:{normal:2,ice:2,rock:2,dark:2,steel:2,poison:0.5,flying:0.5,psychic:0.5,bug:0.5,ghost:0,fairy:0.5}, poison:{grass:2,fairy:2,poison:0.5,ground:0.5,rock:0.5,ghost:0.5,steel:0}, ground:{fire:2,electric:2,poison:2,rock:2,steel:2,grass:0.5,bug:0.5,flying:0}, flying:{grass:2,fighting:2,bug:2,electric:0.5,rock:0.5,steel:0.5}, psychic:{fighting:2,poison:2,psychic:0.5,dark:0,steel:0.5}, bug:{grass:2,psychic:2,dark:2,fire:0.5,fighting:0.5,poison:0.5,flying:0.5,ghost:0.5,steel:0.5,fairy:0.5}, rock:{fire:2,ice:2,flying:2,bug:2,fighting:0.5,ground:0.5,steel:0.5}, ghost:{psychic:2,ghost:2,normal:0,dark:0.5}, dragon:{dragon:2,steel:0.5,fairy:0}, dark:{psychic:2,ghost:2,fighting:0.5,dark:0.5,fairy:0.5}, steel:{ice:2,rock:2,fairy:2,fire:0.5,water:0.5,electric:0.5,steel:0.5}, fairy:{fighting:2,dragon:2,dark:2,fire:0.5,poison:0.5,steel:0.5} };
+        function getTypeEffectiveness(at, def) { let m=1; for(let d of def) { const c=typeEffectiveness[at]; if(c&&c[d]!==undefined) m*=c[d]; } return m; }
+        function getExpNeededForNextLevel(l) { return l*300; }
 
-        function getBattleSpriteUrl(id, side = 'front') {
-            const showdownBase = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown`;
-            if (side === 'back') {
-                return [
-                    `${showdownBase}/back/${id}.gif`,
-                    `${showdownBase}/${id}.gif`,
-                    `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/${id}.png`,
-                    getStaticSpriteUrl(id)[0]
-                ];
-            } else {
-                return [
-                    `${showdownBase}/${id}.gif`,
-                    ...getStaticSpriteUrl(id)
-                ];
-            }
-        }
-
-        function loadImageWithFallback(imgElement, urls) {
-            let idx = 0;
-            function tryNext() {
-                if (idx >= urls.length) return;
-                imgElement.src = urls[idx];
-                imgElement.onerror = () => { idx++; tryNext(); };
-            }
-            tryNext();
-        }
-
-        // ========== TYPE EFFECTIVENESS ==========
-        const typeEffectiveness = {
-            normal: { rock: 0.5, ghost: 0, steel: 0.5 },
-            fire: { fire: 0.5, water: 0.5, grass: 2, ice: 2, bug: 2, rock: 0.5, dragon: 0.5, steel: 2 },
-            water: { fire: 2, water: 0.5, grass: 0.5, ground: 2, rock: 2, dragon: 0.5 },
-            electric: { water: 2, electric: 0.5, grass: 0.5, ground: 0, flying: 2, dragon: 0.5 },
-            grass: { fire: 0.5, water: 2, grass: 0.5, poison: 0.5, ground: 2, flying: 0.5, bug: 0.5, rock: 2, dragon: 0.5, steel: 0.5 },
-            ice: { fire: 0.5, water: 0.5, grass: 2, ice: 0.5, ground: 2, flying: 2, dragon: 2, steel: 0.5 },
-            fighting: { normal: 2, ice: 2, rock: 2, dark: 2, steel: 2, poison: 0.5, flying: 0.5, psychic: 0.5, bug: 0.5, ghost: 0, fairy: 0.5 },
-            poison: { grass: 2, fairy: 2, poison: 0.5, ground: 0.5, rock: 0.5, ghost: 0.5, steel: 0 },
-            ground: { fire: 2, electric: 2, poison: 2, rock: 2, steel: 2, grass: 0.5, bug: 0.5, flying: 0 },
-            flying: { grass: 2, fighting: 2, bug: 2, electric: 0.5, rock: 0.5, steel: 0.5 },
-            psychic: { fighting: 2, poison: 2, psychic: 0.5, dark: 0, steel: 0.5 },
-            bug: { grass: 2, psychic: 2, dark: 2, fire: 0.5, fighting: 0.5, poison: 0.5, flying: 0.5, ghost: 0.5, steel: 0.5, fairy: 0.5 },
-            rock: { fire: 2, ice: 2, flying: 2, bug: 2, fighting: 0.5, ground: 0.5, steel: 0.5 },
-            ghost: { psychic: 2, ghost: 2, normal: 0, dark: 0.5 },
-            dragon: { dragon: 2, steel: 0.5, fairy: 0 },
-            dark: { psychic: 2, ghost: 2, fighting: 0.5, dark: 0.5, fairy: 0.5 },
-            steel: { ice: 2, rock: 2, fairy: 2, fire: 0.5, water: 0.5, electric: 0.5, steel: 0.5 },
-            fairy: { fighting: 2, dragon: 2, dark: 2, fire: 0.5, poison: 0.5, steel: 0.5 }
-        };
-
-        function getTypeEffectiveness(attackType, defenderTypes) {
-            let multiplier = 1;
-            for (let defType of defenderTypes) {
-                const chart = typeEffectiveness[attackType];
-                if (chart && chart[defType] !== undefined) multiplier *= chart[defType];
-            }
-            return multiplier;
-        }
-
-        // ========== XP & LEVEL ==========
-        function getExpNeededForNextLevel(level) {
-            return level * 300;
-        }
-
-        // ========== AUTH ==========
-        document.getElementById('login-btn').onclick = () => signInWithEmailAndPassword(auth, email.value, password.value).catch(e => alert(e.message));
-        document.getElementById('reg-btn').onclick = () => createUserWithEmailAndPassword(auth, email.value, password.value).then(r => setDoc(doc(db, "users", r.user.uid), { hasStarter: false })).catch(e => alert(e.message));
-        document.getElementById('logout-btn').onclick = () => signOut(auth).then(() => location.reload());
+        // Auth
+        document.getElementById('login-btn').onclick = () => signInWithEmailAndPassword(auth, email.value, password.value).catch(e=>alert(e.message));
+        document.getElementById('reg-btn').onclick = () => createUserWithEmailAndPassword(auth, email.value, password.value).then(r=>setDoc(doc(db,"users",r.user.uid),{hasStarter:false})).catch(e=>alert(e.message));
+        document.getElementById('logout-btn').onclick = () => signOut(auth).then(()=>location.reload());
 
         onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                const uDoc = await getDoc(doc(db, "users", user.uid));
+            if(user) {
+                const uDoc = await getDoc(doc(db,"users",user.uid)); trackRead();
                 const data = uDoc.data();
                 document.getElementById('auth-screen').classList.add('hidden');
                 const emailSpan = document.getElementById('user-email-display');
-                if (emailSpan) emailSpan.innerText = user.email;
-                if (!data || !data.hasStarter) {
+                if(emailSpan) emailSpan.innerText = user.email;
+                if(!data||!data.hasStarter) {
                     document.getElementById('starter-overlay').classList.remove('hidden');
                     loadStarters();
                 } else {
                     document.getElementById('game-screen').classList.remove('hidden');
                     activePokemonId = data.activePokemonId || null;
+                    if(activePokemonId) { const a=await getDoc(doc(db,"users",user.uid,"pokemon",activePokemonId)); trackRead(); if(a.exists()) cachedActivePokemon={id:a.id,...a.data()}; }
+                    // Start loading move database in background
+                    loadMoveDatabase();
                     initMap();
                     refreshTeamView();
-                    // Start main music after user is logged in (user interaction already happened)
                     playMainMusic();
                 }
             } else {
                 document.getElementById('auth-screen').classList.remove('hidden');
                 document.getElementById('game-screen').classList.add('hidden');
                 const emailSpan = document.getElementById('user-email-display');
-                if (emailSpan) emailSpan.innerText = '';
-                // Stop any music when logged out
+                if(emailSpan) emailSpan.innerText = '';
                 bgMusic.pause();
                 battleMusic.pause();
             }
         });
 
-        // ========== RELEASE & ACTIVE ==========
-        async function releasePokemon(pokemonId, pokemonName) {
-            if (!confirm(`Release ${pokemonName}? This action cannot be undone.`)) return;
-            const teamSnap = await getDocs(collection(db, "users", auth.currentUser.uid, "pokemon"));
-            let teamCount = 0;
-            teamSnap.forEach(d => { if (d.data().inTeam) teamCount++; });
-            if (teamCount === 1 && activePokemonId === pokemonId) {
-                alert("Cannot release your last Pokémon! You need at least one in your team.");
-                return;
-            }
-            await deleteDoc(doc(db, "users", auth.currentUser.uid, "pokemon", pokemonId));
-            if (activePokemonId === pokemonId) {
-                let newActive = null;
-                teamSnap.forEach(d => {
-                    if (d.id !== pokemonId && d.data().inTeam && !newActive) newActive = d.id;
+        async function releasePokemon(id,name) {
+            if(!confirm(`Release ${name}?`)) return;
+            const teamSnap = await getDocs(collection(db,"users",auth.currentUser.uid,"pokemon")); trackRead();
+            let teamCount=0; teamSnap.forEach(d=>{if(d.data().inTeam) teamCount++;});
+            if(teamCount===1&&activePokemonId===id) { alert("Cannot release last Pokémon!"); return; }
+            await deleteDoc(doc(db,"users",auth.currentUser.uid,"pokemon",id)); trackDelete();
+            if(activePokemonId===id) { let newActive=null; teamSnap.forEach(d=>{if(d.id!==id&&d.data().inTeam&&!newActive) newActive=d.id;}); if(newActive) { await updateDoc(doc(db,"users",auth.currentUser.uid),{activePokemonId:newActive}); trackWrite(); activePokemonId=newActive; await updateActiveCache(newActive); } else activePokemonId=null; }
+            refreshTeamView();
+        }
+        async function setActivePokemon(id) { await updateDoc(doc(db,"users",auth.currentUser.uid),{activePokemonId:id}); trackWrite(); activePokemonId=id; await updateActiveCache(id); refreshTeamView(); }
+        async function updateActiveCache(id) { const a=await getDoc(doc(db,"users",auth.currentUser.uid,"pokemon",id)); trackRead(); if(a.exists()) cachedActivePokemon={id:a.id,...a.data()}; }
+
+        // ========== MOVE EDITOR (with type colors) ==========
+  async function openMoveEditor(pokemonId, pokemonName, speciesId, currentMoves, pokemonLevel) {
+    currentEditingPokemon = { id: pokemonId, name: pokemonName, speciesId, currentMoves, level: pokemonLevel };
+    document.getElementById('move-pokemon-name').innerText = pokemonName;
+    const container = document.getElementById('move-list-container');
+    container.innerHTML = `<div style="text-align: center; padding: 20px;">🔄 Loading level‑up moves for ${pokemonName} (Lv. ${pokemonLevel})...</div>`;
+    document.getElementById('move-editor').classList.remove('hidden');
+
+    let moveOptions = [];
+
+    // 1. Try to fetch level‑up moves from API (includes level data)
+    try {
+        const pokeData = await fetch(`https://pokeapi.co/api/v2/pokemon/${speciesId}`).then(r => r.json());
+        const levelUpMoves = [];
+        for (const moveEntry of pokeData.moves) {
+            const levelUpVersions = moveEntry.version_details.filter(vd => vd.learn_method.name === 'level-up');
+            if (levelUpVersions.length > 0) {
+                const minLevel = Math.min(...levelUpVersions.map(v => v.level_learned_at));
+                levelUpMoves.push({
+                    name: moveEntry.move.name,
+                    level: minLevel,
+                    url: moveEntry.move.url
                 });
-                if (newActive) {
-                    await updateDoc(doc(db, "users", auth.currentUser.uid), { activePokemonId: newActive });
-                    activePokemonId = newActive;
-                } else {
-                    activePokemonId = null;
-                }
             }
-            refreshTeamView();
         }
-
-        async function setActivePokemon(pokemonId) {
-            await updateDoc(doc(db, "users", auth.currentUser.uid), { activePokemonId: pokemonId });
-            activePokemonId = pokemonId;
-            refreshTeamView();
+        // Remove duplicate moves (keep earliest level)
+        const uniqueMap = new Map();
+        for (const m of levelUpMoves) {
+            if (!uniqueMap.has(m.name) || uniqueMap.get(m.name).level > m.level) {
+                uniqueMap.set(m.name, m);
+            }
         }
+        const uniqueMoves = Array.from(uniqueMap.values());
+        uniqueMoves.sort((a, b) => a.level - b.level);
 
-        // ========== MOVE EDITOR ==========
-        async function openMoveEditor(pokemonId, pokemonName, speciesId, currentMoves) {
-            currentEditingPokemon = { id: pokemonId, name: pokemonName, speciesId, currentMoves };
-            document.getElementById('move-pokemon-name').innerText = pokemonName;
+        // Fetch move details (type, power, accuracy)
+        const moveDetails = await Promise.all(uniqueMoves.map(async m => {
+            const detail = await fetch(m.url).then(r => r.json());
+            return {
+                name: m.name,
+                type: detail.type.name,
+                power: detail.power || 0,
+                accuracy: detail.accuracy || 0,
+                level: m.level
+            };
+        }));
+
+        // Filter by level and damaging moves (power > 0, accuracy > 0)
+        const eligibleMoves = moveDetails.filter(m => m.level <= pokemonLevel && m.power > 0 && m.accuracy > 0);
+        if (eligibleMoves.length > 0) {
+            moveOptions = eligibleMoves.map(m => ({
+                name: m.name,
+                type: m.type,
+                power: m.power,
+                accuracy: m.accuracy
+            }));
+        }
+    } catch (err) {
+        console.warn("API level‑up fetch failed, falling back to move database:", err);
+    }
+
+    // 2. If API gave no moves (or failed), use preloaded database (all damaging moves)
+    if (moveOptions.length === 0 && isMoveDatabaseLoaded && moveDatabase.length) {
+        const speciesIdInt = parseInt(speciesId);
+        moveOptions = moveDatabase
+            .filter(move => move.learners.includes(speciesIdInt))
+            .map(move => ({
+                name: move.name,
+                type: move.type,
+                power: move.power,
+                accuracy: move.accuracy
+            }));
+        moveOptions.sort((a, b) => a.name.localeCompare(b.name));
+        // Inform user that level‑up data wasn't available
+        container.innerHTML = `<div style="text-align: center; padding: 20px;">ℹ️ Showing all damaging moves (level‑up data unavailable)</div>`;
+    }
+
+    // 3. Final fallback: generate type‑based moves
+    if (moveOptions.length === 0) {
+        let types = ['normal'];
+        try {
+            const p = await fetch(`https://pokeapi.co/api/v2/pokemon/${speciesId}`).then(r => r.json());
+            types = p.types.map(t => t.type.name);
+        } catch(e) {}
+        moveOptions = generateFallbackMoveList(pokemonName, types);
+    }
+
+    renderMoveGrid(moveOptions, currentMoves);
+}
+
+
+        function renderMoveGrid(moveList, currentMoves) {
             const container = document.getElementById('move-list-container');
-            container.innerHTML = '<div>Loading moves...</div>';
-            document.getElementById('move-editor').classList.remove('hidden');
-            
-            try {
-                const pokeData = await fetch(`https://pokeapi.co/api/v2/pokemon/${speciesId}`).then(r => r.json());
-                const levelUpMoves = [];
-                for (let m of pokeData.moves) {
-                    const versionDetails = m.version_details.find(vd => vd.version_group.name === 'red-blue' || vd.version_group.name === 'sword-shield');
-                    if (versionDetails && versionDetails.learn_method.name === 'level-up') {
-                        levelUpMoves.push({
-                            name: m.move.name,
-                            level: versionDetails.level_learned_at,
-                            url: m.move.url
+            let selectedCount = currentMoves.length;
+
+            container.innerHTML = `
+                <div id="selected-moves-preview" style="margin-top: 16px; padding: 8px; background: #f1f5f9; border-radius: 16px;">
+                    <strong>Current selection:</strong>
+                    <div id="selected-moves-list" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;"></div>
+                </div>
+
+                <div style="margin-bottom: 12px;">
+                    <strong>Select up to 4 moves:</strong> <span id="selected-count">${selectedCount}</span>/4 selected
+                </div>
+                <div id="move-buttons-grid" style="display: flex; flex-wrap: wrap; gap: 8px; max-height: 300px; overflow-y: auto; padding: 8px;"></div>
+                
+            `;
+
+            const grid = document.getElementById('move-buttons-grid');
+            const selectedListDiv = document.getElementById('selected-moves-list');
+            const selectedCountSpan = document.getElementById('selected-count');
+
+            let selectedMoves = [...currentMoves];
+
+            function updateUI() {
+                selectedCountSpan.innerText = selectedMoves.length;
+                selectedListDiv.innerHTML = selectedMoves.map((move, idx) => `
+                    <div style="background: ${getTypeColor(move.type)}; color: white; padding: 4px 12px; border-radius: 40px; display: inline-flex; align-items: center; gap: 8px;">
+                        ${move.name.toUpperCase()} (${move.power} power)
+                        <button class="remove-move" data-idx="${idx}" style="background: none; border: none; color: white; cursor: pointer; font-weight: bold;">✕</button>
+                    </div>
+                `).join('') || '<span style="color: var(--text-light);">No moves selected</span>';
+
+                document.querySelectorAll('.remove-move').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const idx = parseInt(btn.dataset.idx);
+                        if (!isNaN(idx) && idx >= 0 && idx < selectedMoves.length) {
+                            selectedMoves.splice(idx, 1);
+                            updateGridSelection();
+                            updateUI();
+                        }
+                    });
+                });
+            }
+
+            function updateGridSelection() {
+                document.querySelectorAll('.move-button').forEach(btn => {
+                    const moveName = btn.dataset.name;
+                    if (selectedMoves.some(m => m.name === moveName)) {
+                        btn.classList.add('selected');
+                    } else {
+                        btn.classList.remove('selected');
+                    }
+                });
+            }
+
+            moveList.forEach(move => {
+                const btn = document.createElement('button');
+                btn.className = 'move-button';
+                btn.dataset.name = move.name;
+                btn.textContent = `${move.name.toUpperCase()} (${move.power})`;
+                // Apply type color as background
+                btn.style.backgroundColor = getTypeColor(move.type);
+                btn.style.color = 'white';
+                btn.style.border = 'none';
+                btn.style.padding = '8px 12px';
+                btn.style.borderRadius = '40px';
+                btn.style.cursor = 'pointer';
+                btn.style.transition = '0.2s';
+                btn.style.textShadow = '0 1px 1px rgba(0,0,0,0.2)';
+                btn.onclick = () => {
+                    const isSelected = selectedMoves.some(m => m.name === move.name);
+                    if (isSelected) {
+                        selectedMoves = selectedMoves.filter(m => m.name !== move.name);
+                    } else {
+                        if (selectedMoves.length >= 4) {
+                            alert('You can only select up to 4 moves.');
+                            return;
+                        }
+                        selectedMoves.push({
+                            name: move.name,
+                            type: move.type,
+                            power: move.power,
+                            accuracy: move.accuracy
                         });
                     }
-                }
-                levelUpMoves.sort((a,b) => a.level - b.level);
-                const moveDetails = await Promise.all(levelUpMoves.map(async m => {
-                    const detail = await fetch(m.url).then(r => r.json());
-                    return {
-                        name: m.name,
-                        type: detail.type.name,
-                        power: detail.power || 40,
-                        level: m.level
-                    };
-                }));
-                const unique = [];
-                const seen = new Set();
-                for (let md of moveDetails) {
-                    if (!seen.has(md.name)) {
-                        seen.add(md.name);
-                        unique.push(md);
-                    }
-                }
-                container.innerHTML = '';
-                unique.forEach(move => {
-                    const div = document.createElement('div');
-                    div.className = 'move-option';
-                    if (currentMoves.some(m => m.name === move.name)) div.classList.add('selected');
-                    div.onclick = () => {
-                        if (div.classList.contains('selected')) {
-                            div.classList.remove('selected');
-                        } else {
-                            const selected = Array.from(container.querySelectorAll('.move-option.selected')).length;
-                            if (selected >= 4) {
-                                alert('You can only select up to 4 moves.');
-                                return;
-                            }
-                            div.classList.add('selected');
-                        }
-                    };
-                    div.innerHTML = `
-                        <span class="move-name">${move.name.toUpperCase()}</span>
-                        <span class="move-type" style="background: ${getTypeColor(move.type)};">${move.type}</span>
-                        <span style="font-size:0.7rem;">Power: ${move.power}</span>
-                    `;
-                    container.appendChild(div);
-                });
-            } catch (err) {
-                console.error(err);
-                container.innerHTML = '<div>Error loading moves. Try again.</div>';
-            }
+                    updateGridSelection();
+                    updateUI();
+                };
+                grid.appendChild(btn);
+            });
+
+            const saveBtn = document.createElement('button');
+            saveBtn.textContent = 'Save Moves';
+            saveBtn.className = 'btn btn-primary';
+            saveBtn.style.marginTop = '16px';
+            saveBtn.style.width = '100%';
+            saveBtn.onclick = async () => {
+                await saveMoves(selectedMoves);
+            };
+            container.appendChild(saveBtn);
+
+            updateGridSelection();
+            updateUI();
         }
 
-        function getTypeColor(type) {
-            const colors = { fire: '#ff421c', water: '#6390f0', grass: '#78cd54', electric: '#f8d030', normal: '#a8a878', ice: '#98d8d8', psychic: '#f85888', poison: '#a040a0', ground: '#e0c068', flying: '#a890f0', dragon: '#7038f8', bug: '#a8b820', rock: '#b8a038', ghost: '#705898', dark: '#705848', steel: '#b8b8d0', fairy: '#ee99ac', fighting: '#c03028' };
-            return colors[type] || '#a0aec0';
+        function generateFallbackMoveList(name, types) {
+            const type = types[0] || 'normal';
+            const moves = [
+                { name: 'tackle', type: 'normal', power: 40, accuracy: 100 },
+                { name: 'quick attack', type: 'normal', power: 40, accuracy: 100 }
+            ];
+            const typeMoves = {
+                fire: { name: 'ember', power: 40, accuracy: 100 },
+                water: { name: 'water gun', power: 40, accuracy: 100 },
+                grass: { name: 'vine whip', power: 45, accuracy: 100 },
+                electric: { name: 'thunder shock', power: 40, accuracy: 100 },
+                psychic: { name: 'confusion', power: 50, accuracy: 100 },
+                bug: { name: 'bug bite', power: 60, accuracy: 100 },
+                rock: { name: 'rock throw', power: 50, accuracy: 90 },
+                ground: { name: 'mud slap', power: 20, accuracy: 100 },
+                flying: { name: 'gust', power: 40, accuracy: 100 },
+                fighting: { name: 'low kick', power: 40, accuracy: 100 },
+                poison: { name: 'poison sting', power: 15, accuracy: 100 },
+                ice: { name: 'powder snow', power: 40, accuracy: 100 },
+                dragon: { name: 'dragon breath', power: 60, accuracy: 100 },
+                ghost: { name: 'lick', power: 30, accuracy: 100 },
+                dark: { name: 'bite', power: 60, accuracy: 100 },
+                steel: { name: 'metal claw', power: 50, accuracy: 95 },
+                fairy: { name: 'fairy wind', power: 40, accuracy: 100 }
+            };
+            if (typeMoves[type]) moves.push(typeMoves[type]);
+            else moves.push({ name: 'scratch', type: 'normal', power: 40, accuracy: 100 });
+            return moves;
         }
 
-        async function saveMoves() {
+        async function saveMoves(selectedMoves) {
             if (!currentEditingPokemon) return;
-            const container = document.getElementById('move-list-container');
-            const selectedDivs = container.querySelectorAll('.move-option.selected');
-            if (selectedDivs.length !== 4) {
-                alert('You must select exactly 4 moves.');
-                return;
-            }
-            const selectedMoves = Array.from(selectedDivs).map(div => {
-                const nameSpan = div.querySelector('.move-name');
-                const typeSpan = div.querySelector('.move-type');
-                const powerSpan = div.querySelector('span:last-child');
-                const moveName = nameSpan.innerText.toLowerCase();
-                const moveType = typeSpan.innerText;
-                const power = parseInt(powerSpan.innerText.split(':')[1]) || 40;
-                return {
-                    name: moveName,
-                    type: moveType,
-                    power: power,
+            while (selectedMoves.length < 4) {
+                selectedMoves.push({
+                    name: 'tackle',
+                    type: 'normal',
+                    power: 40,
                     accuracy: 100,
                     effect: '-',
                     effectAccuracy: '-',
-                    icon: TYPE_ICONS[moveType] || moveType
-                };
-            });
+                    icon: '🔘'
+                });
+            }
+            const movesToSave = selectedMoves.map(m => ({
+                name: m.name,
+                type: m.type,
+                power: m.power,
+                accuracy: m.accuracy || 100,
+                effect: '-',
+                effectAccuracy: '-',
+                icon: TYPE_ICONS[m.type] || m.type
+            }));
             const pokemonRef = doc(db, "users", auth.currentUser.uid, "pokemon", currentEditingPokemon.id);
-            await updateDoc(pokemonRef, { moves: selectedMoves });
+            await updateDoc(pokemonRef, { moves: movesToSave });
+            trackWrite();
             document.getElementById('move-editor').classList.add('hidden');
             refreshTeamView();
             if (currentBattle && currentBattle.player.id === currentEditingPokemon.id) {
-                currentBattle.player.moves = selectedMoves;
+                currentBattle.player.moves = movesToSave;
                 renderBattleUI();
             }
+            if (cachedActivePokemon && cachedActivePokemon.id === currentEditingPokemon.id) {
+                cachedActivePokemon.moves = movesToSave;
+            }
         }
 
-        // ========== BATTLE RESOLUTION ==========
+        // ========== REST OF GAME FUNCTIONS ==========
         async function resolveBattle(win) {
-            if (win && currentBattle) {
-                if (currentBattle.wild.encounterCount === 5) {
-                    addBattleLog(`5th encounter! ${currentBattle.wild.name.toUpperCase()} is automatically captured!`);
-                    const p = await fetch(`https://pokeapi.co/api/v2/pokemon/${currentBattle.wild.pokemonId}`).then(r => r.json());
-                    await addDoc(collection(db, "users", auth.currentUser.uid, "pokemon"), {
-                        pokemonId: currentBattle.wild.pokemonId,
-                        name: currentBattle.wild.name,
-                        level: currentBattle.wild.level,
-                        exp: 0,
-                        moves: await getMoveDetails(p.moves.slice(0, 4)),
-                        types: currentBattle.wild.types,
-                        inTeam: false
-                    });
+            if(win&&currentBattle) {
+                if(currentBattle.wild.encounterCount===5) {
+                    addBattleLog(`5th encounter! ${currentBattle.wild.name.toUpperCase()} auto-captured!`);
+                    const p=await fetch(`https://pokeapi.co/api/v2/pokemon/${currentBattle.wild.pokemonId}`).then(r=>r.json());
+                    await addDoc(collection(db,"users",auth.currentUser.uid,"pokemon"),{pokemonId:currentBattle.wild.pokemonId,name:currentBattle.wild.name,level:currentBattle.wild.level,exp:0,moves:await getMoveDetails(p.moves.slice(0,4)),types:currentBattle.wild.types,inTeam:false}); trackWrite();
                     refreshTeamView();
-                    setTimeout(() => {
-                        currentBattle = null;
-                        isProcessing = false;
-                        document.getElementById('battle-area').classList.add('hidden');
-                        stopBattleMusic();
-                    }, 3000);
+                    setTimeout(()=>{currentBattle=null;isProcessing=false;document.getElementById('battle-area').classList.add('hidden');stopBattleMusic();},3000);
                     return;
                 }
-
-                const monRef = doc(db, "users", auth.currentUser.uid, "pokemon", currentBattle.player.id);
-                let currentExp = currentBattle.player.exp || 0;
-                const expGain = Math.floor(currentBattle.wild.level * 15);
-                let newExp = currentExp + expGain;
-                let newLvl = currentBattle.player.level;
-                addBattleLog(`Gained ${expGain} XP!`);
-                while (newExp >= getExpNeededForNextLevel(newLvl)) {
-                    newExp -= getExpNeededForNextLevel(newLvl);
-                    newLvl++;
-                    addBattleLog(`LEVEL UP! Reached Level ${newLvl}!`);
-                    await checkEvolution(currentBattle.player.id, newLvl, currentBattle.player.pokemonId);
-                }
-                await updateDoc(monRef, { exp: newExp, level: newLvl });
+                const monRef=doc(db,"users",auth.currentUser.uid,"pokemon",currentBattle.player.id);
+                let curExp=currentBattle.player.exp||0, gain=Math.floor(currentBattle.wild.level*15), newExp=curExp+gain, newLvl=currentBattle.player.level;
+                addBattleLog(`Gained ${gain} XP!`);
+                while(newExp>=getExpNeededForNextLevel(newLvl)) { newExp-=getExpNeededForNextLevel(newLvl); newLvl++; addBattleLog(`LEVEL UP! Lv${newLvl}!`); await checkEvolution(currentBattle.player.id,newLvl,currentBattle.player.pokemonId); }
+                await updateDoc(monRef,{exp:newExp,level:newLvl}); trackWrite();
+                if(cachedActivePokemon&&cachedActivePokemon.id===currentBattle.player.id) { cachedActivePokemon.exp=newExp; cachedActivePokemon.level=newLvl; }
                 refreshTeamView();
             }
-            setTimeout(() => {
-                currentBattle = null;
-                isProcessing = false;
-                document.getElementById('battle-area').classList.add('hidden');
-                stopBattleMusic();
-            }, 3000);
+            setTimeout(()=>{currentBattle=null;isProcessing=false;document.getElementById('battle-area').classList.add('hidden');stopBattleMusic();},3000);
         }
 
-        async function checkEvolution(monDocId, currentLvl, apiId) {
+        async function checkEvolution(id,lvl,apiId) {
             try {
-                const speciesRes = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${apiId}`).then(r => r.json());
-                const evoChainRes = await fetch(speciesRes.evolution_chain.url).then(r => r.json());
-                let currentStage = evoChainRes.chain;
-                let nextForm = null;
-                while (currentStage && currentStage.species.name !== speciesRes.name) {
-                    currentStage = currentStage.evolves_to[0];
-                }
-                if (currentStage && currentStage.evolves_to.length > 0) {
-                    const evoDetails = currentStage.evolves_to[0];
-                    const minLevel = evoDetails.evolution_details[0]?.min_level;
-                    if (minLevel && currentLvl >= minLevel) {
-                        nextForm = evoDetails.species.name;
-                    }
-                }
-                if (nextForm) {
-                    addBattleLog(`WHAT? ${nextForm.toUpperCase()} is evolving!`);
-                    const newPokeData = await fetch(`https://pokeapi.co/api/v2/pokemon/${nextForm}`).then(r => r.json());
-                    await updateDoc(doc(db, "users", auth.currentUser.uid, "pokemon", monDocId), {
-                        name: newPokeData.name,
-                        pokemonId: newPokeData.id,
-                        types: newPokeData.types.map(t => t.type.name),
-                        moves: await getMoveDetails(newPokeData.moves.slice(0, 4))
-                    });
-                    return true;
-                }
-            } catch (e) { console.error("Evo Error:", e); }
-            return false;
+                const s=await fetch(`https://pokeapi.co/api/v2/pokemon-species/${apiId}`).then(r=>r.json()), e=await fetch(s.evolution_chain.url).then(r=>r.json());
+                let stage=e.chain, next=null;
+                while(stage&&stage.species.name!==s.name) stage=stage.evolves_to[0];
+                if(stage&&stage.evolves_to.length>0) { const d=stage.evolves_to[0].evolution_details[0]; if(d.min_level&&lvl>=d.min_level) next=stage.evolves_to[0].species.name; }
+                if(next) { addBattleLog(`WHAT? ${next.toUpperCase()} is evolving!`); const np=await fetch(`https://pokeapi.co/api/v2/pokemon/${next}`).then(r=>r.json()); await updateDoc(doc(db,"users",auth.currentUser.uid,"pokemon",id),{name:np.name,pokemonId:np.id,types:np.types.map(t=>t.type.name),moves:await getMoveDetails(np.moves.slice(0,4))}); trackWrite(); return true; }
+            } catch(e) { console.error("Evo Error:",e); } return false;
         }
 
         async function showInfo(id) {
             document.getElementById('loading-overlay').classList.remove('hidden');
-            const [p, s] = await Promise.all([
-                fetch(`https://pokeapi.co/api/v2/pokemon/${id}`).then(r => r.json()),
-                fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}`).then(r => r.json())
-            ]);
-            const desc = s.flavor_text_entries.find(e => e.language.name === 'en').flavor_text.replace(/\f/g, ' ');
-            const img = document.getElementById('info-img');
-            loadImageWithFallback(img, getBattleSpriteUrl(id, 'front'));
-            document.getElementById('info-name').innerText = p.name.toUpperCase();
-            document.getElementById('info-desc').innerText = `"${desc}"`;
-            document.getElementById('info-stats').innerHTML = `Height: ${p.height/10}m | Weight: ${p.weight/10}kg | Types: ${p.types.map(t=>t.type.name).join('/')}`;
+            const [p,s]=await Promise.all([fetch(`https://pokeapi.co/api/v2/pokemon/${id}`).then(r=>r.json()), fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}`).then(r=>r.json())]);
+            const desc=s.flavor_text_entries.find(e=>e.language.name==='en').flavor_text.replace(/\f/g,' ');
+            loadImageWithFallback(document.getElementById('info-img'), getBattleSpriteUrl(id,'front'));
+            document.getElementById('info-name').innerText=p.name.toUpperCase();
+            document.getElementById('info-desc').innerText=`"${desc}"`;
+            document.getElementById('info-stats').innerHTML=`Height: ${p.height/10}m | Weight: ${p.weight/10}kg | Types: ${p.types.map(t=>t.type.name).join('/')}`;
             document.getElementById('info-overlay').classList.remove('hidden');
             document.getElementById('loading-overlay').classList.add('hidden');
         }
-        window.showInfo = showInfo;
+        window.showInfo=showInfo;
 
-        // ========== MAP SYSTEM ==========
-        function initMap() {
-            const grid = document.getElementById('map-grid');
-            if (grid.innerHTML !== "") return;
-            for (let y = 0; y < 50; y++) {
-                mapData[y] = [];
-                for (let x = 0; x < 50; x++) {
-                    const isG = Math.random() < 0.2;
-                    mapData[y][x] = isG ? 'grass' : 'dirt';
-                    const div = document.createElement('div');
-                    div.className = `tile ${isG ? 'grass' : ''}`;
-                    grid.appendChild(div);
-                }
-            }
-            renderPlayer();
-        }
-
-        function movePlayer(dx, dy) {
-            if (currentBattle) return;
-            const now = Date.now();
-            if (now - lastMoveTime < MOVE_DELAY) return;
-            lastMoveTime = now;
-            const nx = playerPos.x + dx; const ny = playerPos.y + dy;
-            if (nx >= 0 && nx < 50 && ny >= 0 && ny < 50) {
-                playerPos.x = nx; playerPos.y = ny;
-                if (dx !== 0) document.getElementById('player').style.transform = dx < 0 ? 'scaleX(-1)' : 'scaleX(1)';
-                renderPlayer();
-                if (mapData[ny][nx] === 'grass' && Math.random() < 0.15) startBattle();
-            }
-        }
-        window.movePlayer = movePlayer;
-
-        function renderPlayer() {
-            document.getElementById('player').style.backgroundImage = `url(${TRAINER_GIF})`;
-            document.getElementById('map-grid').style.transform = `translate(${275 - playerPos.x * 50}px, ${175 - playerPos.y * 50}px)`;
-        }
-
-        // ========== BATTLE ENGINE ==========
-        async function getMoveDetails(moves) {
-            return Promise.all(moves.slice(0, 4).map(async m => {
-                const d = await fetch(m.move ? m.move.url : m.url).then(r => r.json());
-                return {
-                    name: d.name,
-                    power: d.power || 40,
-                    type: d.type.name,
-                    icon: TYPE_ICONS[d.type.name] || d.type.name,
-                    accuracy: d.accuracy || 100
-                };
-            }));
-        }
-
+        function initMap() { const grid=document.getElementById('map-grid'); if(grid.innerHTML!=="") return; for(let y=0;y<50;y++){ mapData[y]=[]; for(let x=0;x<50;x++){ const g=Math.random()<0.2; mapData[y][x]=g?'grass':'dirt'; const d=document.createElement('div'); d.className=`tile ${g?'grass':''}`; grid.appendChild(d); } } renderPlayer(); }
+        function movePlayer(dx,dy) { if(currentBattle) return; const n=Date.now(); if(n-lastMoveTime<MOVE_DELAY) return; lastMoveTime=n; const nx=playerPos.x+dx, ny=playerPos.y+dy; if(nx>=0&&nx<50&&ny>=0&&ny<50){ playerPos.x=nx; playerPos.y=ny; if(dx!==0) document.getElementById('player').style.transform=dx<0?'scaleX(-1)':'scaleX(1)'; renderPlayer(); if(mapData[ny][nx]==='grass'&&Math.random()<0.15) startBattle(); } }
+        window.movePlayer=movePlayer;
+        function renderPlayer() { document.getElementById('player').style.backgroundImage=`url(${TRAINER_GIF})`; document.getElementById('map-grid').style.transform=`translate(${275-playerPos.x*50}px,${175-playerPos.y*50}px)`; }
+        async function getMoveDetails(moves) { return Promise.all(moves.slice(0,4).map(async m=>{const d=await fetch(m.move?m.move.url:m.url).then(r=>r.json()); return {name:d.name,power:d.power||40,type:d.type.name,icon:TYPE_ICONS[d.type.name]||d.type.name,accuracy:d.accuracy||100};})); }
         async function startBattle() {
-            if (!activePokemonId) {
-                alert("No active Pokémon! Please set a Pokémon as active in the Team view.");
-                return;
-            }
+            if(!activePokemonId) { alert("No active Pokémon!"); return; }
             document.getElementById('loading-overlay').classList.remove('hidden');
-            const wildId = Math.floor(Math.random() * 1026) + 1;
-            const wild = await fetch(`https://pokeapi.co/api/v2/pokemon/${wildId}`).then(r => r.json());
-            const activeDoc = await getDoc(doc(db, "users", auth.currentUser.uid, "pokemon", activePokemonId));
-            if (!activeDoc.exists()) { alert("Active Pokémon not found!"); return; }
-            const myMon = { id: activeDoc.id, ...activeDoc.data() };
-            let wildLevel = myMon.level + (Math.floor(Math.random() * 21) - 10);
-            wildLevel = Math.min(100, Math.max(1, wildLevel));
-            const wildMoves = await getMoveDetails(wild.moves.slice(0, 4));
-            const count = await trackRecord(wildId, wild.name);
-            
-            // Show encounter preview
-            const previewDiv = document.getElementById('encounter-preview');
-            const previewSprite = document.getElementById('preview-sprite');
-            const previewName = document.getElementById('preview-name');
-            loadImageWithFallback(previewSprite, getBattleSpriteUrl(wildId, 'front'));
-            previewName.innerText = wild.name.toUpperCase();
-            previewDiv.classList.remove('hidden');
-            
-            // Wait 3 seconds, then start battle with animations
-            setTimeout(() => {
-                previewDiv.classList.add('hidden');
-                currentBattle = {
-                    player: { ...myMon, hp: myMon.level * 25, maxHp: myMon.level * 25 },
-                    wild: { 
-                        pokemonId: wildId, 
-                        name: wild.name, 
-                        level: wildLevel, 
-                        hp: wildLevel * 25, 
-                        maxHp: wildLevel * 25, 
-                        types: wild.types.map(t => t.type.name), 
-                        moves: wildMoves,
-                        encounterCount: count
-                    }
-                };
-                renderBattleUI();
-                document.getElementById('battle-area').classList.remove('hidden');
-                document.getElementById('battle-log').innerHTML = `<div>> A wild ${wild.name.toUpperCase()} (Lv.${wildLevel}) appeared!</div>`;
-                updateCatchChance();
-                document.getElementById('loading-overlay').classList.add('hidden');
-                // Switch to battle music
-                playBattleMusic();
-            }, 3000);
+            const wildId=Math.floor(Math.random()*1026)+1, wild=await fetch(`https://pokeapi.co/api/v2/pokemon/${wildId}`).then(r=>r.json());
+            if(!cachedActivePokemon) await updateActiveCache(activePokemonId);
+            const myMon=cachedActivePokemon; if(!myMon) { alert("Active Pokémon not found!"); return; }
+            let wildLevel=myMon.level+Math.floor(Math.random()*21)-10; wildLevel=Math.min(100,Math.max(1,wildLevel));
+            const wildMoves=await getMoveDetails(wild.moves.slice(0,4)), count=await trackRecord(wildId,wild.name);
+            const preview=document.getElementById('encounter-preview'), ps=document.getElementById('preview-sprite'), pn=document.getElementById('preview-name');
+            loadImageWithFallback(ps, getBattleSpriteUrl(wildId,'front')); pn.innerText=wild.name.toUpperCase(); preview.classList.remove('hidden');
+            setTimeout(()=>{
+                preview.classList.add('hidden');
+                currentBattle={ player:{...myMon,hp:myMon.level*25,maxHp:myMon.level*25}, wild:{pokemonId:wildId,name:wild.name,level:wildLevel,hp:wildLevel*25,maxHp:wildLevel*25,types:wild.types.map(t=>t.type.name),moves:wildMoves,encounterCount:count} };
+                renderBattleUI(); document.getElementById('battle-area').classList.remove('hidden'); document.getElementById('battle-log').innerHTML=`<div>> A wild ${wild.name.toUpperCase()} (Lv.${wildLevel}) appeared!</div>`; updateCatchChance(); document.getElementById('loading-overlay').classList.add('hidden'); playBattleMusic();
+            },3000);
         }
-
         function renderBattleUI() {
-            const b = currentBattle;
-            loadImageWithFallback(document.getElementById('e-sprite-btl'), getBattleSpriteUrl(b.wild.pokemonId, 'front'));
-            document.getElementById('e-sprite-btl').onclick = () => showInfo(b.wild.pokemonId);
-            loadImageWithFallback(document.getElementById('p-sprite-btl'), getBattleSpriteUrl(b.player.pokemonId, 'back'));
-            document.getElementById('p-sprite-btl').onclick = () => showInfo(b.player.pokemonId);
-            
-            document.getElementById('e-name').innerText = b.wild.name.toUpperCase();
-            document.getElementById('e-lvl').innerText = "Lvl " + b.wild.level;
-            document.getElementById('e-hp-fill').style.width = (b.wild.hp / b.wild.maxHp * 100) + "%";
-            document.getElementById('e-types-icons').innerText = b.wild.types.map(t => TYPE_ICONS[t] || t[0].toUpperCase()).join("");
-
-            document.getElementById('p-name').innerText = b.player.name.toUpperCase();
-            document.getElementById('p-lvl').innerText = "Lvl " + b.player.level;
-            document.getElementById('p-hp-fill').style.width = (b.player.hp / b.player.maxHp * 100) + "%";
-
-            const mv = document.getElementById('battle-moves'); mv.innerHTML = "";
-            b.player.moves.forEach(m => {
-                const btn = document.createElement('button'); btn.className = `move-btn type-${m.type}`;
-                const iconText = (TYPE_ICONS[m.type] === undefined && m.icon !== m.type) ? m.icon : (TYPE_ICONS[m.type] || m.type);
-                btn.innerHTML = `<span>${m.name.toUpperCase()}</span> <span>${iconText}</span>`;
-                btn.onclick = () => runTurn(m); mv.appendChild(btn);
+            const b=currentBattle;
+            loadImageWithFallback(document.getElementById('e-sprite-btl'), getBattleSpriteUrl(b.wild.pokemonId,'front'));
+            document.getElementById('e-sprite-btl').onclick=()=>showInfo(b.wild.pokemonId);
+            loadImageWithFallback(document.getElementById('p-sprite-btl'), getBattleSpriteUrl(b.player.pokemonId,'back'));
+            document.getElementById('p-sprite-btl').onclick=()=>showInfo(b.player.pokemonId);
+            document.getElementById('e-name').innerText=b.wild.name.toUpperCase(); document.getElementById('e-lvl').innerText="Lvl "+b.wild.level; document.getElementById('e-hp-fill').style.width=(b.wild.hp/b.wild.maxHp*100)+"%"; document.getElementById('e-types-icons').innerText=b.wild.types.map(t=>TYPE_ICONS[t]||t[0].toUpperCase()).join("");
+            document.getElementById('p-name').innerText=b.player.name.toUpperCase(); document.getElementById('p-lvl').innerText="Lvl "+b.player.level; document.getElementById('p-hp-fill').style.width=(b.player.hp/b.player.maxHp*100)+"%";
+            const mv=document.getElementById('battle-moves'); mv.innerHTML="";
+            b.player.moves.forEach(m=>{
+                const btn=document.createElement('button');
+                // Set background based on move type
+                btn.style.backgroundColor = getTypeColor(m.type);
+                btn.className = "move-btn";
+                btn.innerHTML = `<span>${m.name.toUpperCase()}</span>`;
+                btn.onclick=()=>runTurn(m);
+                mv.appendChild(btn);
             });
         }
-
         async function runTurn(m) {
-            if (isProcessing) return; isProcessing = true;
-            const b = currentBattle;
-            let effectiveness = getTypeEffectiveness(m.type, b.wild.types);
-            let effectivenessText = "";
-            if (effectiveness === 2) effectivenessText = "It's super effective!";
-            else if (effectiveness === 0.5) effectivenessText = "It's not very effective...";
-            else if (effectiveness === 0) effectivenessText = "It doesn't affect the wild Pokémon!";
-            let damage = Math.floor((m.power / 5) * (b.player.level / 2) * effectiveness);
-            if (damage < 1 && effectiveness > 0) damage = 1;
-            b.wild.hp = Math.max(0, b.wild.hp - damage);
-            addBattleLog(`${b.player.name} used ${m.name.toUpperCase()}! Deals ${damage} dmg. ${effectivenessText}`);
-            renderBattleUI();
-            updateCatchChance();
-
-            if (b.wild.hp <= 0) { addBattleLog("Wild Pokemon fainted! Victory!"); return resolveBattle(true); }
-
-            setTimeout(() => {
-                const wM = b.wild.moves[Math.floor(Math.random() * 4)];
-                let effectivenessWild = getTypeEffectiveness(wM.type, b.player.types);
-                let wildDamage = Math.floor((wM.power/5)*(b.wild.level/2) * effectivenessWild);
-                if (wildDamage < 1 && effectivenessWild > 0) wildDamage = 1;
-                b.player.hp = Math.max(0, b.player.hp - wildDamage);
-                let effText = effectivenessWild === 2 ? "It's super effective!" : (effectivenessWild === 0.5 ? "It's not very effective..." : "");
-                addBattleLog(`Wild ${b.wild.name} used ${wM.name.toUpperCase()}! Deals ${wildDamage} dmg. ${effText}`);
-                renderBattleUI(); isProcessing = false;
-                if (b.player.hp <= 0) { alert("You fainted!"); location.reload(); }
-            }, 1000);
+            if(isProcessing) return; isProcessing=true;
+            const b=currentBattle;
+            let eff=getTypeEffectiveness(m.type,b.wild.types), effText="";
+            if(eff===2) effText="It's super effective!"; else if(eff===0.5) effText="It's not very effective..."; else if(eff===0) effText="It doesn't affect the wild Pokémon!";
+            let dmg=Math.floor((m.power/5)*(b.player.level/2)*eff); if(dmg<1&&eff>0) dmg=1;
+            b.wild.hp=Math.max(0,b.wild.hp-dmg); addBattleLog(`${b.player.name} used ${m.name.toUpperCase()}! Deals ${dmg} dmg. ${effText}`); renderBattleUI(); updateCatchChance();
+            if(b.wild.hp<=0) { addBattleLog("Wild Pokemon fainted! Victory!"); return resolveBattle(true); }
+            setTimeout(()=>{
+                const wM=b.wild.moves[Math.floor(Math.random()*4)], effWild=getTypeEffectiveness(wM.type,b.player.types), wDmg=Math.floor((wM.power/5)*(b.wild.level/2)*effWild); if(wDmg<1&&effWild>0) var wDmg2=1; else var wDmg2=wDmg; b.player.hp=Math.max(0,b.player.hp-wDmg2); let effTxt=effWild===2?"It's super effective!":(effWild===0.5?"It's not very effective...":""); addBattleLog(`Wild ${b.wild.name} used ${wM.name.toUpperCase()}! Deals ${wDmg2} dmg. ${effTxt}`); renderBattleUI(); isProcessing=false; if(b.player.hp<=0){ alert("You fainted!"); location.reload(); }
+            },1000);
         }
-
-        // ========== CATCH MECHANICS ==========
         function updateCatchChance() {
-            if (!currentBattle) return;
-            const b = currentBattle;
-            const catchBtn = document.getElementById('catch-btn');
-            
-            if (b.player.level <= 10) {
-                document.getElementById('catch-chance').innerHTML = "Catch requires Pokémon Lv > 10";
-                document.getElementById('catch-chance').style.color = "var(--danger)";
-                if (catchBtn) catchBtn.disabled = true;
+            if(!currentBattle) return;
+            const b=currentBattle, btn=document.getElementById('catch-btn');
+            if(b.player.level<=10){
+                document.getElementById('catch-chance').innerHTML="Catch requires Lv > 10";
+                document.getElementById('catch-chance').style.color="var(--danger)";
+                if(btn) btn.disabled=true;
                 return;
             }
-            
-            const expNeeded = getExpNeededForNextLevel(b.player.level);
-            const currentExp = b.player.exp || 0;
-            const xpProgress = (currentExp / expNeeded) * 100;
-            if (xpProgress < 20) {
-                document.getElementById('catch-chance').innerHTML = "Catch requires at least 20% XP progress";
-                document.getElementById('catch-chance').style.color = "var(--danger)";
-                if (catchBtn) catchBtn.disabled = true;
+            const expNeeded=getExpNeededForNextLevel(b.player.level), curExp=b.player.exp||0, prog=(curExp/expNeeded)*100;
+            if(prog<20){
+                document.getElementById('catch-chance').innerHTML="Catch requires ≥20% XP progress";
+                document.getElementById('catch-chance').style.color="var(--danger)";
+                if(btn) btn.disabled=true;
                 return;
             }
-            
-            const hpPercent = b.wild.hp / b.wild.maxHp;
-            let chance = (1 - hpPercent) * 0.8 + 0.2;
+            const hpPct=b.wild.hp/b.wild.maxHp;
+            let chance = (1 - hpPct) * 0.8 + 0.2;
             chance = Math.min(0.95, Math.max(0.1, chance));
-            document.getElementById('catch-chance').innerHTML = `Catch chance: ${Math.floor(chance * 100)}%`;
-            document.getElementById('catch-chance').style.color = "";
-            if (catchBtn) catchBtn.disabled = false;
+            document.getElementById('catch-chance').innerHTML=`Catch chance: ${Math.floor(chance*100)}%`;
+            document.getElementById('catch-chance').style.color="";
+            if(btn) btn.disabled=false;
         }
-
         async function attemptCatch() {
-            if (!currentBattle || isProcessing) return;
-            const b = currentBattle;
-            const catchBtn = document.getElementById('catch-btn');
-            
-            if (b.player.level <= 10) {
-                alert("Your active Pokémon must be above level 10 to attempt catching!");
+            if(!currentBattle||isProcessing) return;
+            const b=currentBattle, btn=document.getElementById('catch-btn');
+            if(b.player.level<=10){
+                alert("Active Pokémon must be above level 10 to attempt catching!");
                 return;
             }
-            
-            const expNeeded = getExpNeededForNextLevel(b.player.level);
-            const currentExp = b.player.exp || 0;
-            const xpProgress = (currentExp / expNeeded) * 100;
-            if (xpProgress < 20) {
+            const expNeeded=getExpNeededForNextLevel(b.player.level), curExp=b.player.exp||0, prog=(curExp/expNeeded)*100;
+            if(prog<20){
                 alert("Your Pokémon needs at least 20% XP progress to attempt catching!");
                 return;
             }
-            
-            isProcessing = true;
-            if (catchBtn) catchBtn.disabled = true;
-            
-            const activeRef = doc(db, "users", auth.currentUser.uid, "pokemon", b.player.id);
-            const activeSnap = await getDoc(activeRef);
-            let firestoreExp = activeSnap.data().exp || 0;
-            let penalty = Math.floor(firestoreExp * 0.2);
-            let newExp = Math.max(0, firestoreExp - penalty);
-            await updateDoc(activeRef, { exp: newExp });
+            isProcessing=true;
+            if(btn) btn.disabled=true;
+            const activeRef=doc(db,"users",auth.currentUser.uid,"pokemon",b.player.id), activeSnap=await getDoc(activeRef);
+            trackRead();
+            let fireExp=activeSnap.data().exp||0, penalty=Math.floor(fireExp*0.2), newExp=Math.max(0,fireExp-penalty);
+            await updateDoc(activeRef,{exp:newExp});
+            trackWrite();
+            if(cachedActivePokemon&&cachedActivePokemon.id===b.player.id) cachedActivePokemon.exp=newExp;
             addBattleLog(`Attempted to catch! Lost ${penalty} XP.`);
             refreshTeamView();
-
-            const hpPercent = b.wild.hp / b.wild.maxHp;
-            let catchChance = (1 - hpPercent) * 0.8 + 0.2;
+            const hpPct=b.wild.hp/b.wild.maxHp;
+            let catchChance = (1 - hpPct) * 0.8 + 0.2;
             catchChance = Math.min(0.95, Math.max(0.1, catchChance));
             const success = Math.random() < catchChance;
-
-            if (success) {
+            if(success){
                 addBattleLog(`Success! You caught ${b.wild.name.toUpperCase()}!`);
-                const p = await fetch(`https://pokeapi.co/api/v2/pokemon/${b.wild.pokemonId}`).then(r => r.json());
-                await addDoc(collection(db, "users", auth.currentUser.uid, "pokemon"), {
-                    pokemonId: b.wild.pokemonId,
-                    name: b.wild.name,
-                    level: b.wild.level,
-                    exp: 0,
-                    moves: await getMoveDetails(p.moves.slice(0, 4)),
-                    types: b.wild.types,
-                    inTeam: false
-                });
+                const p=await fetch(`https://pokeapi.co/api/v2/pokemon/${b.wild.pokemonId}`).then(r=>r.json());
+                await addDoc(collection(db,"users",auth.currentUser.uid,"pokemon"),{pokemonId:b.wild.pokemonId,name:b.wild.name,level:b.wild.level,exp:0,moves:await getMoveDetails(p.moves.slice(0,4)),types:b.wild.types,inTeam:false});
+                trackWrite();
                 refreshTeamView();
-                currentBattle = null;
+                currentBattle=null;
                 document.getElementById('battle-area').classList.add('hidden');
-                isProcessing = false;
+                isProcessing=false;
                 updateCatchChance();
                 stopBattleMusic();
             } else {
                 addBattleLog(`The wild ${b.wild.name} broke free!`);
-                setTimeout(() => {
-                    if (!currentBattle) return;
-                    const wM = b.wild.moves[Math.floor(Math.random() * 4)];
-                    let effectivenessWild = getTypeEffectiveness(wM.type, b.player.types);
-                    let wildDamage = Math.floor((wM.power/5)*(b.wild.level/2) * effectivenessWild);
-                    if (wildDamage < 1 && effectivenessWild > 0) wildDamage = 1;
-                    b.player.hp = Math.max(0, b.player.hp - wildDamage);
-                    let effText = effectivenessWild === 2 ? "It's super effective!" : (effectivenessWild === 0.5 ? "It's not very effective..." : "");
-                    addBattleLog(`Wild ${b.wild.name} used ${wM.name.toUpperCase()}! Deals ${wildDamage} dmg. ${effText}`);
+                setTimeout(async()=>{
+                    if(!currentBattle) return;
+                    const wM=b.wild.moves[Math.floor(Math.random()*4)], effWild=getTypeEffectiveness(wM.type,b.player.types), wDmg=Math.floor((wM.power/5)*(b.wild.level/2)*effWild);
+                    if(wDmg<1&&effWild>0) var wDmg2=1; else var wDmg2=wDmg;
+                    b.player.hp=Math.max(0,b.player.hp-wDmg2);
+                    let effTxt=effWild===2?"It's super effective!":(effWild===0.5?"It's not very effective...":"");
+                    addBattleLog(`Wild ${b.wild.name} used ${wM.name.toUpperCase()}! Deals ${wDmg2} dmg. ${effTxt}`);
                     renderBattleUI();
-                    isProcessing = false;
-                    if (catchBtn) catchBtn.disabled = false;
-                    if (b.player.hp <= 0) {
-                        alert("You fainted!");
-                        location.reload();
-                    }
-                }, 1000);
+                    isProcessing=false;
+                    if(btn) btn.disabled=false;
+                    if(b.player.hp<=0){ alert("You fainted!"); location.reload(); }
+                },1000);
             }
         }
-
-        // ========== TRACK RECORDS ==========
-        async function trackRecord(id, name) {
-            const ref = doc(db, "users", auth.currentUser.uid, "records", id.toString());
-            const snap = await getDoc(ref);
-            const count = snap.exists() ? snap.data().count + 1 : 1;
-            await setDoc(ref, { name, count, pokemonId: id });
-            return count;
-        }
-
-        function addBattleLog(m) {
-            const l = document.getElementById('battle-log');
-            l.innerHTML += `<div>> ${m}</div>`;
-            l.scrollTop = l.scrollHeight;
-        }
-
-        // ========== TEAM & COLLECTION VIEWS ==========
-        async function refreshTeamView() {
-            const snap = await getDocs(collection(db, "users", auth.currentUser.uid, "pokemon"));
-            const teamList = document.getElementById('team-list');
-            const collList = document.getElementById('coll-list');
-            teamList.innerHTML = "";
-            collList.innerHTML = "";
-
-            let teamSize = 0;
-            snap.forEach(d => { if (d.data().inTeam) teamSize++; });
-
-            for (const docSnap of snap.docs) {
-                const p = docSnap.data();
-                const div = document.createElement('div');
-                div.className = "mon-item";
-
-                const img = document.createElement('img');
-                loadImageWithFallback(img, getStaticSpriteUrl(p.pokemonId));
-                div.appendChild(img);
-
-                const infoDiv = document.createElement('div');
-                infoDiv.className = "mon-info";
-
-                const expNeeded = getExpNeededForNextLevel(p.level);
-                const expCurrent = p.exp || 0;
-                const expProgress = Math.floor((expCurrent / expNeeded) * 100);
-                infoDiv.innerHTML = `
-                    <b>${p.name.toUpperCase()}</b> (Lvl ${p.level} | XP: ${expCurrent}/${expNeeded} [${expProgress}%])<br>
+        async function trackRecord(id,name) { pendingRecordUpdates[id]={name,count:(pendingRecordUpdates[id]?.count||0)+1}; if(Object.keys(pendingRecordUpdates).length>=5) flushRecordUpdates(); return (pendingRecordUpdates[id]?.count||1); }
+        async function flushRecordUpdates() { if(Object.keys(pendingRecordUpdates).length===0) return; const batch=writeBatch(db); for(const [id,data] of Object.entries(pendingRecordUpdates)){ const ref=doc(db,"users",auth.currentUser.uid,"records",id); const snap=await getDoc(ref); trackRead(); const newCount=(snap.exists()?snap.data().count:0)+data.count; batch.set(ref,{name:data.name,count:newCount,pokemonId:parseInt(id)}); } await batch.commit(); trackWrite(Object.keys(pendingRecordUpdates).length); pendingRecordUpdates={}; }
+        function addBattleLog(m) { const l=document.getElementById('battle-log'); l.innerHTML+=`<div>> ${m}</div>`; l.scrollTop=l.scrollHeight; }
+        async function refreshTeamView() { 
+            const now=Date.now(); 
+            if(now-lastTeamUpdate<TEAM_CACHE_TIME&&document.getElementById('team-list').innerHTML!=="") return; 
+            lastTeamUpdate=now; 
+            const snap=await getDocs(collection(db,"users",auth.currentUser.uid,"pokemon")); trackRead(); 
+            const team=document.getElementById('team-list'), coll=document.getElementById('coll-list'); 
+            team.innerHTML=""; coll.innerHTML=""; 
+            let teamSize=0; snap.forEach(d=>{if(d.data().inTeam) teamSize++;}); 
+            for(const ds of snap.docs){ 
+                const p=ds.data(); 
+                const div=document.createElement('div'); div.className="mon-item"; 
+                const img=document.createElement('img'); loadImageWithFallback(img,getStaticSpriteUrl(p.pokemonId)); div.appendChild(img); 
+                const info=document.createElement('div'); info.className="mon-info"; 
+                const expNeeded=getExpNeededForNextLevel(p.level), expCur=p.exp||0, prog=Math.floor((expCur/expNeeded)*100); 
+                // Build move badges HTML
+                const moveBadges = p.moves.map(m => `<span class="move-badge" style="background: ${getTypeColor(m.type)};">${m.name.toUpperCase()}</span>`).join('');
+                info.innerHTML = `
+                    <b>${p.name.toUpperCase()}</b> (Lvl ${p.level} | XP: ${expCur}/${expNeeded} [${prog}%])<br>
                     <small>${p.types.join(', ')}</small><br>
-                    <small style="font-size:0.7rem;">Moves: ${p.moves.map(m => m.name.toUpperCase()).join(', ')}</small>
+                    <div style="margin-top: 6px;">${moveBadges}</div>
                 `;
-
-                if (p.inTeam && activePokemonId === docSnap.id) {
-                    const badge = document.createElement('span');
-                    badge.className = "active-badge";
-                    badge.innerText = "ACTIVE";
-                    infoDiv.appendChild(badge);
-                }
-                div.appendChild(infoDiv);
-
-                const btnDiv = document.createElement('div');
-                btnDiv.className = "mon-buttons";
-
-                const editMovesBtn = document.createElement('button');
-                editMovesBtn.className = "btn btn-small btn-outline";
-                editMovesBtn.innerText = "Edit Moves";
-                editMovesBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    openMoveEditor(docSnap.id, p.name, p.pokemonId, p.moves);
-                };
-                btnDiv.appendChild(editMovesBtn);
-
-                if (p.inTeam) {
-                    if (activePokemonId !== docSnap.id) {
-                        const setActiveBtn = document.createElement('button');
-                        setActiveBtn.className = "btn btn-small btn-primary";
-                        setActiveBtn.innerText = "Set Active";
-                        setActiveBtn.onclick = (e) => {
-                            e.stopPropagation();
-                            setActivePokemon(docSnap.id);
-                        };
-                        btnDiv.appendChild(setActiveBtn);
-                    }
-
-                    const moveToCollBtn = document.createElement('button');
-                    moveToCollBtn.className = "btn btn-small btn-outline";
-                    moveToCollBtn.innerText = "Move to Collection";
-                    moveToCollBtn.onclick = async (e) => {
-                        e.stopPropagation();
-                        const teamSnap = await getDocs(collection(db, "users", auth.currentUser.uid, "pokemon"));
-                        let teamCount = 0;
-                        teamSnap.forEach(d => { if (d.data().inTeam) teamCount++; });
-                        if (teamCount === 1) {
-                            alert("You must have at least one Pokémon in your team.");
-                            return;
-                        }
-                        await updateDoc(doc(db, "users", auth.currentUser.uid, "pokemon", docSnap.id), { inTeam: false });
-                        if (activePokemonId === docSnap.id) {
-                            let newActive = null;
-                            teamSnap.forEach(d => {
-                                if (d.id !== docSnap.id && d.data().inTeam && !newActive) newActive = d.id;
-                            });
-                            if (newActive) {
-                                await updateDoc(doc(db, "users", auth.currentUser.uid), { activePokemonId: newActive });
-                                activePokemonId = newActive;
-                            } else {
-                                activePokemonId = null;
-                            }
-                        }
-                        refreshTeamView();
-                    };
-                    btnDiv.appendChild(moveToCollBtn);
-
-                    const releaseBtn = document.createElement('button');
-                    releaseBtn.className = "btn btn-small btn-danger";
-                    releaseBtn.innerText = "Release";
-                    releaseBtn.onclick = (e) => {
-                        e.stopPropagation();
-                        releasePokemon(docSnap.id, p.name);
-                    };
-                    btnDiv.appendChild(releaseBtn);
-                } else {
-                    if (teamSize < 6) {
-                        const addToTeamBtn = document.createElement('button');
-                        addToTeamBtn.className = "btn btn-small btn-primary";
-                        addToTeamBtn.innerText = "Add to Team";
-                        addToTeamBtn.onclick = async (e) => {
-                            e.stopPropagation();
-                            await updateDoc(doc(db, "users", auth.currentUser.uid, "pokemon", docSnap.id), { inTeam: true });
-                            if (teamSize === 0) {
-                                await updateDoc(doc(db, "users", auth.currentUser.uid), { activePokemonId: docSnap.id });
-                                activePokemonId = docSnap.id;
-                            }
-                            refreshTeamView();
-                        };
-                        btnDiv.appendChild(addToTeamBtn);
-                    } else {
-                        const fullMsg = document.createElement('span');
-                        fullMsg.className = "btn-small";
-                        fullMsg.innerText = "Team Full";
-                        fullMsg.style.opacity = "0.5";
-                        btnDiv.appendChild(fullMsg);
-                    }
-                }
-
-                div.appendChild(btnDiv);
-                div.onclick = () => showInfo(p.pokemonId);
-
-                if (p.inTeam) teamList.appendChild(div);
-                else collList.appendChild(div);
-            }
-
-            if (teamList.children.length === 0) teamList.innerHTML = "<p>No Pokémon in team. Add some from your collection!</p>";
-            if (collList.children.length === 0) collList.innerHTML = "<p>No Pokémon captured yet. Explore the tall grass!</p>";
+                if(p.inTeam&&activePokemonId===ds.id){ const badge=document.createElement('span'); badge.className="active-badge"; badge.innerText="ACTIVE"; info.appendChild(badge); } 
+                div.appendChild(info); 
+                const btns=document.createElement('div'); btns.className="mon-buttons"; 
+                const editBtn=document.createElement('button'); editBtn.className="btn btn-small btn-outline"; editBtn.innerText="Edit Moves"; editBtn.onclick=e=>{e.stopPropagation(); openMoveEditor(ds.id, p.name, p.pokemonId, p.moves, p.level);}; btns.appendChild(editBtn); 
+                if(p.inTeam){ 
+                    if(activePokemonId!==ds.id){ const setBtn=document.createElement('button'); setBtn.className="btn btn-small btn-primary"; setBtn.innerText="Set Active"; setBtn.onclick=e=>{e.stopPropagation(); setActivePokemon(ds.id);}; btns.appendChild(setBtn); } 
+                    const moveBtn=document.createElement('button'); moveBtn.className="btn btn-small btn-outline"; moveBtn.innerText="Move to Collection"; moveBtn.onclick=async e=>{e.stopPropagation(); const t=await getDocs(collection(db,"users",auth.currentUser.uid,"pokemon")); trackRead(); let tc=0; t.forEach(d=>{if(d.data().inTeam) tc++;}); if(tc===1){ alert("Must have at least one Pokémon in team."); return; } await updateDoc(doc(db,"users",auth.currentUser.uid,"pokemon",ds.id),{inTeam:false}); trackWrite(); if(activePokemonId===ds.id){ let na=null; t.forEach(d=>{if(d.id!==ds.id&&d.data().inTeam&&!na) na=d.id;}); if(na){ await updateDoc(doc(db,"users",auth.currentUser.uid),{activePokemonId:na}); trackWrite(); activePokemonId=na; await updateActiveCache(na); } else activePokemonId=null; } refreshTeamView(); }; btns.appendChild(moveBtn); 
+                    const relBtn=document.createElement('button'); relBtn.className="btn btn-small btn-danger"; relBtn.innerText="Release"; relBtn.onclick=e=>{e.stopPropagation(); releasePokemon(ds.id,p.name);}; btns.appendChild(relBtn); 
+                } else { 
+                    if(teamSize<6){ const addBtn=document.createElement('button'); addBtn.className="btn btn-small btn-primary"; addBtn.innerText="Add to Team"; addBtn.onclick=async e=>{e.stopPropagation(); await updateDoc(doc(db,"users",auth.currentUser.uid,"pokemon",ds.id),{inTeam:true}); trackWrite(); if(teamSize===0){ await updateDoc(doc(db,"users",auth.currentUser.uid),{activePokemonId:ds.id}); trackWrite(); activePokemonId=ds.id; await updateActiveCache(ds.id); } refreshTeamView(); }; btns.appendChild(addBtn); } else { const full=document.createElement('span'); full.className="btn-small"; full.innerText="Team Full"; full.style.opacity="0.5"; btns.appendChild(full); } } 
+                div.appendChild(btns); 
+                div.onclick=()=>showInfo(p.pokemonId); 
+                if(p.inTeam) team.appendChild(div); else coll.appendChild(div); 
+            } 
+            if(team.children.length===0) team.innerHTML="<p>No Pokémon in team. Add some from your collection!</p>"; 
+            if(coll.children.length===0) coll.innerHTML="<p>No Pokémon captured yet. Explore the tall grass!</p>"; 
         }
-
-        window.switchView = async (v) => {
-            document.querySelectorAll('.list-container, #view-explore').forEach(el => el.classList.add('hidden'));
-            document.getElementById(`view-${v}`).classList.remove('hidden');
-            if (v !== 'explore') document.getElementById('battle-area').classList.add('hidden');
-            if (v === 'team' || v === 'collection') refreshTeamView();
-            if (v === 'records') {
-                const snap = await getDocs(collection(db, "users", auth.currentUser.uid, "records"));
-                const list = document.getElementById('records-list');
-                list.innerHTML = "";
-                if (snap.empty) list.innerHTML = "<p style='padding:20px; color:#666;'>No encounters recorded yet. Explore the grass!</p>";
-                snap.forEach(d => {
-                    const r = d.data();
-                    const div = document.createElement('div'); div.className = "mon-item";
-                    div.onclick = () => showInfo(r.pokemonId);
-                    const img = document.createElement('img');
-                    loadImageWithFallback(img, getStaticSpriteUrl(r.pokemonId));
-                    div.appendChild(img);
-                    const textDiv = document.createElement('div');
-                    textDiv.style.flexGrow = "1";
-                    textDiv.innerHTML = `<b>${r.name.toUpperCase()}</b><br><small>Seen: ${r.count}/5 ${r.count >= 5 ? '<span style="color:green">✅ Captured</span>' : ''}</small>`;
-                    div.appendChild(textDiv);
-                    const arrow = document.createElement('div');
-                    arrow.style.color = "var(--primary)";
-                    arrow.style.fontWeight = "bold";
-                    arrow.innerText = "VIEW DATA ▶";
-                    div.appendChild(arrow);
-                    list.appendChild(div);
-                });
-            }
-        };
-
-        // ========== STARTERS ==========
-        const startersList = [
-            { id: 1, name: "Bulbasaur" }, { id: 4, name: "Charmander" }, { id: 7, name: "Squirtle" },
-            { id: 152, name: "Chikorita" }, { id: 155, name: "Cyndaquil" }, { id: 158, name: "Totodile" },
-            { id: 252, name: "Treecko" }, { id: 255, name: "Torchic" }, { id: 258, name: "Mudkip" },
-            { id: 387, name: "Turtwig" }, { id: 390, name: "Chimchar" }, { id: 393, name: "Piplup" },
-            { id: 495, name: "Snivy" }, { id: 498, name: "Tepig" }, { id: 501, name: "Oshawott" },
-            { id: 650, name: "Chespin" }, { id: 653, name: "Fennekin" }, { id: 656, name: "Froakie" },
-            { id: 722, name: "Rowlet" }, { id: 725, name: "Litten" }, { id: 728, name: "Popplio" },
-            { id: 810, name: "Grookey" }, { id: 813, name: "Scorbunny" }, { id: 816, name: "Sobble" },
-            { id: 906, name: "Sprigatito" }, { id: 909, name: "Fuecoco" }, { id: 912, name: "Quaxly" }
-        ];
-
-        async function loadStarters() {
-            const g = document.getElementById('starter-grid');
-            g.innerHTML = "";
-            for (const starter of startersList) {
-                const p = await fetch(`https://pokeapi.co/api/v2/pokemon/${starter.id}`).then(r => r.json());
-                const div = document.createElement('div'); div.className = "starter-card";
-                const img = document.createElement('img');
-                loadImageWithFallback(img, getStaticSpriteUrl(starter.id));
-                div.appendChild(img);
-                const nameSpan = document.createElement('div');
-                nameSpan.innerHTML = `<b>${p.name.toUpperCase()}</b>`;
-                div.appendChild(nameSpan);
-                div.onclick = async () => {
-                    const moves = await getMoveDetails(p.moves.slice(0, 4));
-                    const mon = {
-                        pokemonId: starter.id,
-                        name: p.name,
-                        level: 10,
-                        exp: 0,
-                        moves,
-                        types: p.types.map(t=>t.type.name),
-                        inTeam: true
-                    };
-                    const addedDoc = await addDoc(collection(db, "users", auth.currentUser.uid, "pokemon"), mon);
-                    await updateDoc(doc(db, "users", auth.currentUser.uid), { hasStarter: true, activePokemonId: addedDoc.id });
-                    location.reload();
-                };
-                g.appendChild(div);
-            }
-        }
-
-        // Event listeners
-        document.getElementById('save-moves-btn').onclick = saveMoves;
-        document.getElementById('close-move-editor').onclick = () => document.getElementById('move-editor').classList.add('hidden');
+        window.switchView=async v=>{ document.querySelectorAll('.list-container, #view-explore').forEach(el=>el.classList.add('hidden')); document.getElementById(`view-${v}`).classList.remove('hidden'); if(v!=='explore') document.getElementById('battle-area').classList.add('hidden'); if(v==='team'||v==='collection') refreshTeamView(); if(v==='records'){ await flushRecordUpdates(); const snap=await getDocs(collection(db,"users",auth.currentUser.uid,"records")); trackRead(); const list=document.getElementById('records-list'); list.innerHTML=""; if(snap.empty) list.innerHTML="<p style='padding:20px; color:#666;'>No encounters recorded yet.</p>"; snap.forEach(d=>{const r=d.data(); const div=document.createElement('div'); div.className="mon-item"; div.onclick=()=>showInfo(r.pokemonId); const img=document.createElement('img'); loadImageWithFallback(img,getStaticSpriteUrl(r.pokemonId)); div.appendChild(img); const txt=document.createElement('div'); txt.style.flexGrow="1"; txt.innerHTML=`<b>${r.name.toUpperCase()}</b><br><small>Seen: ${r.count}/5 ${r.count>=5?'<span style="color:green">✅ Captured</span>':''}</small>`; div.appendChild(txt); const arr=document.createElement('div'); arr.style.color="var(--primary)"; arr.style.fontWeight="bold"; arr.innerText="VIEW DATA ▶"; div.appendChild(arr); list.appendChild(div);}); } };
+        const startersList=[{id:1,name:"Bulbasaur"},{id:4,name:"Charmander"},{id:7,name:"Squirtle"},{id:152,name:"Chikorita"},{id:155,name:"Cyndaquil"},{id:158,name:"Totodile"},{id:252,name:"Treecko"},{id:255,name:"Torchic"},{id:258,name:"Mudkip"},{id:387,name:"Turtwig"},{id:390,name:"Chimchar"},{id:393,name:"Piplup"},{id:495,name:"Snivy"},{id:498,name:"Tepig"},{id:501,name:"Oshawott"},{id:650,name:"Chespin"},{id:653,name:"Fennekin"},{id:656,name:"Froakie"},{id:722,name:"Rowlet"},{id:725,name:"Litten"},{id:728,name:"Popplio"},{id:810,name:"Grookey"},{id:813,name:"Scorbunny"},{id:816,name:"Sobble"},{id:906,name:"Sprigatito"},{id:909,name:"Fuecoco"},{id:912,name:"Quaxly"}];
+        async function loadStarters() { const g=document.getElementById('starter-grid'); g.innerHTML=""; for(const s of startersList){ const p=await fetch(`https://pokeapi.co/api/v2/pokemon/${s.id}`).then(r=>r.json()); const d=document.createElement('div'); d.className="starter-card"; const img=document.createElement('img'); loadImageWithFallback(img,getStaticSpriteUrl(s.id)); d.appendChild(img); const n=document.createElement('div'); n.innerHTML=`<b>${p.name.toUpperCase()}</b>`; d.appendChild(n); d.onclick=async()=>{ const moves=await getMoveDetails(p.moves.slice(0,4)); const mon={pokemonId:s.id,name:p.name,level:10,exp:0,moves,types:p.types.map(t=>t.type.name),inTeam:true}; const added=await addDoc(collection(db,"users",auth.currentUser.uid,"pokemon"),mon); trackWrite(); await updateDoc(doc(db,"users",auth.currentUser.uid),{hasStarter:true,activePokemonId:added.id}); trackWrite(); location.reload(); }; g.appendChild(d); } }
         document.getElementById('catch-btn').onclick = attemptCatch;
-
-        window.addEventListener('keydown', (e) => {
-            if (["ArrowUp", "w"].includes(e.key)) movePlayer(0, -1);
-            if (["ArrowDown", "s"].includes(e.key)) movePlayer(0, 1);
-            if (["ArrowLeft", "a"].includes(e.key)) movePlayer(-1, 0);
-            if (["ArrowRight", "d"].includes(e.key)) movePlayer(1, 0);
-        });
+        window.addEventListener('keydown',e=>{if(["ArrowUp","w"].includes(e.key)) movePlayer(0,-1); if(["ArrowDown","s"].includes(e.key)) movePlayer(0,1); if(["ArrowLeft","a"].includes(e.key)) movePlayer(-1,0); if(["ArrowRight","d"].includes(e.key)) movePlayer(1,0);});
     </script>
-
-
 </body>
 </html>

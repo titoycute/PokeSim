@@ -279,6 +279,18 @@
         .catch-btn:hover { background: #c22e2e; transform: scale(0.98); }
         .catch-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
+        /* Type badge (battle and ranking) */
+        .type-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 16px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            margin: 0 2px;
+            color: white;
+            text-shadow: 0 1px 1px rgba(0,0,0,0.2);
+        }
+
         /* Modals */
         .overlay {
             position: fixed;
@@ -297,10 +309,12 @@
             background: var(--card-bg);
             padding: 30px;
             border-radius: 32px;
-            max-width: 500px;
+            max-width: 800px;
             width: 90%;
             text-align: center;
             box-shadow: 0 25px 40px rgba(0,0,0,0.3);
+            max-height: 80vh;
+            overflow-y: auto;
         }
         .move-list { max-height: 400px; overflow-y: auto; margin: 16px 0; text-align: left; }
         .starter-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 16px; max-height: 60vh; overflow-y: auto; margin-top: 20px; }
@@ -334,6 +348,7 @@
         .arrow-up, .arrow-down, .arrow-left, .arrow-right { width: 60px; padding: 10px; border-radius: 40px; font-weight: bold; background: var(--primary); color: white; border: none; cursor: pointer; transition: 0.2s; font-size: 1.2rem; }
         .arrow-up:hover, .arrow-down:hover, .arrow-left:hover, .arrow-right:hover { background: var(--primary-dark); transform: translateY(-2px); }
 
+        /* Encounter Preview */
         #encounter-preview {
             position: fixed;
             top: 0;
@@ -347,10 +362,58 @@
             z-index: 6000;
             backdrop-filter: blur(8px);
         }
-        .encounter-card { background: var(--card-bg); border-radius: 48px; padding: 40px; text-align: center; animation: bounceIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55); }
+        .encounter-card {
+            background: var(--card-bg);
+            border-radius: 48px;
+            padding: 40px;
+            text-align: center;
+            animation: bounceIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            position: relative;
+            overflow: hidden;
+        }
+        .encounter-card.special {
+            animation: sparkle 0.8s infinite, bounceIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            border: 3px solid gold;
+            box-shadow: 0 0 20px rgba(255,215,0,0.5);
+        }
         @keyframes bounceIn { 0% { transform: scale(0.3); opacity: 0; } 50% { transform: scale(1.05); } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes sparkle {
+            0% { box-shadow: 0 0 0 0 rgba(255,215,0,0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(255,215,0,0); }
+            100% { box-shadow: 0 0 0 0 rgba(255,215,0,0); }
+        }
         .encounter-sprite { width: 180px; height: 180px; object-fit: contain; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.2)); }
         .encounter-name { font-size: 2rem; font-weight: bold; margin-top: 20px; color: var(--primary-dark); }
+        .encounter-badges {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin: 15px 0;
+        }
+        .special-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+            color: #333;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(1); opacity: 0.8; }
+        }
+        .generation-badge {
+            background: #3b4cca;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
 
         .volume-btn { background: rgba(255,255,255,0.8); border: none; border-radius: 50%; width: 36px; height: 36px; cursor: pointer; font-size: 1.2rem; display: inline-flex; align-items: center; justify-content: center; margin-left: 8px; transition: 0.2s; }
         .volume-btn:hover { background: white; transform: scale(1.05); }
@@ -365,6 +428,36 @@
         .about-badge.free { background: #eef2ff; color: var(--primary); }
         .about-badge.warning { background: #fef3c7; color: #f59e0b; }
         .about-badge.danger { background: #fee2e2; color: var(--danger); }
+
+        /* Ranking table */
+        .ranking-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .ranking-table th, .ranking-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        .ranking-table th {
+            cursor: pointer;
+            background: #f8fafc;
+        }
+        .ranking-table th:hover {
+            background: #eef2ff;
+        }
+        .ranking-table tr:hover {
+            background: #f8fafc;
+            cursor: pointer;
+        }
+        .search-input {
+            width: 100%;
+            padding: 8px 12px;
+            margin: 10px 0;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+        }
 
         @media (max-width: 768px) {
             nav { flex-direction: column; align-items: stretch; text-align: center; }
@@ -423,9 +516,10 @@
         </div>
     </div>
     <div id="encounter-preview" class="hidden">
-        <div class="encounter-card">
+        <div class="encounter-card" id="encounter-card">
             <img id="preview-sprite" class="encounter-sprite" src="" alt="">
             <div id="preview-name" class="encounter-name"></div>
+            <div id="preview-badges" class="encounter-badges"></div>
             <div style="margin-top: 20px;">A wild Pokémon appeared!</div>
         </div>
     </div>
@@ -459,6 +553,42 @@
         </div>
     </div>
 
+    <!-- Ranking Modal -->
+    <div id="ranking-modal" class="overlay hidden" onclick="this.classList.add('hidden')">
+        <div class="modal" style="max-width: 900px;" onclick="event.stopPropagation()">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2>🏆 Trainer Ranking</h2>
+                <button onclick="document.getElementById('ranking-modal').classList.add('hidden')" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+            </div>
+            <input type="text" id="ranking-search" class="search-input" placeholder="Search by trainer name or email...">
+            <div style="overflow-x: auto;">
+                <table class="ranking-table" id="ranking-table">
+                    <thead>
+                        <tr>
+                            <th data-sort="name">Trainer</th>
+                            <th data-sort="totalLevels">Total Level ⬇️</th>
+                            <th data-sort="totalEncounters">Total Encounters</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ranking-body">
+                        <tr><td colspan="3">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Trainer Team Modal -->
+    <div id="trainer-team-modal" class="overlay hidden" onclick="this.classList.add('hidden')">
+        <div class="modal" style="max-width: 700px;" onclick="event.stopPropagation()">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 id="trainer-team-name">Trainer Team</h2>
+                <button onclick="document.getElementById('trainer-team-modal').classList.add('hidden')" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+            </div>
+            <div id="trainer-team-list" style="display: flex; flex-direction: column; gap: 10px;"></div>
+        </div>
+    </div>
+
     <!-- Trainer + Starter Modal -->
     <div id="trainer-starter-modal" class="overlay hidden">
         <div class="modal" style="max-width: 600px;">
@@ -475,6 +605,15 @@
             <div style="margin-top: 20px;">
                 <button id="confirm-trainer-starter" class="btn btn-primary" disabled>Start Adventure</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Switch Pokémon Modal (during battle) -->
+    <div id="switch-pokemon-modal" class="overlay hidden">
+        <div class="modal" style="max-width: 500px;">
+            <h3>Choose a Pokémon to send out</h3>
+            <div id="switch-pokemon-list" style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;"></div>
+            <button onclick="document.getElementById('switch-pokemon-modal').classList.add('hidden')" class="btn btn-outline" style="margin-top: 20px;">Cancel</button>
         </div>
     </div>
 
@@ -501,6 +640,7 @@
                 <button class="nav-link" onclick="window.switchView('collection')">📦 Collection</button>
                 <button class="nav-link" onclick="window.switchView('records')">📖 Records</button>
                 <button class="nav-link" onclick="window.showAbout()">ℹ️ About</button>
+                <button class="nav-link" id="ranking-btn">🏆 Ranking</button>
                 <div id="user-display">
                     <span id="trainer-name-display"></span>
                     <button id="change-name-btn" class="btn-small" style="background: none; border: none; cursor: pointer; font-size: 0.7rem; padding: 2px 6px;">✏️</button>
@@ -560,7 +700,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, updateDoc, deleteDoc, writeBatch, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, updateDoc, deleteDoc, writeBatch, increment, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = { apiKey: "AIzaSyDkCE0wBrsQ1s-7zplvTtWOSE28ISaCFfQ", authDomain: "pokesim-7f9b7.firebaseapp.com", projectId: "pokesim-7f9b7", storageBucket: "pokesim-7f9b7.firebasestorage.app", messagingSenderId: "1087100425430", appId: "1:1087100425430:web:9558a79ee5330d4a792577" };
         const app = initializeApp(firebaseConfig);
@@ -634,6 +774,10 @@
                 steel: '#B7B7CE', fairy: '#D685AD'
             };
             return colors[type] || '#777777';
+        }
+
+        function generateTypeBadges(types) {
+            return types.map(type => `<span class="type-badge" style="background: ${getTypeColor(type)};">${type.toUpperCase()}</span>`).join('');
         }
 
         async function loadMoveDatabase() {
@@ -1009,13 +1153,89 @@
             }
         }
 
+        // ========== SPECIAL POKÉMON DETECTION ==========
+        const paradoxIds = new Set([
+            984, 985, 986, 987, 988, 989, 990, 991, 992, 993, 994, 995, 1005, 1006, 1009, 1010, 1020, 1021, 1022, 1023
+        ]);
+
+        function getGeneration(generationUrl) {
+            if (!generationUrl) return '?';
+            const gen = generationUrl.split('/').filter(p => p).pop();
+            switch(gen) {
+                case '1': return 'I';
+                case '2': return 'II';
+                case '3': return 'III';
+                case '4': return 'IV';
+                case '5': return 'V';
+                case '6': return 'VI';
+                case '7': return 'VII';
+                case '8': return 'VIII';
+                case '9': return 'IX';
+                default: return gen;
+            }
+        }
+
+        // ========== USER STATS UPDATES ==========
+        async function updateUserTotalLevels(userId, delta) {
+            const userRef = doc(db, "users", userId);
+            await updateDoc(userRef, { totalLevels: increment(delta) });
+            trackWrite();
+        }
+
+        async function updateUserTotalEncounters(userId, delta) {
+            const userRef = doc(db, "users", userId);
+            await updateDoc(userRef, { totalEncounters: increment(delta) });
+            trackWrite();
+        }
+
         // ========== BATTLE & GAME FUNCTIONS ==========
+        function showSwitchPokemonModal(availablePokemon) {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('switch-pokemon-modal');
+                const listDiv = document.getElementById('switch-pokemon-list');
+                listDiv.innerHTML = '';
+                availablePokemon.forEach((p) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'btn btn-outline';
+                    btn.style.margin = '5px';
+                    btn.textContent = `${p.name.toUpperCase()} (Lv. ${p.level}, HP: ${p.hp}/${p.maxHp})`;
+                    btn.onclick = () => {
+                        modal.classList.add('hidden');
+                        resolve(p);
+                    };
+                    listDiv.appendChild(btn);
+                });
+                modal.classList.remove('hidden');
+            });
+        }
+
+        async function handlePlayerFaint(battle) {
+            const team = battle.playerTeam;
+            const currentIdx = battle.activePokemonIndex;
+            const available = team.filter((p, idx) => idx !== currentIdx && p.hp > 0);
+            if (available.length === 0) {
+                return null;
+            }
+            addBattleLog(`${battle.player.name} fainted! Choose a replacement.`);
+            const selected = await showSwitchPokemonModal(available);
+            const newIdx = team.findIndex(p => p === selected);
+            battle.activePokemonIndex = newIdx;
+            battle.player = team[newIdx];
+            renderBattleUI();
+            addBattleLog(`Go! ${battle.player.name.toUpperCase()}!`);
+            return newIdx;
+        }
+
         async function resolveBattle(win) {
             if(win && currentBattle) {
                 if(currentBattle.wild.encounterCount===5) {
                     addBattleLog(`5th encounter! ${currentBattle.wild.name.toUpperCase()} auto-captured!`);
                     const p=await fetch(`https://pokeapi.co/api/v2/pokemon/${currentBattle.wild.pokemonId}`).then(r=>r.json());
-                    await addDoc(collection(db,"users",auth.currentUser.uid,"pokemon"),{pokemonId:currentBattle.wild.pokemonId,name:currentBattle.wild.name,level:currentBattle.wild.level,exp:0,moves:await getMoveDetails(p.moves.slice(0,4)),types:currentBattle.wild.types,inTeam:false}); trackWrite();
+                    const newPokemon = {pokemonId:currentBattle.wild.pokemonId,name:currentBattle.wild.name,level:currentBattle.wild.level,exp:0,moves:await getMoveDetails(p.moves.slice(0,4)),types:currentBattle.wild.types,inTeam:false};
+                    await addDoc(collection(db,"users",auth.currentUser.uid,"pokemon"),newPokemon);
+                    trackWrite();
+                    // Update user totalLevels
+                    await updateUserTotalLevels(auth.currentUser.uid, currentBattle.wild.level);
                     refreshTeamView();
                     setTimeout(()=>{currentBattle=null;isProcessing=false;document.getElementById('battle-area').classList.add('hidden');stopBattleMusic();},3000);
                     return;
@@ -1031,7 +1251,12 @@
                 trackWrite();
                 addBattleLog(`Earned ₱${coinsEarned} coins!`);
 
-                while(newExp>=getExpNeededForNextLevel(newLvl)) { newExp-=getExpNeededForNextLevel(newLvl); newLvl++; addBattleLog(`LEVEL UP! Lv${newLvl}!`); await checkEvolution(currentBattle.player.id,newLvl,currentBattle.player.pokemonId); }
+                let levelDelta = 0;
+                while(newExp>=getExpNeededForNextLevel(newLvl)) { newExp-=getExpNeededForNextLevel(newLvl); newLvl++; levelDelta++; addBattleLog(`LEVEL UP! Lv${newLvl}!`); await checkEvolution(currentBattle.player.id,newLvl,currentBattle.player.pokemonId); }
+                if (levelDelta > 0) {
+                    // Update totalLevels
+                    await updateUserTotalLevels(auth.currentUser.uid, levelDelta);
+                }
                 await updateDoc(monRef,{exp:newExp,level:newLvl}); trackWrite();
                 if(cachedActivePokemon&&cachedActivePokemon.id===currentBattle.player.id) { cachedActivePokemon.exp=newExp; cachedActivePokemon.level=newLvl; }
                 refreshTeamView();
@@ -1046,7 +1271,17 @@
                 let stage=e.chain, next=null;
                 while(stage&&stage.species.name!==s.name) stage=stage.evolves_to[0];
                 if(stage&&stage.evolves_to.length>0) { const d=stage.evolves_to[0].evolution_details[0]; if(d.min_level&&lvl>=d.min_level) next=stage.evolves_to[0].species.name; }
-                if(next) { addBattleLog(`WHAT? ${next.toUpperCase()} is evolving!`); const np=await fetch(`https://pokeapi.co/api/v2/pokemon/${next}`).then(r=>r.json()); await updateDoc(doc(db,"users",auth.currentUser.uid,"pokemon",id),{name:np.name,pokemonId:np.id,types:np.types.map(t=>t.type.name),moves:await getMoveDetails(np.moves.slice(0,4))}); trackWrite(); return true; }
+                if(next) {
+                    addBattleLog(`WHAT? ${next.toUpperCase()} is evolving!`);
+                    const np=await fetch(`https://pokeapi.co/api/v2/pokemon/${next}`).then(r=>r.json());
+                    const newMoves = await getMoveDetails(np.moves.slice(0,4));
+                    const oldLevel = (await getDoc(doc(db,"users",auth.currentUser.uid,"pokemon",id))).data().level;
+                    await updateDoc(doc(db,"users",auth.currentUser.uid,"pokemon",id),{name:np.name,pokemonId:np.id,types:np.types.map(t=>t.type.name),moves:newMoves});
+                    trackWrite();
+                    // Update totalLevels: subtract old level, add new level (same level, no change)
+                    // Actually level remains same, but we may have a level-up before evolution, but we already accounted.
+                    return true;
+                }
             } catch(e) { console.error("Evo Error:",e); } return false;
         }
 
@@ -1068,30 +1303,141 @@
         window.movePlayer=movePlayer;
         function renderPlayer() { document.getElementById('player').style.backgroundImage=`url(${TRAINER_GIF})`; document.getElementById('map-grid').style.transform=`translate(${275-playerPos.x*50}px,${175-playerPos.y*50}px)`; }
         async function getMoveDetails(moves) { return Promise.all(moves.slice(0,4).map(async m=>{const d=await fetch(m.move?m.move.url:m.url).then(r=>r.json()); return {name:d.name,power:d.power||40,type:d.type.name,icon:TYPE_ICONS[d.type.name]||d.type.name,accuracy:d.accuracy||100};})); }
+        
         async function startBattle() {
             if(!activePokemonId) { alert("No active Pokémon!"); return; }
             document.getElementById('loading-overlay').classList.remove('hidden');
-            const wildId=Math.floor(Math.random()*1026)+1, wild=await fetch(`https://pokeapi.co/api/v2/pokemon/${wildId}`).then(r=>r.json());
-            if(!cachedActivePokemon) await updateActiveCache(activePokemonId);
-            const myMon=cachedActivePokemon; if(!myMon) { alert("Active Pokémon not found!"); return; }
-            let wildLevel=myMon.level+Math.floor(Math.random()*21)-10; wildLevel=Math.min(100,Math.max(1,wildLevel));
-            const wildMoves=await getMoveDetails(wild.moves.slice(0,4)), count=await trackRecord(wildId,wild.name);
-            const preview=document.getElementById('encounter-preview'), ps=document.getElementById('preview-sprite'), pn=document.getElementById('preview-name');
-            loadImageWithFallback(ps, getBattleSpriteUrl(wildId,'front')); pn.innerText=wild.name.toUpperCase(); preview.classList.remove('hidden');
+            
+            // Fetch the entire team (inTeam true)
+            const teamSnap = await getDocs(collection(db, "users", auth.currentUser.uid, "pokemon"));
+            trackRead();
+            const team = [];
+            let activeIndex = -1;
+            teamSnap.forEach(doc => {
+                const p = doc.data();
+                if (p.inTeam) {
+                    const battleMon = {
+                        id: doc.id,
+                        pokemonId: p.pokemonId,
+                        name: p.name,
+                        level: p.level,
+                        exp: p.exp,
+                        moves: p.moves,
+                        types: p.types,
+                        hp: p.level * 25,
+                        maxHp: p.level * 25
+                    };
+                    team.push(battleMon);
+                    if (doc.id === activePokemonId) activeIndex = team.length - 1;
+                }
+            });
+            if (team.length === 0) {
+                alert("You have no Pokémon in your team!");
+                document.getElementById('loading-overlay').classList.add('hidden');
+                return;
+            }
+            if (activeIndex === -1) activeIndex = 0; // fallback
+            
+            const wildId = Math.floor(Math.random()*1026)+1;
+            const [wild, species] = await Promise.all([
+                fetch(`https://pokeapi.co/api/v2/pokemon/${wildId}`).then(r => r.json()),
+                fetch(`https://pokeapi.co/api/v2/pokemon-species/${wildId}`).then(r => r.json())
+            ]);
+            
+            let wildLevel = team[activeIndex].level + Math.floor(Math.random()*21)-10;
+            wildLevel = Math.min(100, Math.max(1, wildLevel));
+            const wildMoves = await getMoveDetails(wild.moves.slice(0,4));
+            const count = await trackRecord(wildId, wild.name);
+            
+            // Prepare preview data
+            const isLegendary = species.is_legendary;
+            const isMythical = species.is_mythical;
+            const isParadox = paradoxIds.has(wildId);
+            const isSpecial = isLegendary || isMythical || isParadox;
+            const generation = getGeneration(species.generation?.url);
+            
+            const preview = document.getElementById('encounter-preview');
+            const ps = document.getElementById('preview-sprite');
+            const pn = document.getElementById('preview-name');
+            const badgesDiv = document.getElementById('preview-badges');
+            const card = document.getElementById('encounter-card');
+            
+            loadImageWithFallback(ps, getBattleSpriteUrl(wildId,'front'));
+            pn.innerText = wild.name.toUpperCase();
+            
+            // Build badges HTML
+            let badgesHtml = '';
+            // Type badges
+            wild.types.forEach(t => {
+                const typeName = t.type.name;
+                const bgColor = getTypeColor(typeName);
+                badgesHtml += `<span class="type-badge" style="background: ${bgColor};">${typeName.toUpperCase()}</span>`;
+            });
+            // Generation badge
+            badgesHtml += `<span class="generation-badge">Gen ${generation}</span>`;
+            // Special badges
+            if (isLegendary) badgesHtml += `<span class="special-badge">⭐ LEGENDARY</span>`;
+            if (isMythical) badgesHtml += `<span class="special-badge">✨ MYTHICAL</span>`;
+            if (isParadox) badgesHtml += `<span class="special-badge">🌀 PARADOX</span>`;
+            
+            badgesDiv.innerHTML = badgesHtml;
+            
+            // Apply special effect if needed
+            if (isSpecial) {
+                card.classList.add('special');
+            } else {
+                card.classList.remove('special');
+            }
+            
+            preview.classList.remove('hidden');
+            
             setTimeout(()=>{
                 preview.classList.add('hidden');
-                currentBattle={ player:{...myMon,hp:myMon.level*25,maxHp:myMon.level*25}, wild:{pokemonId:wildId,name:wild.name,level:wildLevel,hp:wildLevel*25,maxHp:wildLevel*25,types:wild.types.map(t=>t.type.name),moves:wildMoves,encounterCount:count} };
-                renderBattleUI(); document.getElementById('battle-area').classList.remove('hidden'); document.getElementById('battle-log').innerHTML=`<div>> A wild ${wild.name.toUpperCase()} (Lv.${wildLevel}) appeared!</div>`; updateCatchChance(); document.getElementById('loading-overlay').classList.add('hidden'); playBattleMusic();
-            },3000);
+                currentBattle = {
+                    playerTeam: team,
+                    activePokemonIndex: activeIndex,
+                    player: { ...team[activeIndex] },
+                    wild: {
+                        pokemonId: wildId,
+                        name: wild.name,
+                        level: wildLevel,
+                        hp: wildLevel * 25,
+                        maxHp: wildLevel * 25,
+                        types: wild.types.map(t=>t.type.name),
+                        moves: wildMoves,
+                        encounterCount: count,
+                        isSpecial: isSpecial
+                    }
+                };
+                renderBattleUI();
+                document.getElementById('battle-area').classList.remove('hidden');
+                document.getElementById('battle-log').innerHTML = `<div>> A wild ${wild.name.toUpperCase()} (Lv.${wildLevel}) appeared!</div>`;
+                updateCatchChance();
+                document.getElementById('loading-overlay').classList.add('hidden');
+                playBattleMusic();
+            }, 3000);
         }
+        
         function renderBattleUI() {
-            const b=currentBattle;
+            const b = currentBattle;
+            if (!b) return;
             loadImageWithFallback(document.getElementById('e-sprite-btl'), getBattleSpriteUrl(b.wild.pokemonId,'front'));
             document.getElementById('e-sprite-btl').onclick=()=>showInfo(b.wild.pokemonId);
             loadImageWithFallback(document.getElementById('p-sprite-btl'), getBattleSpriteUrl(b.player.pokemonId,'back'));
             document.getElementById('p-sprite-btl').onclick=()=>showInfo(b.player.pokemonId);
-            document.getElementById('e-name').innerText=b.wild.name.toUpperCase(); document.getElementById('e-lvl').innerText="Lvl "+b.wild.level; document.getElementById('e-hp-fill').style.width=(b.wild.hp/b.wild.maxHp*100)+"%"; document.getElementById('e-types-icons').innerText=b.wild.types.map(t=>TYPE_ICONS[t]||t[0].toUpperCase()).join("");
-            document.getElementById('p-name').innerText=b.player.name.toUpperCase(); document.getElementById('p-lvl').innerText="Lvl "+b.player.level; document.getElementById('p-hp-fill').style.width=(b.player.hp/b.player.maxHp*100)+"%";
+            
+            let wildName = b.wild.name.toUpperCase();
+            if (b.wild.isSpecial) wildName = '⭐ ' + wildName;
+            document.getElementById('e-name').innerText = wildName;
+            document.getElementById('e-lvl').innerText="Lvl "+b.wild.level;
+            document.getElementById('e-hp-fill').style.width=(b.wild.hp/b.wild.maxHp*100)+"%";
+            document.getElementById('e-types-icons').innerHTML = generateTypeBadges(b.wild.types);
+            
+            document.getElementById('p-name').innerText=b.player.name.toUpperCase();
+            document.getElementById('p-lvl').innerText="Lvl "+b.player.level;
+            document.getElementById('p-hp-fill').style.width=(b.player.hp/b.player.maxHp*100)+"%";
+            document.getElementById('p-types-icons').innerHTML = generateTypeBadges(b.player.types);
+            
             const mv=document.getElementById('battle-moves'); mv.innerHTML="";
             b.player.moves.forEach(m=>{
                 const btn=document.createElement('button');
@@ -1102,6 +1448,7 @@
                 mv.appendChild(btn);
             });
         }
+        
         async function runTurn(m) {
             if(isProcessing) return; isProcessing=true;
             const b=currentBattle;
@@ -1110,10 +1457,37 @@
             let dmg=Math.floor((m.power/5)*(b.player.level/2)*eff); if(dmg<1&&eff>0) dmg=1;
             b.wild.hp=Math.max(0,b.wild.hp-dmg); addBattleLog(`${b.player.name} used ${m.name.toUpperCase()}! Deals ${dmg} dmg. ${effText}`); renderBattleUI(); updateCatchChance();
             if(b.wild.hp<=0) { addBattleLog("Wild Pokemon fainted! Victory!"); return resolveBattle(true); }
-            setTimeout(()=>{
-                const wM=b.wild.moves[Math.floor(Math.random()*4)], effWild=getTypeEffectiveness(wM.type,b.player.types), wDmg=Math.floor((wM.power/5)*(b.wild.level/2)*effWild); if(wDmg<1&&effWild>0) var wDmg2=1; else var wDmg2=wDmg; b.player.hp=Math.max(0,b.player.hp-wDmg2); let effTxt=effWild===2?"It's super effective!":(effWild===0.5?"It's not very effective...":""); addBattleLog(`Wild ${b.wild.name} used ${wM.name.toUpperCase()}! Deals ${wDmg2} dmg. ${effTxt}`); renderBattleUI(); isProcessing=false; if(b.player.hp<=0){ alert("You fainted!"); location.reload(); }
-            },1000);
+            
+            setTimeout(async () => {
+                if(!currentBattle) return;
+                const wM=b.wild.moves[Math.floor(Math.random()*4)], effWild=getTypeEffectiveness(wM.type,b.player.types);
+                let wDmg=Math.floor((wM.power/5)*(b.wild.level/2)*effWild);
+                if(wDmg<1&&effWild>0) wDmg=1;
+                b.player.hp=Math.max(0,b.player.hp-wDmg);
+                let effTxt=effWild===2?"It's super effective!":(effWild===0.5?"It's not very effective...":"");
+                addBattleLog(`Wild ${b.wild.name} used ${wM.name.toUpperCase()}! Deals ${wDmg} dmg. ${effTxt}`);
+                renderBattleUI();
+                
+                if(b.player.hp <= 0) {
+                    // Player fainted
+                    const nextIdx = await handlePlayerFaint(b);
+                    if(nextIdx === null) {
+                        addBattleLog("All your Pokémon have fainted! You black out...");
+                        currentBattle = null;
+                        document.getElementById('battle-area').classList.add('hidden');
+                        stopBattleMusic();
+                        isProcessing = false;
+                    } else {
+                        // New Pokémon selected, continue battle
+                        isProcessing = false;
+                        // No extra enemy move, player's turn next
+                    }
+                } else {
+                    isProcessing = false;
+                }
+            }, 1000);
         }
+        
         function updateCatchChance() {
             if(!currentBattle) return;
             const b=currentBattle, btn=document.getElementById('catch-btn');
@@ -1137,6 +1511,7 @@
             document.getElementById('catch-chance').style.color="";
             if(btn) btn.disabled=false;
         }
+        
         async function attemptCatch() {
             if(!currentBattle||isProcessing) return;
             const b=currentBattle, btn=document.getElementById('catch-btn');
@@ -1166,8 +1541,10 @@
             if(success){
                 addBattleLog(`Success! You caught ${b.wild.name.toUpperCase()}!`);
                 const p=await fetch(`https://pokeapi.co/api/v2/pokemon/${b.wild.pokemonId}`).then(r=>r.json());
-                await addDoc(collection(db,"users",auth.currentUser.uid,"pokemon"),{pokemonId:b.wild.pokemonId,name:b.wild.name,level:b.wild.level,exp:0,moves:await getMoveDetails(p.moves.slice(0,4)),types:b.wild.types,inTeam:false});
+                const newPokemon = {pokemonId:b.wild.pokemonId,name:b.wild.name,level:b.wild.level,exp:0,moves:await getMoveDetails(p.moves.slice(0,4)),types:b.wild.types,inTeam:false};
+                await addDoc(collection(db,"users",auth.currentUser.uid,"pokemon"),newPokemon);
                 trackWrite();
+                await updateUserTotalLevels(auth.currentUser.uid, b.wild.level);
                 refreshTeamView();
                 currentBattle=null;
                 document.getElementById('battle-area').classList.add('hidden');
@@ -1178,21 +1555,57 @@
                 addBattleLog(`The wild ${b.wild.name} broke free!`);
                 setTimeout(async()=>{
                     if(!currentBattle) return;
-                    const wM=b.wild.moves[Math.floor(Math.random()*4)], effWild=getTypeEffectiveness(wM.type,b.player.types), wDmg=Math.floor((wM.power/5)*(b.wild.level/2)*effWild);
-                    if(wDmg<1&&effWild>0) var wDmg2=1; else var wDmg2=wDmg;
-                    b.player.hp=Math.max(0,b.player.hp-wDmg2);
+                    const wM=b.wild.moves[Math.floor(Math.random()*4)], effWild=getTypeEffectiveness(wM.type,b.player.types);
+                    let wDmg=Math.floor((wM.power/5)*(b.wild.level/2)*effWild);
+                    if(wDmg<1&&effWild>0) wDmg=1;
+                    b.player.hp=Math.max(0,b.player.hp-wDmg);
                     let effTxt=effWild===2?"It's super effective!":(effWild===0.5?"It's not very effective...":"");
-                    addBattleLog(`Wild ${b.wild.name} used ${wM.name.toUpperCase()}! Deals ${wDmg2} dmg. ${effTxt}`);
+                    addBattleLog(`Wild ${b.wild.name} used ${wM.name.toUpperCase()}! Deals ${wDmg} dmg. ${effTxt}`);
                     renderBattleUI();
                     isProcessing=false;
                     if(btn) btn.disabled=false;
-                    if(b.player.hp<=0){ alert("You fainted!"); location.reload(); }
+                    if(b.player.hp<=0){
+                        // Player fainted after catch attempt
+                        const nextIdx = await handlePlayerFaint(b);
+                        if(nextIdx === null) {
+                            addBattleLog("All your Pokémon have fainted! You black out...");
+                            currentBattle = null;
+                            document.getElementById('battle-area').classList.add('hidden');
+                            stopBattleMusic();
+                            isProcessing = false;
+                        } else {
+                            isProcessing = false;
+                        }
+                    }
                 },1000);
             }
         }
-        async function trackRecord(id,name) { pendingRecordUpdates[id]={name,count:(pendingRecordUpdates[id]?.count||0)+1}; if(Object.keys(pendingRecordUpdates).length>=5) flushRecordUpdates(); return (pendingRecordUpdates[id]?.count||1); }
-        async function flushRecordUpdates() { if(Object.keys(pendingRecordUpdates).length===0) return; const batch=writeBatch(db); for(const [id,data] of Object.entries(pendingRecordUpdates)){ const ref=doc(db,"users",auth.currentUser.uid,"records",id); const snap=await getDoc(ref); trackRead(); const newCount=(snap.exists()?snap.data().count:0)+data.count; batch.set(ref,{name:data.name,count:newCount,pokemonId:parseInt(id)}); } await batch.commit(); trackWrite(Object.keys(pendingRecordUpdates).length); pendingRecordUpdates={}; }
+        
+        async function trackRecord(id,name) {
+            pendingRecordUpdates[id]={name,count:(pendingRecordUpdates[id]?.count||0)+1};
+            // Also increment user's totalEncounters
+            await updateUserTotalEncounters(auth.currentUser.uid, 1);
+            if(Object.keys(pendingRecordUpdates).length>=5) flushRecordUpdates();
+            return (pendingRecordUpdates[id]?.count||1);
+        }
+        
+        async function flushRecordUpdates() {
+            if(Object.keys(pendingRecordUpdates).length===0) return;
+            const batch=writeBatch(db);
+            for(const [id,data] of Object.entries(pendingRecordUpdates)){
+                const ref=doc(db,"users",auth.currentUser.uid,"records",id);
+                const snap=await getDoc(ref);
+                trackRead();
+                const newCount=(snap.exists()?snap.data().count:0)+data.count;
+                batch.set(ref,{name:data.name,count:newCount,pokemonId:parseInt(id)});
+            }
+            await batch.commit();
+            trackWrite(Object.keys(pendingRecordUpdates).length);
+            pendingRecordUpdates={};
+        }
+        
         function addBattleLog(m) { const l=document.getElementById('battle-log'); l.innerHTML+=`<div>> ${m}</div>`; l.scrollTop=l.scrollHeight; }
+        
         async function refreshTeamView() { 
             const now=Date.now(); 
             if(now-lastTeamUpdate<TEAM_CACHE_TIME&&document.getElementById('team-list').innerHTML!=="") return; 
@@ -1220,7 +1633,7 @@
                 if(p.inTeam){ 
                     if(activePokemonId!==ds.id){ const setBtn=document.createElement('button'); setBtn.className="btn btn-small btn-primary"; setBtn.innerText="Set Active"; setBtn.onclick=e=>{e.stopPropagation(); setActivePokemon(ds.id);}; btns.appendChild(setBtn); } 
                     const moveBtn=document.createElement('button'); moveBtn.className="btn btn-small btn-outline"; moveBtn.innerText="Move to Collection"; moveBtn.onclick=async e=>{e.stopPropagation(); const t=await getDocs(collection(db,"users",auth.currentUser.uid,"pokemon")); trackRead(); let tc=0; t.forEach(d=>{if(d.data().inTeam) tc++;}); if(tc===1){ alert("Must have at least one Pokémon in team."); return; } await updateDoc(doc(db,"users",auth.currentUser.uid,"pokemon",ds.id),{inTeam:false}); trackWrite(); if(activePokemonId===ds.id){ let na=null; t.forEach(d=>{if(d.id!==ds.id&&d.data().inTeam&&!na) na=d.id;}); if(na){ await updateDoc(doc(db,"users",auth.currentUser.uid),{activePokemonId:na}); trackWrite(); activePokemonId=na; await updateActiveCache(na); } else activePokemonId=null; } refreshTeamView(); }; btns.appendChild(moveBtn); 
-                    const relBtn=document.createElement('button'); relBtn.className="btn btn-small btn-danger"; relBtn.innerText="Release"; relBtn.onclick=e=>{e.stopPropagation(); releasePokemon(ds.id,p.name);}; btns.appendChild(relBtn); 
+                    const relBtn=document.createElement('button'); relBtn.className="btn btn-small btn-danger"; relBtn.innerText="Release"; relBtn.onclick=async e=>{e.stopPropagation(); const oldLevel = p.level; await releasePokemon(ds.id,p.name); await updateUserTotalLevels(auth.currentUser.uid, -oldLevel); }; btns.appendChild(relBtn); 
                 } else { 
                     if(teamSize<6){ const addBtn=document.createElement('button'); addBtn.className="btn btn-small btn-primary"; addBtn.innerText="Add to Team"; addBtn.onclick=async e=>{e.stopPropagation(); await updateDoc(doc(db,"users",auth.currentUser.uid,"pokemon",ds.id),{inTeam:true}); trackWrite(); if(teamSize===0){ await updateDoc(doc(db,"users",auth.currentUser.uid),{activePokemonId:ds.id}); trackWrite(); activePokemonId=ds.id; await updateActiveCache(ds.id); } refreshTeamView(); }; btns.appendChild(addBtn); } else { const full=document.createElement('span'); full.className="btn-small"; full.innerText="Team Full"; full.style.opacity="0.5"; btns.appendChild(full); } } 
                 div.appendChild(btns); 
@@ -1230,7 +1643,22 @@
             if(team.children.length===0) team.innerHTML="<p>No Pokémon in team. Add some from your collection!</p>"; 
             if(coll.children.length===0) coll.innerHTML="<p>No Pokémon captured yet. Explore the tall grass!</p>"; 
         }
+        
+        async function releasePokemon(id,name) {
+            if(!confirm(`Release ${name}?`)) return;
+            const teamSnap = await getDocs(collection(db,"users",auth.currentUser.uid,"pokemon")); trackRead();
+            let teamCount=0; teamSnap.forEach(d=>{if(d.data().inTeam) teamCount++;});
+            if(teamCount===1&&activePokemonId===id) { alert("Cannot release last Pokémon!"); return; }
+            await deleteDoc(doc(db,"users",auth.currentUser.uid,"pokemon",id)); trackDelete();
+            if(activePokemonId===id) { let newActive=null; teamSnap.forEach(d=>{if(d.id!==id&&d.data().inTeam&&!newActive) newActive=d.id;}); if(newActive) { await updateDoc(doc(db,"users",auth.currentUser.uid),{activePokemonId:newActive}); trackWrite(); activePokemonId=newActive; await updateActiveCache(newActive); } else activePokemonId=null; }
+            refreshTeamView();
+        }
+        
+        async function setActivePokemon(id) { await updateDoc(doc(db,"users",auth.currentUser.uid),{activePokemonId:id}); trackWrite(); activePokemonId=id; await updateActiveCache(id); refreshTeamView(); }
+        async function updateActiveCache(id) { const a=await getDoc(doc(db,"users",auth.currentUser.uid,"pokemon",id)); trackRead(); if(a.exists()) cachedActivePokemon={id:a.id,...a.data()}; }
+
         window.switchView=async v=>{ document.querySelectorAll('.list-container, #view-explore').forEach(el=>el.classList.add('hidden')); document.getElementById(`view-${v}`).classList.remove('hidden'); if(v!=='explore') document.getElementById('battle-area').classList.add('hidden'); if(v==='team'||v==='collection') refreshTeamView(); if(v==='records'){ await flushRecordUpdates(); const snap=await getDocs(collection(db,"users",auth.currentUser.uid,"records")); trackRead(); const list=document.getElementById('records-list'); list.innerHTML=""; if(snap.empty) list.innerHTML="<p style='padding:20px; color:#666;'>No encounters recorded yet.</p>"; snap.forEach(d=>{const r=d.data(); const div=document.createElement('div'); div.className="mon-item"; div.onclick=()=>showInfo(r.pokemonId); const img=document.createElement('img'); loadImageWithFallback(img,getStaticSpriteUrl(r.pokemonId)); div.appendChild(img); const txt=document.createElement('div'); txt.style.flexGrow="1"; txt.innerHTML=`<b>${r.name.toUpperCase()}</b><br><small>Seen: ${r.count}/5 ${r.count>=5?'<span style="color:green">✅ Captured</span>':''}</small>`; div.appendChild(txt); const arr=document.createElement('div'); arr.style.color="var(--primary)"; arr.style.fontWeight="bold"; arr.innerText="VIEW DATA ▶"; div.appendChild(arr); list.appendChild(div);}); } };
+        
         const startersList=[{id:1,name:"Bulbasaur"},{id:4,name:"Charmander"},{id:7,name:"Squirtle"},{id:152,name:"Chikorita"},{id:155,name:"Cyndaquil"},{id:158,name:"Totodile"},{id:252,name:"Treecko"},{id:255,name:"Torchic"},{id:258,name:"Mudkip"},{id:387,name:"Turtwig"},{id:390,name:"Chimchar"},{id:393,name:"Piplup"},{id:495,name:"Snivy"},{id:498,name:"Tepig"},{id:501,name:"Oshawott"},{id:650,name:"Chespin"},{id:653,name:"Fennekin"},{id:656,name:"Froakie"},{id:722,name:"Rowlet"},{id:725,name:"Litten"},{id:728,name:"Popplio"},{id:810,name:"Grookey"},{id:813,name:"Scorbunny"},{id:816,name:"Sobble"},{id:906,name:"Sprigatito"},{id:909,name:"Fuecoco"},{id:912,name:"Quaxly"}];
         async function loadStartersModal(containerId) {
             const container = document.getElementById(containerId);
@@ -1312,7 +1740,9 @@
                 activePokemonId: added.id,
                 trainerName: trainerName,
                 coins: 10000,
-                lastNameChange: null
+                lastNameChange: null,
+                totalLevels: 10,   // starter level
+                totalEncounters: 0
             });
             trackWrite();
 
@@ -1327,6 +1757,95 @@
             document.getElementById('trainer-starter-modal').classList.add('hidden');
             location.reload();
         };
+
+        // ========== RANKING MODAL ==========
+        async function loadRanking() {
+            const usersSnap = await getDocs(collection(db, "users"));
+            trackRead(usersSnap.size);
+            const trainers = [];
+            for (const docSnap of usersSnap.docs) {
+                const data = docSnap.data();
+                if (!data.hasStarter) continue; // ignore incomplete accounts
+                const trainerName = data.trainerName || docSnap.id.split('@')[0];
+                trainers.push({
+                    uid: docSnap.id,
+                    name: trainerName,
+                    email: docSnap.id, // email is the document ID
+                    totalLevels: data.totalLevels || 0,
+                    totalEncounters: data.totalEncounters || 0
+                });
+            }
+            return trainers;
+        }
+
+        function renderRankingTable(trainers, sortBy = 'totalLevels', order = 'desc') {
+            const tbody = document.getElementById('ranking-body');
+            if (!tbody) return;
+            trainers.sort((a, b) => {
+                let aVal = a[sortBy], bVal = b[sortBy];
+                if (sortBy === 'name') {
+                    aVal = a.name.toLowerCase();
+                    bVal = b.name.toLowerCase();
+                }
+                if (order === 'desc') return bVal - aVal;
+                else return aVal - bVal;
+            });
+            tbody.innerHTML = trainers.map(t => `
+                <tr data-uid="${t.uid}">
+                    <td>${t.name}</td>
+                    <td>${t.totalLevels}</td>
+                    <td>${t.totalEncounters}</td>
+                </tr>
+            `).join('');
+            // Add click handlers
+            document.querySelectorAll('#ranking-body tr').forEach(row => {
+                row.onclick = () => showTrainerTeam(row.dataset.uid);
+            });
+        }
+
+        async function showTrainerTeam(uid) {
+            const teamSnap = await getDocs(collection(db, "users", uid, "pokemon"));
+            trackRead(teamSnap.size);
+            const team = [];
+            teamSnap.forEach(doc => {
+                const p = doc.data();
+                if (p.inTeam) {
+                    team.push(p);
+                }
+            });
+            const userDoc = await getDoc(doc(db, "users", uid));
+            trackRead();
+            const userData = userDoc.data();
+            const trainerName = userData?.trainerName || uid.split('@')[0];
+            document.getElementById('trainer-team-name').innerText = `${trainerName}'s Team`;
+            const container = document.getElementById('trainer-team-list');
+            container.innerHTML = '';
+            if (team.length === 0) {
+                container.innerHTML = '<p>This trainer has no Pokémon in their team.</p>';
+            } else {
+                for (const mon of team) {
+                    const div = document.createElement('div');
+                    div.className = 'mon-item';
+                    const img = document.createElement('img');
+                    loadImageWithFallback(img, getStaticSpriteUrl(mon.pokemonId));
+                    div.appendChild(img);
+                    const info = document.createElement('div');
+                    info.className = 'mon-info';
+                    const expNeeded = getExpNeededForNextLevel(mon.level);
+                    const expCur = mon.exp || 0;
+                    const prog = Math.floor((expCur/expNeeded)*100);
+                    const moveBadges = mon.moves.map(m => `<span class="move-badge" style="background: ${getTypeColor(m.type)};">${m.name.toUpperCase()}</span>`).join('');
+                    info.innerHTML = `
+                        <b>${mon.name.toUpperCase()}</b> (Lvl ${mon.level} | XP: ${expCur}/${expNeeded} [${prog}%])<br>
+                        <small>${mon.types.join(', ')}</small><br>
+                        <div style="margin-top: 6px;">${moveBadges}</div>
+                    `;
+                    div.appendChild(info);
+                    container.appendChild(div);
+                }
+            }
+            document.getElementById('trainer-team-modal').classList.remove('hidden');
+        }
 
         // ========== AUTH STATE ==========
         onAuthStateChanged(auth, async (user) => {
@@ -1354,6 +1873,33 @@
                 playMainMusic();
                 updateNavDisplay();
                 document.getElementById('change-name-btn').onclick = changeTrainerName;
+                
+                // Setup ranking button
+                document.getElementById('ranking-btn').onclick = async () => {
+                    const trainers = await loadRanking();
+                    renderRankingTable(trainers);
+                    document.getElementById('ranking-modal').classList.remove('hidden');
+                };
+                // Sorting
+                document.querySelectorAll('#ranking-table th').forEach(th => {
+                    th.onclick = () => {
+                        const sortBy = th.dataset.sort;
+                        if (!sortBy) return;
+                        const currentOrder = th.classList.contains('desc') ? 'desc' : 'asc';
+                        const newOrder = currentOrder === 'desc' ? 'asc' : 'desc';
+                        renderRankingTable(trainers, sortBy, newOrder);
+                        th.classList.toggle('desc', newOrder === 'desc');
+                    };
+                });
+                // Search
+                const searchInput = document.getElementById('ranking-search');
+                if (searchInput) {
+                    searchInput.oninput = () => {
+                        const term = searchInput.value.toLowerCase();
+                        const filtered = trainers.filter(t => t.name.toLowerCase().includes(term) || t.email.toLowerCase().includes(term));
+                        renderRankingTable(filtered);
+                    };
+                }
             } else {
                 document.getElementById('auth-screen').classList.remove('hidden');
                 document.getElementById('game-screen').classList.add('hidden');
@@ -1363,18 +1909,6 @@
         });
 
         // ========== AUXILIARY FUNCTIONS ==========
-        async function releasePokemon(id,name) {
-            if(!confirm(`Release ${name}?`)) return;
-            const teamSnap = await getDocs(collection(db,"users",auth.currentUser.uid,"pokemon")); trackRead();
-            let teamCount=0; teamSnap.forEach(d=>{if(d.data().inTeam) teamCount++;});
-            if(teamCount===1&&activePokemonId===id) { alert("Cannot release last Pokémon!"); return; }
-            await deleteDoc(doc(db,"users",auth.currentUser.uid,"pokemon",id)); trackDelete();
-            if(activePokemonId===id) { let newActive=null; teamSnap.forEach(d=>{if(d.id!==id&&d.data().inTeam&&!newActive) newActive=d.id;}); if(newActive) { await updateDoc(doc(db,"users",auth.currentUser.uid),{activePokemonId:newActive}); trackWrite(); activePokemonId=newActive; await updateActiveCache(newActive); } else activePokemonId=null; }
-            refreshTeamView();
-        }
-        async function setActivePokemon(id) { await updateDoc(doc(db,"users",auth.currentUser.uid),{activePokemonId:id}); trackWrite(); activePokemonId=id; await updateActiveCache(id); refreshTeamView(); }
-        async function updateActiveCache(id) { const a=await getDoc(doc(db,"users",auth.currentUser.uid,"pokemon",id)); trackRead(); if(a.exists()) cachedActivePokemon={id:a.id,...a.data()}; }
-
         document.getElementById('login-btn').onclick = () => signInWithEmailAndPassword(auth, email.value, password.value).catch(e=>alert(e.message));
         document.getElementById('logout-btn').onclick = () => signOut(auth).then(()=>location.reload());
         document.getElementById('catch-btn').onclick = attemptCatch;

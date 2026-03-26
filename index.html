@@ -567,6 +567,7 @@
         <nav>
             <div class="logo"><img src="PokeSim Word.png" alt="PokeSim"></div>
             <div class="nav-links">
+                <a id="admin-link" href="admin.html" class="nav-link" style="display: none;">👑 Admin Portal</a>
                 <button class="nav-link" onclick="window.switchView('explore')">🌍 Map</button>
                 <button class="nav-link" onclick="window.switchView('team')">⚔️ Team</button>
                 <button class="nav-link" onclick="window.switchView('collection')">📦 Collection</button>
@@ -633,7 +634,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, updateDoc, deleteDoc, writeBatch, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
+        const POWER_PRICE_MULTIPLIER = 35;
         const firebaseConfig = { apiKey: "AIzaSyDkCE0wBrsQ1s-7zplvTtWOSE28ISaCFfQ", authDomain: "pokesim-7f9b7.firebaseapp.com", projectId: "pokesim-7f9b7", storageBucket: "pokesim-7f9b7.firebasestorage.app", messagingSenderId: "1087100425430", appId: "1:1087100425430:web:9558a79ee5330d4a792577" };
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -762,6 +763,7 @@
         }
         loadMoveDatabase();
 
+        
         // ========== GAME GLOBALS ==========
         let playerPos = { x: 25, y: 25 }, mapData = [], currentBattle = null, isProcessing = false;
         let activePokemonId = null, cachedActivePokemon = null, currentEditingPokemon = null, lastMoveTime = 0, lastTeamUpdate = 0, pendingRecordUpdates = {};
@@ -921,16 +923,20 @@
             const container = document.getElementById('move-list-container');
             let selectedCount = currentMoves.length;
 
-            container.innerHTML = `
-                <div id="selected-moves-preview" style="margin-top: 16px; padding: 8px; background: #f1f5f9; border-radius: 16px;">
-                    <strong>Current selection:</strong>
-                    <div id="selected-moves-list" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;"></div>
-                </div>
-                <div style="margin-bottom: 12px;">
-                    <strong>Select up to 4 moves:</strong> <span id="selected-count">${selectedCount}</span>/4 selected
-                </div>
-                <div id="move-buttons-grid" style="display: flex; flex-wrap: wrap; gap: 8px; max-height: 300px; overflow-y: auto; padding: 8px;"></div>
-            `;
+           container.innerHTML = `
+    <div id="selected-moves-preview" style="margin-top: 16px; padding: 8px; background: #f1f5f9; border-radius: 16px;">
+        <strong>Current selection:</strong>
+        <div id="selected-moves-list" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;"></div>
+    </div>
+    <div style="margin: 12px 0; padding: 10px; background: #fffbeb; border-radius: 12px; border: 1px solid #fef3c7;">
+        <strong>Total Cost: 💰 ₱<span id="move-total-cost">0</span></strong>
+        <div style="font-size: 0.7rem; color: var(--text-light);">Fee: Power × ${POWER_PRICE_MULTIPLIER} coins per move</div>
+    </div>
+    <div style="margin-bottom: 12px;">
+        <strong>Select up to 4 moves:</strong> <span id="selected-count">${selectedCount}</span>/4 selected
+    </div>
+    <div id="move-buttons-grid" style="display: flex; flex-wrap: wrap; gap: 8px; max-height: 300px; overflow-y: auto; padding: 8px;"></div>
+    `;
 
             const grid = document.getElementById('move-buttons-grid');
             const selectedListDiv = document.getElementById('selected-moves-list');
@@ -938,26 +944,37 @@
 
             let selectedMoves = [...currentMoves];
 
-            function updateUI() {
-                selectedCountSpan.innerText = selectedMoves.length;
-                selectedListDiv.innerHTML = selectedMoves.map((move, idx) => `
-                    <div style="background: ${getTypeColor(move.type)}; color: white; padding: 4px 12px; border-radius: 40px; display: inline-flex; align-items: center; gap: 8px;">
-                        ${move.name.toUpperCase()} (${move.power} power)
-                        <button class="remove-move" data-idx="${idx}" style="background: none; border: none; color: white; cursor: pointer; font-weight: bold;">✕</button>
-                    </div>
-                `).join('') || '<span style="color: var(--text-light);">No moves selected</span>';
+                function updateUI() {
+    // Calculate total cost based on power of currently selected moves
+    const totalCost = selectedMoves.reduce((sum, m) => sum + (m.power * POWER_PRICE_MULTIPLIER), 0);
+    
+    selectedCountSpan.innerText = selectedMoves.length;
+    
+    // Update the cost display (we'll add the 'move-total-cost' element in the next step)
+    const costDisplay = document.getElementById('move-total-cost');
+    if (costDisplay) {
+        costDisplay.innerText = totalCost.toLocaleString();
+        // Visual cue if they are broke
+        const userCoins = parseInt(document.getElementById('coin-amount').innerText.replace(/,/g, '')) || 0;
+        costDisplay.style.color = totalCost > userCoins ? 'var(--danger)' : 'var(--success)';
+    }
 
-                document.querySelectorAll('.remove-move').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        const idx = parseInt(btn.dataset.idx);
-                        if (!isNaN(idx) && idx >= 0 && idx < selectedMoves.length) {
-                            selectedMoves.splice(idx, 1);
-                            updateGridSelection();
-                            updateUI();
-                        }
-                    });
-                });
-            }
+    selectedListDiv.innerHTML = selectedMoves.map((move, idx) => `
+        <div style="background: ${getTypeColor(move.type)}; color: white; padding: 4px 12px; border-radius: 40px; display: inline-flex; align-items: center; gap: 8px;">
+            ${move.name.toUpperCase()} (Pwr: ${move.power})
+            <button class="remove-move" data-idx="${idx}" style="background: none; border: none; color: white; cursor: pointer; font-weight: bold;">✕</button>
+        </div>
+    `).join('') || '<span style="color: var(--text-light);">No moves selected</span>';
+
+    document.querySelectorAll('.remove-move').forEach(btn => {
+        btn.onclick = (e) => {
+            const idx = parseInt(btn.dataset.idx);
+            selectedMoves.splice(idx, 1);
+            updateGridSelection();
+            updateUI();
+        };
+    });
+}
 
             function updateGridSelection() {
                 document.querySelectorAll('.move-button').forEach(btn => {
@@ -1049,41 +1066,79 @@
             return moves;
         }
 
-        async function saveMoves(selectedMoves) {
-            if (!currentEditingPokemon) return;
-            while (selectedMoves.length < 4) {
-                selectedMoves.push({
-                    name: 'tackle',
-                    type: 'normal',
-                    power: 40,
-                    accuracy: 100,
-                    effect: '-',
-                    effectAccuracy: '-',
-                    icon: '🔘'
-                });
-            }
-            const movesToSave = selectedMoves.map(m => ({
-                name: m.name,
-                type: m.type,
-                power: m.power,
-                accuracy: m.accuracy || 100,
-                effect: '-',
-                effectAccuracy: '-',
-                icon: TYPE_ICONS[m.type] || m.type
-            }));
-            const pokemonRef = doc(db, "users", auth.currentUser.uid, "pokemon", currentEditingPokemon.id);
-            await updateDoc(pokemonRef, { moves: movesToSave });
-            trackWrite();
-            document.getElementById('move-editor').classList.add('hidden');
-            refreshTeamView();
-            if (currentBattle && currentBattle.player.id === currentEditingPokemon.id) {
-                currentBattle.player.moves = movesToSave;
-                renderBattleUI();
-            }
-            if (cachedActivePokemon && cachedActivePokemon.id === currentEditingPokemon.id) {
-                cachedActivePokemon.moves = movesToSave;
-            }
+       async function saveMoves(selectedMoves) {
+    if (!currentEditingPokemon) return;
+
+    // 1. Calculate the dynamic cost
+    const totalCost = selectedMoves.reduce((sum, m) => sum + (m.power * POWER_PRICE_MULTIPLIER), 0);
+
+    // 2. Check User's Coins
+    const userRef = doc(db, "users", auth.currentUser.uid);
+    const userSnap = await getDoc(userRef);
+    trackRead();
+    
+    const currentCoins = userSnap.data().coins || 0;
+
+    if (currentCoins < totalCost) {
+        alert(`Insufficient funds! This move set costs ₱${totalCost.toLocaleString()} coins.`);
+        return;
+    }
+
+    if (!confirm(`Confirm change for ₱${totalCost.toLocaleString()} coins?`)) return;
+
+    // 3. Prepare moves (ensuring 4 slots)
+    const movesToSave = [...selectedMoves];
+    while (movesToSave.length < 4) {
+        movesToSave.push({
+            name: 'tackle',
+            type: 'normal',
+            power: 40,
+            accuracy: 100,
+            effect: '-',
+            effectAccuracy: '-',
+            icon: '🔘'
+        });
+    }
+
+    const finalMoves = movesToSave.map(m => ({
+        name: m.name,
+        type: m.type,
+        power: m.power,
+        accuracy: m.accuracy || 100,
+        effect: '-',
+        effectAccuracy: '-',
+        icon: TYPE_ICONS[m.type] || m.type
+    }));
+
+    try {
+        // 4. Update Database
+        await updateDoc(userRef, { coins: increment(-totalCost) });
+        trackWrite();
+
+        const pokemonRef = doc(db, "users", auth.currentUser.uid, "pokemon", currentEditingPokemon.id);
+        await updateDoc(pokemonRef, { moves: finalMoves });
+        trackWrite();
+
+        // 5. Update UI
+        document.getElementById('move-editor').classList.add('hidden');
+        updateNavDisplay(); 
+        refreshTeamView();
+
+        // Sync active battle if necessary
+        if (currentBattle && currentBattle.player.id === currentEditingPokemon.id) {
+            currentBattle.player.moves = finalMoves;
+            renderBattleUI();
         }
+        if (cachedActivePokemon && cachedActivePokemon.id === currentEditingPokemon.id) {
+            cachedActivePokemon.moves = finalMoves;
+        }
+
+        alert("Moves updated!");
+    } catch (err) {
+        console.error(err);
+        alert("Transaction failed.");
+    }
+}
 
         // ========== SPECIAL POKÉMON DETECTION ==========
         const paradoxIds = new Set([
@@ -1130,8 +1185,11 @@
                     const btn = document.createElement('button');
                     btn.className = 'btn btn-outline';
                     btn.style.margin = '5px';
-                    btn.textContent = `${p.name.toUpperCase()} (Lv. ${p.level}, HP: ${p.hp}/${p.maxHp})`;
-                    btn.onclick = () => {
+                    const hpPct = Math.floor((p.hp / p.maxHp) * 100);
+    btn.innerHTML = `
+        <strong>${p.name.toUpperCase()}</strong><br>
+        <small>Lvl ${p.level} — HP: ${p.hp}/${p.maxHp} (${hpPct}%)</small>
+    `; btn.onclick = () => {
                         modal.classList.add('hidden');
                         resolve(p);
                     };
@@ -1139,24 +1197,35 @@
                 });
                 modal.classList.remove('hidden');
             });
+
+            
         }
 
-        async function handlePlayerFaint(battle) {
-            const team = battle.playerTeam;
-            const currentIdx = battle.activePokemonIndex;
-            const available = team.filter((p, idx) => idx !== currentIdx && p.hp > 0);
-            if (available.length === 0) {
-                return null;
-            }
-            addBattleLog(`${battle.player.name} fainted! Choose a replacement.`);
-            const selected = await showSwitchPokemonModal(available);
-            const newIdx = team.findIndex(p => p === selected);
-            battle.activePokemonIndex = newIdx;
-            battle.player = team[newIdx];
-            renderBattleUI();
-            addBattleLog(`Go! ${battle.player.name.toUpperCase()}!`);
-            return newIdx;
-        }
+  async function handlePlayerFaint(battle) {
+    const team = battle.playerTeam;
+    
+    // Filter: Must have more than 0 HP AND not be the one that just fainted
+    const available = team.filter((p) => p.hp > 0);
+
+    if (available.length === 0) {
+        return null; // All Pokémon are fainted
+    }
+
+    addBattleLog(`${battle.player.name.toUpperCase()} fainted! Choose a replacement.`);
+    
+    // Wait for user to pick from the modal
+    const selected = await showSwitchPokemonModal(available);
+    
+    // Find the new index in the original team array
+    const newIdx = team.findIndex(p => p.id === selected.id);
+    
+    battle.activePokemonIndex = newIdx;
+    battle.player = team[newIdx]; // Reference the new healthy Pokémon
+    
+    renderBattleUI();
+    addBattleLog(`Go! ${battle.player.name.toUpperCase()}!`);
+    return newIdx;
+}
 
         async function resolveBattle(win) {
             if(win && currentBattle) {
@@ -1214,17 +1283,42 @@
             } catch(e) { console.error("Evo Error:",e); } return false;
         }
 
-        async function showInfo(id) {
-            document.getElementById('loading-overlay').classList.remove('hidden');
-            const [p,s]=await Promise.all([fetch(`https://pokeapi.co/api/v2/pokemon/${id}`).then(r=>r.json()), fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}`).then(r=>r.json())]);
-            const desc=s.flavor_text_entries.find(e=>e.language.name==='en').flavor_text.replace(/\f/g,' ');
-            loadImageWithFallback(document.getElementById('info-img'), getBattleSpriteUrl(id,'front'));
-            document.getElementById('info-name').innerText=p.name.toUpperCase();
-            document.getElementById('info-desc').innerText=`"${desc}"`;
-            document.getElementById('info-stats').innerHTML=`Height: ${p.height/10}m | Weight: ${p.weight/10}kg | Types: ${p.types.map(t=>t.type.name).join('/')}`;
-            document.getElementById('info-overlay').classList.remove('hidden');
-            document.getElementById('loading-overlay').classList.add('hidden');
+     async function showInfo(id) {
+    const overlay = document.getElementById('loading-overlay');
+    overlay.classList.remove('hidden');
+    
+    try {
+        // Fetch both Pokémon and species data in parallel
+        const [pokemonRes, speciesRes] = await Promise.all([
+            fetch(`https://pokeapi.co/api/v2/pokemon/${id}`),
+            fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}`)
+        ]);
+        
+        if (!pokemonRes.ok || !speciesRes.ok) {
+            throw new Error(`HTTP error: ${pokemonRes.status} / ${speciesRes.status}`);
         }
+        
+        const p = await pokemonRes.json();
+        const s = await speciesRes.json();
+        
+        const desc = s.flavor_text_entries.find(e => e.language.name === 'en')?.flavor_text.replace(/\f/g, ' ') || 'No description available.';
+        
+        loadImageWithFallback(document.getElementById('info-img'), getBattleSpriteUrl(id, 'front'));
+        document.getElementById('info-name').innerText = p.name.toUpperCase();
+        document.getElementById('info-desc').innerText = `"${desc}"`;
+        document.getElementById('info-stats').innerHTML = `Height: ${p.height / 10}m | Weight: ${p.weight / 10}kg | Types: ${p.types.map(t => t.type.name).join('/')}`;
+        
+        // Show the info modal
+        document.getElementById('info-overlay').classList.remove('hidden');
+    } catch (err) {
+        console.error("Failed to load Pokémon info:", err);
+        alert("Could not load Pokémon details. Please try again later.");
+    } finally {
+        // Always hide the loading overlay, even on error
+        overlay.classList.add('hidden');
+    }
+}
+    
         window.showInfo=showInfo;
 
         function initMap() { const grid=document.getElementById('map-grid'); if(grid.innerHTML!=="") return; for(let y=0;y<50;y++){ mapData[y]=[]; for(let x=0;x<50;x++){ const g=Math.random()<0.2; mapData[y][x]=g?'grass':'dirt'; const d=document.createElement('div'); d.className=`tile ${g?'grass':''}`; grid.appendChild(d); } } renderPlayer(); }
@@ -1325,7 +1419,7 @@
                 currentBattle = {
                     playerTeam: team,
                     activePokemonIndex: activeIndex,
-                    player: { ...team[activeIndex] },
+                    player: team[activeIndex],
                     wild: {
                         pokemonId: wildId,
                         name: wild.name,
@@ -1713,6 +1807,10 @@
                 playMainMusic();
                 updateNavDisplay();
                 document.getElementById('change-name-btn').onclick = changeTrainerName;
+                // Show admin link if user has admin role
+if (data?.role === 'admin') {
+    document.getElementById('admin-link').style.display = 'inline-block';
+}
             } else {
                 document.getElementById('auth-screen').classList.remove('hidden');
                 document.getElementById('game-screen').classList.add('hidden');

@@ -84,6 +84,21 @@
             background: #f8fafc;
             cursor: pointer;
         }
+        .view-team-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: 0.2s;
+        }
+        .view-team-btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
         .type-badge {
             display: inline-block;
             padding: 2px 8px;
@@ -180,6 +195,10 @@
                 height: 40px;
                 margin-right: 12px;
             }
+            .view-team-btn {
+                padding: 4px 8px;
+                font-size: 0.7rem;
+            }
         }
     </style>
 </head>
@@ -195,10 +214,11 @@
                         <th data-sort="name">Trainer</th>
                         <th data-sort="totalLevels">Total Level ⬇️</th>
                         <th data-sort="totalEncounters">Total Encounters</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody id="ranking-body">
-                    <tr><td colspan="3">Loading...</td></tr>
+                    <tr><td colspan="4">Loading...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -218,14 +238,14 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = { apiKey: "AIzaSyDkCE0wBrsQ1s-7zplvTtWOSE28ISaCFfQ", authDomain: "pokesim-7f9b7.firebaseapp.com", projectId: "pokesim-7f9b7", storageBucket: "pokesim-7f9b7.firebasestorage.app", messagingSenderId: "1087100425430", appId: "1:1087100425430:web:9558a79ee5330d4a792577" };
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // Helper functions (copied from main game)
+        // Helper functions
         function getTypeColor(type) {
             const colors = {
                 normal: '#A8A77A', fire: '#EE8130', water: '#6390F0', electric: '#F7D02C',
@@ -253,23 +273,28 @@
 
         function getExpNeededForNextLevel(l) { return l*300; }
 
-        // Load ranking data
         async function loadRanking() {
-            const usersSnap = await getDocs(collection(db, "users"));
-            const trainers = [];
-            for (const docSnap of usersSnap.docs) {
-                const data = docSnap.data();
-                if (!data.hasStarter) continue;
-                const trainerName = data.trainerName || docSnap.id.split('@')[0];
-                trainers.push({
-                    uid: docSnap.id,
-                    name: trainerName,
-                    email: docSnap.id,
-                    totalLevels: data.totalLevels || 0,
-                    totalEncounters: data.totalEncounters || 0
-                });
+            try {
+                const usersSnap = await getDocs(collection(db, "users"));
+                const trainers = [];
+                for (const docSnap of usersSnap.docs) {
+                    const data = docSnap.data();
+                    if (!data.hasStarter) continue;
+                    const trainerName = data.trainerName || docSnap.id.split('@')[0];
+                    trainers.push({
+                        uid: docSnap.id,
+                        name: trainerName,
+                        email: docSnap.id,
+                        totalLevels: data.totalLevels || 0,
+                        totalEncounters: data.totalEncounters || 0
+                    });
+                }
+                return trainers;
+            } catch (error) {
+                console.error("Failed to load ranking:", error);
+                document.getElementById('ranking-body').innerHTML = `<tr><td colspan="4">Error loading ranking. Please check console or contact admin.</td></tr>`;
+                return [];
             }
-            return trainers;
         }
 
         function renderRankingTable(trainers, sortBy = 'totalLevels', order = 'desc') {
@@ -289,54 +314,71 @@
                     <td>${escapeHtml(t.name)}</td>
                     <td>${t.totalLevels}</td>
                     <td>${t.totalEncounters}</td>
+                    <td><button class="view-team-btn" data-uid="${t.uid}">View Team</button></td>
                 </tr>
             `).join('');
-            // Add click handlers
+
+            // Add click handlers for buttons and rows
+            document.querySelectorAll('.view-team-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    showTrainerTeam(btn.dataset.uid);
+                };
+            });
             document.querySelectorAll('#ranking-body tr').forEach(row => {
-                row.onclick = () => showTrainerTeam(row.dataset.uid);
+                row.onclick = (e) => {
+                    // Don't trigger if the button was clicked (already handled)
+                    if (e.target.classList && e.target.classList.contains('view-team-btn')) return;
+                    showTrainerTeam(row.dataset.uid);
+                };
             });
         }
 
         async function showTrainerTeam(uid) {
-            const teamSnap = await getDocs(collection(db, "users", uid, "pokemon"));
-            const team = [];
-            teamSnap.forEach(doc => {
-                const p = doc.data();
-                if (p.inTeam) {
-                    team.push(p);
+            try {
+                const teamSnap = await getDocs(collection(db, "users", uid, "pokemon"));
+                const team = [];
+                teamSnap.forEach(doc => {
+                    const p = doc.data();
+                    if (p.inTeam) {
+                        team.push(p);
+                    }
+                });
+                const userDoc = await getDoc(doc(db, "users", uid));
+                const userData = userDoc.data();
+                const trainerName = userData?.trainerName || uid.split('@')[0];
+                document.getElementById('trainer-team-name').innerText = `${escapeHtml(trainerName)}'s Team`;
+                const container = document.getElementById('trainer-team-list');
+                container.innerHTML = '';
+                if (team.length === 0) {
+                    container.innerHTML = '<p>This trainer has no Pokémon in their team.</p>';
+                } else {
+                    for (const mon of team) {
+                        const div = document.createElement('div');
+                        div.className = 'mon-item';
+                        const img = document.createElement('img');
+                        loadImageWithFallback(img, getStaticSpriteUrl(mon.pokemonId));
+                        div.appendChild(img);
+                        const info = document.createElement('div');
+                        info.className = 'mon-info';
+                        const expNeeded = getExpNeededForNextLevel(mon.level);
+                        const expCur = mon.exp || 0;
+                        const prog = Math.floor((expCur/expNeeded)*100);
+                        const moveBadges = mon.moves.map(m => `<span class="move-badge" style="background: ${getTypeColor(m.type)};">${m.name.toUpperCase()}</span>`).join('');
+                        info.innerHTML = `
+                            <b>${escapeHtml(mon.name.toUpperCase())}</b> (Lvl ${mon.level} | XP: ${expCur}/${expNeeded} [${prog}%])<br>
+                            <small>${mon.types.join(', ')}</small><br>
+                            <div style="margin-top: 6px;">${moveBadges}</div>
+                        `;
+                        div.appendChild(info);
+                        container.appendChild(div);
+                    }
                 }
-            });
-            const userDoc = await getDoc(doc(db, "users", uid));
-            const userData = userDoc.data();
-            const trainerName = userData?.trainerName || uid.split('@')[0];
-            document.getElementById('trainer-team-name').innerText = `${escapeHtml(trainerName)}'s Team`;
-            const container = document.getElementById('trainer-team-list');
-            container.innerHTML = '';
-            if (team.length === 0) {
-                container.innerHTML = '<p>This trainer has no Pokémon in their team.</p>';
-            } else {
-                for (const mon of team) {
-                    const div = document.createElement('div');
-                    div.className = 'mon-item';
-                    const img = document.createElement('img');
-                    loadImageWithFallback(img, getStaticSpriteUrl(mon.pokemonId));
-                    div.appendChild(img);
-                    const info = document.createElement('div');
-                    info.className = 'mon-info';
-                    const expNeeded = getExpNeededForNextLevel(mon.level);
-                    const expCur = mon.exp || 0;
-                    const prog = Math.floor((expCur/expNeeded)*100);
-                    const moveBadges = mon.moves.map(m => `<span class="move-badge" style="background: ${getTypeColor(m.type)};">${m.name.toUpperCase()}</span>`).join('');
-                    info.innerHTML = `
-                        <b>${escapeHtml(mon.name.toUpperCase())}</b> (Lvl ${mon.level} | XP: ${expCur}/${expNeeded} [${prog}%])<br>
-                        <small>${mon.types.join(', ')}</small><br>
-                        <div style="margin-top: 6px;">${moveBadges}</div>
-                    `;
-                    div.appendChild(info);
-                    container.appendChild(div);
-                }
+                document.getElementById('trainer-team-modal').classList.remove('hidden');
+            } catch (error) {
+                console.error("Failed to load trainer team:", error);
+                alert("Could not load the trainer's team.");
             }
-            document.getElementById('trainer-team-modal').classList.remove('hidden');
         }
 
         function escapeHtml(str) {
@@ -351,15 +393,12 @@
         // Authentication check
         onAuthStateChanged(auth, async (user) => {
             if (!user) {
-                // Not logged in, redirect to main page to login
                 window.location.href = 'index.html';
                 return;
             }
-            // Load ranking
             const trainers = await loadRanking();
             renderRankingTable(trainers);
             
-            // Setup search
             const searchInput = document.getElementById('ranking-search');
             if (searchInput) {
                 searchInput.oninput = () => {
@@ -368,17 +407,17 @@
                     renderRankingTable(filtered);
                 };
             }
-            // Setup sorting
             const headers = document.querySelectorAll('#ranking-table th');
             headers.forEach(th => {
-                th.onclick = () => {
-                    const sortBy = th.dataset.sort;
-                    if (!sortBy) return;
-                    const currentOrder = th.classList.contains('desc') ? 'desc' : 'asc';
-                    const newOrder = currentOrder === 'desc' ? 'asc' : 'desc';
-                    renderRankingTable(trainers, sortBy, newOrder);
-                    th.classList.toggle('desc', newOrder === 'desc');
-                };
+                if (th.dataset.sort) {
+                    th.onclick = () => {
+                        const sortBy = th.dataset.sort;
+                        const currentOrder = th.classList.contains('desc') ? 'desc' : 'asc';
+                        const newOrder = currentOrder === 'desc' ? 'asc' : 'desc';
+                        renderRankingTable(trainers, sortBy, newOrder);
+                        th.classList.toggle('desc', newOrder === 'desc');
+                    };
+                }
             });
         });
     </script>

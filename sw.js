@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pokesim-v1.2';
+const CACHE_NAME = 'pokesim-v1.2';   // ← change this version number on every deploy
 const assets = [
   'index.html',
   'manifest.json',
@@ -10,20 +10,45 @@ const assets = [
   'music2.mp3'
 ];
 
-// Install Service Worker
+// Install: cache assets and force activation
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
       return cache.addAll(assets);
     })
   );
+  // Force the new service worker to take over immediately
+  self.skipWaiting();
 });
 
-// Fetch logic
+// Activate: clean up old caches and claim all clients
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys().then(keys => {
+      return Promise.all(
+        keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
+      );
+    })
+  );
+  // Take control of all pages without needing a refresh
+  e.waitUntil(clients.claim());
+});
+
+// Fetch: try network first, fallback to cache
 self.addEventListener('fetch', e => {
   e.respondWith(
-    caches.match(e.request).then(response => {
-      return response || fetch(e.request);
-    })
+    fetch(e.request)
+      .then(response => {
+        // If network request succeeds, store a copy in the cache
+        const responseClone = response.clone();
+        caches.open(CACHE_NAME).then(cache => {
+          cache.put(e.request, responseClone);
+        });
+        return response;
+      })
+      .catch(() => {
+        // Network failed – serve from cache
+        return caches.match(e.request);
+      })
   );
 });

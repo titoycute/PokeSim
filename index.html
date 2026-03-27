@@ -14,6 +14,8 @@
     <meta property="og:url" content="https://pokesim.ph.gamer.gd">
     <meta name="twitter:card" content="summary_large_image">
     
+
+    <link rel="manifest" href="manifest.json">
     <style>
         * {
             margin: 0;
@@ -531,8 +533,17 @@
             <p>💰 Catching costs 20% of current XP</p>
             <p>🎵 Dynamic battle music</p>
             <div class="support-section">
-                <p>☕ Enjoying the game? <a href="support.html">Buy me a coffee</a> to support further development!</p>
+                <p>☕ Enjoying the game? dasdasd<a href="support.html">Buy me a coffee</a> to support further development!</p>
             </div>
+
+<!-- Add this new Install Section right below the support-section -->
+<!-- Put this version in BOTH the About Modal and the Game Features section -->
+<div class="install-container hidden" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--border);">
+    <p>📱 Play PokeSim anywhere, add me to your app!</p>
+    <button class="btn btn-success btn-install-app" style="margin-top: 10px; width: 100%; max-width: 250px;">
+        <i class="fas fa-download"></i> Install PokeSim App
+    </button>
+</div>
             <br>
             <p>📅 <strong>Last Updated:</strong> March 27, 2026</p>
             <p>👨‍💻 <strong>Created by:</strong> Tootzkie Custodio</p>
@@ -670,6 +681,12 @@
             <div class="support-section">
                 <p>☕ Enjoying the game? <a href="support.html">Buy me a coffee</a> to support further development!</p>
             </div>
+            <div class="install-container hidden" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--border);">
+    <p>📱 Play PokeSim anywhere, add me to your app!</p>
+    <button class="btn btn-success btn-install-app" style="margin-top: 10px; width: 100%; max-width: 250px;">
+        <i class="fas fa-download"></i> Install PokeSim App
+    </button>
+</div>
         
         </div>
     </div>
@@ -2150,6 +2167,55 @@ if (data?.role === 'admin') {
         document.getElementById('logout-btn').onclick = () => signOut(auth).then(()=>location.reload());
         document.getElementById('catch-btn').onclick = attemptCatch;
         window.addEventListener('keydown',e=>{if(["ArrowUp","w"].includes(e.key)) movePlayer(0,-1); if(["ArrowDown","s"].includes(e.key)) movePlayer(0,1); if(["ArrowLeft","a"].includes(e.key)) movePlayer(-1,0); if(["ArrowRight","d"].includes(e.key)) movePlayer(1,0);});
-    </script>
+    if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+            .then(reg => console.log('Service Worker Registered'))
+            .catch(err => console.log('Service Worker Failed', err));
+    });
+}
+   
+// ========== PWA INSTALLATION LOGIC ==========
+let deferredPrompt;
+const installContainers = document.querySelectorAll('.install-container');
+const installBtns = document.querySelectorAll('.btn-install-app');
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    // Prevent the default browser prompt
+    e.preventDefault();
+    // Save the event
+    deferredPrompt = e;
+    
+    // Show ALL install containers on the page
+    installContainers.forEach(container => container.classList.remove('hidden'));
+    console.log('beforeinstallprompt fired: App is installable');
+});
+
+// Attach click events to all install buttons found
+installBtns.forEach(btn => {
+    btn.addEventListener('click', async () => {
+        if (!deferredPrompt) {
+            alert("Installation prompt not ready. If you're on iOS, use the Share menu.");
+            return;
+        }
+        
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        
+        if (outcome === 'accepted') {
+            console.log('User accepted the install prompt');
+        }
+        
+        deferredPrompt = null;
+        installContainers.forEach(container => container.classList.add('hidden'));
+    });
+});
+
+window.addEventListener('appinstalled', () => {
+    installContainers.forEach(container => container.classList.add('hidden'));
+    deferredPrompt = null;
+    console.log('PWA was installed');
+});
+   </script>
 </body>
 </html>

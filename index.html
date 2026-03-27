@@ -492,34 +492,37 @@
         </div>
     </div>
     <div id="about-modal" class="overlay hidden" onclick="this.classList.add('hidden')">
-        <div class="modal" style="max-width: 500px;" onclick="event.stopPropagation()">
-            <h2 style="color: var(--primary-dark); margin-bottom: 20px;">📊 PokeSim Status</h2>
-            <div class="about-stats">
-                <h3>Data Management Usage</h3>
-                <div id="read-stats"><p>📖 Reads: <strong id="read-count">0</strong> / 25,000 <span id="read-percent" class="about-badge free">0%</span></p><div class="stat-progress"><div id="read-progress" class="stat-progress-fill" style="width: 0%"></div></div></div>
-                <div id="write-stats"><p>✍️ Writes: <strong id="write-count">0</strong> / 10,000 <span id="write-percent" class="about-badge free">0%</span></p><div class="stat-progress"><div id="write-progress" class="stat-progress-fill" style="width: 0%"></div></div></div>
-                <div id="delete-stats"><p>🗑️ Deletes: <strong id="delete-count">0</strong> / 10,000 <span id="delete-percent" class="about-badge free">0%</span></p><div class="stat-progress"><div id="delete-progress" class="stat-progress-fill" style="width: 0%"></div></div></div>
-            </div>
-            <hr style="margin: 15px 0;">
-            <div style="font-size: 0.85rem; color: var(--text-light); text-align: left;">
-                <p>✨ <strong>Game Features:</strong></p>
-                <p>🎮 Over 1,000+ Pokémon from Gen 1 to Gen 9</p>
-                <p>⚔️ Full type effectiveness system</p>
-                <p>🎯 Custom move sets (all damaging moves)</p>
-                <p>🔄 Evolution system (automatic upon level up)</p>
-                <p>⭐ 5th encounter of the same species = auto‑capture</p>
-                <p>💰 Catching costs 20% of current XP</p>
-                <p>🎵 Dynamic battle music</p>
-                <div class="support-section">
-                    <p>☕ Enjoying the game? <a href="support.html">Buy me a coffee</a> to support further development!</p>
-                </div>
-                <br>
-                <p>📅 <strong>Last Updated:</strong> March 26, 2026</p>
-                <p>👨‍💻 <strong>Created by:</strong> Tootzkie Custodio</p>
-            </div>
-            <button class="btn btn-primary" style="margin-top: 20px;" onclick="document.getElementById('about-modal').classList.add('hidden')">Close</button>
+    <div class="modal" style="max-width: 500px;" onclick="event.stopPropagation()">
+        <h2 style="color: var(--primary-dark); margin-bottom: 20px;">📊 PokeSim Status</h2>
+        <div class="about-stats">
+            <h3>Data Management Usage</h3>
+            <div id="read-stats"><p>📖 Reads: <strong id="read-count">0</strong> / 25,000 <span id="read-percent" class="about-badge free">0%</span></p><div class="stat-progress"><div id="read-progress" class="stat-progress-fill" style="width: 0%"></div></div></div>
+            <div id="write-stats"><p>✍️ Writes: <strong id="write-count">0</strong> / 10,000 <span id="write-percent" class="about-badge free">0%</span></p><div class="stat-progress"><div id="write-progress" class="stat-progress-fill" style="width: 0%"></div></div></div>
+            <div id="delete-stats"><p>🗑️ Deletes: <strong id="delete-count">0</strong> / 10,000 <span id="delete-percent" class="about-badge free">0%</span></p><div class="stat-progress"><div id="delete-progress" class="stat-progress-fill" style="width: 0%"></div></div></div>
         </div>
+        <hr style="margin: 15px 0;">
+        <div style="font-size: 0.85rem; color: var(--text-light); text-align: left;">
+            <p>✨ <strong>Game Features:</strong></p>
+            <p>🎮 Over 1,000+ Pokémon from Gen 1 to Gen 9</p>
+            <p>⚔️ Full type effectiveness system</p>
+            <p>🎯 Custom move sets (all damaging moves)</p>
+            <p>🔄 Evolution system (automatic upon level up)</p>
+            <p>⭐ 5th encounter of the same species = auto‑capture when defeated</p>
+            <p>💰 Catching costs 20% of current XP</p>
+            <p>🎵 Dynamic battle music</p>
+            <div class="support-section">
+                <p>☕ Enjoying the game? <a href="support.html">Buy me a coffee</a> to support further development!</p>
+            </div>
+            <br>
+            <p>📅 <strong>Last Updated:</strong> March 27, 2026</p>
+            <p>👨‍💻 <strong>Created by:</strong> Tootzkie Custodio</p>
+            <hr style="margin: 15px 0;">
+            <p><strong>Disclaimer:</strong> This is a fan‑made game and is not affiliated with, endorsed, or sponsored by Nintendo, The Pokémon Company, or Game Freak. All Pokémon and related assets are property of their respective owners.</p>
+            <p><strong>Credits:</strong> Pokémon data and images provided by <a href="https://pokeapi.co/" target="_blank">PokeAPI</a>. Game backend powered by <a href="https://firebase.google.com/" target="_blank">Firebase</a>. Special thanks to the open‑source community.</p>
+        </div>
+        <button class="btn btn-primary" style="margin-top: 20px;" onclick="document.getElementById('about-modal').classList.add('hidden')">Close</button>
     </div>
+</div>
 
     <!-- Trainer + Starter Modal -->
     <div id="trainer-starter-modal" class="overlay hidden">
@@ -625,10 +628,15 @@
             <div class="support-section">
                 <p>☕ Enjoying the game? <a href="support.html">Buy me a coffee</a> to support further development!</p>
             </div>
+        
         </div>
     </div>
 
-    <footer>Created by Tootzkie Custodio</footer>
+    <footer>Created by Tootzkie Custodio
+             <p><strong>Disclaimer:</strong> This is a fan‑made game and is not affiliated with, endorsed, or sponsored by Nintendo, The Pokémon Company, or Game Freak. All Pokémon and related assets are property of their respective owners.</p>
+            <p><strong>Credits:</strong> Pokémon data and images provided by <a href="https://pokeapi.co/" target="_blank">PokeAPI</a>. Game backend powered by <a href="https://firebase.google.com/" target="_blank">Firebase</a>. Special thanks to the open‑source community.</p>
+        
+    </footer>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -919,123 +927,126 @@
             renderMoveGrid(moveOptions, currentMoves);
         }
 
-        function renderMoveGrid(moveList, currentMoves) {
-            const container = document.getElementById('move-list-container');
-            let selectedCount = currentMoves.length;
+function renderMoveGrid(moveList, currentMoves) {
+    const container = document.getElementById('move-list-container');
+    const selectedMoves = [...currentMoves];
+    const originalPowerSum = selectedMoves.reduce((sum, m) => sum + m.power, 0);
 
-           container.innerHTML = `
-    <div id="selected-moves-preview" style="margin-top: 16px; padding: 8px; background: #f1f5f9; border-radius: 16px;">
-        <strong>Current selection:</strong>
-        <div id="selected-moves-list" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;"></div>
-    </div>
-    <div style="margin: 12px 0; padding: 10px; background: #fffbeb; border-radius: 12px; border: 1px solid #fef3c7;">
-        <strong>Total Cost: 💰 ₱<span id="move-total-cost">0</span></strong>
-        <div style="font-size: 0.7rem; color: var(--text-light);">Fee: Power × ${POWER_PRICE_MULTIPLIER} coins per move</div>
-    </div>
-    <div style="margin-bottom: 12px;">
-        <strong>Select up to 4 moves:</strong> <span id="selected-count">${selectedCount}</span>/4 selected
-    </div>
-    <div id="move-buttons-grid" style="display: flex; flex-wrap: wrap; gap: 8px; max-height: 300px; overflow-y: auto; padding: 8px;"></div>
+    container.innerHTML = `
+        <div id="selected-moves-preview" style="margin-top: 16px; padding: 8px; background: #f1f5f9; border-radius: 16px;">
+            <strong>Current selection:</strong>
+            <div id="selected-moves-list" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;"></div>
+        </div>
+        <div style="margin: 12px 0; padding: 10px; background: #fffbeb; border-radius: 12px; border: 1px solid #fef3c7;">
+            <strong>Additional Cost: 💰 ₱<span id="move-total-cost">0</span></strong>
+            <div style="font-size: 0.7rem; color: var(--text-light);">Fee: Power × ${POWER_PRICE_MULTIPLIER} coins (you pay only for added power)</div>
+        </div>
+        <div style="margin-bottom: 12px;">
+            <strong>Select up to 4 moves:</strong> <span id="selected-count">${selectedMoves.length}</span>/4 selected
+        </div>
+        <table style="width:100%; border-collapse: collapse; margin-top: 10px;">
+            <thead>
+                <tr style="background: #e2e8f0;">
+                    <th style="padding: 8px; text-align: left;">Move</th>
+                    <th style="padding: 8px; text-align: left;">Type</th>
+                    <th style="padding: 8px; text-align: center;">Power</th>
+                    <th style="padding: 8px; text-align: center;">Cost (₱)</th>
+                    <th style="padding: 8px; text-align: center;"></th>
+                </tr>
+            </thead>
+            <tbody id="move-table-body">
+                ${moveList.map(move => `
+                    <tr data-move-name="${move.name}" style="border-bottom: 1px solid #e2e8f0;">
+                        <td style="padding: 8px;">${move.name.toUpperCase()}</td>
+                        <td style="padding: 8px;"><span class="type-badge" style="background: ${getTypeColor(move.type)};">${move.type.toUpperCase()}</span></td>
+                        <td style="padding: 8px; text-align: center;">${move.power}</td>
+                        <td style="padding: 8px; text-align: center;">${move.power * POWER_PRICE_MULTIPLIER}</td>
+                        <td style="padding: 8px; text-align: center;">
+                            <button class="move-toggle-btn" data-name="${move.name}" style="background: var(--primary); color: white; border: none; border-radius: 20px; padding: 4px 12px; cursor: pointer;">Add</button>
+                        </td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+        <button id="save-moves-btn" class="btn btn-primary" style="margin-top: 20px;">Save Moves</button>
     `;
 
-            const grid = document.getElementById('move-buttons-grid');
-            const selectedListDiv = document.getElementById('selected-moves-list');
-            const selectedCountSpan = document.getElementById('selected-count');
+    const selectedListDiv = document.getElementById('selected-moves-list');
+    const selectedCountSpan = document.getElementById('selected-count');
+    const totalCostSpan = document.getElementById('move-total-cost');
 
-            let selectedMoves = [...currentMoves];
+    function updateUI() {
+        selectedCountSpan.innerText = selectedMoves.length;
+        selectedListDiv.innerHTML = selectedMoves.map((move, idx) => `
+            <div style="background: ${getTypeColor(move.type)}; color: white; padding: 4px 12px; border-radius: 40px; display: inline-flex; align-items: center; gap: 8px;">
+                ${move.name.toUpperCase()} (Pwr: ${move.power})
+                <button class="remove-move" data-idx="${idx}" style="background: none; border: none; color: white; cursor: pointer; font-weight: bold;">✕</button>
+            </div>
+        `).join('') || '<span style="color: var(--text-light);">No moves selected</span>';
 
-                function updateUI() {
-    // Calculate total cost based on power of currently selected moves
-    const totalCost = selectedMoves.reduce((sum, m) => sum + (m.power * POWER_PRICE_MULTIPLIER), 0);
-    
-    selectedCountSpan.innerText = selectedMoves.length;
-    
-    // Update the cost display (we'll add the 'move-total-cost' element in the next step)
-    const costDisplay = document.getElementById('move-total-cost');
-    if (costDisplay) {
-        costDisplay.innerText = totalCost.toLocaleString();
-        // Visual cue if they are broke
+        document.querySelectorAll('.remove-move').forEach(btn => {
+            btn.onclick = (e) => {
+                const idx = parseInt(btn.dataset.idx);
+                selectedMoves.splice(idx, 1);
+                updateTableButtons();
+                updateUI();
+            };
+        });
+
+        // Calculate additional cost (only if power increased)
+        const totalPower = selectedMoves.reduce((sum, m) => sum + m.power, 0);
+        const additionalPower = Math.max(0, totalPower - originalPowerSum);
+        const cost = additionalPower * POWER_PRICE_MULTIPLIER;
+        totalCostSpan.innerText = cost.toLocaleString();
         const userCoins = parseInt(document.getElementById('coin-amount').innerText.replace(/,/g, '')) || 0;
-        costDisplay.style.color = totalCost > userCoins ? 'var(--danger)' : 'var(--success)';
+        totalCostSpan.style.color = cost > userCoins ? 'var(--danger)' : 'var(--success)';
     }
 
-    selectedListDiv.innerHTML = selectedMoves.map((move, idx) => `
-        <div style="background: ${getTypeColor(move.type)}; color: white; padding: 4px 12px; border-radius: 40px; display: inline-flex; align-items: center; gap: 8px;">
-            ${move.name.toUpperCase()} (Pwr: ${move.power})
-            <button class="remove-move" data-idx="${idx}" style="background: none; border: none; color: white; cursor: pointer; font-weight: bold;">✕</button>
-        </div>
-    `).join('') || '<span style="color: var(--text-light);">No moves selected</span>';
+    function updateTableButtons() {
+        document.querySelectorAll('.move-toggle-btn').forEach(btn => {
+            const moveName = btn.dataset.name;
+            const isSelected = selectedMoves.some(m => m.name === moveName);
+            btn.innerText = isSelected ? 'Remove' : 'Add';
+            btn.style.background = isSelected ? 'var(--danger)' : 'var(--primary)';
+            btn.disabled = !isSelected && selectedMoves.length >= 4;
+        });
+    }
 
-    document.querySelectorAll('.remove-move').forEach(btn => {
-        btn.onclick = (e) => {
-            const idx = parseInt(btn.dataset.idx);
-            selectedMoves.splice(idx, 1);
-            updateGridSelection();
+    // Attach event handlers for toggle buttons
+    document.querySelectorAll('.move-toggle-btn').forEach(btn => {
+        btn.onclick = () => {
+            const moveName = btn.dataset.name;
+            const move = moveList.find(m => m.name === moveName);
+            if (!move) return;
+            const isSelected = selectedMoves.some(m => m.name === moveName);
+            if (isSelected) {
+                selectedMoves.splice(selectedMoves.findIndex(m => m.name === moveName), 1);
+            } else {
+                if (selectedMoves.length >= 4) {
+                    alert('You can only select up to 4 moves.');
+                    return;
+                }
+                selectedMoves.push({
+                    name: move.name,
+                    type: move.type,
+                    power: move.power,
+                    accuracy: move.accuracy
+                });
+            }
+            updateTableButtons();
             updateUI();
         };
     });
+
+    // Save button
+    document.getElementById('save-moves-btn').onclick = async () => {
+        await saveMoves(selectedMoves, currentMoves);
+    };
+
+    // Initial update
+    updateTableButtons();
+    updateUI();
 }
-
-            function updateGridSelection() {
-                document.querySelectorAll('.move-button').forEach(btn => {
-                    const moveName = btn.dataset.name;
-                    if (selectedMoves.some(m => m.name === moveName)) {
-                        btn.classList.add('selected');
-                    } else {
-                        btn.classList.remove('selected');
-                    }
-                });
-            }
-
-            moveList.forEach(move => {
-                const btn = document.createElement('button');
-                btn.className = 'move-button';
-                btn.dataset.name = move.name;
-                btn.textContent = `${move.name.toUpperCase()} (${move.power})`;
-                btn.style.backgroundColor = getTypeColor(move.type);
-                btn.style.color = 'white';
-                btn.style.border = 'none';
-                btn.style.padding = '8px 12px';
-                btn.style.borderRadius = '40px';
-                btn.style.cursor = 'pointer';
-                btn.style.transition = '0.2s';
-                btn.style.textShadow = '0 1px 1px rgba(0,0,0,0.2)';
-                btn.onclick = () => {
-                    const isSelected = selectedMoves.some(m => m.name === move.name);
-                    if (isSelected) {
-                        selectedMoves = selectedMoves.filter(m => m.name !== move.name);
-                    } else {
-                        if (selectedMoves.length >= 4) {
-                            alert('You can only select up to 4 moves.');
-                            return;
-                        }
-                        selectedMoves.push({
-                            name: move.name,
-                            type: move.type,
-                            power: move.power,
-                            accuracy: move.accuracy
-                        });
-                    }
-                    updateGridSelection();
-                    updateUI();
-                };
-                grid.appendChild(btn);
-            });
-
-            const saveBtn = document.createElement('button');
-            saveBtn.textContent = 'Save Moves';
-            saveBtn.className = 'btn btn-primary';
-            saveBtn.style.marginTop = '16px';
-            saveBtn.style.width = '100%';
-            saveBtn.onclick = async () => {
-                await saveMoves(selectedMoves);
-            };
-            container.appendChild(saveBtn);
-
-            updateGridSelection();
-            updateUI();
-        }
-
         function generateFallbackMoveList(name, types) {
             const type = types[0] || 'normal';
             const moves = [
@@ -1066,27 +1077,41 @@
             return moves;
         }
 
-       async function saveMoves(selectedMoves) {
+async function saveMoves(selectedMoves, originalMoves) {
     if (!currentEditingPokemon) return;
 
-    // 1. Calculate the dynamic cost
-    const totalCost = selectedMoves.reduce((sum, m) => sum + (m.power * POWER_PRICE_MULTIPLIER), 0);
+    // Compare selected moves with original moves
+    const originalPowerSum = originalMoves.reduce((sum, m) => sum + m.power, 0);
+    const newPowerSum = selectedMoves.reduce((sum, m) => sum + m.power, 0);
+    const powerDiff = newPowerSum - originalPowerSum;
+    const totalCost = powerDiff > 0 ? powerDiff * POWER_PRICE_MULTIPLIER : 0;
 
-    // 2. Check User's Coins
-    const userRef = doc(db, "users", auth.currentUser.uid);
-    const userSnap = await getDoc(userRef);
-    trackRead();
-    
-    const currentCoins = userSnap.data().coins || 0;
-
-    if (currentCoins < totalCost) {
-        alert(`Insufficient funds! This move set costs ₱${totalCost.toLocaleString()} coins.`);
-        return;
+    if (totalCost > 0) {
+        const userRef = doc(db, "users", auth.currentUser.uid);
+        const userSnap = await getDoc(userRef);
+        trackRead();
+        const currentCoins = userSnap.data().coins || 0;
+        if (currentCoins < totalCost) {
+            alert(`Insufficient funds! This change costs ₱${totalCost.toLocaleString()} coins.`);
+            return;
+        }
+        if (!confirm(`Confirm change for ₱${totalCost.toLocaleString()} coins?`)) return;
+        await updateDoc(userRef, { coins: increment(-totalCost) });
+        trackWrite();
+    } else if (powerDiff < 0) {
+        // No refund, just continue
+        if (!confirm(`This will reduce total power. Proceed?`)) return;
+    } else {
+        // No change in power, ask if they want to change moves anyway
+        if (JSON.stringify(selectedMoves) === JSON.stringify(originalMoves)) {
+            alert("No changes made.");
+            document.getElementById('move-editor').classList.add('hidden');
+            return;
+        }
+        if (!confirm("Change moves without cost? This may still cost in future if you add higher power moves later.")) return;
     }
 
-    if (!confirm(`Confirm change for ₱${totalCost.toLocaleString()} coins?`)) return;
-
-    // 3. Prepare moves (ensuring 4 slots)
+    // Prepare moves (ensure 4)
     const movesToSave = [...selectedMoves];
     while (movesToSave.length < 4) {
         movesToSave.push({
@@ -1110,36 +1135,24 @@
         icon: TYPE_ICONS[m.type] || m.type
     }));
 
-    try {
-        // 4. Update Database
-        await updateDoc(userRef, { coins: increment(-totalCost) });
-        trackWrite();
+    const pokemonRef = doc(db, "users", auth.currentUser.uid, "pokemon", currentEditingPokemon.id);
+    await updateDoc(pokemonRef, { moves: finalMoves });
+    trackWrite();
 
-        const pokemonRef = doc(db, "users", auth.currentUser.uid, "pokemon", currentEditingPokemon.id);
-        await updateDoc(pokemonRef, { moves: finalMoves });
-        trackWrite();
+    document.getElementById('move-editor').classList.add('hidden');
+    updateNavDisplay();
+    refreshTeamView();
 
-        // 5. Update UI
-        document.getElementById('move-editor').classList.add('hidden');
-        updateNavDisplay(); 
-        refreshTeamView();
-
-        // Sync active battle if necessary
-        if (currentBattle && currentBattle.player.id === currentEditingPokemon.id) {
-            currentBattle.player.moves = finalMoves;
-            renderBattleUI();
-        }
-        if (cachedActivePokemon && cachedActivePokemon.id === currentEditingPokemon.id) {
-            cachedActivePokemon.moves = finalMoves;
-        }
-
-        alert("Moves updated!");
-    } catch (err) {
-        console.error(err);
-        alert("Transaction failed.");
+    if (currentBattle && currentBattle.player.id === currentEditingPokemon.id) {
+        currentBattle.player.moves = finalMoves;
+        renderBattleUI();
     }
-}
+    if (cachedActivePokemon && cachedActivePokemon.id === currentEditingPokemon.id) {
+        cachedActivePokemon.moves = finalMoves;
+    }
 
+    alert("Moves updated!");
+}
         // ========== SPECIAL POKÉMON DETECTION ==========
         const paradoxIds = new Set([
             984, 985, 986, 987, 988, 989, 990, 991, 992, 993, 994, 995, 1005, 1006, 1009, 1010, 1020, 1021, 1022, 1023
@@ -1680,7 +1693,95 @@
         async function setActivePokemon(id) { await updateDoc(doc(db,"users",auth.currentUser.uid),{activePokemonId:id}); trackWrite(); activePokemonId=id; await updateActiveCache(id); refreshTeamView(); }
         async function updateActiveCache(id) { const a=await getDoc(doc(db,"users",auth.currentUser.uid,"pokemon",id)); trackRead(); if(a.exists()) cachedActivePokemon={id:a.id,...a.data()}; }
 
-        window.switchView=async v=>{ document.querySelectorAll('.list-container, #view-explore').forEach(el=>el.classList.add('hidden')); document.getElementById(`view-${v}`).classList.remove('hidden'); if(v!=='explore') document.getElementById('battle-area').classList.add('hidden'); if(v==='team'||v==='collection') refreshTeamView(); if(v==='records'){ await flushRecordUpdates(); const snap=await getDocs(collection(db,"users",auth.currentUser.uid,"records")); trackRead(); const list=document.getElementById('records-list'); list.innerHTML=""; if(snap.empty) list.innerHTML="<p style='padding:20px; color:#666;'>No encounters recorded yet.</p>"; snap.forEach(d=>{const r=d.data(); const div=document.createElement('div'); div.className="mon-item"; div.onclick=()=>showInfo(r.pokemonId); const img=document.createElement('img'); loadImageWithFallback(img,getStaticSpriteUrl(r.pokemonId)); div.appendChild(img); const txt=document.createElement('div'); txt.style.flexGrow="1"; txt.innerHTML=`<b>${r.name.toUpperCase()}</b><br><small>Seen: ${r.count}/5 ${r.count>=5?'<span style="color:green">✅ Captured</span>':''}</small>`; div.appendChild(txt); const arr=document.createElement('div'); arr.style.color="var(--primary)"; arr.style.fontWeight="bold"; arr.innerText="VIEW DATA ▶"; div.appendChild(arr); list.appendChild(div);}); } };
+        window.switchView=async v=>{ document.querySelectorAll('.list-container, #view-explore').forEach(el=>el.classList.add('hidden')); document.getElementById(`view-${v}`).classList.remove('hidden'); if(v!=='explore') document.getElementById('battle-area').classList.add('hidden'); if(v==='team'||v==='collection') refreshTeamView();
+         if (v === 'records') {
+    await flushRecordUpdates();
+    const snap = await getDocs(collection(db, "users", auth.currentUser.uid, "records"));
+    trackRead();
+    const records = [];
+    snap.forEach(doc => {
+        const r = doc.data();
+        records.push({
+            id: r.pokemonId,
+            name: r.name,
+            count: r.count
+        });
+    });
+    // Sort by Pokédex ID and take first 25
+    records.sort((a, b) => a.id - b.id);
+    const first25 = records.slice(0, 25);
+
+    const listDiv = document.getElementById('records-list');
+    listDiv.innerHTML = '<div class="loader"><i class="fas fa-spinner fa-pulse"></i> Loading Pokémon details...</div>';
+
+    // Fetch species and Pokémon data for each record
+    const enriched = await Promise.all(first25.map(async (record) => {
+        try {
+            const [speciesRes, pokemonRes] = await Promise.all([
+                fetch(`https://pokeapi.co/api/v2/pokemon-species/${record.id}`),
+                fetch(`https://pokeapi.co/api/v2/pokemon/${record.id}`)
+            ]);
+            const speciesData = await speciesRes.json();
+            const pokemonData = await pokemonRes.json();
+            const types = pokemonData.types.map(t => t.type.name);
+            const generation = getGeneration(speciesData.generation?.url);
+            const isLegendary = speciesData.is_legendary;
+            const isMythical = speciesData.is_mythical;
+            const isParadox = paradoxIds.has(record.id);
+            let specialType = 'Normal';
+            if (isLegendary) specialType = 'Legendary';
+            else if (isMythical) specialType = 'Mythical';
+            else if (isParadox) specialType = 'Paradox';
+            return {
+                ...record,
+                types,
+                generation,
+                specialType
+            };
+        } catch (err) {
+            console.error(`Failed to fetch details for ${record.id}`, err);
+            return {
+                ...record,
+                types: ['?'],
+                generation: '?',
+                specialType: 'Unknown'
+            };
+        }
+    }));
+
+    // Build the table
+    let html = `<div style="overflow-x: auto;">
+        <table class="ranking-table" id="records-table" style="width:100%">
+            <thead>
+                <tr>
+                    <th>Pokédex ID</th>
+                    <th>Image</th>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Category</th>
+                    <th>Generation</th>
+                    <th>Encounters</th>
+                </tr>
+            </thead>
+            <tbody>`;
+    for (const rec of enriched) {
+        const spriteUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${rec.id}.png`;
+        const typeBadges = rec.types.map(t => `<span class="type-badge" style="background: ${getTypeColor(t)};">${t.toUpperCase()}</span>`).join('');
+        html += `
+            <tr onclick="window.showInfo(${rec.id})" style="cursor: pointer;">
+                <td>#${rec.id}</td>
+                <td><img src="${spriteUrl}" width="50" style="border-radius: 8px;"></td>
+                <td>${rec.name.toUpperCase()}</td>
+                <td>${typeBadges}</td>
+                <td>${rec.specialType}</td>
+                <td>Gen ${rec.generation}</td>
+                <td>${rec.count}</td>
+            </tr>`;
+    }
+    html += `</tbody></table></div>`;
+    listDiv.innerHTML = html;
+}
+                };
         
         const startersList=[{id:1,name:"Bulbasaur"},{id:4,name:"Charmander"},{id:7,name:"Squirtle"},{id:152,name:"Chikorita"},{id:155,name:"Cyndaquil"},{id:158,name:"Totodile"},{id:252,name:"Treecko"},{id:255,name:"Torchic"},{id:258,name:"Mudkip"},{id:387,name:"Turtwig"},{id:390,name:"Chimchar"},{id:393,name:"Piplup"},{id:495,name:"Snivy"},{id:498,name:"Tepig"},{id:501,name:"Oshawott"},{id:650,name:"Chespin"},{id:653,name:"Fennekin"},{id:656,name:"Froakie"},{id:722,name:"Rowlet"},{id:725,name:"Litten"},{id:728,name:"Popplio"},{id:810,name:"Grookey"},{id:813,name:"Scorbunny"},{id:816,name:"Sobble"},{id:906,name:"Sprigatito"},{id:909,name:"Fuecoco"},{id:912,name:"Quaxly"}];
         async function loadStartersModal(containerId) {

@@ -133,10 +133,11 @@
     gap: 8px;
     background: var(--primary);
     color: white;
-    padding: 8px 20px;
+    padding: 6px 16px;
     border-radius: 40px;
     text-decoration: none;
-    font-weight: 300;
+    font-weight: 500;
+    font-size: 0.85rem;
     transition: 0.2s;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
@@ -658,8 +659,8 @@
         </nav>
 
        <div id="view-explore">
-    <div style="text-align: center; margin-bottom: 15px;">
-        <a href="pokesim_guide.html" class="guide-link" style="display: inline-flex; align-items: center; gap: 8px; background: var(--primary); color: white; padding: 8px 20px; border-radius: 40px; text-decoration: none; font-weight: 500; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+     <div style="text-align: center; margin-bottom: 15px; margin-top: 20px;">
+        <a href="pokesim_guide.html" class="guide-link">
             <i class="fas fa-book-open"></i> How to Play PokeSim
         </a>
     </div>
@@ -740,10 +741,10 @@
         </div>
     </div>
 
-    <footer>Created by Tootzkie Custodio
+    <footer>
+        Created by Tootzkie Custodio <span id="app-version"></span>
              <p><strong>Disclaimer:</strong> This is a fan‑made game and is not affiliated with, endorsed, or sponsored by Nintendo, The Pokémon Company, or Game Freak. All Pokémon and related assets are property of their respective owners.</p>
             <p><strong>Credits:</strong> Pokémon data and images provided by <a href="https://pokeapi.co/" target="_blank">PokeAPI</a>. Game backend powered by <a href="https://firebase.google.com/" target="_blank">Firebase</a>. Special thanks to the open‑source community.</p>
-        
     </footer>
 
     <script type="module">

@@ -99,6 +99,7 @@
         }
 
         body {
+             background-image: url('desktop.jpg');
             background: var(--bg);
             min-height: 100vh;
             color: var(--text-dark);
@@ -125,13 +126,33 @@
   animation-iteration-count: 1;
 }
 
+
+.guide-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--primary);
+    color: white;
+    padding: 8px 20px;
+    border-radius: 40px;
+    text-decoration: none;
+    font-weight: 300;
+    transition: 0.2s;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.guide-link:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
         /* Auth Screen */
         #auth-screen {
             height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(135deg, var(--primary-dark), #1e2a6e);
+            background: linear-gradient(135deg, var(--primary-dark), #790000);
         }
         .auth-card {
             background: var(--card-bg);
@@ -635,23 +656,33 @@
             </div>
         </nav>
 
-        <div id="view-explore">
-            <div class="map-wrapper"><div id="map-viewport"><div id="map-grid"></div><div id="player"></div></div></div>
-            <div id="battle-area" class="hidden">
-                <div class="battle-header">⚔️ WILD BATTLE ⚔️</div>
-                <div class="battle-ui">
-                    <div class="side enemy-side"><img id="e-sprite-btl" class="btl-sprite" title="Click for Info"><div class="stat-box"><strong id="e-name"></strong> <span id="e-types-icons"></span><br><small id="e-lvl"></small><div class="hp-bar"><div id="e-hp-fill" class="hp-fill"></div></div></div></div>
-                    <div class="side player-side"><img id="p-sprite-btl" class="btl-sprite" title="Click for Info"><div class="stat-box"><strong id="p-name"></strong> <span id="p-types-icons"></span><br><small id="p-lvl"></small><div class="hp-bar"><div id="p-hp-fill" class="hp-fill"></div></div></div></div>
-                    <div id="battle-log"></div>
-                    <div id="battle-moves"></div>
-                    <div class="catch-area">
-                        <button id="catch-btn" class="catch-btn"><img src="PokeSim_Icon.png" alt="Catch" style="width: 100%; height: 50px; vertical-align: middle; margin-right: 4px;"> Catch</button>
-                        <div id="catch-chance" class="catch-chance">Catch chance: --%</div>
-                    </div>
-                </div>
-            </div>
-            <div class="map-controls-t"><div class="arrow-row"><button class="btn btn-primary arrow-up" onclick="window.movePlayer(0,-1)">▲</button></div><div class="arrow-row middle"><button class="btn btn-primary arrow-left" onclick="window.movePlayer(-1,0)">◀</button><button class="btn btn-primary arrow-down" onclick="window.movePlayer(0,1)">▼</button><button class="btn btn-primary arrow-right" onclick="window.movePlayer(1,0)">▶</button></div></div>
+       <div id="view-explore">
+    <div style="text-align: center; margin-bottom: 15px;">
+        <a href="pokesim_guide.html" class="guide-link" style="display: inline-flex; align-items: center; gap: 8px; background: var(--primary); color: white; padding: 8px 20px; border-radius: 40px; text-decoration: none; font-weight: 500; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+            <i class="fas fa-book-open"></i> How to Play PokeSim
+        </a>
+    </div>
+    <div class="map-wrapper">
+        <div id="map-viewport">
+            <div id="map-grid"></div>
+            <div id="player"></div>
         </div>
+    </div>
+    <div id="battle-area" class="hidden">
+        <div class="battle-header">⚔️ WILD BATTLE ⚔️</div>
+        <div class="battle-ui">
+            <div class="side enemy-side"><img id="e-sprite-btl" class="btl-sprite" title="Click for Info"><div class="stat-box"><strong id="e-name"></strong> <span id="e-types-icons"></span><br><small id="e-lvl"></small><div class="hp-bar"><div id="e-hp-fill" class="hp-fill"></div></div></div></div>
+            <div class="side player-side"><img id="p-sprite-btl" class="btl-sprite" title="Click for Info"><div class="stat-box"><strong id="p-name"></strong> <span id="p-types-icons"></span><br><small id="p-lvl"></small><div class="hp-bar"><div id="p-hp-fill" class="hp-fill"></div></div></div></div>
+            <div id="battle-log"></div>
+            <div id="battle-moves"></div>
+            <div class="catch-area">
+                <button id="catch-btn" class="catch-btn"><img src="PokeSim_Icon.png" alt="Catch" style="width: 100%; height: 50px; vertical-align: middle; margin-right: 4px;"> Catch</button>
+                <div id="catch-chance" class="catch-chance">Catch chance: --%</div>
+            </div>
+        </div>
+    </div>
+    <div class="map-controls-t"><div class="arrow-row"><button class="btn btn-primary arrow-up" onclick="window.movePlayer(0,-1)">▲</button></div><div class="arrow-row middle"><button class="btn btn-primary arrow-left" onclick="window.movePlayer(-1,0)">◀</button><button class="btn btn-primary arrow-down" onclick="window.movePlayer(0,1)">▼</button><button class="btn btn-primary arrow-right" onclick="window.movePlayer(1,0)">▶</button></div></div>
+</div>
 
       <!-- Update Team View -->
 <div id="view-team" class="list-container hidden">

@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>PokeSim | How to Play</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Inter', system-ui, sans-serif;
+        }
+
+        :root {
+            --bg: #f0f2f5;
+            --card-bg: #ffffff;
+            --primary: #3b4cca;
+            --primary-dark: #00238f;
+            --accent: #ffde00;
+            --text-dark: #2d3748;
+            --text-light: #5a6e8a;
+            --border: #e2e8f0;
+            --success: #48bb78;
+            --danger: #f56565;
+        }
+
+        body {
+            background: var(--bg);
+            min-height: 100vh;
+            color: var(--text-dark);
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            border-radius: 32px;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border: 1px solid var(--border);
+        }
+
+        h1 {
+            font-size: 2rem;
+            color: var(--primary-dark);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        h1 i {
+            font-size: 2rem;
+            color: var(--primary);
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 24px;
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: 0.2s;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+            color: var(--primary-dark);
+        }
+
+        .sub {
+            color: var(--text-light);
+            border-left: 4px solid var(--accent);
+            padding-left: 16px;
+            margin: 16px 0 32px 0;
+            font-size: 1.1rem;
+        }
+
+        .guide-section {
+            margin-bottom: 40px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .guide-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .guide-section h2 {
+            font-size: 1.5rem;
+            color: var(--primary-dark);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .guide-section h2 i {
+            font-size: 1.4rem;
+        }
+
+        .guide-section p {
+            line-height: 1.6;
+            margin-bottom: 12px;
+            color: var(--text-dark);
+        }
+
+        .guide-section ul, .guide-section ol {
+            margin: 12px 0 12px 24px;
+            line-height: 1.6;
+        }
+
+        .guide-section li {
+            margin-bottom: 6px;
+        }
+
+        .tip-box {
+            background: #fef9e3;
+            border-left: 4px solid var(--accent);
+            padding: 16px 20px;
+            border-radius: 16px;
+            margin: 16px 0;
+        }
+
+        .tip-box strong {
+            color: #b45309;
+        }
+
+        .type-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 12px 0;
+        }
+
+        .type-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 1px 1px rgba(0,0,0,0.2);
+        }
+
+        .type-normal { background: #A8A77A; }
+        .type-fire { background: #EE8130; }
+        .type-water { background: #6390F0; }
+        .type-electric { background: #F7D02C; color: #333; text-shadow: none; }
+        .type-grass { background: #7AC74C; }
+        .type-ice { background: #96D9D6; color: #333; }
+        .type-fighting { background: #C22E28; }
+        .type-poison { background: #A33EA1; }
+        .type-ground { background: #E2BF65; color: #333; }
+        .type-flying { background: #A98FF3; }
+        .type-psychic { background: #F95587; }
+        .type-bug { background: #A6B91A; }
+        .type-rock { background: #B6A136; }
+        .type-ghost { background: #735797; }
+        .type-dragon { background: #6F35FC; }
+        .type-dark { background: #705746; }
+        .type-steel { background: #B7B7CE; color: #333; }
+        .type-fairy { background: #D685AD; }
+
+        .footer-note {
+            margin-top: 32px;
+            padding-top: 20px;
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--text-light);
+            border-top: 1px solid var(--border);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 24px;
+            }
+            h1 {
+                font-size: 1.5rem;
+            }
+            .guide-section h2 {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" class="back-link"><i class="fas fa-arrow-left"></i> Back to Game</a>
+        
+        <h1>
+            <i class="fas fa-book-open"></i>
+            How to Play PokeSim
+        </h1>
+        <div class="sub">
+            Your guide to becoming a Pokémon Master – catch, train, and battle your way to the top!
+        </div>
+
+        <!-- Map & Exploration -->
+        <div class="guide-section">
+            <h2><i class="fas fa-map-marked-alt"></i> Map Exploration</h2>
+            <p>PokeSim features a <strong>50×50 tile grid</strong> where you can explore freely. Use the <strong>arrow keys</strong> or the <strong>on‑screen buttons</strong> to move your trainer.</p>
+            <ul>
+                <li><strong>Dirt tiles</strong> – Safe to walk on, no encounters.</li>
+                <li><strong>Tall grass</strong> – Each step has a chance to trigger a random wild Pokémon encounter!</li>
+            </ul>
+            <div class="tip-box">
+                <strong><i class="fas fa-lightbulb"></i> Tip:</strong> Explore different areas – every wild Pokémon has a chance to appear, from common to legendary!
+            </div>
+        </div>
+
+        <!-- Battles -->
+        <div class="guide-section">
+            <h2><i class="fas fa-fist-raised"></i> Battles & Type Effectiveness</h2>
+            <p>When you encounter a wild Pokémon, a turn‑based battle begins. You can choose from your active Pokémon's moves to attack.</p>
+            <p><strong>Type effectiveness</strong> plays a huge role – using the right move can double your damage, while a wrong move might deal half damage or even none!</p>
+            <div class="type-grid">
+                <span class="type-badge type-fire">Fire</span>
+                <span class="type-badge type-water">Water</span>
+                <span class="type-badge type-grass">Grass</span>
+                <span class="type-badge type-electric">Electric</span>
+                <span class="type-badge type-psychic">Psychic</span>
+                <span class="type-badge type-fighting">Fighting</span>
+                <span class="type-badge type-dark">Dark</span>
+                <span class="type-badge type-dragon">Dragon</span>
+                <span class="type-badge type-fairy">Fairy</span>
+                <span class="type-badge type-poison">Poison</span>
+                <span class="type-badge type-ground">Ground</span>
+                <span class="type-badge type-flying">Flying</span>
+                <span class="type-badge type-rock">Rock</span>
+                <span class="type-badge type-bug">Bug</span>
+                <span class="type-badge type-ice">Ice</span>
+                <span class="type-badge type-ghost">Ghost</span>
+                <span class="type-badge type-steel">Steel</span>
+                <span class="type-badge type-normal">Normal</span>
+            </div>
+            <div class="tip-box">
+                <strong><i class="fas fa-lightbulb"></i> Tip:</strong> Check the type badges in battle – they'll help you choose the most effective move!
+            </div>
+        </div>
+
+        <!-- Catching -->
+        <div class="guide-section">
+            <h2><i class="fas fa-pokeball"></i> Catching Pokémon</h2>
+            <p>When a wild Pokémon is weakened, you can attempt to catch it. The lower its HP, the higher your catch chance!</p>
+            <ul>
+                <li><strong>Catching cost:</strong> 20% of your active Pokémon's current XP – a risk‑reward decision.</li>
+                <li><strong>Auto‑capture:</strong> If you defeat the same species 5 times, the 5th encounter automatically adds it to your collection!</li>
+            </ul>
+            <div class="tip-box">
+                <strong><i class="fas fa-lightbulb"></i> Tip:</strong> Weaken the wild Pokémon as much as possible before trying to catch it – but be careful not to faint it!
+            </div>
+        </div>
+
+        <!-- Leveling & Evolution -->
+        <div class="guide-section">
+            <h2><i class="fas fa-chart-line"></i> Leveling & Evolution</h2>
+            <p>Winning battles gives your Pokémon XP. When you gain enough XP, your Pokémon levels up, increasing its stats and HP.</p>
+            <p>When a Pokémon reaches a certain level, it may <strong>evolve</strong> automatically into a stronger form! Evolution also updates the Pokémon's moves.</p>
+            <div class="tip-box">
+                <strong><i class="fas fa-lightbulb"></i> Tip:</strong> Keep battling to evolve your Pokémon – they become much stronger after evolution!
+            </div>
+        </div>
+
+        <!-- Coins & Move Customization -->
+        <div class="guide-section">
+            <h2><i class="fas fa-coins"></i> Coins & Move Customization</h2>
+            <p>Every battle victory earns you coins (wild level × 5). Coins can be spent to <strong>edit your Pokémon's moves</strong>.</p>
+            <ul>
+                <li><strong>Cost calculation:</strong> You only pay for the <strong>added power</strong> – if you replace a move with a stronger one, you pay the difference (power × 35).</li>
+                <li><strong>No refunds:</strong> Reducing power doesn't cost anything, but you don't get coins back either.</li>
+                <li>You can select up to 4 moves per Pokémon from a list of all damaging moves.</li>
+            </ul>
+            <div class="tip-box">
+                <strong><i class="fas fa-lightbulb"></i> Tip:</strong> Save your coins for powerful moves – they can make a huge difference in battles!
+            </div>
+        </div>
+
+        <!-- Team Management -->
+        <div class="guide-section">
+            <h2><i class="fas fa-users"></i> Team Management</h2>
+            <p>Your team can hold up to <strong>6 Pokémon</strong>. You can set an active Pokémon (the one that appears in battles), edit moves, move Pokémon to your collection, or release them.</p>
+            <ul>
+                <li><strong>Collection:</strong> All your caught Pokémon that aren't in your team. You can search by name or ID, and sort by level, ID, or name.</li>
+                <li><strong>Active Pokémon:</strong> The one that leads your team in battles.</li>
+            </ul>
+            <div class="tip-box">
+                <strong><i class="fas fa-lightbulb"></i> Tip:</strong> Keep your team balanced with different types to handle any opponent!
+            </div>
+        </div>
+
+        <!-- Records & Ranking -->
+        <div class="guide-section">
+            <h2><i class="fas fa-trophy"></i> Records & Ranking</h2>
+            <p><strong>Records (Pokédex):</strong> See every Pokémon you've encountered, with details like type, generation, and encounter count. Search and browse your collection.</p>
+            <p><strong>Ranking:</strong> Compare yourself with other trainers! Rankings are based on total levels of all Pokémon (team + collection) and total encounters.</p>
+            <div class="tip-box">
+                <strong><i class="fas fa-lightbulb"></i> Tip:</strong> The more you battle and catch, the higher you'll climb in the rankings!
+            </div>
+        </div>
+
+        <!-- PWA Installation -->
+        <div class="guide-section">
+            <h2><i class="fas fa-mobile-alt"></i> Play Anywhere – Install PokeSim</h2>
+            <p>PokeSim is a Progressive Web App (PWA). You can:</p>
+            <ul>
+                <li>Play instantly in your browser on any device.</li>
+                <li><strong>Install it</strong> to your phone's home screen for an app‑like experience.</li>
+                <li>Play <strong>offline</strong> after installation – your progress syncs when you're back online.</li>
+            </ul>
+            <div class="tip-box">
+                <strong><i class="fas fa-lightbulb"></i> Tip:</strong> Look for the "Install App" button in the About section or footer to add PokeSim to your device!
+            </div>
+        </div>
+
+        <div class="footer-note">
+            <p><i class="fas fa-heart" style="color: var(--danger);"></i> Created by Tootzkie Custodio – enjoy your journey!</p>
+            <p style="font-size: 0.7rem; margin-top: 8px;">This is a fan‑made game and is not affiliated with Nintendo, The Pokémon Company, or Game Freak.</p>
+        </div>
+    </div>
+</body>
+</html>

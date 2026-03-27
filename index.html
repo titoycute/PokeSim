@@ -568,6 +568,7 @@
             <br>
             <p>📅 <strong>Last Updated:</strong> March 27, 2026</p>
             <p>👨‍💻 <strong>Created by:</strong> Tootzkie Custodio</p>
+            <button id="check-update">Check for update</button>
             <hr style="margin: 15px 0;">
             <p><strong>Disclaimer:</strong> This is a fan‑made game and is not affiliated with, endorsed, or sponsored by Nintendo, The Pokémon Company, or Game Freak. All Pokémon and related assets are property of their respective owners.</p>
             <p><strong>Credits:</strong> Pokémon data and images provided by <a href="https://pokeapi.co/" target="_blank">PokeAPI</a>. Game backend powered by <a href="https://firebase.google.com/" target="_blank">Firebase</a>. Special thanks to the open‑source community.</p>
@@ -2297,14 +2298,56 @@ document.getElementById('back-to-selection').onclick = () => {
         document.getElementById('logout-btn').onclick = () => signOut(auth).then(()=>location.reload());
         document.getElementById('catch-btn').onclick = attemptCatch;
         window.addEventListener('keydown',e=>{if(["ArrowUp","w"].includes(e.key)) movePlayer(0,-1); if(["ArrowDown","s"].includes(e.key)) movePlayer(0,1); if(["ArrowLeft","a"].includes(e.key)) movePlayer(-1,0); if(["ArrowRight","d"].includes(e.key)) movePlayer(1,0);});
-    if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js')
-            .then(reg => console.log('Service Worker Registered'))
-            .catch(err => console.log('Service Worker Failed', err));
-    });
-}
    
+
+
+//== CHECK UPDATE ====
+document.getElementById('check-update').onclick = () => {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistration().then(reg => {
+      reg.update(); // check for a new service worker
+      alert('Checking for updates... Reload the page if a new version is found.');
+    });
+  }
+};
+
+
+// ====== checking version ====
+
+// Register service worker (you already have this)
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js')
+    .then(reg => {
+      console.log('Service Worker Registered');
+
+      // Wait for the service worker to be ready
+      if (reg.active) {
+        requestVersion(reg.active);
+      } else {
+        // If not active yet, wait for it to become active
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'activated') {
+              requestVersion(reg.active);
+            }
+          });
+        });
+      }
+    })
+    .catch(err => console.log('Service Worker Failed', err));
+}
+
+function requestVersion(worker) {
+  // Create a message channel
+  const messageChannel = new MessageChannel();
+  messageChannel.port1.onmessage = event => {
+    const version = event.data.version;
+    document.getElementById('app-version').innerText = version.replace('pokesim-', '');
+  };
+  worker.postMessage({ type: 'GET_VERSION' }, [messageChannel.port2]);
+}
+
 // ========== PWA INSTALLATION LOGIC ==========
 let deferredPrompt;
 const installContainers = document.querySelectorAll('.install-container');

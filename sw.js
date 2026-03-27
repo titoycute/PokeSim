@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pokesim-v1.2';   // ← change this version number on every deploy
+const CACHE_NAME = 'pokesim-v1.3';   // ← change this version number on every deploy
 const assets = [
   'index.html',
   'manifest.json',
@@ -51,4 +51,12 @@ self.addEventListener('fetch', e => {
         return caches.match(e.request);
       })
   );
+});
+
+// Listen for messages from the page
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'GET_VERSION') {
+    // Send back the cache version
+    event.ports[0].postMessage({ version: CACHE_NAME });
+  }
 });

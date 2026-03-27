@@ -103,6 +103,26 @@
         }
         .hidden { display: none !important; }
 
+        /* Shake Animation */
+@keyframes shake {
+  0% { transform: translate(1px, 1px) rotate(0deg); }
+  10% { transform: translate(-1px, -2px) rotate(-1deg); }
+  20% { transform: translate(-3px, 0px) rotate(1deg); }
+  30% { transform: translate(3px, 2px) rotate(0deg); }
+  40% { transform: translate(1px, -1px) rotate(1deg); }
+  50% { transform: translate(-1px, 2px) rotate(-1deg); }
+  60% { transform: translate(-3px, 1px) rotate(0deg); }
+  70% { transform: translate(3px, 1px) rotate(-1deg); }
+  80% { transform: translate(-1px, -1px) rotate(1deg); }
+  90% { transform: translate(1px, 2px) rotate(0deg); }
+  100% { transform: translate(1px, -2px) rotate(-1deg); }
+}
+
+.shake-effect {
+  animation: shake 0.5s;
+  animation-iteration-count: 1;
+}
+
         /* Auth Screen */
         #auth-screen {
             height: 100vh;
@@ -605,9 +625,31 @@
             <div class="map-controls-t"><div class="arrow-row"><button class="btn btn-primary arrow-up" onclick="window.movePlayer(0,-1)">▲</button></div><div class="arrow-row middle"><button class="btn btn-primary arrow-left" onclick="window.movePlayer(-1,0)">◀</button><button class="btn btn-primary arrow-down" onclick="window.movePlayer(0,1)">▼</button><button class="btn btn-primary arrow-right" onclick="window.movePlayer(1,0)">▶</button></div></div>
         </div>
 
-        <div id="view-team" class="list-container hidden"><h2>My Team</h2><div id="team-list"></div></div>
-        <div id="view-collection" class="list-container hidden"><h2>My Collection</h2><div id="coll-list"></div></div>
-        <div id="view-records" class="list-container hidden"><h2>Pokédex Records</h2><div id="records-list"></div></div>
+      <!-- Update Team View -->
+<div id="view-team" class="list-container hidden">
+    <div class="flex-between" style="align-items: center; margin-bottom: 20px;">
+        <h2>My Team</h2>
+        <small style="color: var(--text-light)" id="team-count">0/6 Pokémon</small>
+    </div>
+    <div id="team-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px;"></div>
+</div>
+
+<!-- Update Collection View -->
+<div id="view-collection" class="list-container hidden">
+    <div class="flex-between" style="margin-bottom: 20px; align-items: center; gap: 10px;">
+        <h2>My Collection</h2>
+        <div style="display: flex; gap: 10px; flex: 1; justify-content: flex-end;">
+            <input type="text" id="coll-search" placeholder="Search collection..." style="margin:0; max-width: 200px; padding: 8px 12px;">
+            <select id="coll-sort" style="padding: 8px; border-radius: 16px; border: 1px solid var(--border);">
+                <option value="level-desc">Level (High-Low)</option>
+                <option value="level-asc">Level (Low-High)</option>
+                <option value="id-asc">ID (#1-20000)</option>
+                <option value="name-asc">Name (A-Z)</option>
+            </select>
+        </div>
+    </div>
+    <div id="coll-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px;"></div>
+</div>  <div id="view-records" class="list-container hidden"><h2>Pokédex Records</h2><div id="records-list"></div></div>
     </div>
 
     <audio id="bg-music" src="music1.mp3" loop preload="auto"></audio>
@@ -773,6 +815,22 @@
 
         
         // ========== GAME GLOBALS ==========
+        // Global Caches
+const pokeDataCache = {};
+const speciesDataCache = {};
+
+// Records State
+let allUserRecords = [];      // Raw IDs from Firebase
+let filteredUserRecords = []; // After search
+let recordsDisplayLimit = 25; // Pagination limit
+
+// Cache Helper Function
+async function getCachedJson(url, cacheObj) {
+    if (cacheObj[url]) return cacheObj[url];
+    const res = await fetch(url).then(r => r.json());
+    cacheObj[url] = res;
+    return res;
+}
         let playerPos = { x: 25, y: 25 }, mapData = [], currentBattle = null, isProcessing = false;
         let activePokemonId = null, cachedActivePokemon = null, currentEditingPokemon = null, lastMoveTime = 0, lastTeamUpdate = 0, pendingRecordUpdates = {};
         const MOVE_DELAY = 200, TEAM_CACHE_TIME = 5000;
@@ -1491,7 +1549,13 @@ async function saveMoves(selectedMoves, originalMoves) {
             let eff=getTypeEffectiveness(m.type,b.wild.types), effText="";
             if(eff===2) effText="It's super effective!"; else if(eff===0.5) effText="It's not very effective..."; else if(eff===0) effText="It doesn't affect the wild Pokémon!";
             let dmg=Math.floor((m.power/5)*(b.player.level/2)*eff); if(dmg<1&&eff>0) dmg=1;
-            b.wild.hp=Math.max(0,b.wild.hp-dmg); addBattleLog(`${b.player.name} used ${m.name.toUpperCase()}! Deals ${dmg} dmg. ${effText}`); renderBattleUI(); updateCatchChance();
+            b.wild.hp=Math.max(0,b.wild.hp-dmg); 
+            // Add hit effect to wild pokemon
+const enemySprite = document.getElementById('e-sprite-btl');
+enemySprite.classList.remove('shake-effect');
+void enemySprite.offsetWidth; // Trigger reflow to restart animation
+enemySprite.classList.add('shake-effect');
+            addBattleLog(`${b.player.name} used ${m.name.toUpperCase()}! Deals ${dmg} dmg. ${effText}`); renderBattleUI(); updateCatchChance();
             if(b.wild.hp<=0) { addBattleLog("Wild Pokemon fainted! Victory!"); return resolveBattle(true); }
             
             setTimeout(async () => {
@@ -1500,6 +1564,11 @@ async function saveMoves(selectedMoves, originalMoves) {
                 let wDmg=Math.floor((wM.power/5)*(b.wild.level/2)*effWild);
                 if(wDmg<1&&effWild>0) wDmg=1;
                 b.player.hp=Math.max(0,b.player.hp-wDmg);
+                // Add hit effect to player pokemon
+const playerSprite = document.getElementById('p-sprite-btl');
+playerSprite.classList.remove('shake-effect');
+void playerSprite.offsetWidth; // Trigger reflow
+playerSprite.classList.add('shake-effect');
                 let effTxt=effWild===2?"It's super effective!":(effWild===0.5?"It's not very effective...":"");
                 addBattleLog(`Wild ${b.wild.name} used ${wM.name.toUpperCase()}! Deals ${wDmg} dmg. ${effTxt}`);
                 renderBattleUI();
@@ -1642,44 +1711,151 @@ async function saveMoves(selectedMoves, originalMoves) {
         
         function addBattleLog(m) { const l=document.getElementById('battle-log'); l.innerHTML+=`<div>> ${m}</div>`; l.scrollTop=l.scrollHeight; }
         
-        async function refreshTeamView() { 
-            const now=Date.now(); 
-            if(now-lastTeamUpdate<TEAM_CACHE_TIME&&document.getElementById('team-list').innerHTML!=="") return; 
-            lastTeamUpdate=now; 
-            const snap=await getDocs(collection(db,"users",auth.currentUser.uid,"pokemon")); trackRead(); 
-            const team=document.getElementById('team-list'), coll=document.getElementById('coll-list'); 
-            team.innerHTML=""; coll.innerHTML=""; 
-            let teamSize=0; snap.forEach(d=>{if(d.data().inTeam) teamSize++;}); 
-            for(const ds of snap.docs){ 
-                const p=ds.data(); 
-                const div=document.createElement('div'); div.className="mon-item"; 
-                const img=document.createElement('img'); loadImageWithFallback(img,getStaticSpriteUrl(p.pokemonId)); div.appendChild(img); 
-                const info=document.createElement('div'); info.className="mon-info"; 
-                const expNeeded=getExpNeededForNextLevel(p.level), expCur=p.exp||0, prog=Math.floor((expCur/expNeeded)*100); 
-                const moveBadges = p.moves.map(m => `<span class="move-badge" style="background: ${getTypeColor(m.type)};">${m.name.toUpperCase()}</span>`).join('');
-                info.innerHTML = `
-                    <b>${p.name.toUpperCase()}</b> (Lvl ${p.level} | XP: ${expCur}/${expNeeded} [${prog}%])<br>
-                    <small>${p.types.join(', ')}</small><br>
-                    <div style="margin-top: 6px;">${moveBadges}</div>
-                `;
-                if(p.inTeam&&activePokemonId===ds.id){ const badge=document.createElement('span'); badge.className="active-badge"; badge.innerText="ACTIVE"; info.appendChild(badge); } 
-                div.appendChild(info); 
-                const btns=document.createElement('div'); btns.className="mon-buttons"; 
-                const editBtn=document.createElement('button'); editBtn.className="btn btn-small btn-outline"; editBtn.innerText="Edit Moves"; editBtn.onclick=e=>{e.stopPropagation(); openMoveEditor(ds.id, p.name, p.pokemonId, p.moves, p.level);}; btns.appendChild(editBtn); 
-                if(p.inTeam){ 
-                    if(activePokemonId!==ds.id){ const setBtn=document.createElement('button'); setBtn.className="btn btn-small btn-primary"; setBtn.innerText="Set Active"; setBtn.onclick=e=>{e.stopPropagation(); setActivePokemon(ds.id);}; btns.appendChild(setBtn); } 
-                    const moveBtn=document.createElement('button'); moveBtn.className="btn btn-small btn-outline"; moveBtn.innerText="Move to Collection"; moveBtn.onclick=async e=>{e.stopPropagation(); const t=await getDocs(collection(db,"users",auth.currentUser.uid,"pokemon")); trackRead(); let tc=0; t.forEach(d=>{if(d.data().inTeam) tc++;}); if(tc===1){ alert("Must have at least one Pokémon in team."); return; } await updateDoc(doc(db,"users",auth.currentUser.uid,"pokemon",ds.id),{inTeam:false}); trackWrite(); if(activePokemonId===ds.id){ let na=null; t.forEach(d=>{if(d.id!==ds.id&&d.data().inTeam&&!na) na=d.id;}); if(na){ await updateDoc(doc(db,"users",auth.currentUser.uid),{activePokemonId:na}); trackWrite(); activePokemonId=na; await updateActiveCache(na); } else activePokemonId=null; } refreshTeamView(); }; btns.appendChild(moveBtn); 
-                    const relBtn=document.createElement('button'); relBtn.className="btn btn-small btn-danger"; relBtn.innerText="Release"; relBtn.onclick=async e=>{e.stopPropagation(); const oldLevel = p.level; await releasePokemon(ds.id,p.name); await updateUserTotalLevels(auth.currentUser.uid, -oldLevel); }; btns.appendChild(relBtn); 
-                } else { 
-                    if(teamSize<6){ const addBtn=document.createElement('button'); addBtn.className="btn btn-small btn-primary"; addBtn.innerText="Add to Team"; addBtn.onclick=async e=>{e.stopPropagation(); await updateDoc(doc(db,"users",auth.currentUser.uid,"pokemon",ds.id),{inTeam:true}); trackWrite(); if(teamSize===0){ await updateDoc(doc(db,"users",auth.currentUser.uid),{activePokemonId:ds.id}); trackWrite(); activePokemonId=ds.id; await updateActiveCache(ds.id); } refreshTeamView(); }; btns.appendChild(addBtn); } else { const full=document.createElement('span'); full.className="btn-small"; full.innerText="Team Full"; full.style.opacity="0.5"; btns.appendChild(full); } } 
-                div.appendChild(btns); 
-                div.onclick=()=>showInfo(p.pokemonId); 
-                if(p.inTeam) team.appendChild(div); else coll.appendChild(div); 
-            } 
-            if(team.children.length===0) team.innerHTML="<p>No Pokémon in team. Add some from your collection!</p>"; 
-            if(coll.children.length===0) coll.innerHTML="<p>No Pokémon captured yet. Explore the tall grass!</p>"; 
-        }
+ // Add these sorting/search listeners inside your Auth State observer or at the end of the script
+document.getElementById('coll-search').addEventListener('input', refreshTeamView);
+document.getElementById('coll-sort').addEventListener('change', refreshTeamView);
+
+async function refreshTeamView() {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const snap = await getDocs(collection(db, "users", user.uid, "pokemon"));
+    trackRead();
+
+    let allPokemon = [];
+    snap.forEach(d => {
+        allPokemon.push({ id: d.id, ...d.data() });
+    });
+
+    // 1. Separate Team and Collection
+    let team = allPokemon.filter(p => p.inTeam);
+    let collectionList = allPokemon.filter(p => !p.inTeam);
+
+    // 2. Apply Search to Collection
+    const searchTerm = document.getElementById('coll-search').value.toLowerCase();
+    if (searchTerm) {
+        collectionList = collectionList.filter(p => 
+            p.name.toLowerCase().includes(searchTerm) || 
+            p.pokemonId.toString().includes(searchTerm)
+        );
+    }
+
+    // 3. Apply Sorting to Collection
+    const sortVal = document.getElementById('coll-sort').value;
+    collectionList.sort((a, b) => {
+        if (sortVal === 'level-desc') return b.level - a.level;
+        if (sortVal === 'level-asc') return a.level - b.level;
+        if (sortVal === 'id-asc') return a.pokemonId - b.pokemonId;
+        if (sortVal === 'name-asc') return a.name.localeCompare(b.name);
+        return 0;
+    });
+
+    // 4. Render Team
+    const teamContainer = document.getElementById('team-list');
+    const teamCountLabel = document.getElementById('team-count');
+    teamContainer.innerHTML = "";
+    teamCountLabel.innerText = `${team.length}/6 Pokémon`;
+
+    for (const p of team) {
+        teamContainer.appendChild(await createPokemonCard(p, true, team.length));
+    }
+
+    // 5. Render Collection
+    const collContainer = document.getElementById('coll-list');
+    collContainer.innerHTML = "";
+    for (const p of collectionList) {
+        collContainer.appendChild(await createPokemonCard(p, false, team.length));
+    }
+
+    if (team.length === 0) teamContainer.innerHTML = "<p style='grid-column: 1/-1; text-align:center; padding:20px;'>Your team is empty!</p>";
+    if (collectionList.length === 0) collContainer.innerHTML = "<p style='grid-column: 1/-1; text-align:center; padding:20px;'>No Pokémon found.</p>";
+}
+
+// Reusable Card Generator
+async function createPokemonCard(p, isTeam, teamSize) {
+    const div = document.createElement('div');
+    // Enhanced styling for the card
+    div.style = `
+        background: white; 
+        border: 1px solid var(--border); 
+        border-radius: 20px; 
+        padding: 15px; 
+        display: flex; 
+        flex-direction: column; 
+        gap: 10px;
+        transition: transform 0.2s;
+        position: relative;
+        ${isTeam && activePokemonId === p.id ? 'outline: 2px solid var(--primary);' : ''}
+    `;
+
+    const expNeeded = getExpNeededForNextLevel(p.level);
+    const prog = Math.floor(((p.exp || 0) / expNeeded) * 100);
+    const spriteUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${p.pokemonId}.png`;
+
+    // Use Cache for Type Colors/Badges if needed
+    const typeBadges = p.types.map(t => `<span class="type-badge" style="background: ${getTypeColor(t)}; font-size: 0.6rem;">${t.toUpperCase()}</span>`).join('');
+
+    div.innerHTML = `
+        <div style="display: flex; gap: 15px; align-items: center;">
+            <img src="${spriteUrl}" style="width: 70px; height: 70px; cursor:pointer;" onclick="window.showInfo(${p.pokemonId})">
+            <div style="flex: 1;">
+                <div style="display: flex; justify-content: space-between;">
+                    <strong style="font-size: 1rem;">${p.name.toUpperCase()}</strong>
+                    <span style="font-size: 0.8rem; font-weight: bold; color: var(--primary);">Lv. ${p.level}</span>
+                </div>
+                <div style="margin-bottom: 5px;">${typeBadges}</div>
+                <div class="hp-bar" style="height: 6px; background: #eee; border-radius: 10px;">
+                    <div style="width: ${prog}%; height: 100%; background: var(--primary); border-radius: 10px;"></div>
+                </div>
+                <small style="font-size: 0.65rem; color: #999;">XP: ${p.exp || 0}/${expNeeded} (${prog}%)</small>
+            </div>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px;">
+            ${p.moves.map(m => `<span style="font-size: 0.6rem; padding: 2px 6px; border: 1px solid #ddd; border-radius: 10px;">${m.name.toUpperCase()}</span>`).join('')}
+        </div>
+        <div class="mon-buttons" style="display: flex; gap: 5px; justify-content: space-between; margin-top: auto; padding-top: 10px; border-top: 1px solid #f0f0f0;">
+            <button class="btn btn-small btn-outline" id="edit-${p.id}">Moves</button>
+            <div style="display: flex; gap: 5px;">
+                ${isTeam ? `
+                    ${activePokemonId !== p.id ? `<button class="btn btn-small btn-primary" id="act-${p.id}">Active</button>` : '<span class="active-badge" style="margin:0">ACTIVE</span>'}
+                    <button class="btn btn-small btn-outline" id="mov-${p.id}">📦</button>
+                ` : `
+                    <button class="btn btn-small btn-primary" ${teamSize >= 6 ? 'disabled' : ''} id="add-${p.id}">+ Team</button>
+                `}
+                <button class="btn btn-small btn-danger" id="rel-${p.id}">🗑️</button>
+            </div>
+        </div>
+    `;
+
+    // Attach Event Listeners
+    div.querySelector(`#edit-${p.id}`).onclick = () => openMoveEditor(p.id, p.name, p.pokemonId, p.moves, p.level);
+    
+    if (isTeam) {
+        const actBtn = div.querySelector(`#act-${p.id}`);
+        if (actBtn) actBtn.onclick = () => setActivePokemon(p.id);
         
+        div.querySelector(`#mov-${p.id}`).onclick = async () => {
+            if (teamSize <= 1) { alert("Must have at least one Pokémon in team."); return; }
+            await updateDoc(doc(db, "users", auth.currentUser.uid, "pokemon", p.id), { inTeam: false });
+            if (activePokemonId === p.id) {
+                // Auto-set a new active pokemon logic here or just call refresh
+            }
+            trackWrite();
+            refreshTeamView();
+        };
+    } else {
+        div.querySelector(`#add-${p.id}`).onclick = async () => {
+            if (teamSize >= 6) { alert("Team is full!"); return; }
+            await updateDoc(doc(db, "users", auth.currentUser.uid, "pokemon", p.id), { inTeam: true });
+            trackWrite();
+            refreshTeamView();
+        };
+    }
+
+    div.querySelector(`#rel-${p.id}`).onclick = () => releasePokemon(p.id, p.name);
+
+    return div;
+}
         async function releasePokemon(id,name) {
             if(!confirm(`Release ${name}?`)) return;
             const teamSnap = await getDocs(collection(db,"users",auth.currentUser.uid,"pokemon")); trackRead();
@@ -1694,94 +1870,144 @@ async function saveMoves(selectedMoves, originalMoves) {
         async function updateActiveCache(id) { const a=await getDoc(doc(db,"users",auth.currentUser.uid,"pokemon",id)); trackRead(); if(a.exists()) cachedActivePokemon={id:a.id,...a.data()}; }
 
         window.switchView=async v=>{ document.querySelectorAll('.list-container, #view-explore').forEach(el=>el.classList.add('hidden')); document.getElementById(`view-${v}`).classList.remove('hidden'); if(v!=='explore') document.getElementById('battle-area').classList.add('hidden'); if(v==='team'||v==='collection') refreshTeamView();
-         if (v === 'records') {
+
+if (v === 'records') {
+    const listDiv = document.getElementById('records-list');
+    
+    // 1. Initial UI Setup (Search Bar and Container)
+    listDiv.innerHTML = `
+        <div style="margin-bottom: 20px; display: flex; gap: 10px;">
+            <input type="text" id="record-search" class="search-input" style="margin:0; flex:1;" placeholder="Search by name or ID...">
+        </div>
+        <div id="records-table-container">
+            <div class="loader" style="text-align:center; padding:20px;">
+                <i class="fas fa-spinner fa-pulse"></i> Syncing records...
+            </div>
+        </div>
+        <div id="records-footer" style="text-align:center; margin-top:20px; padding-bottom:20px;"></div>
+    `;
+
+    // 2. Fetch Data from Firebase
     await flushRecordUpdates();
     const snap = await getDocs(collection(db, "users", auth.currentUser.uid, "records"));
     trackRead();
-    const records = [];
+    
+    allUserRecords = [];
     snap.forEach(doc => {
         const r = doc.data();
-        records.push({
-            id: r.pokemonId,
-            name: r.name,
-            count: r.count
-        });
+        allUserRecords.push({ id: r.pokemonId, name: r.name, count: r.count });
     });
-    // Sort by Pokédex ID and take first 25
-    records.sort((a, b) => a.id - b.id);
-    const first25 = records.slice(0, 25);
+    
+    // Sort by ID naturally
+    allUserRecords.sort((a, b) => a.id - b.id);
+    filteredUserRecords = [...allUserRecords];
+    recordsDisplayLimit = 25; // Reset limit
 
-    const listDiv = document.getElementById('records-list');
-    listDiv.innerHTML = '<div class="loader"><i class="fas fa-spinner fa-pulse"></i> Loading Pokémon details...</div>';
-
-    // Fetch species and Pokémon data for each record
-    const enriched = await Promise.all(first25.map(async (record) => {
-        try {
-            const [speciesRes, pokemonRes] = await Promise.all([
-                fetch(`https://pokeapi.co/api/v2/pokemon-species/${record.id}`),
-                fetch(`https://pokeapi.co/api/v2/pokemon/${record.id}`)
-            ]);
-            const speciesData = await speciesRes.json();
-            const pokemonData = await pokemonRes.json();
-            const types = pokemonData.types.map(t => t.type.name);
-            const generation = getGeneration(speciesData.generation?.url);
-            const isLegendary = speciesData.is_legendary;
-            const isMythical = speciesData.is_mythical;
-            const isParadox = paradoxIds.has(record.id);
-            let specialType = 'Normal';
-            if (isLegendary) specialType = 'Legendary';
-            else if (isMythical) specialType = 'Mythical';
-            else if (isParadox) specialType = 'Paradox';
-            return {
-                ...record,
-                types,
-                generation,
-                specialType
-            };
-        } catch (err) {
-            console.error(`Failed to fetch details for ${record.id}`, err);
-            return {
-                ...record,
-                types: ['?'],
-                generation: '?',
-                specialType: 'Unknown'
-            };
+    // 3. Define the Rendering Function
+    const renderRecordChunk = async () => {
+        const tableContainer = document.getElementById('records-table-container');
+        const footer = document.getElementById('records-footer');
+        
+        const chunk = filteredUserRecords.slice(0, recordsDisplayLimit);
+        
+        if (chunk.length === 0) {
+            tableContainer.innerHTML = "<p style='text-align:center; color:#666;'>No matching Pokémon found.</p>";
+            footer.innerHTML = "";
+            return;
         }
-    }));
 
-    // Build the table
-    let html = `<div style="overflow-x: auto;">
-        <table class="ranking-table" id="records-table" style="width:100%">
-            <thead>
-                <tr>
-                    <th>Pokédex ID</th>
-                    <th>Image</th>
-                    <th>Name</th>
-                    <th>Type</th>
-                    <th>Category</th>
-                    <th>Generation</th>
-                    <th>Encounters</th>
+        // Show a "Loading details" message while API calls run
+        tableContainer.style.opacity = "0.6";
+
+        // Enrichment with CACHE
+        const enriched = await Promise.all(chunk.map(async (record) => {
+            try {
+                const [speciesData, pokemonData] = await Promise.all([
+                    getCachedJson(`https://pokeapi.co/api/v2/pokemon-species/${record.id}`, speciesDataCache),
+                    getCachedJson(`https://pokeapi.co/api/v2/pokemon/${record.id}`, pokeDataCache)
+                ]);
+
+                const types = pokemonData.types.map(t => t.type.name);
+                const generation = getGeneration(speciesData.generation?.url);
+                const isLegendary = speciesData.is_legendary;
+                const isMythical = speciesData.is_mythical;
+                const isParadox = paradoxIds.has(record.id);
+
+                let cat = 'Normal';
+                if (isLegendary) cat = 'Legendary';
+                else if (isMythical) cat = 'Mythical';
+                else if (isParadox) cat = 'Paradox';
+
+                return { ...record, types, generation, cat };
+            } catch (err) {
+                return { ...record, types: ['?'], generation: '?', cat: 'Unknown' };
+            }
+        }));
+
+        // Build Table
+        let html = `
+            <div style="overflow-x: auto;">
+                <table class="ranking-table" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Image</th>
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th>Category</th>
+                            <th>Gen</th>
+                            <th>Seen</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        enriched.forEach(rec => {
+            const spriteUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${rec.id}.png`;
+            const typeBadges = rec.types.map(t => `<span class="type-badge" style="background: ${getTypeColor(t)};">${t.toUpperCase()}</span>`).join('');
+            html += `
+                <tr onclick="window.showInfo(${rec.id})" style="cursor: pointer;">
+                    <td>#${rec.id}</td>
+                    <td><img src="${spriteUrl}" width="40"></td>
+                    <td style="font-weight:bold;">${rec.name.toUpperCase()}</td>
+                    <td>${typeBadges}</td>
+                    <td><small>${rec.cat}</small></td>
+                    <td>${rec.generation}</td>
+                    <td>${rec.count}</td>
                 </tr>
-            </thead>
-            <tbody>`;
-    for (const rec of enriched) {
-        const spriteUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${rec.id}.png`;
-        const typeBadges = rec.types.map(t => `<span class="type-badge" style="background: ${getTypeColor(t)};">${t.toUpperCase()}</span>`).join('');
-        html += `
-            <tr onclick="window.showInfo(${rec.id})" style="cursor: pointer;">
-                <td>#${rec.id}</td>
-                <td><img src="${spriteUrl}" width="50" style="border-radius: 8px;"></td>
-                <td>${rec.name.toUpperCase()}</td>
-                <td>${typeBadges}</td>
-                <td>${rec.specialType}</td>
-                <td>Gen ${rec.generation}</td>
-                <td>${rec.count}</td>
-            </tr>`;
-    }
-    html += `</tbody></table></div>`;
-    listDiv.innerHTML = html;
+            `;
+        });
+
+        html += `</tbody></table></div>`;
+        tableContainer.innerHTML = html;
+        tableContainer.style.opacity = "1";
+
+        // Load More Button
+        if (recordsDisplayLimit < filteredUserRecords.length) {
+            footer.innerHTML = `<button id="btn-show-more-records" class="btn btn-outline">Show More (${filteredUserRecords.length - recordsDisplayLimit} left)</button>`;
+            document.getElementById('btn-show-more-records').onclick = () => {
+                recordsDisplayLimit += 25;
+                renderRecordChunk();
+            };
+        } else {
+            footer.innerHTML = `<p style="color:#999; font-size:0.8rem;">Showing all ${filteredUserRecords.length} encounters</p>`;
+        }
+    };
+
+    // 4. Search Event Listener
+    document.getElementById('record-search').addEventListener('input', (e) => {
+        const term = e.target.value.toLowerCase();
+        filteredUserRecords = allUserRecords.filter(r => 
+            r.name.toLowerCase().includes(term) || r.id.toString().includes(term)
+        );
+        recordsDisplayLimit = 25; // Reset limit on search
+        renderRecordChunk();
+    });
+
+    // Initial Render
+    renderRecordChunk();
 }
-                };
+    };
         
         const startersList=[{id:1,name:"Bulbasaur"},{id:4,name:"Charmander"},{id:7,name:"Squirtle"},{id:152,name:"Chikorita"},{id:155,name:"Cyndaquil"},{id:158,name:"Totodile"},{id:252,name:"Treecko"},{id:255,name:"Torchic"},{id:258,name:"Mudkip"},{id:387,name:"Turtwig"},{id:390,name:"Chimchar"},{id:393,name:"Piplup"},{id:495,name:"Snivy"},{id:498,name:"Tepig"},{id:501,name:"Oshawott"},{id:650,name:"Chespin"},{id:653,name:"Fennekin"},{id:656,name:"Froakie"},{id:722,name:"Rowlet"},{id:725,name:"Litten"},{id:728,name:"Popplio"},{id:810,name:"Grookey"},{id:813,name:"Scorbunny"},{id:816,name:"Sobble"},{id:906,name:"Sprigatito"},{id:909,name:"Fuecoco"},{id:912,name:"Quaxly"}];
         async function loadStartersModal(containerId) {

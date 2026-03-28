@@ -36,7 +36,26 @@
             color: var(--text-dark);
         }
         .hidden { display: none !important; }
+#battle-area {
+    overflow: visible !important; /* This allows the sprite to overlap the borders */
+    position: relative;
+}
 
+.gmax-sprite {
+    width: 250px !important; 
+    height: 250px !important;
+    position: relative;
+    z-index: 9999; /* Sits on top of UI */
+    margin-top: -110px; /* Pulls it way up over the header */
+    margin-right: -50px;
+    filter: drop-shadow(0 0 25px rgba(255, 0, 80, 0.9)) !important;
+    animation: gmaxPulse 3s infinite ease-in-out;
+}
+
+@keyframes gmaxPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+}
         /* Auth Screen */
         #auth-screen {
             height: 100vh;
@@ -212,6 +231,11 @@
     background: #ff8c00;
     color: white;
 }
+
+
+
+
+
         .required.locked { color: var(--danger); }
         .required.unlocked { color: var(--success); }
         .admin-edit-btn, .admin-delete-btn {
@@ -943,35 +967,57 @@ async function runTurn(move) {
     }, 1000);
 }
   
-        function renderBattleUI() {
-            if (!currentBattle) return;
-            const b = currentBattle;
-            loadImageWithFallback(document.getElementById('e-sprite-btl'), getBattleSpriteUrl(b.wild.pokemonId, 'front'));
-            document.getElementById('e-sprite-btl').onclick = () => showInfo(b.wild.pokemonId);
-            loadImageWithFallback(document.getElementById('p-sprite-btl'), getBattleSpriteUrl(b.player.pokemonId, 'back'));
-            document.getElementById('p-sprite-btl').onclick = () => showInfo(b.player.pokemonId);
-            let wildName = b.wild.name.toUpperCase();
-            if (b.wild.isSpecial) wildName = '⭐ ' + wildName;
-            document.getElementById('e-name').innerText = wildName;
-            document.getElementById('e-lvl').innerText = "Lvl "+b.wild.level;
-            document.getElementById('e-hp-fill').style.width = (b.wild.hp / b.wild.maxHp * 100) + "%";
-            document.getElementById('e-types-icons').innerHTML = generateTypeBadges(b.wild.types);
-            document.getElementById('p-name').innerText = b.player.name.toUpperCase();
-            document.getElementById('p-lvl').innerText = "Lvl "+b.player.level;
-            document.getElementById('p-hp-fill').style.width = (b.player.hp / b.player.maxHp * 100) + "%";
-            document.getElementById('p-types-icons').innerHTML = generateTypeBadges(b.player.types);
-            const movesDiv = document.getElementById('battle-moves');
-            movesDiv.innerHTML = "";
-            b.player.moves.forEach(m => {
-                const btn = document.createElement('button');
-                btn.style.backgroundColor = getTypeColor(m.type);
-                btn.className = "move-btn";
-                btn.innerHTML = `<span>${m.name.toUpperCase()}</span>`;
-                btn.onclick = () => runTurn(m);
-                movesDiv.appendChild(btn);
-            });
-        }
-      async function trackRecord(id, name) {
+
+function renderBattleUI() {
+    if (!currentBattle) return;
+    const b = currentBattle;
+    
+    // 1. Setup the Enemy Sprite
+    const enemySprite = document.getElementById('e-sprite-btl');
+    loadImageWithFallback(enemySprite, getBattleSpriteUrl(b.wild.pokemonId, 'front'));
+    enemySprite.onclick = () => showInfo(b.wild.pokemonId);
+    
+    // 2. APPLY G-MAX CLASS
+    if (b.wild.isGmax) {
+        enemySprite.classList.add('gmax-sprite');
+    } else {
+        enemySprite.classList.remove('gmax-sprite');
+    }
+    
+    // 3. Setup Player Sprite
+    const playerSprite = document.getElementById('p-sprite-btl');
+    loadImageWithFallback(playerSprite, getBattleSpriteUrl(b.player.pokemonId, 'back'));
+    playerSprite.onclick = () => showInfo(b.player.pokemonId);            
+   
+    // 4. Update Stats and Names
+    let wildName = b.wild.name.toUpperCase();
+    if (b.wild.isGmax) wildName = '🔴 ' + wildName;
+    
+    document.getElementById('e-name').innerText = wildName;
+    document.getElementById('e-lvl').innerText = "Lvl " + b.wild.level;
+    document.getElementById('e-hp-fill').style.width = (b.wild.hp / b.wild.maxHp * 100) + "%";
+    document.getElementById('e-types-icons').innerHTML = generateTypeBadges(b.wild.types);
+    
+    document.getElementById('p-name').innerText = b.player.name.toUpperCase();
+    document.getElementById('p-lvl').innerText = "Lvl " + b.player.level;
+    document.getElementById('p-hp-fill').style.width = (b.player.hp / b.player.maxHp * 100) + "%";
+    document.getElementById('p-types-icons').innerHTML = generateTypeBadges(b.player.types);
+    
+    // 5. Update Moves
+    const movesDiv = document.getElementById('battle-moves');
+    movesDiv.innerHTML = "";
+    b.player.moves.forEach(m => {
+        const btn = document.createElement('button');
+        btn.style.backgroundColor = getTypeColor(m.type);
+        btn.className = "move-btn";
+        btn.innerHTML = `<span>${m.name.toUpperCase()}</span>`;
+        btn.onclick = () => runTurn(m);
+        movesDiv.appendChild(btn);
+    });
+}
+
+
+async function trackRecord(id, name) {
     try {
         const userId = auth.currentUser.uid;
         
@@ -1227,7 +1273,7 @@ async function runTurn(move) {
             }
         }
 
- async function startBattle() {
+async function startBattle() {
     if (!activePokemonId) { 
         alert("No active Pokémon! Please set one in the main game."); 
         return; 
@@ -1259,7 +1305,7 @@ async function runTurn(move) {
             return;
         }
 
-        // 2. Determine Wild Pokémon ID (Handling the 1025-10001 Gap)
+        // 2. Determine Wild Pokémon ID
         let wildId;
         if (currentMap.specialPokemonList?.length > 0 && Math.random() < 0.5) {
             wildId = currentMap.specialPokemonList[Math.floor(Math.random() * currentMap.specialPokemonList.length)];
@@ -1284,11 +1330,9 @@ async function runTurn(move) {
             if (speciesRes.ok) species = await speciesRes.json();
         } catch (e) {}
 
-        // 4. Determine Moves (Inheritance + Default Fallback)
+        // 4. Determine Moves
         let wildMoves = [];
         let rawMoves = wildData.moves;
-
-        // If empty (usually IDs 10001+), try to get moves from base species
         if (!rawMoves || rawMoves.length === 0) {
             try {
                 const baseRes = await fetch(`https://pokeapi.co/api/v2/pokemon/${species.id}`);
@@ -1298,42 +1342,62 @@ async function runTurn(move) {
                 }
             } catch (e) {}
         }
-
-        // If STILL empty, apply your Bite/Boomburst/Take Down/Tackle set
         if (!rawMoves || rawMoves.length === 0) {
             wildMoves = DEFAULT_MOVESET;
         } else {
             wildMoves = await getMoveDetails(rawMoves.slice(0, 4));
         }
 
-        // 5. Level and UI Stats
-        let wildLevel;
-        if (currentMap.specialLevelRange?.enabled) {
-            wildLevel = Math.floor(Math.random() * (currentMap.specialLevelRange.max - currentMap.specialLevelRange.min + 1)) + currentMap.specialLevelRange.min;
+        // 5. G-MAX Detection & Preview Scaling
+        const isGmax = wildData.name.toLowerCase().includes('-gmax');
+        const preview = document.getElementById('encounter-preview');
+        const ps = document.getElementById('preview-sprite');
+        
+        if (isGmax) {
+            ps.style.transform = "scale(1.8)"; 
+            ps.style.filter = "drop-shadow(0 0 15px rgba(255, 0, 80, 0.8))";
         } else {
-            wildLevel = Math.max(1, Math.min(100, team[activeIndex].level + Math.floor(Math.random() * 21) - 10));
+            ps.style.transform = "scale(1)";
+            ps.style.filter = "none";
         }
 
-        const count = await trackRecord(wildId, wildData.name);
-        const isParadox = [984,985,986,987,988,989,990,991,992,993,994,995,1005,1006,1009,1010,1020,1021,1022,1023].includes(wildId);
-        const isSpecial = species.is_legendary || species.is_mythical || isParadox;
-        
-        // 6. Show Preview
-        const preview = document.getElementById('encounter-preview');
-        loadImageWithFallback(document.getElementById('preview-sprite'), getBattleSpriteUrl(wildId, 'front'));
+        // 6. Preview UI
+        loadImageWithFallback(ps, getBattleSpriteUrl(wildId, 'front'));
         document.getElementById('preview-name').innerText = wildData.name.toUpperCase();
         
         let badgesHtml = wildData.types.map(t => `<span class="type-badge" style="background: ${getTypeColor(t.type.name)};">${t.type.name.toUpperCase()}</span>`).join('');
-        if (isSpecial) badgesHtml += `<span class="special-badge">⭐ SPECIAL</span>`;
+        if (isGmax) badgesHtml += `<span class="special-badge" style="background: red; color: white;">🔴 G-MAX</span>`;
         document.getElementById('preview-badges').innerHTML = badgesHtml;
         
         const card = document.getElementById('encounter-card');
-        if (isSpecial) card.classList.add('special'); else card.classList.remove('special');
+        if (isGmax) card.classList.add('special'); else card.classList.remove('special');
         preview.classList.remove('hidden');
 
-        // 7. Initialize Global Battle Object
+        // 7. Initialize Battle
+
+          let wildLevel;
+        
+        // Check if the map has a specific level range forced in settings
+        if (currentMap.specialLevelRange && currentMap.specialLevelRange.enabled) {
+            const minLvl = parseInt(currentMap.specialLevelRange.min) || 1;
+            const maxLvl = parseInt(currentMap.specialLevelRange.max) || 100;
+            
+            // Random level between the map's Min and Max
+            wildLevel = Math.floor(Math.random() * (maxLvl - minLvl + 1)) + minLvl;
+            console.log(`Map settings used: Level ${wildLevel}`);
+        } else {
+            // Default: Match the player's active Pokémon level (+/- 10)
+            wildLevel = team[activeIndex].level + Math.floor(Math.random() * 21) - 10;
+            console.log(`Dynamic leveling used: Level ${wildLevel}`);
+        }
+
+        // Final safety clamp: Pokémon must be between level 1 and 100
+         wildLevel = Math.max(1, wildLevel); 
+        const count = await trackRecord(wildId, wildData.name);
+
         setTimeout(() => {
             preview.classList.add('hidden');
+              ps.style.transform = "scale(1)";
             currentBattle = {
                 playerTeam: team,
                 activePokemonIndex: activeIndex,
@@ -1347,7 +1411,7 @@ async function runTurn(move) {
                     types: wildData.types.map(t => t.type.name),
                     moves: wildMoves,
                     encounterCount: count,
-                    isSpecial: isSpecial
+                    isGmax: isGmax // This tells renderBattleUI to use the big sprite
                 }
             };
             renderBattleUI();
@@ -1364,8 +1428,10 @@ async function runTurn(move) {
         document.getElementById('loading-overlay').classList.add('hidden');
     }
 }
+    
 
-        async function showMapPokemonList(map) {
+
+    async function showMapPokemonList(map) {
     const modal = document.getElementById('map-info-modal');
     const tableBody = document.getElementById('map-pokemon-table-body');
     const title = document.getElementById('map-info-title');

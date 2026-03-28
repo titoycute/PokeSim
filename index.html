@@ -1988,30 +1988,45 @@ if (v === 'records') {
         tableContainer.style.opacity = "0.6";
 
         // Enrichment with CACHE
-        const enriched = await Promise.all(chunk.map(async (record) => {
-            try {
-                const [speciesData, pokemonData] = await Promise.all([
-                    getCachedJson(`https://pokeapi.co/api/v2/pokemon-species/${record.id}`, speciesDataCache),
-                    getCachedJson(`https://pokeapi.co/api/v2/pokemon/${record.id}`, pokeDataCache)
-                ]);
+       // Enrichment with FIX for IDs 10001+
+const enriched = await Promise.all(chunk.map(async (record) => {
+    try {
+        // 1. Fetch Pokémon Data FIRST
+        const pokemonData = await getCachedJson(`https://pokeapi.co/api/v2/pokemon/${record.id}`, pokeDataCache);
 
-                const types = pokemonData.types.map(t => t.type.name);
-                const generation = getGeneration(speciesData.generation?.url);
-                const isLegendary = speciesData.is_legendary;
-                const isMythical = speciesData.is_mythical;
-                const isParadox = paradoxIds.has(record.id);
+        // 2. Default species data (fallback)
+        let speciesData = { is_legendary: false, is_mythical: false, generation: { url: "9" } };
+        
+        // 3. Fetch Species Data using the correct URL provided by the Pokémon
+        try {
+            speciesData = await getCachedJson(pokemonData.species.url, speciesDataCache);
+        } catch (e) {
+            console.warn("Species metadata missing for ID:", record.id);
+        }
 
-                let cat = 'Normal';
-                if (isLegendary) cat = 'Legendary';
-                else if (isMythical) cat = 'Mythical';
-                else if (isParadox) cat = 'Paradox';
+        const types = pokemonData.types.map(t => t.type.name);
+        
+        // Convert Gen Number to Roman Numeral
+        const generation = (() => {
+            if (!speciesData.generation?.url) return 'IX';
+            const genId = speciesData.generation.url.split('/').filter(p => p).pop();
+            const roman = ['0', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX'];
+            return roman[genId] || genId;
+        })();
 
-                return { ...record, types, generation, cat };
-            } catch (err) {
-                return { ...record, types: ['?'], generation: '?', cat: 'Unknown' };
-            }
-        }));
+        const isParadox = paradoxIds.has(record.id);
 
+        let cat = 'Normal';
+        if (speciesData.is_legendary) cat = 'Legendary';
+        else if (speciesData.is_mythical) cat = 'Mythical';
+        else if (isParadox) cat = 'Paradox';
+
+        return { ...record, types, generation, cat };
+    } catch (err) {
+        console.error("Critical record fetch error:", err);
+        return { ...record, types: ['?'], generation: '?', cat: 'Unknown' };
+    }
+}));
         // Build Table
         let html = `
             <div style="overflow-x: auto;">

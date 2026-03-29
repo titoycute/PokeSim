@@ -514,7 +514,7 @@
             <div class="logo"><img src="PokeSim Word.png" alt="PokeSim"></div>
             <div>
                 <button id="back-to-maps-btn" class="btn btn-outline"><i class="fas fa-arrow-left"></i> Change Map</button>
-                <button id="logout-btn" class="btn btn-outline">Logout</button>
+              <!-- <button id="logout-btn" class="btn btn-outline">Logout</button>--> 
                 <button id="volume-toggle" class="volume-btn" style="background: none; border: none; font-size: 1.2rem;">🔊</button>
             </div>
         </div>
@@ -559,8 +559,9 @@
         </div>
     </div>
 
-    <audio id="bg-music" src="music1.mp3" loop preload="auto"></audio>
+    <audio id="bg-music" src="music3.mp3" loop preload="auto"></audio>
     <audio id="battle-music" src="music2.mp3" loop preload="auto"></audio>
+    <audio id="special-music" src="music4.mp3" loop preload="auto"></audio>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -865,7 +866,7 @@ async function checkEvolution(id,lvl,apiId) {
     // (1 - hpPct) means: lower health = higher chance.
     // 0.8 is the "curve" and 0.2 is the "base chance".
     // To make catching EASIER: increase 0.2. To make it HARDER: decrease 0.2.
-    let chance = (1 - hpPct) * 0.8 + 0.2; 
+    let chance = (1 - hpPct) * 0.4 + 0.05; 
     
     chance = Math.min(0.95, Math.max(0.1, chance)); // Keep between 10% and 95%
     document.getElementById('catch-chance').innerHTML = `Catch chance: ${Math.floor(chance*100)}%`;
@@ -927,7 +928,7 @@ async function attemptCatch() {
            - If wild has 10% HP:  Chance is 87%
            - If wild has 0% HP:   Chance is 95%
         */
-        let catchChance = (1 - hpPct) * 0.8 + 0.15;
+        let catchChance = (1 - hpPct) * 0.4 + 0.05;
         catchChance = Math.min(0.95, Math.max(0.05, catchChance)); // Clamp between 5% and 95%
         
         const success = Math.random() < catchChance;
@@ -1450,8 +1451,6 @@ async function startBattle() {
             if (speciesRes.ok) species = await speciesRes.json();
         } catch (e) {}
 
-        
-
         // 4. Determine Moves
         let wildMoves = [];
         let rawMoves = wildData.moves;
@@ -1470,139 +1469,80 @@ async function startBattle() {
             wildMoves = await getMoveDetails(rawMoves.slice(0, 4));
         }
 
-
+        // 5. Special Categories Logic
         let specialCategory = null;
-let specialBadge = null;
-
-const nameLower = wildData.name.toLowerCase();
-const isGmax = nameLower.includes('-gmax');
-const isMega = nameLower.includes('-mega');
-const isUltraBeast = species.is_ultra_beast === true || nameLower.includes('-ub');
-const isLegendary = species.is_legendary === true;
-const isMythical = species.is_mythical === true;
-
-// Priority: Gmax > Mega > Ultra Beast > Legendary > Mythical
-if (isGmax) {
-    specialCategory = 'gmax';
-    specialBadge = '🔴 G-MAX';
-} else if (isMega) {
-    specialCategory = 'mega';
-    specialBadge = '💎 MEGA';
-} else if (isUltraBeast) {
-    specialCategory = 'ub';
-    specialBadge = '🌀 ULTRA BEAST';
-} else if (isLegendary) {
-    specialCategory = 'legendary';
-    specialBadge = '⭐ LEGENDARY';
-} else if (isMythical) {
-    specialCategory = 'mythical';
-    specialBadge = '✨ MYTHICAL';
-}
-
-const previewSprite = document.getElementById('preview-sprite');
-
-previewSprite.classList.remove('gmax-sprite', 'legendary-sprite', 'mythical-sprite', 'mega-sprite', 'ub-sprite');
-if (specialCategory) {
-    previewSprite.classList.add(`${specialCategory}-sprite`);
-} else {
-    // Reset size for normal Pokémon
-    previewSprite.style.width = '';
-    previewSprite.style.height = '';
-}
-
-let badgesHtml = wildData.types.map(t =>
-    `<span class="type-badge" style="background: ${getTypeColor(t.type.name)};">${t.type.name.toUpperCase()}</span>`
-).join('');
-if (specialBadge) {
-    badgesHtml += `<span class="special-badge" style="background: ${specialCategory === 'gmax' ? 'red' : (specialCategory === 'mega' ? '#3399ff' : (specialCategory === 'ub' ? '#33cc99' : (specialCategory === 'legendary' ? '#ffaa33' : '#ff66cc')))}; color: white;">${specialBadge}</span>`;
-}
-document.getElementById('preview-badges').innerHTML = badgesHtml;
-
-const encounterCard = document.getElementById('encounter-card');
-if (specialCategory) {
-    encounterCard.style.background = 'linear-gradient(145deg, white, #faf5ff)';
-    encounterCard.style.border = `2px solid ${specialCategory === 'gmax' ? '#ff3366' : (specialCategory === 'mega' ? '#33aaff' : (specialCategory === 'ub' ? '#33cc99' : (specialCategory === 'legendary' ? '#ffcc33' : '#ff99cc')))}`;
-} else {
-    encounterCard.style.background = 'white';
-    encounterCard.style.border = 'none';
-}
-
-        // 5. G-MAX Detection & Preview Scaling
-       // const isGmax = wildData.name.toLowerCase().includes('-gmax');
-        const preview = document.getElementById('encounter-preview');
-        const ps = document.getElementById('preview-sprite');
+        let specialBadge = null;
+        const nameLower = wildData.name.toLowerCase();
         
-        // if (isGmax) {
-        //     ps.style.transform = "scale(1.8)"; 
-        //     ps.style.filter = "drop-shadow(0 0 15px rgba(255, 0, 80, 0.8))";
-        // } else {
-        //     ps.style.transform = "scale(1)";
-        //     ps.style.filter = "none";
-        // }
+        const isGmax = nameLower.includes('-gmax');
+        const isMega = nameLower.includes('-mega');
+        const isParadox = [984,985,986,987,988,989,990,991,992,993,994,995,1005,1006,1009,1010,1020,1021,1022,1023].includes(wildId);
+        const isUltraBeast = species.is_ultra_beast === true || nameLower.includes('-ub');
+        const isLegendary = species.is_legendary === true;
+        const isMythical = species.is_mythical === true;
+
+        // --- IMPORTANT: Define isSpecial so the music logic works ---
+        const isSpecial = isLegendary || isMythical || isParadox || isUltraBeast || isMega;
+
+        if (isGmax) { specialCategory = 'gmax'; specialBadge = '🔴 G-MAX'; }
+        else if (isMega) { specialCategory = 'mega'; specialBadge = '💎 MEGA'; }
+        else if (isUltraBeast) { specialCategory = 'ub'; specialBadge = '🌀 ULTRA BEAST'; }
+        else if (isLegendary) { specialCategory = 'legendary'; specialBadge = '⭐ LEGENDARY'; }
+        else if (isMythical) { specialCategory = 'mythical'; specialBadge = '✨ MYTHICAL'; }
 
         // 6. Preview UI
+        const ps = document.getElementById('preview-sprite');
+        ps.classList.remove('gmax-sprite', 'legendary-sprite', 'mythical-sprite', 'mega-sprite', 'ub-sprite');
+        if (specialCategory) ps.classList.add(`${specialCategory}-sprite`);
+
         loadImageWithFallback(ps, getBattleSpriteUrl(wildId, 'front'));
         document.getElementById('preview-name').innerText = wildData.name.toUpperCase();
         
-      //  let badgesHtml = wildData.types.map(t => `<span class="type-badge" style="background: ${getTypeColor(t.type.name)};">${t.type.name.toUpperCase()}</span>`).join('');
-       // if (isGmax) badgesHtml += `<span class="special-badge" style="background: red; color: white;">🔴 G-MAX</span>`;
+        let badgesHtml = wildData.types.map(t => `<span class="type-badge" style="background: ${getTypeColor(t.type.name)};">${t.type.name.toUpperCase()}</span>`).join('');
+        if (specialBadge) badgesHtml += `<span class="special-badge" style="background: ${specialCategory === 'gmax' ? 'red' : (specialCategory === 'mega' ? '#3399ff' : (specialCategory === 'ub' ? '#33cc99' : (specialCategory === 'legendary' ? '#ffaa33' : '#ff66cc')))}; color: white;">${specialBadge}</span>`;
         document.getElementById('preview-badges').innerHTML = badgesHtml;
         
         const card = document.getElementById('encounter-card');
-        if (isGmax) card.classList.add('special'); else card.classList.remove('special');
-        preview.classList.remove('hidden');
-
-        // 7. Initialize Battle
-
-          let wildLevel;
+        if (isSpecial || isGmax) card.classList.add('special'); else card.classList.remove('special');
         
-        // Check if the map has a specific level range forced in settings
-        if (currentMap.specialLevelRange && currentMap.specialLevelRange.enabled) {
-            const minLvl = parseInt(currentMap.specialLevelRange.min) || 1;
-            const maxLvl = parseInt(currentMap.specialLevelRange.max) || 100;
-            
-            // Random level between the map's Min and Max
-            wildLevel = Math.floor(Math.random() * (maxLvl - minLvl + 1)) + minLvl;
-            console.log(`Map settings used: Level ${wildLevel}`);
-        } else {
-            // Default: Match the player's active Pokémon level (+/- 10)
-            wildLevel = team[activeIndex].level + Math.floor(Math.random() * 21) - 10;
-            console.log(`Dynamic leveling used: Level ${wildLevel}`);
-        }
+        document.getElementById('encounter-preview').classList.remove('hidden');
 
-        // Final safety clamp: Pokémon must be between level 1 and 100
-         wildLevel = Math.max(1, wildLevel); 
+        // 7. Level & Battle Start
+        let wildLevel;
+        if (currentMap.specialLevelRange?.enabled) {
+            wildLevel = Math.floor(Math.random() * (currentMap.specialLevelRange.max - currentMap.specialLevelRange.min + 1)) + currentMap.specialLevelRange.min;
+        } else {
+            wildLevel = team[activeIndex].level + Math.floor(Math.random() * 21) - 10;
+        }
+        wildLevel = Math.max(1, wildLevel); 
         const count = await trackRecord(wildId, wildData.name);
 
         setTimeout(() => {
-            preview.classList.add('hidden');
-              ps.style.transform = "scale(1)";
+            document.getElementById('encounter-preview').classList.add('hidden');
+            ps.style.transform = "scale(1)"; // Reset scaling
+            
             currentBattle = {
                 playerTeam: team,
                 activePokemonIndex: activeIndex,
                 player: team[activeIndex],
                 wild: {
-                    pokemonId: wildId,
-                    name: wildData.name,
-                    level: wildLevel,
-                    hp: wildLevel * 25,
-                    maxHp: wildLevel * 25,
+                    pokemonId: wildId, name: wildData.name, level: wildLevel,
+                    hp: wildLevel * 25, maxHp: wildLevel * 25,
                     types: wildData.types.map(t => t.type.name),
-                    moves: wildMoves,
-                    encounterCount: count,
-                    isGmax: isGmax,
-                    specialCategory: specialCategory,   // store for later use
-                    specialBadge: specialBadge   // This tells renderBattleUI to use the big sprite
+                    moves: wildMoves, encounterCount: count,
+                    isGmax: isGmax, specialCategory: specialCategory, specialBadge: specialBadge,
+                    isSpecial: isSpecial // Pass this for the Volume Toggle logic later
                 }
             };
 
             renderBattleUI();
-            updateCatchChance();
             document.getElementById('battle-area').classList.remove('hidden');
             addBattleLog(`A wild ${wildData.name.toUpperCase()} appeared!`);
             updateCatchChance();
             document.getElementById('loading-overlay').classList.add('hidden');
-            playBattleMusic();
+            
+            // --- FIXED TRIGGER ---
+            playBattleMusic(isSpecial || isGmax); 
         }, 3000);
 
     } catch (err) {
@@ -1610,8 +1550,7 @@ if (specialCategory) {
         alert("Encounter failed to load.");
         document.getElementById('loading-overlay').classList.add('hidden');
     }
-}
-    
+}   
 
 
     async function showMapPokemonList(map) {
@@ -1686,10 +1625,55 @@ if (specialCategory) {
 }
         
         // ========== MUSIC ==========
-        function playMainMusic() { if (!isMuted) { battleMusic.pause(); battleMusic.currentTime = 0; bgMusic.play().catch(e=>console.log("Autoplay blocked:", e)); } }
-        function playBattleMusic() { if (!isMuted) { bgMusic.pause(); bgMusic.currentTime = 0; battleMusic.play().catch(e=>console.log("Autoplay blocked:", e)); } }
-        function stopBattleMusic() { battleMusic.pause(); battleMusic.currentTime = 0; if (!isMuted) bgMusic.play().catch(e=>console.log("Autoplay blocked:", e)); }
+       // Add this near your other constants
+const specialMusic = document.getElementById('special-music');
 
+function playMainMusic() { 
+    if (!isMuted) { 
+        battleMusic.pause(); 
+        specialMusic.pause(); // Stop special music
+        battleMusic.currentTime = 0;
+        specialMusic.currentTime = 0;
+         bgMusic.play().catch(e => console.log("Map music resume blocked:", e)); 
+    } 
+}
+
+function playBattleMusic(isSpecialEncounter) { 
+    if (!isMuted) { 
+        bgMusic.pause(); 
+        
+        // Stop both possible battle tracks
+        battleMusic.pause();
+        specialMusic.pause();
+        battleMusic.currentTime = 0;
+        specialMusic.currentTime = 0;
+        
+        if (isSpecialEncounter) {
+            console.log("Playing Special Battle Music");
+            specialMusic.play().catch(e => console.log("Music error:", e));
+        } else {
+            console.log("Playing Normal Battle Music");
+            battleMusic.play().catch(e => console.log("Music error:", e));
+        }
+    } 
+}
+function stopBattleMusic() { 
+    console.log("Battle ended. Transitioning music...");
+    battleMusic.pause(); 
+    specialMusic.pause(); 
+    battleMusic.currentTime = 0;
+    specialMusic.currentTime = 0;
+
+     if (!isMuted) {
+        // Reset map music to start or just resume
+        // bgMusic.currentTime = 0; // Uncomment this if you want the map song to start from the beginning
+        bgMusic.play().then(() => {
+            console.log("Map music resumed.");
+        }).catch(e => {
+            console.log("Map music resume failed. Waiting for user interaction.", e);
+        });
+    }  
+}
         // ========== AUTH & INIT ==========
         onAuthStateChanged(auth, async (user) => {
             if (user) {
@@ -1734,12 +1718,29 @@ if (specialCategory) {
         });
         document.getElementById('logout-btn')?.addEventListener('click', () => signOut(auth).then(()=>location.reload()));
         document.getElementById('catch-btn')?.addEventListener('click', attemptCatch);
-        document.getElementById('volume-toggle')?.addEventListener('click', () => {
-            isMuted = !isMuted;
-            const v = document.getElementById('volume-toggle');
-            if (isMuted) { bgMusic.pause(); battleMusic.pause(); v.innerText = '🔇'; }
-            else { if (currentBattle && document.getElementById('battle-area') && !document.getElementById('battle-area').classList.contains('hidden')) battleMusic.play().catch(e=>{}); else bgMusic.play().catch(e=>{}); v.innerText = '🔊'; }
-        });
+      document.getElementById('volume-toggle')?.addEventListener('click', () => {
+    isMuted = !isMuted;
+    const v = document.getElementById('volume-toggle');
+    if (isMuted) { 
+        bgMusic.pause(); 
+        battleMusic.pause(); 
+        specialMusic.pause(); // Added this
+        v.innerText = '🔇'; 
+    }
+    else { 
+        // Logic to decide which music to resume
+        if (currentBattle && !document.getElementById('battle-area').classList.contains('hidden')) {
+            if (currentBattle.wild.isSpecial || currentBattle.wild.isGmax) {
+                specialMusic.play();
+            } else {
+                battleMusic.play();
+            }
+        } else {
+            bgMusic.play();
+        }
+        v.innerText = '🔊'; 
+    }
+});
 
         const DEFAULT_MOVESET = [
     { name: "bite", type: "dark", power: 60, accuracy: 100, icon: "🌙" },

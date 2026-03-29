@@ -271,17 +271,16 @@
     <div class="container">
         <div class="nav-links">
             <a href="index.html">← Back to Game</a>
-             <a href="pokemon_moves.html" class="nav-link" target="_blank" rel="noopener noreferrer">📖 Pokémon Move Database</a>
+            <a href="pokemon_moves.html" class="nav-link" target="_blank" rel="noopener noreferrer">📖 Pokémon Move Database</a>
             <button id="logout-btn" class="btn btn-outline">Logout</button>
         </div>
         <h1>👑 Admin Panel</h1>
-        <input type="text" id="user-search" class="search-input" placeholder="Search by trainer name or email...">
+        <input type="text" id="user-search" class="search-input" placeholder="Search by trainer name...">
         <div style="overflow-x: auto;">
             <table class="ranking-table" id="user-table">
                 <thead>
                     <tr>
                         <th data-sort="name">Trainer</th>
-                        <th data-sort="email">Email</th>
                         <th data-sort="totalLevels">Total Level ⬇️</th>
                         <th data-sort="totalEncounters">Total Encounters</th>
                         <th>Status</th>
@@ -289,7 +288,7 @@
                     </tr>
                 </thead>
                 <tbody id="user-body">
-                    <tr><td colspan="6">Loading users...</td></tr>
+                    <tr><td colspan="5">Loading users...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -305,6 +304,8 @@
             <div class="flex-between" style="margin-bottom: 20px;">
                 <div><strong>Coins:</strong> <span id="manage-coins">0</span></div>
                 <div><button id="edit-coins-btn" class="btn btn-outline">Edit Coins</button></div>
+                <div><strong>Total Level:</strong> <span id="manage-total-level">0</span></div>
+                <div><button id="edit-total-level-btn" class="btn btn-outline">Edit Total Level</button></div>
             </div>
             <div style="margin-top: 20px;">
                 <div class="flex-between">
@@ -470,7 +471,6 @@
                 users.push({
                     uid: docSnap.id,
                     name: trainerName,
-                    email: docSnap.id,
                     totalLevels: data.totalLevels || 0,
                     totalEncounters: data.totalEncounters || 0,
                     active: data.active !== false, // default true
@@ -483,18 +483,14 @@
 
         function renderUserTable(users, filterTerm = '') {
             const tbody = document.getElementById('user-body');
-            const filtered = users.filter(u => 
-                u.name.toLowerCase().includes(filterTerm) || 
-                u.email.toLowerCase().includes(filterTerm)
-            );
+            const filtered = users.filter(u => u.name.toLowerCase().includes(filterTerm));
             if (filtered.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6">No users found.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5">No users found.</td></tr>';
                 return;
             }
             tbody.innerHTML = filtered.map(u => `
                 <tr data-uid="${u.uid}">
                     <td>${escapeHtml(u.name)}</td>
-                    <td>${escapeHtml(u.email)}</td>
                     <td>${u.totalLevels}</td>
                     <td>${u.totalEncounters}</td>
                     <td><span class="active-badge ${!u.active ? 'inactive-badge' : ''}">${u.active ? 'Active' : 'Inactive'}</span></td>
@@ -541,7 +537,9 @@
             const trainerName = userData.trainerName || uid.split('@')[0];
             document.getElementById('manage-user-title').innerText = `Manage ${escapeHtml(trainerName)}`;
             document.getElementById('manage-coins').innerText = userData.coins || 0;
+            document.getElementById('manage-total-level').innerText = userData.totalLevels || 0;
             document.getElementById('edit-coins-btn').onclick = () => editCoins(uid);
+            document.getElementById('edit-total-level-btn').onclick = () => editTotalLevel(uid);
             
             // Load Pokémon
             const pokemonSnap = await getDocs(collection(db, "users", uid, "pokemon"));
@@ -634,6 +632,20 @@
             if (newCoins !== null && !isNaN(parseInt(newCoins))) {
                 await updateDoc(doc(db, "users", uid), { coins: parseInt(newCoins) });
                 document.getElementById('manage-coins').innerText = newCoins;
+                // Refresh user list to reflect changes
+                allUsers = await fetchAllUsers();
+                renderUserTable(allUsers, document.getElementById('user-search').value.toLowerCase());
+            }
+        }
+
+        async function editTotalLevel(uid) {
+            const newTotalLevel = prompt("Enter new total level:", document.getElementById('manage-total-level').innerText);
+            if (newTotalLevel !== null && !isNaN(parseInt(newTotalLevel))) {
+                await updateDoc(doc(db, "users", uid), { totalLevels: parseInt(newTotalLevel) });
+                document.getElementById('manage-total-level').innerText = newTotalLevel;
+                // Refresh user list to reflect changes
+                allUsers = await fetchAllUsers();
+                renderUserTable(allUsers, document.getElementById('user-search').value.toLowerCase());
             }
         }
 

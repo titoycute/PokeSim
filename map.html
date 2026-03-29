@@ -215,6 +215,11 @@ footer a:hover {
             margin: 8px 0;
             font-size: 0.85rem;
         }
+        
+        .map-description {
+    text-align: justify;
+}
+        
         .required {
             font-weight: bold;
             margin: 10px 0;
@@ -1095,7 +1100,7 @@ footer a:hover {
                     <img src="${map.imageUrl || 'map1.png'}" alt="${map.name}" onerror="this.src='map1.png'">
                     <h3>${escapeHtml(map.name)}</h3>
                     <p style="font-weight: bold; color: var(--primary);">Gen ${map.generation || '?'}</p>
-                    <p style="font-style: italic;">${map.description || ''}</p>
+                   <p class="map-description" style="font-style: italic;">${map.description || ''}</p>
                     <p style="font-size: 0.75rem; color: var(--text-light);">Click card to view Pokémon list</p>
                     <p class="required ${unlocked ? 'unlocked' : 'locked'}">
                         ${unlocked ? '✓ Available' : `🔒 Requires total level ${map.requiredLevel}`}

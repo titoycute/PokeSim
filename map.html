@@ -29,6 +29,84 @@
             --water: #6390f0;
             --fire: #ff421c;
         }
+/* Player side: ensure stat box appears above the sprite */
+
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    margin: 0;
+}
+.container {
+    flex: 1;
+}
+footer {
+    margin-top: auto;
+}
+
+/* Force player sprite size on desktop */
+.side.player-side #p-sprite-btl {
+    width: 200px !important;
+    height: 200px !important;
+    object-fit: contain;
+    margin-right: -30px;
+    position: relative;
+    z-index: 10;
+}
+
+/* Ensure stat box stays above */
+.side.player-side .stat-box {
+    position: relative;
+    z-index: 20;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(8px);
+    flex-shrink: 0;
+}
+.player-side {
+ 
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: nowrap;          /* Prevent wrapping on desktop */
+}
+
+.player-side .stat-box {
+    position: relative;
+    z-index: 20;                /* Bring stat box to the front */
+    background: rgba(255, 255, 255, 0.95); /* More opaque for readability */
+    backdrop-filter: blur(8px); /* Keep blur but stronger */
+    margin-left: 0;             /* No extra margin needed */
+    flex-shrink: 0;             /* Prevent shrinking */
+}
+
+#p-sprite-btl {
+    position: relative;
+    z-index: 10;                /* Sprite stays behind the stat box */
+    margin-right: -30px;        /* Pull sprite slightly under the stat box if needed */
+}
+
+/* On mobile, allow wrap and adjust spacing */
+@media (max-width: 768px) {
+    .player-side {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+    }
+    .player-side .stat-box {
+        width: 100%;
+        max-width: 280px;
+        order: 2;               /* Move stat box below sprite on small screens */
+        margin-top: -20px;      /* Overlap slightly if desired, but keep readable */
+        z-index: 20;
+    }
+    #p-sprite-btl {
+        order: 1;
+        margin-right: 0;
+        width: 180px !important;
+        height: 180px !important;
+    }
+}
 
         body {
             background: var(--bg);
@@ -36,9 +114,9 @@
             color: var(--text-dark);
         }
         .hidden { display: none !important; }
-#battle-area {
-    overflow: visible !important;
-    position: relative;
+        #battle-area {
+        overflow: visible !important;
+        position: relative;
 }
 footer {
     text-align: center;
@@ -46,7 +124,7 @@ footer {
     font-size: 0.8rem;
     color: var(--text-light);
     background: rgba(255,255,255,0.8);
-    margin-top: 40px;
+
     border-top: 1px solid var(--border);
 }
 footer p {

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pokesim-v1.6';   // ← change this version number on every deploy
+const CACHE_NAME = 'pokesim-v1.6.1';   // ← change this version number on every deploy
 const assets = [
   'index.html',
   'manifest.json',
@@ -7,7 +7,9 @@ const assets = [
   'PokeSim Word.png',
   'PokeSim_Icon.png',
   'music1.mp3',
-  'music2.mp3'
+  'music2.mp3',
+  'music3.mp3',
+  'music4.mp3'
 ];
 
 // Install: cache assets and force activation

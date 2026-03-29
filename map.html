@@ -41,11 +41,56 @@
     position: relative;
 }
 
+/* Special effect classes for encounter preview & battle */
+.legendary-sprite {
+    width: 250px !important;
+    height: 250px !important;
+    filter: drop-shadow(0 0 20px gold) brightness(1.1);
+    animation: legendaryGlow 2s infinite ease-in-out;
+}
+@keyframes legendaryGlow {
+    0%, 100% { filter: drop-shadow(0 0 10px gold) brightness(1); }
+    50% { filter: drop-shadow(0 0 25px #ffaa00) brightness(1.15); }
+}
+
+.mythical-sprite {
+    width: 250px !important;
+    height: 250px !important;
+    filter: drop-shadow(0 0 20px #ff66cc) drop-shadow(0 0 5px white);
+    animation: mythicalSparkle 2.5s infinite;
+}
+@keyframes mythicalSparkle {
+    0%, 100% { filter: drop-shadow(0 0 10px #ff66cc); }
+    50% { filter: drop-shadow(0 0 30px #ff99ff) drop-shadow(0 0 10px white); }
+}
+
+.mega-sprite {
+    width: 250px !important;
+    height: 250px !important;
+    filter: drop-shadow(0 0 20px #33aaff) drop-shadow(0 0 5px cyan);
+    animation: megaPulse 1.8s infinite;
+}
+@keyframes megaPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); filter: drop-shadow(0 0 25px #33aaff); }
+}
+
+.ub-sprite {
+    width: 250px !important;
+    height: 250px !important;
+    filter: drop-shadow(0 0 15px #00cc99) drop-shadow(0 0 5px #00ff99);
+    animation: ubWarp 2s infinite;
+}
+@keyframes ubWarp {
+    0%, 100% { transform: scale(1); filter: drop-shadow(0 0 10px #00cc99); }
+    50% { transform: scale(1.07) rotate(1deg); filter: drop-shadow(0 0 30px #33ff99); }
+}
+
 .gmax-sprite {
     width: 250px !important; 
     height: 250px !important;
     position: relative;
-    z-index: 9999; /* Sits on top of UI */
+   /*  z-index: 9999; Sits on top of UI */
     margin-top: -110px; /* Pulls it way up over the header */
     margin-right: -50px;
     filter: drop-shadow(0 0 25px rgba(255, 0, 80, 0.9)) !important;
@@ -484,8 +529,21 @@
             <div id="battle-area" class="hidden">
                 <div class="battle-header">⚔️ WILD BATTLE ⚔️</div>
                 <div class="battle-ui">
-                    <div class="side enemy-side"><img id="e-sprite-btl" class="btl-sprite"><div class="stat-box"><strong id="e-name"></strong> <span id="e-types-icons"></span><br><small id="e-lvl"></small><div class="hp-bar"><div id="e-hp-fill" class="hp-fill"></div></div></div></div>
-                    <div class="side player-side"><img id="p-sprite-btl" class="btl-sprite"><div class="stat-box"><strong id="p-name"></strong> <span id="p-types-icons"></span><br><small id="p-lvl"></small><div class="hp-bar"><div id="p-hp-fill" class="hp-fill"></div></div></div></div>
+                    <div class="side enemy-side"><img id="e-sprite-btl" class="btl-sprite">
+                        <div class="stat-box">
+                            <strong id="e-name"></strong>
+                            <span id="e-types-icons"></span><br>
+                            <small id="e-lvl"></small>
+                            <div class="hp-bar">
+                            <div id="e-hp-fill" class="hp-fill">
+                            </div></div>
+                             <div id="e-hp-text" style="font-size:0.7rem; margin-top:4px;"></div>
+                        </div>
+                    </div>
+                    <div class="side player-side"><img id="p-sprite-btl" class="btl-sprite"><div class="stat-box"><strong id="p-name"></strong> <span id="p-types-icons"></span><br><small id="p-lvl"></small><div class="hp-bar"><div id="p-hp-fill" class="hp-fill"></div></div>
+                      <div id="p-hp-text" style="font-size:0.7rem; margin-top:4px;"></div>
+    <div id="p-xp-text" style="font-size:0.7rem; margin-top:2px;"></div>
+                    </div></div>
                     <div id="battle-log"></div>
                     <div id="battle-moves"></div>
                     <div class="catch-area">
@@ -524,6 +582,7 @@
         let lastMoveTime = 0;
         let pendingRecordUpdates = {};
         const MOVE_DELAY = 200;
+        const CATCH_PENALTY_PERCENT = 0.1;
         const TRAINER_GIF = "https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/078dadf7-4d9b-4bf4-9855-0112be351700/d54f6cb-230b552c-50d1-45ad-be7e-7eab211c1cf8.gif?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7InBhdGgiOiIvZi8wNzhkYWRmNy00ZDliLTRiZjQtOTg1NS0wMTEyYmUzNTE3MDAvZDU0ZjZjYi0yMzBiNTUyYy01MGQxLTQ1YWQtYmU3ZS03ZWFiMjExYzFjZjguZ2lmIn1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmZpbGUuZG93bmxvYWQiXX0.A8hNnEQQMDN-XZI-VOQkzR71AozVAvgQDF6FcAAqi6M";
         const TYPE_ICONS = { fire: "🔥", water: "💧", grass: "🌿", electric: "⚡", normal: "🔘", ice: "❄️", psychic: "🔮", poison: "🧪", ground: "🏜️", flying: "🦅", dragon: "🐲", bug: "🐛", rock: "🪨", ghost: "👻", dark: "🌙", steel: "⚙️", fairy: "✨", fighting: "👊" };
         const bgMusic = document.getElementById('bg-music');
@@ -645,6 +704,7 @@ async function handlePlayerFaint(battle) {
     battle.player = battle.playerTeam[newIdx];
 
     renderBattleUI();
+    updateCatchChance(); 
     addBattleLog(`Go! ${battle.player.name.toUpperCase()}!`);
     return newIdx;
 }
@@ -777,63 +837,104 @@ async function checkEvolution(id,lvl,apiId) {
             await updateDoc(doc(db, "users", userId), { totalEncounters: increment(delta) });
         }
         function updateCatchChance() {
-            if (!currentBattle) return;
-            const b = currentBattle;
-            const btn = document.getElementById('catch-btn');
-            if (b.player.level <= 10) {
-                document.getElementById('catch-chance').innerHTML = "Catch requires Lv > 10";
-                document.getElementById('catch-chance').style.color = "var(--danger)";
-                if (btn) btn.disabled = true;
-                return;
-            }
-            const expNeeded = b.player.level * 300;
-            const prog = ((b.player.exp || 0) / expNeeded) * 100;
-            if (prog < 10) {
-                document.getElementById('catch-chance').innerHTML = "Catch requires ≥10% XP progress";
-                document.getElementById('catch-chance').style.color = "var(--danger)";
-                if (btn) btn.disabled = true;
-                return;
-            }
-            const hpPct = b.wild.hp / b.wild.maxHp;
-            let chance = (1 - hpPct) * 0.8 + 0.2;
-            chance = Math.min(0.95, Math.max(0.1, chance));
-            document.getElementById('catch-chance').innerHTML = `Catch chance: ${Math.floor(chance*100)}%`;
-            document.getElementById('catch-chance').style.color = "";
-            if (btn) btn.disabled = false;
-        }
+    if (!currentBattle) return;
+    const b = currentBattle;
+    const btn = document.getElementById('catch-btn');
+    
+    if (b.player.level <= 10) {
+        document.getElementById('catch-chance').innerHTML = "Catch requires Lv > 10";
+        document.getElementById('catch-chance').style.color = "var(--danger)";
+        if (btn) btn.disabled = true;
+        return;
+    }
+
+    const expNeeded = b.player.level * 300; // Total XP needed for current level
+    const prog = (b.player.exp / expNeeded) * 100; // Current % progress
+
+    // CHANGE: Setting the requirement to 10% to match your new cost
+    if (prog < 10) { 
+        document.getElementById('catch-chance').innerHTML = "Catch requires ≥10% XP progress";
+        document.getElementById('catch-chance').style.color = "var(--danger)";
+        if (btn) btn.disabled = true;
+        return;
+    }
+
+    const hpPct = b.wild.hp / b.wild.maxHp;
+    
+    // --- CATCH RATE FORMULA ---
+    // (1 - hpPct) means: lower health = higher chance.
+    // 0.8 is the "curve" and 0.2 is the "base chance".
+    // To make catching EASIER: increase 0.2. To make it HARDER: decrease 0.2.
+    let chance = (1 - hpPct) * 0.8 + 0.2; 
+    
+    chance = Math.min(0.95, Math.max(0.1, chance)); // Keep between 10% and 95%
+    document.getElementById('catch-chance').innerHTML = `Catch chance: ${Math.floor(chance*100)}%`;
+    document.getElementById('catch-chance').style.color = "";
+    if (btn) btn.disabled = false;
+}
+
+
 async function attemptCatch() {
     if (!currentBattle || isProcessing) return;
     const b = currentBattle;
     const btn = document.getElementById('catch-btn');
 
-    if (b.player.level <= 10) { alert("Active Pokémon must be above level 10!"); return; }
-    const expNeeded = b.player.level * 300;
-    const prog = ((b.player.exp || 0) / expNeeded) * 100;
-    if (prog < 10) { alert("Requires at least 10% XP progress!"); return; }
+    // 1. Math Setup
+    const expNeeded = b.player.level * 300; // Total XP needed for the current level
+    const currentXP = b.player.exp || 0;
+    const currentProg = (currentXP / expNeeded) * 100;
+
+    // 2. Validation Checks
+    if (b.player.level <= 10) { 
+        alert("Active Pokémon must be above level 10 to attempt catching!"); 
+        return; 
+    }
+    
+    // Check if player has at least 10% progress to pay the cost
+    if (currentProg < 10) { 
+        alert("You need at least 10% XP progress to attempt a catch!"); 
+        return; 
+    }
 
     isProcessing = true;
     if (btn) btn.disabled = true;
 
     try {
         const activeRef = doc(db, "users", auth.currentUser.uid, "pokemon", b.player.id);
-        const activeSnap = await getDoc(activeRef);
-        let fireExp = activeSnap.data().exp || 0;
-        let penalty = Math.floor(fireExp * 0.2);
-        let newExp = Math.max(0, fireExp - penalty);
         
+        // 3. Calculate Penalty (10% of the TOTAL BAR)
+        // This ensures 25% progress becomes 15% progress.
+        const penalty = Math.floor(expNeeded * 0.10); 
+        const newExp = Math.max(0, currentXP - penalty);
+        
+        // 4. Update Database and Local State immediately
         await updateDoc(activeRef, { exp: newExp });
-        if (cachedActivePokemon && cachedActivePokemon.id === b.player.id) cachedActivePokemon.exp = newExp;
         
-        addBattleLog(`Attempted to catch! Lost ${penalty} XP.`);
+        b.player.exp = newExp;
+        if (cachedActivePokemon && cachedActivePokemon.id === b.player.id) {
+            cachedActivePokemon.exp = newExp;
+        }
 
+        addBattleLog(`Attempted to catch! Lost ${penalty} XP (10% of progress).`);
+        renderBattleUI(); // Update the XP text/bar on screen
+
+        // 5. Catch Success Calculation
         const hpPct = b.wild.hp / b.wild.maxHp;
-        let catchChance = Math.min(0.95, Math.max(0.1, (1 - hpPct) * 0.8 + 0.2));
+        
+        /* 
+           CATCH FORMULA: (1 - hpPct) * 0.8 + 0.15
+           - If wild has 100% HP: Chance is 15%
+           - If wild has 10% HP:  Chance is 87%
+           - If wild has 0% HP:   Chance is 95%
+        */
+        let catchChance = (1 - hpPct) * 0.8 + 0.15;
+        catchChance = Math.min(0.95, Math.max(0.05, catchChance)); // Clamp between 5% and 95%
+        
         const success = Math.random() < catchChance;
 
         if (success) {
             addBattleLog(`Success! You caught ${b.wild.name.toUpperCase()}!`);
             
-            // Save exactly the moves the pokemon had during the battle
             const newPokemon = {
                 pokemonId: b.wild.pokemonId,
                 name: b.wild.name,
@@ -856,7 +957,9 @@ async function attemptCatch() {
             }, 2500);
 
         } else {
+            // 6. Failure Logic - Wild Pokémon attacks back
             addBattleLog(`The wild ${b.wild.name} broke free!`);
+            
             setTimeout(async () => {
                 if (!currentBattle) return;
                 
@@ -874,6 +977,7 @@ async function attemptCatch() {
                 }
 
                 renderBattleUI();
+                updateCatchChance(); // Re-check if player still has enough XP after potential damage/changes
                 
                 if (b.player.hp <= 0) {
                     const nextIdx = await handlePlayerFaint(b);
@@ -886,17 +990,18 @@ async function attemptCatch() {
                         return;
                     }
                 }
+                
                 isProcessing = false;
                 if (btn) btn.disabled = false;
             }, 1000);
         }
     } catch (err) {
-        console.error(err);
+        console.error("Catching error:", err);
+        addBattleLog("Error: Catch attempt failed.");
         isProcessing = false;
         if (btn) btn.disabled = false;
     }
-}      
-
+}
 async function runTurn(move) {
     if (isProcessing) return;
     isProcessing = true;
@@ -952,6 +1057,7 @@ async function runTurn(move) {
         }
 
         renderBattleUI();
+        updateCatchChance(); 
 
         if (b.player.hp <= 0) {
             const nextIdx = await handlePlayerFaint(b);
@@ -973,15 +1079,17 @@ function renderBattleUI() {
     
     // 1. Setup the Enemy Sprite
     const enemySprite = document.getElementById('e-sprite-btl');
+// Remove all special classes
+enemySprite.classList.remove('gmax-sprite', 'legendary-sprite', 'mythical-sprite', 'mega-sprite', 'ub-sprite');
+
+if (b.wild.specialCategory) {
+    enemySprite.classList.add(`${b.wild.specialCategory}-sprite`);
+}
     loadImageWithFallback(enemySprite, getBattleSpriteUrl(b.wild.pokemonId, 'front'));
     enemySprite.onclick = () => showInfo(b.wild.pokemonId);
     
     // 2. APPLY G-MAX CLASS
-    if (b.wild.isGmax) {
-        enemySprite.classList.add('gmax-sprite');
-    } else {
-        enemySprite.classList.remove('gmax-sprite');
-    }
+ 
     
     // 3. Setup Player Sprite
     const playerSprite = document.getElementById('p-sprite-btl');
@@ -990,9 +1098,11 @@ function renderBattleUI() {
    
     // 4. Update Stats and Names
     let wildName = b.wild.name.toUpperCase();
-    if (b.wild.isGmax) wildName = '🔴 ' + wildName;
+if (b.wild.specialBadge) {
+    wildName = b.wild.specialBadge.split(' ')[0] + ' ' + wildName; // e.g., "🔴" or "⭐"
+}
+document.getElementById('e-name').innerText = wildName;
     
-    document.getElementById('e-name').innerText = wildName;
     document.getElementById('e-lvl').innerText = "Lvl " + b.wild.level;
     document.getElementById('e-hp-fill').style.width = (b.wild.hp / b.wild.maxHp * 100) + "%";
     document.getElementById('e-types-icons').innerHTML = generateTypeBadges(b.wild.types);
@@ -1001,6 +1111,17 @@ function renderBattleUI() {
     document.getElementById('p-lvl').innerText = "Lvl " + b.player.level;
     document.getElementById('p-hp-fill').style.width = (b.player.hp / b.player.maxHp * 100) + "%";
     document.getElementById('p-types-icons').innerHTML = generateTypeBadges(b.player.types);
+
+    // Enemy HP text
+document.getElementById('e-hp-text').innerHTML = `HP: ${b.wild.hp}/${b.wild.maxHp}`;
+
+// Player HP text
+document.getElementById('p-hp-text').innerHTML = `HP: ${b.player.hp}/${b.player.maxHp}`;
+
+// Player XP text
+const neededXP = b.player.level * 300;   // getExpNeededForNextLevel(b.player.level)
+const xpPercent = Math.floor((b.player.exp / neededXP) * 100);
+document.getElementById('p-xp-text').innerHTML = `XP: ${b.player.exp}/${neededXP} (${xpPercent}%)`;
     
     // 5. Update Moves
     const movesDiv = document.getElementById('battle-moves');
@@ -1329,6 +1450,8 @@ async function startBattle() {
             if (speciesRes.ok) species = await speciesRes.json();
         } catch (e) {}
 
+        
+
         // 4. Determine Moves
         let wildMoves = [];
         let rawMoves = wildData.moves;
@@ -1347,25 +1470,82 @@ async function startBattle() {
             wildMoves = await getMoveDetails(rawMoves.slice(0, 4));
         }
 
+
+        let specialCategory = null;
+let specialBadge = null;
+
+const nameLower = wildData.name.toLowerCase();
+const isGmax = nameLower.includes('-gmax');
+const isMega = nameLower.includes('-mega');
+const isUltraBeast = species.is_ultra_beast === true || nameLower.includes('-ub');
+const isLegendary = species.is_legendary === true;
+const isMythical = species.is_mythical === true;
+
+// Priority: Gmax > Mega > Ultra Beast > Legendary > Mythical
+if (isGmax) {
+    specialCategory = 'gmax';
+    specialBadge = '🔴 G-MAX';
+} else if (isMega) {
+    specialCategory = 'mega';
+    specialBadge = '💎 MEGA';
+} else if (isUltraBeast) {
+    specialCategory = 'ub';
+    specialBadge = '🌀 ULTRA BEAST';
+} else if (isLegendary) {
+    specialCategory = 'legendary';
+    specialBadge = '⭐ LEGENDARY';
+} else if (isMythical) {
+    specialCategory = 'mythical';
+    specialBadge = '✨ MYTHICAL';
+}
+
+const previewSprite = document.getElementById('preview-sprite');
+
+previewSprite.classList.remove('gmax-sprite', 'legendary-sprite', 'mythical-sprite', 'mega-sprite', 'ub-sprite');
+if (specialCategory) {
+    previewSprite.classList.add(`${specialCategory}-sprite`);
+} else {
+    // Reset size for normal Pokémon
+    previewSprite.style.width = '';
+    previewSprite.style.height = '';
+}
+
+let badgesHtml = wildData.types.map(t =>
+    `<span class="type-badge" style="background: ${getTypeColor(t.type.name)};">${t.type.name.toUpperCase()}</span>`
+).join('');
+if (specialBadge) {
+    badgesHtml += `<span class="special-badge" style="background: ${specialCategory === 'gmax' ? 'red' : (specialCategory === 'mega' ? '#3399ff' : (specialCategory === 'ub' ? '#33cc99' : (specialCategory === 'legendary' ? '#ffaa33' : '#ff66cc')))}; color: white;">${specialBadge}</span>`;
+}
+document.getElementById('preview-badges').innerHTML = badgesHtml;
+
+const encounterCard = document.getElementById('encounter-card');
+if (specialCategory) {
+    encounterCard.style.background = 'linear-gradient(145deg, white, #faf5ff)';
+    encounterCard.style.border = `2px solid ${specialCategory === 'gmax' ? '#ff3366' : (specialCategory === 'mega' ? '#33aaff' : (specialCategory === 'ub' ? '#33cc99' : (specialCategory === 'legendary' ? '#ffcc33' : '#ff99cc')))}`;
+} else {
+    encounterCard.style.background = 'white';
+    encounterCard.style.border = 'none';
+}
+
         // 5. G-MAX Detection & Preview Scaling
-        const isGmax = wildData.name.toLowerCase().includes('-gmax');
+       // const isGmax = wildData.name.toLowerCase().includes('-gmax');
         const preview = document.getElementById('encounter-preview');
         const ps = document.getElementById('preview-sprite');
         
-        if (isGmax) {
-            ps.style.transform = "scale(1.8)"; 
-            ps.style.filter = "drop-shadow(0 0 15px rgba(255, 0, 80, 0.8))";
-        } else {
-            ps.style.transform = "scale(1)";
-            ps.style.filter = "none";
-        }
+        // if (isGmax) {
+        //     ps.style.transform = "scale(1.8)"; 
+        //     ps.style.filter = "drop-shadow(0 0 15px rgba(255, 0, 80, 0.8))";
+        // } else {
+        //     ps.style.transform = "scale(1)";
+        //     ps.style.filter = "none";
+        // }
 
         // 6. Preview UI
         loadImageWithFallback(ps, getBattleSpriteUrl(wildId, 'front'));
         document.getElementById('preview-name').innerText = wildData.name.toUpperCase();
         
-        let badgesHtml = wildData.types.map(t => `<span class="type-badge" style="background: ${getTypeColor(t.type.name)};">${t.type.name.toUpperCase()}</span>`).join('');
-        if (isGmax) badgesHtml += `<span class="special-badge" style="background: red; color: white;">🔴 G-MAX</span>`;
+      //  let badgesHtml = wildData.types.map(t => `<span class="type-badge" style="background: ${getTypeColor(t.type.name)};">${t.type.name.toUpperCase()}</span>`).join('');
+       // if (isGmax) badgesHtml += `<span class="special-badge" style="background: red; color: white;">🔴 G-MAX</span>`;
         document.getElementById('preview-badges').innerHTML = badgesHtml;
         
         const card = document.getElementById('encounter-card');
@@ -1410,10 +1590,14 @@ async function startBattle() {
                     types: wildData.types.map(t => t.type.name),
                     moves: wildMoves,
                     encounterCount: count,
-                    isGmax: isGmax // This tells renderBattleUI to use the big sprite
+                    isGmax: isGmax,
+                    specialCategory: specialCategory,   // store for later use
+                    specialBadge: specialBadge   // This tells renderBattleUI to use the big sprite
                 }
             };
+
             renderBattleUI();
+            updateCatchChance();
             document.getElementById('battle-area').classList.remove('hidden');
             addBattleLog(`A wild ${wildData.name.toUpperCase()} appeared!`);
             updateCatchChance();

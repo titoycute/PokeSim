@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>PokeSim | Game Updates</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="manifest" href="manifest.json">
+    <style>
+        /* (same CSS as before) */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Inter', system-ui, sans-serif;
+        }
+        :root {
+            --bg: #f0f2f5;
+            --card-bg: #ffffff;
+            --primary: #3b4cca;
+            --primary-dark: #00238f;
+            --accent: #ffde00;
+            --text-dark: #2d3748;
+            --text-light: #5a6e8a;
+            --border: #e2e8f0;
+            --success: #48bb78;
+            --danger: #f56565;
+        }
+        body {
+            background: var(--bg);
+            color: var(--text-dark);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--primary);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 40px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: 0.2s;
+        }
+        .back-link:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+        h1 {
+            color: var(--primary-dark);
+            font-size: 2rem;
+        }
+        .admin-actions {
+            display: flex;
+            gap: 12px;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 40px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.2s;
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-light);
+        }
+        .btn-outline:hover {
+            background: #f1f5f9;
+        }
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #e53e3e;
+        }
+        .updates-list {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .update-card {
+            background: var(--card-bg);
+            border-radius: 24px;
+            border: 1px solid var(--border);
+            padding: 20px;
+            transition: 0.2s;
+        }
+        .update-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        }
+        .update-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .update-title {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: var(--primary-dark);
+        }
+        .update-date {
+            color: var(--text-light);
+            font-size: 0.85rem;
+        }
+        .update-version {
+            background: var(--accent);
+            color: #333;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+        .update-description {
+            color: var(--text-dark);
+            line-height: 1.5;
+            margin: 12px 0;
+            white-space: pre-wrap;
+        }
+        .update-description a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+        .update-description a:hover {
+            text-decoration: underline;
+        }
+        .update-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            justify-content: flex-end;
+        }
+        .modal {
+            max-width: 500px;
+            width: 90%;
+            background: var(--card-bg);
+            border-radius: 32px;
+            padding: 30px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            font-size: 0.95rem;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 5000;
+            backdrop-filter: blur(4px);
+        }
+        .hidden {
+            display: none !important;
+        }
+        .loader {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-light);
+        }
+        .empty-message {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-light);
+            font-size: 1.1rem;
+        }
+        @media (max-width: 600px) {
+            .container { padding: 15px; }
+            .header { flex-direction: column; align-items: stretch; }
+            .admin-actions { justify-content: flex-end; }
+            .update-title { font-size: 1.2rem; }
+        }
+    </style>
+    <!-- DOMPurify for safe HTML rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.4/purify.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="index.html" class="back-link">← Back to Game</a>
+            <h1>📢 Game Updates</h1>
+            <div id="admin-controls" style="display: none;">
+                <button id="add-update-btn" class="btn btn-primary">➕ Add Update</button>
+            </div>
+        </div>
+        <div id="updates-container" class="updates-list">
+            <div class="loader">Loading updates...</div>
+        </div>
+    </div>
+
+    <!-- Modal (starts hidden) -->
+    <div id="update-modal" class="overlay hidden" onclick="this.classList.add('hidden')">
+        <div class="modal" onclick="event.stopPropagation()">
+            <h2 id="modal-title" style="margin-bottom:20px;">Add Update</h2>
+            <div class="form-group">
+                <label>Version (optional)</label>
+                <input type="text" id="update-version" placeholder="e.g., v1.2.0">
+            </div>
+            <div class="form-group">
+                <label>Title *</label>
+                <input type="text" id="update-title" placeholder="What's new?">
+            </div>
+            <div class="form-group">
+                <label>Date *</label>
+                <input type="date" id="update-date">
+            </div>
+            <div class="form-group">
+                <label>Description *</label>
+                <textarea id="update-description" placeholder="Use HTML tags like &lt;b&gt;bold&lt;/b&gt;, &lt;i&gt;italic&lt;/i&gt;, &lt;a href='...'&gt;link&lt;/a&gt;"></textarea>
+            </div>
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button id="save-update-btn" class="btn btn-primary">Save</button>
+                <button id="cancel-modal-btn" class="btn btn-outline">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, orderBy, query, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDkCE0wBrsQ1s-7zplvTtWOSE28ISaCFfQ",
+            authDomain: "pokesim-7f9b7.firebaseapp.com",
+            projectId: "pokesim-7f9b7",
+            storageBucket: "pokesim-7f9b7.firebasestorage.app",
+            messagingSenderId: "1087100425430",
+            appId: "1:1087100425430:web:9558a79ee5330d4a792577"
+        };
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let isAdmin = false;
+        let currentEditingId = null;
+        let updatesData = [];
+        // Load updates from Firestore
+        async function loadUpdates() {
+            const container = document.getElementById('updates-container');
+            container.innerHTML = '<div class="loader">Loading updates...</div>';
+            try {
+                const q = query(collection(db, "updates"), orderBy("date", "desc"));
+                const querySnapshot = await getDocs(q);
+                const updates = [];
+                querySnapshot.forEach(doc => {
+                    updates.push({ id: doc.id, ...doc.data() });
+                });
+                if (updates.length === 0) {
+                    container.innerHTML = '<div class="empty-message">No updates yet. Check back later!</div>';
+                    return;
+                }
+                container.innerHTML = '';
+                updates.forEach(update => {
+                    const card = document.createElement('div');
+                    card.className = 'update-card';
+                    const formattedDate = new Date(update.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+                    // Sanitize the description HTML before inserting
+                    const safeDescription = DOMPurify.sanitize(update.description, {
+                        ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'a', 'br', 'p', 'ul', 'li', 'h3', 'h4', 'span'],
+                        ALLOWED_ATTR: ['href', 'target']
+                    });
+                    card.innerHTML = `
+                        <div class="update-header">
+                            <div class="update-title">${escapeHtml(update.title)}</div>
+                            <div class="update-date">${formattedDate}</div>
+                        </div>
+                        ${update.version ? `<div class="update-version">${escapeHtml(update.version)}</div>` : ''}
+                        <div class="update-description">${safeDescription}</div>
+                        ${isAdmin ? `
+                            <div class="update-actions">
+                                <button class="btn btn-outline edit-update" data-id="${update.id}">✏️ Edit</button>
+                                <button class="btn btn-danger delete-update" data-id="${update.id}">🗑️ Delete</button>
+                            </div>
+                        ` : ''}
+                    `;
+                    container.appendChild(card);
+                });
+                if (isAdmin) {
+                    document.querySelectorAll('.edit-update').forEach(btn => {
+                        btn.onclick = () => openEditModal(btn.dataset.id);
+                    });
+                    document.querySelectorAll('.delete-update').forEach(btn => {
+                        btn.onclick = async () => {
+                            if (confirm("Are you sure you want to delete this update?")) {
+                                await deleteDoc(doc(db, "updates", btn.dataset.id));
+                                loadUpdates();
+                            }
+                        };
+                    });
+                }
+            } catch (err) {
+                console.error(err);
+                container.innerHTML = '<div class="empty-message">Failed to load updates. Please try again later.</div>';
+            }
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+
+        function openEditModal(id = null) {
+            currentEditingId = id;
+            const modal = document.getElementById('update-modal');
+            const titleElem = document.getElementById('modal-title');
+            const versionInput = document.getElementById('update-version');
+            const titleInput = document.getElementById('update-title');
+            const dateInput = document.getElementById('update-date');
+            const descInput = document.getElementById('update-description');
+
+            if (id) {
+                // Find the update data from the existing DOM or re‑fetch? We'll fetch from DOM for simplicity.
+                const card = document.querySelector(`.edit-update[data-id="${id}"]`).closest('.update-card');
+                const title = card.querySelector('.update-title').innerText;
+                const versionElem = card.querySelector('.update-version');
+                const version = versionElem ? versionElem.innerText : '';
+                // Get raw description from the update object stored in the card's data attribute
+                // Instead of parsing HTML, we store the raw description in a data attribute when rendering.
+                // Let's modify the rendering to include a data-raw-description attribute.
+                const rawDesc = card.dataset.rawDescription || '';
+                const dateText = card.querySelector('.update-date').innerText;
+                const dateObj = new Date(dateText);
+                const dateStr = dateObj.toISOString().split('T')[0];
+                titleElem.innerText = 'Edit Update';
+                versionInput.value = version;
+                titleInput.value = title;
+                dateInput.value = dateStr;
+                descInput.value = rawDesc;
+            } else {
+                titleElem.innerText = 'Add Update';
+                versionInput.value = '';
+                titleInput.value = '';
+                dateInput.value = new Date().toISOString().split('T')[0];
+                descInput.value = '';
+            }
+            modal.classList.remove('hidden');
+        }
+
+        async function saveUpdate() {
+            const version = document.getElementById('update-version').value.trim();
+            const title = document.getElementById('update-title').value.trim();
+            const date = document.getElementById('update-date').value;
+            let description = document.getElementById('update-description').value.trim();
+
+            if (!title || !date || !description) {
+                alert("Please fill in all required fields (Title, Date, Description).");
+                return;
+            }
+
+            // Optional: sanitize description before storing (but we trust the admin, not necessary)
+            // We store as raw so that future edits can see the tags.
+
+            const updateData = {
+                title: title,
+                date: date,
+                description: description, // raw HTML
+                version: version || null,
+                updatedAt: new Date()
+            };
+
+            try {
+                if (currentEditingId) {
+                    await updateDoc(doc(db, "updates", currentEditingId), updateData);
+                } else {
+                    await addDoc(collection(db, "updates"), updateData);
+                }
+                document.getElementById('update-modal').classList.add('hidden');
+                loadUpdates();
+            } catch (err) {
+                console.error(err);
+                alert("Failed to save update. Please try again.");
+            }
+        }
+
+        // Auth state
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                const userDoc = await getDoc(doc(db, "users", user.uid));
+                const userData = userDoc.data();
+                isAdmin = userData?.role === 'admin';
+                if (isAdmin) {
+                    document.getElementById('admin-controls').style.display = 'block';
+                }
+                loadUpdates();
+            } else {
+                // Not logged in – show only public updates (no admin controls)
+                document.getElementById('admin-controls').style.display = 'none';
+                loadUpdates();
+            }
+        });
+
+        // Event listeners
+        document.getElementById('add-update-btn').onclick = () => openEditModal();
+        document.getElementById('save-update-btn').onclick = saveUpdate;
+        document.getElementById('cancel-modal-btn').onclick = () => document.getElementById('update-modal').classList.add('hidden');
+    </script>
+</body>
+</html>

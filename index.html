@@ -1314,7 +1314,7 @@ async function saveMoves(selectedMoves, originalMoves) {
         }
 
         // ========== BATTLE & GAME FUNCTIONS ==========
-        async function showSwitchPokemonModal(availablePokemon, originalIndices) {
+ async function showSwitchPokemonModal(availablePokemon) {
     return new Promise((resolve) => {
         const modal = document.createElement('div');
         modal.className = 'overlay';
@@ -1325,7 +1325,7 @@ async function saveMoves(selectedMoves, originalMoves) {
                 <button id="cancel-switch-btn" class="btn btn-outline" style="margin-top:20px;">Cancel</button>
             </div>`;
         const listDiv = modal.querySelector('#switch-list');
-        availablePokemon.forEach((p, idx) => {
+        availablePokemon.forEach((p) => {
             const btn = document.createElement('button');
             btn.className = 'btn btn-outline';
             btn.style.margin = '5px';
@@ -1365,7 +1365,7 @@ async function saveMoves(selectedMoves, originalMoves) {
 
             btn.onclick = () => {
                 document.body.removeChild(modal);
-                resolve({ pokemon: p, originalIndex: originalIndices[idx] });
+                resolve(p);  // just return the Pokémon object
             };
             listDiv.appendChild(btn);
         });
@@ -1377,11 +1377,13 @@ async function saveMoves(selectedMoves, originalMoves) {
     });
 }
 
-  async function handlePlayerFaint(battle) {
+
+
+async function handlePlayerFaint(battle) {
     const team = battle.playerTeam;
-    
-    // Filter: Must have more than 0 HP AND not be the one that just fainted
+    // Only healthy Pokémon (HP > 0)
     const available = team.filter((p) => p.hp > 0);
+    console.log("handlePlayerFaint called, available:", available); // now available is defined
 
     if (available.length === 0) {
         return null; // All Pokémon are fainted
@@ -1389,12 +1391,14 @@ async function saveMoves(selectedMoves, originalMoves) {
 
     addBattleLog(`${battle.player.name.toUpperCase()} fainted! Choose a replacement.`);
     
-    // Wait for user to pick from the modal
+    // Wait for user to pick from the modal (returns the selected Pokémon object)
     const selected = await showSwitchPokemonModal(available);
+    if (!selected) return null; // user cancelled
     
-    // Find the new index in the original team array
+    // Find the index of the selected Pokémon in the original team array
     const newIdx = team.findIndex(p => p.id === selected.id);
-    
+    if (newIdx === -1) return null; // should not happen
+
     battle.activePokemonIndex = newIdx;
     battle.player = team[newIdx]; // Reference the new healthy Pokémon
     

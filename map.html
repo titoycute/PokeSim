@@ -764,8 +764,9 @@ footer a:hover {
         }
         function addBattleLog(m) { const log = document.getElementById('battle-log'); if(log) { log.innerHTML += `<div>> ${m}</div>`; log.scrollTop = log.scrollHeight; } }
 
-        async function showSwitchPokemonModal(availablePokemon, originalIndices) {
+     async function showSwitchPokemonModal(availablePokemon, originalIndices) {
     return new Promise((resolve) => {
+        console.log("showSwitchPokemonModal called, availablePokemon:", availablePokemon);
         const modal = document.createElement('div');
         modal.className = 'overlay';
         modal.innerHTML = `
@@ -787,7 +788,7 @@ footer a:hover {
             btn.style.width = '100%';
             btn.style.justifyContent = 'flex-start';
 
-            // Image
+            // Add image
             const img = document.createElement('img');
             const spriteUrl = getStaticSpriteUrl(p.pokemonId)[0];
             img.src = spriteUrl;
@@ -830,6 +831,7 @@ footer a:hover {
         async function handlePlayerFaint(battle) {
             const available = [];
             const originalIndices = [];
+            console.log("handlePlayerFaint called, available:", available);
             battle.playerTeam.forEach((p, idx) => {
                 if (p.hp > 0) {
                     available.push(p);
@@ -1391,67 +1393,79 @@ if (document.getElementById('switch-btn')) document.getElementById('switch-btn')
             renderMapCards();
         }
 
-        function renderMapCards() {
-            const container = document.getElementById('map-list');
-            if (!container) return;
-            container.innerHTML = '';
-            if (maps.length === 0) {
-                container.innerHTML = '<p style="text-align:center; padding:40px;">No maps available. ' +
-                    (isAdmin ? 'Click "Add New Map" to create one.' : 'Please check back later.') + '</p>';
-                return;
-            }
-            for (const map of maps) {
-                const unlocked = userTotalLevel >= map.requiredLevel;
-                const card = document.createElement('div');
-                card.className = 'map-card';
-                card.style.cursor = 'pointer';
-                card.onclick = () => showMapPokemonList(map);
-                card.innerHTML = `
-                    <img src="${map.imageUrl || 'map1.png'}" alt="${map.name}" onerror="this.src='map1.png'">
-                    <h3>${escapeHtml(map.name)}</h3>
-                    <p style="font-weight: bold; color: var(--primary);">Gen ${map.generation || '?'}</p>
-                   <p class="map-description" style="font-style: italic;">${map.description || ''}</p>
-                    <p style="font-size: 0.75rem; color: var(--text-light);">Click card to view Pokémon list</p>
-                    <p class="required ${unlocked ? 'unlocked' : 'locked'}">
-                        ${unlocked ? '✓ Available' : `🔒 Requires total level ${map.requiredLevel}`}
-                    </p>
-                    <button class="btn btn-primary explore-btn" data-map-id="${map.id}" ${!unlocked ? 'disabled' : ''} 
-                        onclick="event.stopPropagation();">Explore</button>
-                `;
-                const exploreBtn = card.querySelector('.explore-btn');
-                exploreBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    if (unlocked) startGameWithMap(map);
-                };
-                if (isAdmin) {
-                    const editBtn = document.createElement('button');
-                    editBtn.className = 'admin-edit-btn';
-                    editBtn.innerHTML = '<i class="fas fa-edit"></i>';
-                    editBtn.onclick = (e) => { e.stopPropagation(); openMapEditModal(map); };
-                    card.appendChild(editBtn);
-                    const delBtn = document.createElement('button');
-                    delBtn.className = 'admin-delete-btn';
-                    delBtn.innerHTML = '<i class="fas fa-trash"></i>';
-                    delBtn.onclick = async (e) => {
-                        e.stopPropagation();
-                        if (confirm(`Delete map "${map.name}"?`)) {
-                            await deleteDoc(doc(db, "maps", map.id));
-                            loadMaps();
-                        }
-                    };
-                    card.appendChild(delBtn);
+     function renderMapCards() {
+    const container = document.getElementById('map-list');
+    if (!container) return;
+    container.innerHTML = '';
+    if (maps.length === 0) {
+        container.innerHTML = '<p style="text-align:center; padding:40px;">No maps available. ' +
+            (isAdmin ? 'Click "Add New Map" to create one.' : 'Please check back later.') + '</p>';
+        return;
+    }
+    for (const map of maps) {
+        const unlocked = userTotalLevel >= map.requiredLevel;
+        const card = document.createElement('div');
+        card.className = 'map-card';
+        card.style.cursor = 'pointer';
+        card.onclick = () => showMapPokemonList(map);
+        card.innerHTML = `
+            <img src="${map.imageUrl || 'map1.png'}" alt="${map.name}" onerror="this.src='map1.png'">
+            <h3>${escapeHtml(map.name)}</h3>
+            <p style="font-weight: bold; color: var(--primary);">Gen ${map.generation || '?'}</p>
+            <p class="map-description" style="font-style: italic;">${map.description || ''}</p>
+            <!-- New catch info -->
+            <div style="font-size: 0.75rem; color: var(--text-light); margin: 8px 0;">
+                <div>🎯 Catch rate: ${map.catchRate || 45}% (max)</div>
+                <div>📊 Need ${map.requiredExpPercent || 10}% XP progress to catch</div>
+                <div>🔴 Catch costs ${map.catchXpPenaltyPercent || 10}% of XP progress bar</div>
+            <div style="font-size: 0.75rem; color: var(--text-light); margin: 4px 0;">
+    ${map.specialLevelRange?.enabled ? 
+        `📈 Wild levels: ${map.specialLevelRange.min} – ${map.specialLevelRange.max}` : 
+        `📈 Wild levels: around your active Pokémon's level (±10, min 1)`}
+</div>
+                </div>
+
+            <p style="font-size: 0.75rem; color: var(--text-light);">Click card to view Pokémon list</p>
+            <p class="required ${unlocked ? 'unlocked' : 'locked'}">
+                ${unlocked ? '✓ Available' : `🔒 Requires total level ${map.requiredLevel}`}
+            </p>
+            <button class="btn btn-primary explore-btn" data-map-id="${map.id}" ${!unlocked ? 'disabled' : ''} 
+                onclick="event.stopPropagation();">Explore</button>
+        `;
+        const exploreBtn = card.querySelector('.explore-btn');
+        exploreBtn.onclick = (e) => {
+            e.stopPropagation();
+            if (unlocked) startGameWithMap(map);
+        };
+        if (isAdmin) {
+            const editBtn = document.createElement('button');
+            editBtn.className = 'admin-edit-btn';
+            editBtn.innerHTML = '<i class="fas fa-edit"></i>';
+            editBtn.onclick = (e) => { e.stopPropagation(); openMapEditModal(map); };
+            card.appendChild(editBtn);
+            const delBtn = document.createElement('button');
+            delBtn.className = 'admin-delete-btn';
+            delBtn.innerHTML = '<i class="fas fa-trash"></i>';
+            delBtn.onclick = async (e) => {
+                e.stopPropagation();
+                if (confirm(`Delete map "${map.name}"?`)) {
+                    await deleteDoc(doc(db, "maps", map.id));
+                    loadMaps();
                 }
-                container.appendChild(card);
-            }
-            document.querySelectorAll('.explore-btn').forEach(btn => {
-                btn.onclick = () => {
-                    const mapId = btn.dataset.mapId;
-                    const selected = maps.find(m => m.id === mapId);
-                    if (selected && userTotalLevel >= selected.requiredLevel) startGameWithMap(selected);
-                    else alert("You don't meet the level requirement for this map.");
-                };
-            });
+            };
+            card.appendChild(delBtn);
         }
+        container.appendChild(card);
+    }
+    document.querySelectorAll('.explore-btn').forEach(btn => {
+        btn.onclick = () => {
+            const mapId = btn.dataset.mapId;
+            const selected = maps.find(m => m.id === mapId);
+            if (selected && userTotalLevel >= selected.requiredLevel) startGameWithMap(selected);
+            else alert("You don't meet the level requirement for this map.");
+        };
+    });
+}
 
         function openMapEditModal(map = null) {
             const modal = document.createElement('div');

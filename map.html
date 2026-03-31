@@ -30,7 +30,17 @@
             --fire: #ff421c;
         }
 /* Player side: ensure stat box appears above the sprite */
-
+#level-display {
+    background: #fef9e3;
+    color: #b45309;
+    padding: 4px 12px;
+    border-radius: 40px;
+    font-weight: bold;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
 body {
     display: flex;
     flex-direction: column;
@@ -461,13 +471,26 @@ footer a:hover {
             background: var(--type-color, #a0aec0);
         }
         .map-landscape {
-    width: 100%;
-    height: auto;
-    border-radius: 24px;
-    margin: 20px 0;
-    object-fit: cover;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
+        width: 100%;
+        height: auto;
+        border-radius: 24px;
+        margin: 20px 0;
+        object-fit: cover;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        #battle-summary-modal .modal {
+            background: var(--card-bg);
+            border-radius: 32px;
+            padding: 20px;
+        }
+        #summary-moves span {
+            background: #f0f0f0;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
         .move-btn span:first-child { text-transform: uppercase; }
         .move-btn:hover { filter: brightness(0.9); transform: translateY(-2px); }
         .type-badge {
@@ -603,6 +626,33 @@ footer a:hover {
     </div>
 </div>
 
+<!-- Unified Battle Summary Modal -->
+<div id="battle-summary-modal" class="overlay hidden">
+    <div class="modal" style="max-width: 450px; text-align: center; border: 4px solid var(--primary);">
+        <h2 id="summary-header" style="font-size: 1.8rem; margin-bottom: 15px;"></h2>
+        <div id="summary-sprite-container" style="background: radial-gradient(circle, #fff 0%, #e2e8f0 100%); border-radius: 50%; width: 180px; height: 180px; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center;">
+            <img id="summary-sprite" src="" style="width: 140px; height: 140px; object-fit: contain;">
+        </div>
+        <div id="summary-name" style="font-size: 1.5rem; font-weight: bold; color: var(--primary-dark);"></div>
+        <div id="summary-info" style="font-size: 1.1rem; margin-bottom: 5px;"></div>
+        <div id="summary-types" style="margin-bottom: 15px;"></div>
+        
+        <div id="summary-details" style="background: #f1f5f9; padding: 15px; border-radius: 20px; text-align: left; margin-bottom: 20px; border: 1px solid var(--border); font-size: 0.9rem; line-height: 1.5;">
+        </div>
+
+        <button id="close-summary-btn" class="btn btn-primary" style="width: 100%; font-size: 1.1rem; padding: 12px;">Continue Adventure</button>
+    </div>
+</div>
+
+
+<div id="pre-battle-select-modal" class="overlay hidden">
+    <div class="modal" style="max-width: 500px;">
+        <h3>Choose a Pokémon to send out</h3>
+        <div id="pre-battle-select-list" style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;"></div>
+        <button id="cancel-pre-battle" class="btn btn-outline">Cancel Battle</button>
+    </div>
+</div>
+
     <!-- Auth Screen -->
     <div id="auth-screen">
         <div class="auth-card">
@@ -622,11 +672,64 @@ footer a:hover {
     <div id="map-list" class="map-grid"></div>
 </div>
 
+
+<!-- Unified Battle Summary Modal -->
+<div id="battle-summary-modal" class="overlay hidden">
+    <div class="modal" style="max-width: 450px; text-align: center; border: 4px solid var(--primary);">
+        <h2 id="summary-header" style="font-size: 1.8rem; margin-bottom: 15px;"></h2>
+        <div id="summary-sprite-container" style="background: radial-gradient(circle, #fff 0%, #e2e8f0 100%); border-radius: 50%; width: 180px; height: 180px; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center;">
+            <img id="summary-sprite" src="" style="width: 140px; height: 140px; object-fit: contain;">
+        </div>
+        <div id="summary-name" style="font-size: 1.5rem; font-weight: bold; color: var(--primary-dark);"></div>
+        <div id="summary-info" style="font-size: 1.1rem; margin-bottom: 5px;"></div>
+        <div id="summary-types" style="margin-bottom: 15px;"></div>
+        
+        <div id="summary-details" style="background: #f1f5f9; padding: 15px; border-radius: 20px; text-align: left; margin-bottom: 20px; border: 1px solid var(--border); font-size: 0.9rem; line-height: 1.5;">
+        </div>
+
+        <button id="close-summary-btn" class="btn btn-primary" style="width: 100%; font-size: 1.1rem; padding: 12px;">Continue Adventure</button>
+    </div>
+</div>
+
+<!-- Evolution Modal -->
+<div id="evolution-modal" class="overlay hidden">
+    <div class="modal" style="max-width: 400px; text-align: center; background: radial-gradient(circle, #fff 0%, #d1fae5 100%); border: 4px solid #10b981;">
+        <h2 style="color: #065f46; margin-bottom: 20px;">What?!</h2>
+        <div style="position: relative; height: 200px; display: flex; align-items: center; justify-content: center;">
+            <!-- Animation Glow -->
+            <div id="evo-glow" style="position: absolute; width: 150px; height: 150px; background: white; border-radius: 50%; filter: blur(20px); opacity: 0; transition: all 1s;"></div>
+            <img id="evo-sprite" src="" style="width: 160px; height: 160px; object-fit: contain; z-index: 2; transition: all 0.5s;">
+        </div>
+        <h3 id="evo-text" style="margin-top: 20px; color: var(--text-dark);">Your Pokémon is evolving!</h3>
+        <button id="close-evo-btn" class="btn btn-success" style="width: 100%; margin-top: 20px; display: none;">Awesome!</button>
+    </div>
+</div>
+
+<style>
+/* Evolution Animation Classes */
+.evo-pulse {
+    animation: evo-flash 0.3s infinite alternate;
+}
+@keyframes evo-flash {
+    from { filter: brightness(1) contrast(1); transform: scale(1); }
+    to { filter: brightness(5) contrast(2); transform: scale(1.1); }
+}
+.evo-final {
+    animation: evo-bounce 0.6s ease-out;
+}
+@keyframes evo-bounce {
+    0% { transform: scale(0); }
+    70% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+</style>
+
     <!-- Game Screen (exploration + battle) -->
     <div id="game-screen" class="hidden">
         <div style="background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 12px 5%; display: flex; justify-content: space-between; align-items: center;">
             <div class="logo"><img src="PokeSim Word.png" alt="PokeSim"></div>
             <div>
+                 <div id="level-display">⭐ Lv. <span id="trainer-level">0</span></div>
                 <button id="back-to-maps-btn" class="btn btn-outline"><i class="fas fa-arrow-left"></i> Change Map</button>
                 <button id="volume-toggle" class="volume-btn" style="background: none; border: none; font-size: 1.2rem;">🔊</button>
             </div>
@@ -714,6 +817,19 @@ footer a:hover {
         let userTotalLevel = 0;
         let isAdmin = false;
 
+        //== LEVEL DISPLAY FUNCTION
+    async function updateNavDisplay() {
+        const user = auth.currentUser;
+        if (!user) return;
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        const data = userDoc.data();
+        const levelSpan = document.getElementById('trainer-level');
+        if (levelSpan) levelSpan.innerText = data?.totalLevels || 0;
+        // Also update coins if you have a coin display in map.html (optional)
+        const coinSpan = document.getElementById('coin-amount');
+        if (coinSpan) coinSpan.innerText = data?.coins?.toLocaleString() || '0';
+        }
+
         // ========== UTILITY FUNCTIONS ==========
         function getTypeColor(type) {
             const colors = {
@@ -725,12 +841,292 @@ footer a:hover {
             };
             return colors[type] || '#777777';
         }
+        // ========== BONUS STATS HELPERS ==========
+        function generateWildBonusStats() {
+            const r = Math.random() * 100;
+            let stats = { atk: false, def: false, spd: false };
+            if (r < 3) stats = { atk: true, def: true, spd: true };
+            else if (r < 13) {
+                const all = ['atk', 'def', 'spd'];
+                for (let i = all.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [all[i], all[j]] = [all[j], all[i]];
+                }
+                stats[all[0]] = true;
+                stats[all[1]] = true;
+            } else if (r < 38) {
+                const one = ['atk', 'def', 'spd'][Math.floor(Math.random() * 3)];
+                stats[one] = true;
+            }
+            return stats;
+        }
+
+        function getEffectiveSpeed(pokemon) {
+            let speed = pokemon.level;
+            if (pokemon.bonusStats?.spd) speed = Math.floor(speed * 1.25);
+            return speed;
+        }
+
+        function showPreBattleSelectModal(team) {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('pre-battle-select-modal');
+                const listDiv = document.getElementById('pre-battle-select-list');
+                listDiv.innerHTML = '';
+                team.forEach((p) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'btn btn-outline';
+                    btn.style.margin = '5px';
+                    btn.style.display = 'flex';
+                    btn.style.alignItems = 'center';
+                    btn.style.gap = '12px';
+                    btn.style.textAlign = 'left';
+                    btn.style.padding = '10px';
+                    btn.style.width = '100%';
+                    const img = document.createElement('img');
+                    const spriteUrl = getStaticSpriteUrl(p.pokemonId)[0];
+                    img.src = spriteUrl;
+                    img.style.width = '50px';
+                    img.style.height = '50px';
+                    img.style.objectFit = 'contain';
+                    img.onerror = () => { img.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.pokemonId}.png`; };
+                    btn.appendChild(img);
+                    let bonusIcons = '';
+                    if (p.bonusStats?.atk) bonusIcons += '⚔️';
+                    if (p.bonusStats?.def) bonusIcons += '🛡️';
+                    if (p.bonusStats?.spd) bonusIcons += '🏃';
+                    const textDiv = document.createElement('div');
+                    textDiv.style.flex = '1';
+                    const hpPct = Math.floor((p.currentHp / p.maxHp) * 100);
+                    const neededXP = getExpNeededForNextLevel(p.level);
+                    const currentXP = p.exp || 0;
+                    const xpPercent = Math.floor((currentXP / neededXP) * 100);
+                    const typeBadgesHtml = generateTypeBadges(p.types);
+                    textDiv.innerHTML = `
+                        <strong>${p.name.toUpperCase()} ${bonusIcons}</strong><br>
+                        <div>${typeBadgesHtml}</div>
+                        <small>Lvl ${p.level} — HP: ${p.currentHp}/${p.maxHp} (${hpPct}%)</small><br>
+                        <small>XP: ${currentXP}/${neededXP} (${xpPercent}%)</small>
+                    `;
+                    btn.appendChild(textDiv);
+                    btn.onclick = () => {
+                        modal.classList.add('hidden');
+                        resolve(p);
+                    };
+                    listDiv.appendChild(btn);
+                });
+                document.getElementById('cancel-pre-battle').onclick = () => {
+                    modal.classList.add('hidden');
+                    resolve(null);
+                };
+                modal.classList.remove('hidden');
+            });
+        }
+
+        function getFirstAttacker(player, wild) {
+            const playerSpeed = getEffectiveSpeed(player);
+            const wildSpeed = getEffectiveSpeed(wild);
+            if (playerSpeed > wildSpeed) return 'player';
+            if (wildSpeed > playerSpeed) return 'wild';
+            return Math.random() < 0.5 ? 'player' : 'wild';
+        }
+
+        function applyDamageModifiers(damage, attackerBonus, defenderBonus) {
+            let multiplier = 1;
+            if (attackerBonus?.atk) multiplier *= 1.25;
+            if (defenderBonus?.def) multiplier *= 0.75;
+            return Math.floor(damage * multiplier);
+        }
+
+        function executeAttack(attacker, defender, move, isPlayerAttacking) {
+            let eff = getTypeEffectiveness(move.type, defender.types);
+            let effText = "";
+            if (eff === 2) effText = "It's super effective!";
+            else if (eff === 0.5) effText = "It's not very effective...";
+            else if (eff === 0) effText = "It doesn't affect the wild Pokémon!";
+            let dmg = Math.floor((move.power / 5) * (attacker.level / 2) * eff);
+            if (dmg < 1 && eff > 0) dmg = 1;
+            dmg = applyDamageModifiers(dmg, attacker.bonusStats, defender.bonusStats);
+            defender.currentHp = Math.max(0, defender.currentHp - dmg);
+            const sprite = isPlayerAttacking ? document.getElementById('e-sprite-btl') : document.getElementById('p-sprite-btl');
+            if (sprite) {
+                sprite.classList.remove('shake-effect');
+                void sprite.offsetWidth;
+                sprite.classList.add('shake-effect');
+            }
+            addBattleLog(`${attacker.name.toUpperCase()} used ${move.name.toUpperCase()}! Deals ${dmg} dmg. ${effText}`);
+            return defender.currentHp <= 0;
+        }
+        
         function generateTypeBadges(types) {
             return types.map(t => `<span class="type-badge" style="background: ${getTypeColor(t)};">${t.toUpperCase()}</span>`).join('');
         }
         function getStaticSpriteUrl(id) { return [`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`, `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`]; }
         function getBattleSpriteUrl(id, side='front') { const base = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown`; if(side==='back') return [`${base}/back/${id}.gif`, `${base}/${id}.gif`, `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/${id}.png`, getStaticSpriteUrl(id)[0]]; else return [`${base}/${id}.gif`, ...getStaticSpriteUrl(id)]; }
         function loadImageWithFallback(img, urls) { let i=0; function next() { if(i>=urls.length) return; img.src=urls[i]; img.onerror=()=>{ i++; next(); }; } next(); }
+
+        
+        // --- Helper: UI Lock ---
+        function toggleBattleUI(disabled) {
+            const moveBtns = document.querySelectorAll('.move-btn');
+            moveBtns.forEach(btn => btn.disabled = disabled);
+            ['catch-btn', 'switch-btn', 'escape-btn'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.disabled = disabled;
+            });
+        }
+        // --- Helper: Close Battle and Refresh ---
+        function endBattleCleanup() {
+            document.getElementById('battle-summary-modal').classList.add('hidden');
+            document.getElementById('battle-area').classList.add('hidden');
+            currentBattle = null;
+            isProcessing = false;
+            toggleBattleUI(false); 
+            stopBattleMusic();
+        }
+
+
+// --- UPDATED: showBattleSummary with Bonus Icons ---
+function showBattleSummary(type, data = {}) {
+    const b = currentBattle;
+    if (!b) return;
+
+    const modal = document.getElementById('battle-summary-modal');
+    const header = document.getElementById('summary-header');
+    const sprite = document.getElementById('summary-sprite');
+    const name = document.getElementById('summary-name');
+    const info = document.getElementById('summary-info');
+    const typesDiv = document.getElementById('summary-types');
+    const details = document.getElementById('summary-details');
+
+    typesDiv.innerHTML = "";
+    
+    if (type === 'win') {
+        header.innerText = "YOU'VE WON!";
+        header.style.color = "var(--success)";
+        loadImageWithFallback(sprite, getBattleSpriteUrl(b.player.pokemonId, 'front'));
+        
+        let pIcons = '';
+        if (b.player.bonusStats?.atk) pIcons += '⚔️';
+        if (b.player.bonusStats?.def) pIcons += '🛡️';
+        if (b.player.bonusStats?.spd) pIcons += '🏃';
+
+        name.innerHTML = `${b.player.name.toUpperCase()} ${pIcons}`;
+        info.innerText = `Level ${b.player.level}`;
+        typesDiv.innerHTML = generateTypeBadges(b.player.types);
+        
+        details.innerHTML = `
+            <div style="display:flex; justify-content:space-between;"><span>Experience Gain:</span> <strong>+${data.xp}</strong></div>
+            <div style="display:flex; justify-content:space-between;"><span>Coins Earned:</span> <strong>₱${data.coins}</strong></div>
+            ${data.leveledUp ? `<div style="color:var(--success); font-weight:bold; margin-top:5px; text-align:center;">⭐ LEVEL UP! ⭐</div>` : ''}
+        `;
+    } 
+    else if (type === 'catch') {
+        header.innerText = "SUCCESSFULLY CAPTURED!";
+        header.style.color = "var(--primary)";
+        loadImageWithFallback(sprite, getBattleSpriteUrl(b.wild.pokemonId, 'front'));
+        
+        let wIcons = '';
+        if (b.wild.bonusStats?.atk) wIcons += '⚔️';
+        if (b.wild.bonusStats?.def) wIcons += '🛡️';
+        if (b.wild.bonusStats?.spd) wIcons += '🏃';
+
+        name.innerHTML = `${b.wild.name.toUpperCase()} ${wIcons}`;
+        info.innerText = `Level ${b.wild.level}`;
+        typesDiv.innerHTML = generateTypeBadges(b.wild.types);
+        
+        let movesHtml = b.wild.moves.map(m => 
+            `<span class="move-badge" style="background:${getTypeColor(m.type)}">${m.name.toUpperCase()}</span>`
+        ).join('');
+
+        details.innerHTML = `
+            <div style="font-weight:bold; margin-bottom:5px;">Moveset:</div>
+            <div style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:10px;">${movesHtml}</div>
+            <div style="font-size:0.8rem; color:var(--text-light); text-align:center;">Sent to your Collection!</div>
+        `;
+    } 
+    else if (type === 'defeat') {
+        header.innerText = "DEFEATED!";
+        header.style.color = "var(--danger)";
+        loadImageWithFallback(sprite, getBattleSpriteUrl(b.wild.pokemonId, 'front'));
+        name.innerText = b.wild.name.toUpperCase();
+        info.innerText = `Defeated by wild ${b.wild.name}`;
+        typesDiv.innerHTML = generateTypeBadges(b.wild.types);
+        details.innerHTML = `<p style="text-align:center;">Your team fainted!</p>`;
+    }
+
+    modal.classList.remove('hidden');
+    document.getElementById('close-summary-btn').onclick = endBattleCleanup;
+}
+
+
+
+// --- FIXED: Attempt Catch with all original Logic Keys ---
+async function attemptCatch() {
+    if (!currentBattle || isProcessing || !currentMap) return;
+    const b = currentBattle;
+    
+    const requiredXPPercent = currentMap.requiredExpPercent || 10;
+    const penaltyPercent = (currentMap.catchXpPenaltyPercent || 10) / 100;
+    const expNeededTotal = b.player.level * 300;
+    const requiredXPNeeded = expNeededTotal * (requiredXPPercent / 100);
+    const currentXP = b.player.exp || 0;
+
+    if (b.player.level <= 10) {
+        alert("Active Pokémon must be above level 10 to catch!");
+        return;
+    }
+    if (currentXP < requiredXPNeeded) {
+        alert(`Need at least ${requiredXPPercent}% XP progress to catch! Current: ${Math.floor((currentXP/expNeededTotal)*100)}%`);
+        return;
+    }
+
+    isProcessing = true;
+    toggleBattleUI(true);
+
+    try {
+        // 1. Deduct XP
+        const penalty = Math.floor(expNeededTotal * penaltyPercent);
+        const newExp = Math.max(0, currentXP - penalty);
+        await updateDoc(doc(db, "users", auth.currentUser.uid, "pokemon", b.player.id), { exp: newExp });
+        
+        // 2. Update local state and UI
+        b.player.exp = newExp;
+        if (cachedActivePokemon && cachedActivePokemon.id === b.player.id) cachedActivePokemon.exp = newExp;
+        addBattleLog(`Catch attempt! Spent ${penalty} XP.`);
+        renderBattleUI(); // Update the XP bar visually
+
+        const hpPct = b.wild.currentHp / b.wild.maxHp;
+        let catchChance = Math.min((currentMap.catchRate || 45) / 100, (1 - hpPct) * 0.8 + 0.05);
+
+        if (Math.random() < catchChance) {
+            const newPokemon = {
+                pokemonId: b.wild.pokemonId, name: b.wild.name, level: b.wild.level,
+                exp: 0, moves: b.wild.moves, types: b.wild.types, inTeam: false,
+                capturedAt: new Date(), bonusStats: b.wild.bonusStats
+            };
+            await addDoc(collection(db, "users", auth.currentUser.uid, "pokemon"), newPokemon);
+            await updateUserTotalLevels(auth.currentUser.uid, b.wild.level);
+            
+            showBattleSummary('catch');
+            updateNavDisplay();
+        } else {
+            addBattleLog(`It broke free!`);
+            setTimeout(() => {
+                if (!currentBattle) return;
+                const wM = b.wild.moves[Math.floor(Math.random() * b.wild.moves.length)];
+                executeAttack(b.wild, b.player, wM, false);
+                renderBattleUI();
+                if (b.player.currentHp <= 0) handlePlayerFaint(b);
+                else { isProcessing = false; toggleBattleUI(false); }
+            }, 1000);
+        }
+    } catch (err) {
+        console.error(err);
+        isProcessing = false;
+        toggleBattleUI(false);
+    }
+}
+
 
         const typeEffectiveness = {
             normal: { rock: 0.5, steel: 0.5, ghost: 0 },
@@ -762,148 +1158,116 @@ footer a:hover {
                 return { name: d.name, power: d.power||40, type: d.type.name, icon: TYPE_ICONS[d.type.name]||d.type.name, accuracy: d.accuracy||100 };
             }));
         }
+        
         function addBattleLog(m) { const log = document.getElementById('battle-log'); if(log) { log.innerHTML += `<div>> ${m}</div>`; log.scrollTop = log.scrollHeight; } }
-
-     async function showSwitchPokemonModal(availablePokemon, originalIndices) {
+        
+async function showSwitchPokemonModal(availablePokemon, isForced = false) {
     return new Promise((resolve) => {
-        console.log("showSwitchPokemonModal called, availablePokemon:", availablePokemon);
-        const modal = document.createElement('div');
-        modal.className = 'overlay';
-        modal.innerHTML = `
-            <div class="modal">
-                <h3>Choose a Pokémon to send out</h3>
-                <div id="switch-list" style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;"></div>
-                <button id="cancel-switch-btn" class="btn btn-outline" style="margin-top:20px;">Cancel</button>
-            </div>`;
-        const listDiv = modal.querySelector('#switch-list');
-        availablePokemon.forEach((p, idx) => {
+        const modal = document.getElementById('switch-pokemon-modal');
+        const listDiv = document.getElementById('switch-pokemon-list');
+        const cancelBtn = modal.querySelector('.btn-outline'); // The Cancel button
+        
+        // If Pokémon fainted, hide the cancel button (Player MUST pick)
+        if (isForced) {
+            cancelBtn.classList.add('hidden');
+        } else {
+            cancelBtn.classList.remove('hidden');
+        }
+
+        listDiv.innerHTML = '';
+        
+        availablePokemon.forEach((p) => {
             const btn = document.createElement('button');
             btn.className = 'btn btn-outline';
             btn.style.margin = '5px';
             btn.style.display = 'flex';
             btn.style.alignItems = 'center';
             btn.style.gap = '12px';
-            btn.style.textAlign = 'left';
             btn.style.padding = '10px';
             btn.style.width = '100%';
-            btn.style.justifyContent = 'flex-start';
 
-            // Add image
             const img = document.createElement('img');
-            const spriteUrl = getStaticSpriteUrl(p.pokemonId)[0];
-            img.src = spriteUrl;
+            img.src = getStaticSpriteUrl(p.pokemonId)[0];
             img.style.width = '50px';
             img.style.height = '50px';
             img.style.objectFit = 'contain';
             img.onerror = () => { img.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.pokemonId}.png`; };
             btn.appendChild(img);
 
+            let bonusIcons = '';
+            if (p.bonusStats?.atk) bonusIcons += '⚔️';
+            if (p.bonusStats?.def) bonusIcons += '🛡️';
+            if (p.bonusStats?.spd) bonusIcons += '🏃';
+
             const textDiv = document.createElement('div');
             textDiv.style.flex = '1';
-            const hpPct = Math.floor((p.hp / p.maxHp) * 100);
-            const neededXP = getExpNeededForNextLevel(p.level);
-            const currentXP = p.exp || 0;
-            const xpPercent = Math.floor((currentXP / neededXP) * 100);
+            textDiv.style.textAlign = 'left';
+            
+            // Standardize to currentHp / maxHp
+            const hpPct = Math.floor((p.currentHp / p.maxHp) * 100);
             const typeBadgesHtml = generateTypeBadges(p.types);
 
             textDiv.innerHTML = `
-                <strong>${p.name.toUpperCase()}</strong><br>
-                <div style="margin: 4px 0;">${typeBadgesHtml}</div>
-                <small>Lvl ${p.level} — HP: ${p.hp}/${p.maxHp} (${hpPct}%)</small><br>
-                <small>XP: ${currentXP}/${neededXP} (${xpPercent}%)</small>
+                <strong>${p.name.toUpperCase()} ${bonusIcons}</strong><br>
+                <div>${typeBadgesHtml}</div>
+                <small>Lvl ${p.level} — HP: ${p.currentHp}/${p.maxHp} (${hpPct}%)</small>
             `;
             btn.appendChild(textDiv);
 
             btn.onclick = () => {
-                document.body.removeChild(modal);
-                resolve({ pokemon: p, originalIndex: originalIndices[idx] });
+                modal.classList.add('hidden');
+                resolve(p);
             };
             listDiv.appendChild(btn);
         });
-        modal.querySelector('#cancel-switch-btn').onclick = () => {
-            document.body.removeChild(modal);
+        
+        // Handle Cancel button click
+        cancelBtn.onclick = () => {
+            modal.classList.add('hidden');
             resolve(null);
         };
-        document.body.appendChild(modal);
+        
+        modal.classList.remove('hidden');
     });
 }
 
-        async function handlePlayerFaint(battle) {
-            const available = [];
-            const originalIndices = [];
-            console.log("handlePlayerFaint called, available:", available);
-            battle.playerTeam.forEach((p, idx) => {
-                if (p.hp > 0) {
-                    available.push(p);
-                    originalIndices.push(idx);
-                }
-            });
-            if (available.length === 0) return null;
-            const selected = await showSwitchPokemonModal(available, originalIndices);
-            if (!selected) return null;
-            const newIdx = selected.originalIndex;
-            battle.activePokemonIndex = newIdx;
-            battle.player = battle.playerTeam[newIdx];
-            renderBattleUI();
-            updateCatchChance(); 
-            addBattleLog(`Go! ${battle.player.name.toUpperCase()}!`);
-            return newIdx;
-        }
+    // --- FIXED: Handle Faint with Black Out Logic ---
+async function handlePlayerFaint(battle) {
+    // 1. Find all Pokémon with HP > 0
+    const available = battle.playerTeam.filter(p => p.currentHp > 0);
 
-        async function resolveBattle(win) {
-            if (win && currentBattle) {
-                const userId = auth.currentUser.uid;
-                const b = currentBattle;
-                if (b.wild.encounterCount === 5) {
-                    addBattleLog(`5th encounter! ${b.wild.name.toUpperCase()} auto-captured!`);
-                    try {
-                        const newPokemon = {
-                            pokemonId: b.wild.pokemonId,
-                            name: b.wild.name,
-                            level: b.wild.level,
-                            exp: 0,
-                            moves: b.wild.moves,
-                            types: b.wild.types,
-                            inTeam: false,
-                            capturedAt: new Date()
-                        };
-                        await addDoc(collection(db, "users", userId, "pokemon"), newPokemon);
-                        await updateUserTotalLevels(userId, b.wild.level);
-                    } catch (e) { console.error("Auto-capture failed:", e); }
-                    finishBattle();
-                    return;
-                }
+    // 2. If NO Pokémon are left, show Defeat
+    if (available.length === 0) {
+        showBattleSummary('defeat');
+        return null;
+    }
 
+    addBattleLog(`${battle.player.name.toUpperCase()} fainted! Choose another.`);
+    
+    // 3. Force the switch (isForced = true)
+    const selected = await showSwitchPokemonModal(available, true);
+    
+    // Safety check: This shouldn't be null because cancel is hidden, 
+    // but if the modal is closed via escape key etc:
+    if (!selected) {
+        showBattleSummary('defeat');
+        return null;
+    }
 
+    // 4. Swap to the new Pokémon
+    const newIdx = battle.playerTeam.findIndex(p => p.id === selected.id);
+    battle.activePokemonIndex = newIdx;
+    battle.player = battle.playerTeam[newIdx];
+    
+    renderBattleUI();
+    addBattleLog(`Go! ${battle.player.name.toUpperCase()}!`);
+    
+    // 5. Unlock UI for the next turn
+    isProcessing = false;
+    toggleBattleUI(false);
+    return newIdx;
+}
 
-                try {
-                    const monRef = doc(db, "users", userId, "pokemon", b.player.id);
-                    let curExp = b.player.exp || 0;
-                    let gainXP = Math.floor(b.wild.level * 15);
-                    let newExp = curExp + gainXP;
-                    let newLvl = b.player.level;
-                    addBattleLog(`Gained ${gainXP} XP!`);
-                    let coinsEarned = Math.floor(b.wild.level * 5);
-                    await updateDoc(doc(db, "users", userId), { coins: increment(coinsEarned) });
-                    addBattleLog(`Earned ₱${coinsEarned} coins!`);
-                    let levelDelta = 0;
-                    while (newExp >= getExpNeededForNextLevel(newLvl)) {
-                        newExp -= getExpNeededForNextLevel(newLvl);
-                        newLvl++;
-                        levelDelta++;
-                        addBattleLog(`LEVEL UP! Lv${newLvl}!`);
-                        await checkEvolution(b.player.id, newLvl, b.player.pokemonId);
-                    }
-                    if (levelDelta > 0) await updateUserTotalLevels(userId, levelDelta);
-                    await updateDoc(monRef, { exp: newExp, level: newLvl });
-                    if (cachedActivePokemon && cachedActivePokemon.id === b.player.id) {
-                        cachedActivePokemon.exp = newExp;
-                        cachedActivePokemon.level = newLvl;
-                    }
-                } catch (e) { console.error("Reward distribution error:", e); }
-            }
-            finishBattle();
-        }
 
         function finishBattle() {
             setTimeout(() => {
@@ -914,21 +1278,129 @@ footer a:hover {
             }, 3000);
         }
 
-        async function checkEvolution(id,lvl,apiId) {
-            try {
-                const s=await fetch(`https://pokeapi.co/api/v2/pokemon-species/${apiId}`).then(r=>r.json()), e=await fetch(s.evolution_chain.url).then(r=>r.json());
-                let stage=e.chain, next=null;
-                while(stage&&stage.species.name!==s.name) stage=stage.evolves_to[0];
-                if(stage&&stage.evolves_to.length>0) { const d=stage.evolves_to[0].evolution_details[0]; if(d.min_level&&lvl>=d.min_level) next=stage.evolves_to[0].species.name; }
-                if(next) {
-                    addBattleLog(`WHAT? ${next.toUpperCase()} is evolving!`);
-                    const np=await fetch(`https://pokeapi.co/api/v2/pokemon/${next}`).then(r=>r.json());
-                    const newMoves = await getMoveDetails(np.moves.slice(0,4));
-                    await updateDoc(doc(db,"users",auth.currentUser.uid,"pokemon",id),{name:np.name,pokemonId:np.id,types:np.types.map(t=>t.type.name),moves:newMoves});
-                    return true;
-                }
-            } catch(e) { console.error("Evo Error:",e); } return false;
+        // --- FIXED: Resolve Battle for Win Logic ---
+   async function resolveBattle(win) {
+    isProcessing = true;
+    toggleBattleUI(true);
+
+    if (win && currentBattle) {
+        const b = currentBattle;
+        const userId = auth.currentUser.uid;
+        
+        if(b.wild.encounterCount === 5) {
+            const newPokemon = {
+                pokemonId: b.wild.pokemonId, name: b.wild.name, level: b.wild.level,
+                exp: 0, moves: b.wild.moves, types: b.wild.types, inTeam: false, 
+                capturedAt: new Date(), bonusStats: b.wild.bonusStats
+            };
+            await addDoc(collection(db, "users", userId, "pokemon"), newPokemon);
+            await updateUserTotalLevels(userId, b.wild.level);
+            showBattleSummary('catch');
+            return;
         }
+
+        let gainXP = Math.floor(b.wild.level * 15);
+        let coins = Math.floor(b.wild.level * 5);
+        let leveledUp = false;
+
+        const monRef = doc(db, "users", userId, "pokemon", b.player.id);
+        let curExp = b.player.exp || 0;
+        let newExp = curExp + gainXP;
+        let newLvl = b.player.level;
+
+        while(newExp >= getExpNeededForNextLevel(newLvl)) { 
+            newExp -= getExpNeededForNextLevel(newLvl); 
+            newLvl++; 
+            leveledUp = true;
+            await checkEvolution(b.player.id, newLvl, b.player.pokemonId); 
+        }
+
+        if (leveledUp) await updateUserTotalLevels(userId, (newLvl - b.player.level));
+        await updateDoc(monRef, { exp: newExp, level: newLvl });
+        await updateDoc(doc(db, "users", userId), { coins: increment(coins) });
+
+        showBattleSummary('win', { xp: gainXP, coins: coins, leveledUp: leveledUp });
+        updateNavDisplay();
+    }
+}
+
+       async function checkEvolution(id, lvl, apiId) {
+    try {
+        const s = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${apiId}`).then(r => r.json());
+        const e = await fetch(s.evolution_chain.url).then(r => r.json());
+        
+        let stage = e.chain;
+        let next = null;
+        
+        // Find current stage in chain
+        while (stage && stage.species.name !== s.name) {
+            stage = stage.evolves_to[0];
+        }
+        
+        // Check if next stage exists and level is met
+        if (stage && stage.evolves_to.length > 0) {
+            const details = stage.evolves_to[0].evolution_details[0];
+            if (details.min_level && lvl >= details.min_level) {
+                next = stage.evolves_to[0].species.name;
+            }
+        }
+
+        if (next) {
+            const oldName = s.name.toUpperCase();
+            const np = await fetch(`https://pokeapi.co/api/v2/pokemon/${next}`).then(r => r.json());
+            const newName = np.name.toUpperCase();
+            const newMoves = await getMoveDetails(np.moves.slice(0, 4));
+
+            // Get existing stats so they aren't lost
+            const existingSnap = await getDoc(doc(db, "users", auth.currentUser.uid, "pokemon", id));
+            const bonusStats = existingSnap.data().bonusStats || { atk: false, def: false, spd: false };
+
+            // Update Database
+            await updateDoc(doc(db, "users", auth.currentUser.uid, "pokemon", id), {
+                name: np.name,
+                pokemonId: np.id,
+                types: np.types.map(t => t.type.name),
+                moves: newMoves,
+                bonusStats: bonusStats
+            });
+
+            // Trigger Modal Animation
+            showEvoModal(np.id, oldName, newName);
+            return true;
+        }
+    } catch (e) { console.error("Evo Error:", e); }
+    return false;
+}
+
+function showEvoModal(newId, oldName, newName) {
+    const modal = document.getElementById('evolution-modal');
+    const sprite = document.getElementById('evo-sprite');
+    const text = document.getElementById('evo-text');
+    const glow = document.getElementById('evo-glow');
+    const btn = document.getElementById('close-evo-btn');
+
+    // Setup initial state
+    sprite.src = getStaticSpriteUrl(newId)[0];
+    sprite.classList.add('evo-pulse');
+    glow.style.opacity = "1";
+    text.innerText = `What? ${oldName} is evolving!`;
+    modal.classList.remove('hidden');
+    btn.style.display = "none";
+
+    // Play "Animation" sequence
+    setTimeout(() => {
+        sprite.classList.remove('evo-pulse');
+        sprite.classList.add('evo-final');
+        glow.style.opacity = "0";
+        text.innerHTML = `Congratulations!<br>Your ${oldName} evolved into <strong>${newName}</strong>!`;
+        btn.style.display = "block";
+    }, 3000);
+
+    btn.onclick = () => {
+        modal.classList.add('hidden');
+        sprite.classList.remove('evo-final');
+    };
+}
 
         async function showInfo(id) {
             const overlay = document.getElementById('loading-overlay');
@@ -959,14 +1431,15 @@ footer a:hover {
             await updateDoc(doc(db, "users", userId), { totalEncounters: increment(delta) });
         }
 
+       
+       
         function updateCatchChance() {
-            if (!currentBattle) return;
+            if (!currentBattle || !currentMap) return;
             const b = currentBattle;
             const btn = document.getElementById('catch-btn');
             const requiredXPPercent = currentMap.requiredExpPercent || 10;
             const requiredXPNeeded = (b.player.level * 300) * (requiredXPPercent / 100);
             const currentXP = b.player.exp || 0;
-
             if (b.player.level <= 10) {
                 document.getElementById('catch-chance').innerHTML = `❌ Catch requires Lv > 10`;
                 if (btn) btn.disabled = true;
@@ -977,8 +1450,7 @@ footer a:hover {
                 if (btn) btn.disabled = true;
                 return;
             }
-
-            const hpPct = b.wild.hp / b.wild.maxHp;
+            const hpPct = b.wild.currentHp / b.wild.maxHp;
             const mapCatchRate = (currentMap.catchRate || 45) / 100;
             let chance = (1 - hpPct) * 0.8 + 0.05;
             chance = Math.min(mapCatchRate, Math.max(0.05, chance));
@@ -987,330 +1459,245 @@ footer a:hover {
             if (btn) btn.disabled = false;
         }
 
-        async function attemptCatch() {
-            if (!currentBattle || isProcessing) return;
-            const b = currentBattle;
-            const btn = document.getElementById('catch-btn');
-            const requiredXPPercent = currentMap.requiredExpPercent || 10;
-            const penaltyPercent = (currentMap.catchXpPenaltyPercent || 10) / 100;
-            const expNeededTotal = b.player.level * 300;
-            const requiredXPNeeded = expNeededTotal * (requiredXPPercent / 100);
-            const currentXP = b.player.exp || 0;
-
-            if (b.player.level <= 10) { alert("Active Pokémon must be above level 10!"); return; }
-            if (currentXP < requiredXPNeeded) { alert(`Need at least ${requiredXPPercent}% XP progress to catch!`); return; }
-
-            isProcessing = true;
-            if (btn) btn.disabled = true;
-
-            try {
-                const activeRef = doc(db, "users", auth.currentUser.uid, "pokemon", b.player.id);
-                const penalty = Math.floor(expNeededTotal * penaltyPercent);
-                const newExp = Math.max(0, currentXP - penalty);
-                await updateDoc(activeRef, { exp: newExp });
-                b.player.exp = newExp;
-                if (cachedActivePokemon && cachedActivePokemon.id === b.player.id) cachedActivePokemon.exp = newExp;
-                addBattleLog(`Attempted to catch! Lost ${penalty} XP (${Math.floor(penaltyPercent*100)}% of progress bar).`);
-                renderBattleUI();
-
-                const hpPct = b.wild.hp / b.wild.maxHp;
-                let catchChance = (1 - hpPct) * 0.8 + 0.05;
-                const maxCatch = (currentMap.catchRate || 45) / 100;
-                catchChance = Math.min(maxCatch, Math.max(0.05, catchChance));
-                const success = Math.random() < catchChance;
-
-                if (success) {
-                    addBattleLog(`Success! You caught ${b.wild.name.toUpperCase()}!`);
-                    const newPokemon = {
-                        pokemonId: b.wild.pokemonId,
-                        name: b.wild.name,
-                        level: b.wild.level,
-                        exp: 0,
-                        moves: b.wild.moves,
-                        types: b.wild.types,
-                        inTeam: false,
-                        capturedAt: new Date()
-                    };
-                    await addDoc(collection(db, "users", auth.currentUser.uid, "pokemon"), newPokemon);
-                    await updateUserTotalLevels(auth.currentUser.uid, b.wild.level);
-                    setTimeout(() => {
-                        currentBattle = null;
-                        isProcessing = false;
-                        document.getElementById('battle-area').classList.add('hidden');
-                        stopBattleMusic();
-                    }, 2500);
-                } else {
-                    addBattleLog(`The wild ${b.wild.name} broke free!`);
-                    setTimeout(async () => {
-                        if (!currentBattle) return;
-                        const enemyMoves = b.wild.moves;
-                        if (enemyMoves && enemyMoves.length > 0) {
-                            const wM = enemyMoves[Math.floor(Math.random() * enemyMoves.length)];
-                            const effWild = getTypeEffectiveness(wM.type, b.player.types);
-                            let wDmg = Math.floor((wM.power / 5) * (b.wild.level / 2) * effWild);
-                            if (wDmg < 1 && effWild > 0) wDmg = 1;
-                            b.player.hp = Math.max(0, b.player.hp - wDmg);
-                            addBattleLog(`Wild ${b.wild.name} used ${wM.name.toUpperCase()}! Deals ${wDmg} dmg.`);
-                        } else {
-                            addBattleLog(`Wild ${b.wild.name} watched you warily.`);
-                        }
-                        renderBattleUI();
-                        updateCatchChance();
-                        if (b.player.hp <= 0) {
-                            const nextIdx = await handlePlayerFaint(b);
-                            if (nextIdx === null) {
-                                addBattleLog("All your Pokémon have fainted! You black out...");
-                                currentBattle = null;
-                                document.getElementById('battle-area').classList.add('hidden');
-                                stopBattleMusic();
-                                isProcessing = false;
-                                return;
-                            }
-                        }
-                        isProcessing = false;
-                        if (btn) btn.disabled = false;
-                        document.getElementById('switch-btn').disabled = true;
-                    }, 1000);
-                }
-            } catch (err) {
-                console.error("Catching error:", err);
-                addBattleLog("Error: Catch attempt failed.");
-                isProcessing = false;
-                if (btn) btn.disabled = false;
-            }
-        }
+    
 
         async function attemptEscape() {
-                    if (!currentBattle || isProcessing) return;
-                    isProcessing = true;
-                    const btn = document.getElementById('escape-btn');
-                    if (btn) btn.disabled = true;
-
-                    const b = currentBattle;
-                    let chance = 0.5 + (b.player.level - b.wild.level) * 0.02;
-                    chance = Math.min(0.95, Math.max(0.05, chance));
-                    const success = Math.random() < chance;
-
-                    if (success) {
-                        addBattleLog("You got away safely!");
-                        currentBattle = null;
-                        document.getElementById('battle-area').classList.add('hidden');
-                        stopBattleMusic();
-                        isProcessing = false;
-                        if (btn) btn.disabled = false;
-                        return;
-                    } else {
-                        addBattleLog("Couldn't escape! The wild Pokémon attacks!");
-                        const wM = b.wild.moves[Math.floor(Math.random() * b.wild.moves.length)];
-                        const effWild = getTypeEffectiveness(wM.type, b.player.types);
-                        let wDmg = Math.floor((wM.power / 5) * (b.wild.level / 2) * effWild);
-                        if (wDmg < 1 && effWild > 0) wDmg = 1;
-                        b.player.hp = Math.max(0, b.player.hp - wDmg);
-                        addBattleLog(`Wild ${b.wild.name} used ${wM.name.toUpperCase()}! Deals ${wDmg} dmg.`);
-                        renderBattleUI();
-
-                        if (b.player.hp <= 0) {
-                            const nextIdx = await handlePlayerFaint(b);
-                            if (nextIdx === null) {
-                                addBattleLog("All your Pokémon have fainted! You black out...");
-                                currentBattle = null;
-                                document.getElementById('battle-area').classList.add('hidden');
-                                stopBattleMusic();
-                                isProcessing = false;
-                                if (btn) btn.disabled = false;
-                                return;
-                            }
-                        }
-                    }
-
-                    setTimeout(() => {
-                        if (btn) btn.disabled = false;
-                        isProcessing = false;
-                    }, 1000);
-}
-
-
-
-// Show modal for voluntary switch (excludes current Pokémon)
-function showSwitchModal(availablePokemon, currentId) {
-    return new Promise((resolve) => {
-        const modal = document.getElementById('switch-pokemon-modal');
-        const listDiv = document.getElementById('switch-pokemon-list');
-        listDiv.innerHTML = '';
-        availablePokemon.forEach((p) => {
-            if (p.id === currentId) return;
-            const btn = document.createElement('button');
-            btn.className = 'btn btn-outline';
-            btn.style.margin = '5px';
-            btn.style.display = 'flex';
-            btn.style.alignItems = 'center';
-            btn.style.gap = '12px';
-            btn.style.textAlign = 'left';
-            btn.style.padding = '10px';
-            btn.style.width = '100%';
-            btn.style.justifyContent = 'flex-start';
-
-            // Image
-            const img = document.createElement('img');
-            const spriteUrl = getStaticSpriteUrl(p.pokemonId)[0];
-            img.src = spriteUrl;
-            img.style.width = '50px';
-            img.style.height = '50px';
-            img.style.objectFit = 'contain';
-            img.onerror = () => { img.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.pokemonId}.png`; };
-            btn.appendChild(img);
-
-            // Text container
-            const textDiv = document.createElement('div');
-            textDiv.style.flex = '1';
-
-            const hpPct = Math.floor((p.hp / p.maxHp) * 100);
-            const neededXP = getExpNeededForNextLevel(p.level);
-            const currentXP = p.exp || 0;
-            const xpPercent = Math.floor((currentXP / neededXP) * 100);
-            const typeBadgesHtml = generateTypeBadges(p.types); // uses global function
-
-            textDiv.innerHTML = `
-                <strong>${p.name.toUpperCase()}</strong><br>
-                <div style="margin: 4px 0;">${typeBadgesHtml}</div>
-                <small>Lvl ${p.level} — HP: ${p.hp}/${p.maxHp} (${hpPct}%)</small><br>
-                <small>XP: ${currentXP}/${neededXP} (${xpPercent}%)</small>
-            `;
-            btn.appendChild(textDiv);
-
-            btn.onclick = () => {
-                modal.classList.add('hidden');
-                resolve(p);
-            };
-            listDiv.appendChild(btn);
-        });
-        modal.classList.remove('hidden');
-    });
-}
-
-
-async function attemptSwitch() {
-    if (!currentBattle || isProcessing) return;
-    isProcessing = true;
-    const btn = document.getElementById('switch-btn');
-    const catchBtn = document.getElementById('catch-btn');
-    const escapeBtn = document.getElementById('escape-btn');
-    if (btn) btn.disabled = true;
-    if (catchBtn) catchBtn.disabled = true;
-    if (escapeBtn) escapeBtn.disabled = true;
-
-    const b = currentBattle;
-    const available = b.playerTeam.filter(p => p.hp > 0 && p.id !== b.player.id);
-    if (available.length === 0) {
-        addBattleLog("No other Pokémon can switch in!");
-        isProcessing = false;
-        if (btn) btn.disabled = false;
-        if (catchBtn) catchBtn.disabled = false;
-        if (escapeBtn) escapeBtn.disabled = false;
-        return;
-    }
-
-    const selected = await showSwitchModal(available, b.player.id);
-    if (!selected) {
-        isProcessing = false;
-        if (btn) btn.disabled = false;
-        if (catchBtn) catchBtn.disabled = false;
-        if (escapeBtn) escapeBtn.disabled = false;
-        return;
-    }
-
-    const newIdx = b.playerTeam.findIndex(p => p.id === selected.id);
-    b.activePokemonIndex = newIdx;
-    b.player = b.playerTeam[newIdx];
-    renderBattleUI();
-    addBattleLog(`Go! ${b.player.name.toUpperCase()}!`);
-
-    setTimeout(async () => {
-        if (!currentBattle) return;
-        const wM = b.wild.moves[Math.floor(Math.random() * b.wild.moves.length)];
-        const effWild = getTypeEffectiveness(wM.type, b.player.types);
-        let wDmg = Math.floor((wM.power / 5) * (b.wild.level / 2) * effWild);
-        if (wDmg < 1 && effWild > 0) wDmg = 1;
-        b.player.hp = Math.max(0, b.player.hp - wDmg);
-        addBattleLog(`Wild ${b.wild.name} used ${wM.name.toUpperCase()}! Deals ${wDmg} dmg.`);
-        renderBattleUI();
-        updateCatchChance();
-
-        if (b.player.hp <= 0) {
-            const nextIdx = await handlePlayerFaint(b);
-            if (nextIdx === null) {
-                addBattleLog("All your Pokémon have fainted! You black out...");
+            if (!currentBattle || isProcessing) return;
+            isProcessing = true;
+            const btn = document.getElementById('escape-btn');
+            if (btn) btn.disabled = true;
+            const b = currentBattle;
+            let chance = 0.5 + (b.player.level - b.wild.level) * 0.02;
+            chance = Math.min(0.95, Math.max(0.05, chance));
+            const success = Math.random() < chance;
+            if (success) {
+                addBattleLog("You got away safely!");
                 currentBattle = null;
                 document.getElementById('battle-area').classList.add('hidden');
                 stopBattleMusic();
-            }
-        }
-        isProcessing = false;
-        if (btn) btn.disabled = false;
-     if (document.getElementById('escape-btn')) document.getElementById('escape-btn').disabled = false;
-if (document.getElementById('switch-btn')) document.getElementById('switch-btn').disabled = false;
-    }, 1000);
-}
-
-        async function runTurn(move) {
-            if (isProcessing) return;
-            isProcessing = true;
-            document.getElementById('switch-btn').disabled = true;
-            const b = currentBattle;
-            let eff = getTypeEffectiveness(move.type, b.wild.types);
-            let dmg = Math.floor((move.power / 5) * (b.player.level / 2) * eff);
-            if (dmg < 1 && eff > 0) dmg = 1;
-            b.wild.hp = Math.max(0, b.wild.hp - dmg);
-            const enemySprite = document.getElementById('e-sprite-btl');
-            if (enemySprite) {
-                enemySprite.classList.remove('shake-effect');
-                void enemySprite.offsetWidth;
-                enemySprite.classList.add('shake-effect');
-            }
-            addBattleLog(`${b.player.name} used ${move.name.toUpperCase()}! Deals ${dmg} dmg.`);
-            renderBattleUI();
-            updateCatchChance();
-            if (b.wild.hp <= 0) {
-                addBattleLog("Wild Pokemon fainted! Victory!");
-                await resolveBattle(true);
+                isProcessing = false;
+                if (btn) btn.disabled = false;
                 return;
-            }
-
-            setTimeout(async () => {
-                if (!currentBattle) return;
-                const enemyMoves = b.wild.moves;
-                if (enemyMoves && enemyMoves.length > 0) {
-                    const wM = enemyMoves[Math.floor(Math.random() * enemyMoves.length)];
-                    const effWild = getTypeEffectiveness(wM.type, b.player.types);
-                    let wDmg = Math.floor((wM.power / 5) * (b.wild.level / 2) * effWild);
-                    if (wDmg < 1 && effWild > 0) wDmg = 1;
-                    b.player.hp = Math.max(0, b.player.hp - wDmg);
-                    addBattleLog(`Wild ${b.wild.name} used ${wM.name.toUpperCase()}! Deals ${wDmg} dmg.`);
-                } else {
-                    b.player.hp = Math.max(0, b.player.hp - 10);
-                    addBattleLog(`Wild ${b.wild.name} used STRUGGLE!`);
-                }
-                const playerSprite = document.getElementById('p-sprite-btl');
-                if (playerSprite) {
-                    playerSprite.classList.remove('shake-effect');
-                    void playerSprite.offsetWidth;
-                    playerSprite.classList.add('shake-effect');
-                }
+            } else {
+                addBattleLog("Couldn't escape! The wild Pokémon attacks!");
+                const wM = b.wild.moves[Math.floor(Math.random() * b.wild.moves.length)];
+                const effWild = getTypeEffectiveness(wM.type, b.player.types);
+                let wDmg = Math.floor((wM.power / 5) * (b.wild.level / 2) * effWild);
+                if (wDmg < 1 && effWild > 0) wDmg = 1;
+                b.player.currentHp = Math.max(0, b.player.currentHp - wDmg);
+                addBattleLog(`Wild ${b.wild.name} used ${wM.name.toUpperCase()}! Deals ${wDmg} dmg.`);
                 renderBattleUI();
-                updateCatchChance();
-                if (b.player.hp <= 0) {
+                if (b.player.currentHp <= 0) {
                     const nextIdx = await handlePlayerFaint(b);
                     if (nextIdx === null) {
                         addBattleLog("All your Pokémon have fainted! You black out...");
                         currentBattle = null;
                         document.getElementById('battle-area').classList.add('hidden');
                         stopBattleMusic();
+                        isProcessing = false;
+                        if (btn) btn.disabled = false;
+                        return;
                     }
                 }
+            }
+            setTimeout(() => {
+                if (btn) btn.disabled = false;
                 isProcessing = false;
-                document.getElementById('switch-btn').disabled = false;
             }, 1000);
         }
+
+        // Show modal for voluntary switch (excludes current Pokémon)
+        function showSwitchModal(availablePokemon, currentId) {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('switch-pokemon-modal');
+                const listDiv = document.getElementById('switch-pokemon-list');
+                listDiv.innerHTML = '';
+                availablePokemon.forEach((p) => {
+                    if (p.id === currentId) return;
+                    const btn = document.createElement('button');
+                    btn.className = 'btn btn-outline';
+                    btn.style.margin = '5px';
+                    btn.style.display = 'flex';
+                    btn.style.alignItems = 'center';
+                    btn.style.gap = '12px';
+                    btn.style.textAlign = 'left';
+                    btn.style.padding = '10px';
+                    btn.style.width = '100%';
+                    btn.style.justifyContent = 'flex-start';
+
+                    // Image
+                    const img = document.createElement('img');
+                    const spriteUrl = getStaticSpriteUrl(p.pokemonId)[0];
+                    img.src = spriteUrl;
+                    img.style.width = '50px';
+                    img.style.height = '50px';
+                    img.style.objectFit = 'contain';
+                    img.onerror = () => { img.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.pokemonId}.png`; };
+                    btn.appendChild(img);
+
+                    // Text container
+                    const textDiv = document.createElement('div');
+                    textDiv.style.flex = '1';
+
+                    const hpPct = Math.floor((p.hp / p.maxHp) * 100);
+                    const neededXP = getExpNeededForNextLevel(p.level);
+                    const currentXP = p.exp || 0;
+                    const xpPercent = Math.floor((currentXP / neededXP) * 100);
+                    const typeBadgesHtml = generateTypeBadges(p.types); // uses global function
+
+                    textDiv.innerHTML = `
+                        <strong>${p.name.toUpperCase()}</strong><br>
+                        <div style="margin: 4px 0;">${typeBadgesHtml}</div>
+                        <small>Lvl ${p.level} — HP: ${p.hp}/${p.maxHp} (${hpPct}%)</small><br>
+                        <small>XP: ${currentXP}/${neededXP} (${xpPercent}%)</small>
+                    `;
+                    btn.appendChild(textDiv);
+
+                    btn.onclick = () => {
+                        modal.classList.add('hidden');
+                        resolve(p);
+                    };
+                    listDiv.appendChild(btn);
+                });
+                modal.classList.remove('hidden');
+            });
+        }
+
+
+      async function attemptSwitch() {
+    if (!currentBattle || isProcessing) return;
+    
+    const b = currentBattle;
+    // Filter out the one currently in battle
+    const available = b.playerTeam.filter(p => p.currentHp > 0 && p.id !== b.player.id);
+    
+    if (available.length === 0) {
+        addBattleLog("No other Pokémon can switch in!");
+        return;
+    }
+
+    isProcessing = true;
+    toggleBattleUI(true);
+
+    // Manual switch (isForced = false)
+    const selected = await showSwitchPokemonModal(available, false);
+    
+    if (!selected) {
+        // User clicked cancel
+        isProcessing = false;
+        toggleBattleUI(false);
+        return;
+    }
+
+    const newIdx = b.playerTeam.findIndex(p => p.id === selected.id);
+    b.activePokemonIndex = newIdx;
+    b.player = b.playerTeam[newIdx];
+    
+    renderBattleUI();
+    addBattleLog(`Go! ${b.player.name.toUpperCase()}!`);
+
+    // Wild Pokémon gets a free hit because you switched
+    setTimeout(() => {
+        if (!currentBattle) return;
+        const wM = b.wild.moves[Math.floor(Math.random() * b.wild.moves.length)];
+        executeAttack(b.wild, b.player, wM, false);
+        renderBattleUI();
+        
+        if (b.player.currentHp <= 0) {
+            handlePlayerFaint(b);
+        } else {
+            isProcessing = false;
+            toggleBattleUI(false);
+        }
+    }, 1000);
+}
+       async function runTurn(selectedMove) {
+    if (isProcessing) return;
+    isProcessing = true;
+    
+    // Disable buttons immediately to prevent multi-clicking
+    toggleBattleUI(true);
+
+    const b = currentBattle;
+    const first = getFirstAttacker(b.player, b.wild);
+
+    const getRandomMove = (pokemon) => {
+        const available = pokemon.moves.filter(m => m.power > 0);
+        if (!available.length) return { name: "Struggle", power: 50, type: "normal" };
+        return available[Math.floor(Math.random() * available.length)];
+    };
+
+    if (first === 'player') {
+        const wildFainted = executeAttack(b.player, b.wild, selectedMove, true);
+        renderBattleUI();
+        updateCatchChance();
+
+        if (wildFainted) {
+            addBattleLog("Wild Pokemon fainted! Victory!");
+            await resolveBattle(true);
+            // Note: isProcessing remains true until the screen is hidden in resolveBattle
+            return;
+        }
+
+        setTimeout(async () => {
+            if (!currentBattle) return;
+            const playerFainted = executeAttack(b.wild, b.player, getRandomMove(b.wild), false);
+            renderBattleUI();
+            updateCatchChance();
+
+            if (playerFainted) {
+                const nextIdx = await handlePlayerFaint(b);
+                if (nextIdx === null) {
+                    addBattleLog("All your Pokémon have fainted! You black out...");
+                    currentBattle = null;
+                    document.getElementById('battle-area').classList.add('hidden');
+                    stopBattleMusic();
+                    isProcessing = false;
+                } else {
+                    isProcessing = false;
+                    toggleBattleUI(false); // Re-enable for the new pokemon
+                }
+            } else {
+                isProcessing = false;
+                toggleBattleUI(false); // Re-enable for next turn
+            }
+        }, 1000);
+    } else {
+        const playerFainted = executeAttack(b.wild, b.player, getRandomMove(b.wild), false);
+        renderBattleUI();
+        updateCatchChance();
+
+        if (playerFainted) {
+            const nextIdx = await handlePlayerFaint(b);
+            if (nextIdx === null) {
+                addBattleLog("All your Pokémon have fainted! You black out...");
+                currentBattle = null;
+                document.getElementById('battle-area').classList.add('hidden');
+                stopBattleMusic();
+                isProcessing = false;
+                return;
+            } else {
+                isProcessing = false;
+                toggleBattleUI(false);
+            }
+        }
+
+        setTimeout(async () => {
+            if (!currentBattle) return;
+            const wildFainted = executeAttack(b.player, b.wild, selectedMove, true);
+            renderBattleUI();
+            updateCatchChance();
+
+            if (wildFainted) {
+                addBattleLog("Wild Pokemon fainted! Victory!");
+                await resolveBattle(true);
+            } else {
+                isProcessing = false;
+                toggleBattleUI(false);
+            }
+        }, 1000);
+    }
+}
 
         function renderBattleUI() {
             if (!currentBattle) return;
@@ -1324,20 +1711,29 @@ if (document.getElementById('switch-btn')) document.getElementById('switch-btn')
             loadImageWithFallback(playerSprite, getBattleSpriteUrl(b.player.pokemonId, 'back'));
             playerSprite.onclick = () => showInfo(b.player.pokemonId);
             let wildName = b.wild.name.toUpperCase();
+            let wildBonusIcons = '';
+            if (b.wild.bonusStats?.atk) wildBonusIcons += '⚔️';
+            if (b.wild.bonusStats?.def) wildBonusIcons += '🛡️';
+            if (b.wild.bonusStats?.spd) wildBonusIcons += '🏃';
             if (b.wild.specialBadge) wildName = b.wild.specialBadge.split(' ')[0] + ' ' + wildName;
-            document.getElementById('e-name').innerText = wildName;
+            document.getElementById('e-name').innerHTML = `${wildName} ${wildBonusIcons}`;
             document.getElementById('e-lvl').innerText = "Lvl " + b.wild.level;
-            document.getElementById('e-hp-fill').style.width = (b.wild.hp / b.wild.maxHp * 100) + "%";
+            document.getElementById('e-hp-fill').style.width = (b.wild.currentHp / b.wild.maxHp * 100) + "%";
+            document.getElementById('e-hp-text').innerHTML = `HP: ${b.wild.currentHp}/${b.wild.maxHp}`;
             document.getElementById('e-types-icons').innerHTML = generateTypeBadges(b.wild.types);
-            document.getElementById('p-name').innerText = b.player.name.toUpperCase();
+            let playerBonusIcons = '';
+            if (b.player.bonusStats?.atk) playerBonusIcons += '⚔️';
+            if (b.player.bonusStats?.def) playerBonusIcons += '🛡️';
+            if (b.player.bonusStats?.spd) playerBonusIcons += '🏃';
+            document.getElementById('p-name').innerHTML = `${b.player.name.toUpperCase()} ${playerBonusIcons}`;
             document.getElementById('p-lvl').innerText = "Lvl " + b.player.level;
-            document.getElementById('p-hp-fill').style.width = (b.player.hp / b.player.maxHp * 100) + "%";
+            document.getElementById('p-hp-fill').style.width = (b.player.currentHp / b.player.maxHp * 100) + "%";
+            document.getElementById('p-hp-text').innerHTML = `HP: ${b.player.currentHp}/${b.player.maxHp}`;
             document.getElementById('p-types-icons').innerHTML = generateTypeBadges(b.player.types);
-            document.getElementById('e-hp-text').innerHTML = `HP: ${b.wild.hp}/${b.wild.maxHp}`;
-            document.getElementById('p-hp-text').innerHTML = `HP: ${b.player.hp}/${b.player.maxHp}`;
-            const neededXP = b.player.level * 300;
-            const xpPercent = Math.floor((b.player.exp / neededXP) * 100);
-            document.getElementById('p-xp-text').innerHTML = `XP: ${b.player.exp}/${neededXP} (${xpPercent}%)`;
+            const neededXP = getExpNeededForNextLevel(b.player.level);
+            const currentXP = b.player.exp || 0;
+            const xpPercent = Math.floor((currentXP / neededXP) * 100);
+            document.getElementById('p-xp-text').innerHTML = `XP: ${currentXP}/${neededXP} (${xpPercent}%)`;
             const movesDiv = document.getElementById('battle-moves');
             movesDiv.innerHTML = "";
             b.player.moves.forEach(m => {
@@ -1417,7 +1813,7 @@ if (document.getElementById('switch-btn')) document.getElementById('switch-btn')
             <div style="font-size: 0.75rem; color: var(--text-light); margin: 8px 0;">
                 <div>🎯 Catch rate: ${map.catchRate || 45}% (max)</div>
                 <div>📊 Need ${map.requiredExpPercent || 10}% XP progress to catch</div>
-                <div>🔴 Catch costs ${map.catchXpPenaltyPercent || 10}% of XP progress bar</div>
+                <div>💸 Catch costs ${map.catchXpPenaltyPercent || 10}% of XP progress bar</div>
             <div style="font-size: 0.75rem; color: var(--text-light); margin: 4px 0;">
     ${map.specialLevelRange?.enabled ? 
         `📈 Wild levels: ${map.specialLevelRange.min} – ${map.specialLevelRange.max}` : 
@@ -1579,6 +1975,7 @@ if (document.getElementById('switch-btn')) document.getElementById('switch-btn')
             currentMap = map;
             document.getElementById('map-selection-container').classList.add('hidden');
             document.getElementById('game-screen').classList.remove('hidden');
+            updateNavDisplay();
             await generateMapFromTheme(map);
             playMainMusic();
         }
@@ -1610,35 +2007,38 @@ if (document.getElementById('switch-btn')) document.getElementById('switch-btn')
             try {
                 const teamSnap = await getDocs(collection(db, "users", auth.currentUser.uid, "pokemon"));
                 const team = [];
-                let activeIndex = -1;
                 teamSnap.forEach(doc => {
                     const p = doc.data();
                     if (p.inTeam) {
                         team.push({
                             id: doc.id, pokemonId: p.pokemonId, name: p.name,
                             level: p.level, exp: p.exp, moves: p.moves,
-                            types: p.types, hp: p.level * 25, maxHp: p.level * 25
+                            types: p.types,
+                            bonusStats: p.bonusStats || { atk: false, def: false, spd: false },
+                            maxHp: p.level * 25,
+                            currentHp: p.level * 25
                         });
-                        if (doc.id === activePokemonId) activeIndex = team.length - 1;
                     }
                 });
-                if (team.length === 0 || activeIndex === -1) {
-                    alert("Team error. Please set an active Pokémon.");
+                if (team.length === 0) {
+                    alert("You have no Pokémon in your team!");
                     document.getElementById('loading-overlay').classList.add('hidden');
                     return;
                 }
+
+                // Choose wild Pokémon
                 let wildId;
                 if (currentMap.specialPokemonList?.length > 0 && Math.random() < 0.5) {
                     wildId = currentMap.specialPokemonList[Math.floor(Math.random() * currentMap.specialPokemonList.length)];
                 } else {
                     let min = currentMap.pokemonMin || 1, max = currentMap.pokemonMax || 151;
-                    let validIdFound = false, attempts = 0;
-                    while (!validIdFound && attempts < 15) {
+                    let valid = false, attempts = 0;
+                    while (!valid && attempts < 15) {
                         wildId = Math.floor(Math.random() * (max - min + 1)) + min;
-                        if (!(wildId > 1025 && wildId < 10001)) validIdFound = true;
+                        if (!(wildId > 1025 && wildId < 10001)) valid = true;
                         attempts++;
                     }
-                    if (!validIdFound) wildId = min;
+                    if (!valid) wildId = min;
                 }
                 const wildRes = await fetch(`https://pokeapi.co/api/v2/pokemon/${wildId}`);
                 const wildData = await wildRes.json();
@@ -1687,28 +2087,48 @@ if (document.getElementById('switch-btn')) document.getElementById('switch-btn')
                 const card = document.getElementById('encounter-card');
                 if (isSpecial || isGmax) card.classList.add('special'); else card.classList.remove('special');
                 document.getElementById('encounter-preview').classList.remove('hidden');
+
                 let wildLevel;
+                const wildBonus = generateWildBonusStats();
                 if (currentMap.specialLevelRange?.enabled) {
                     wildLevel = Math.floor(Math.random() * (currentMap.specialLevelRange.max - currentMap.specialLevelRange.min + 1)) + currentMap.specialLevelRange.min;
                 } else {
-                    wildLevel = team[activeIndex].level + Math.floor(Math.random() * 21) - 10;
+                    const avgLevel = Math.floor(team.reduce((sum, p) => sum + p.level, 0) / team.length);
+                    wildLevel = avgLevel + Math.floor(Math.random() * 21) - 10;
                 }
                 wildLevel = Math.max(1, wildLevel);
                 const count = await trackRecord(wildId, wildData.name);
-                setTimeout(() => {
+
+                setTimeout(async () => {
                     document.getElementById('encounter-preview').classList.add('hidden');
-                    ps.style.transform = "scale(1)";
+                    const selectedPokemon = await showPreBattleSelectModal(team);
+                    if (!selectedPokemon) {
+                        document.getElementById('loading-overlay').classList.add('hidden');
+                        return;
+                    }
+                    const activeIndex = team.findIndex(p => p.id === selectedPokemon.id);
+                    if (activeIndex === -1) {
+                        document.getElementById('loading-overlay').classList.add('hidden');
+                        return;
+                    }
+                    team[activeIndex].currentHp = team[activeIndex].maxHp; // ensure full HP
                     currentBattle = {
                         playerTeam: team,
                         activePokemonIndex: activeIndex,
                         player: team[activeIndex],
                         wild: {
-                            pokemonId: wildId, name: wildData.name, level: wildLevel,
-                            hp: wildLevel * 25, maxHp: wildLevel * 25,
+                            pokemonId: wildId,
+                            name: wildData.name,
+                            level: wildLevel,
+                            maxHp: wildLevel * 25,
+                            currentHp: wildLevel * 25,
                             types: wildData.types.map(t => t.type.name),
-                            moves: wildMoves, encounterCount: count,
-                            isGmax: isGmax, specialCategory: specialCategory, specialBadge: specialBadge,
-                            isSpecial: isSpecial
+                            moves: wildMoves,
+                            encounterCount: count,
+                            isSpecial: isSpecial,
+                            specialCategory: specialCategory,
+                            specialBadge: specialBadge,
+                            bonusStats: wildBonus
                         }
                     };
                     renderBattleUI();
@@ -1716,7 +2136,8 @@ if (document.getElementById('switch-btn')) document.getElementById('switch-btn')
                     addBattleLog(`A wild ${wildData.name.toUpperCase()} appeared!`);
                     updateCatchChance();
                     document.getElementById('escape-btn').disabled = false;
-                    document.getElementById('switch-btn').disabled = false; 
+                    document.getElementById('switch-btn').disabled = false;
+                    document.getElementById('catch-btn').disabled = false;
                     document.getElementById('loading-overlay').classList.add('hidden');
                     playBattleMusic(isSpecial || isGmax);
                 }, 3000);
@@ -1820,9 +2241,11 @@ if (document.getElementById('switch-btn')) document.getElementById('switch-btn')
                 isAdmin = data?.role === 'admin';
                 activePokemonId = data?.activePokemonId || null;
                 if (activePokemonId) {
+                    
                     const a = await getDoc(doc(db, "users", user.uid, "pokemon", activePokemonId));
                     if (a.exists()) cachedActivePokemon = { id: a.id, ...a.data() };
                 }
+                updateNavDisplay();
                 if (isAdmin) document.getElementById('add-map-btn').classList.remove('hidden');
                 await loadMaps();
                 document.getElementById('game-screen').classList.add('hidden');

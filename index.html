@@ -1119,6 +1119,8 @@ async function getCachedJson(url, cacheObj) {
     cacheObj[url] = res;
     return res;
 }
+
+        let encounterCooldown = false;
         let playerPos = { x: 25, y: 25 }, mapData = [], currentBattle = null, isProcessing = false;
         let activePokemonId = null, cachedActivePokemon = null, currentEditingPokemon = null, lastMoveTime = 0, lastTeamUpdate = 0, pendingRecordUpdates = {};
         const MOVE_DELAY = 200, TEAM_CACHE_TIME = 5000;
@@ -1790,41 +1792,13 @@ async function showInfo(id) {
         document.getElementById('info-desc').innerText = `"${desc}"`;
         document.getElementById('info-stats').innerHTML = `Height: ${p.height / 10}m | Weight: ${p.weight / 10}kg | Types: ${p.types.map(t => t.type.name).join('/')}`;
         
-        // --- Evolution chain rendering ---
-        const evolutionContainer = document.getElementById('info-evolution-list');
-        evolutionContainer.innerHTML = '<div style="text-align:center; padding:10px;">🌀 Loading evolution data...</div>';
-        
-        // Fetch evolution chain using existing helper (make sure fetchEvolutionChain is defined)
-        const stages = await fetchEvolutionChain(id);
-        if (stages.length === 0) {
-            evolutionContainer.innerHTML = '<div style="color:#999;">No evolution data available</div>';
-        } else {
-            evolutionContainer.innerHTML = stages.map((stage, idx) => {
-                const spriteUrl = getBattleSpriteUrl(stage.id, 'front')[0];
-                const typeBadges = stage.types.map(t => `<span class="type-badge" style="background: ${getTypeColor(t)};">${t.toUpperCase()}</span>`).join('');
-                const levelText = stage.level ? `Lv. ${stage.level}` : (idx === 0 ? 'Start' : 'Final Stage');
-                
-                return `
-                    <div style="text-align: center; width: 120px;">
-                        <img src="${spriteUrl}" 
-                             style="width: 96px; height: 96px; object-fit: contain; image-rendering: crisp-edges;"
-                             onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${stage.id}.png'">
-                        <div><strong>${stage.name.toUpperCase()}</strong></div>
-                        <div style="font-size:0.7rem; margin:4px 0;">${typeBadges}</div>
-                        <div style="font-size:0.7rem; color:var(--primary-dark);">${levelText}</div>
-                    </div>
-                    ${idx < stages.length-1 ? '<div style="font-size:1.5rem; align-self:center;">→</div>' : ''}
-                `;
-            }).join('');
-        }
-        // --- End evolution rendering ---
-        
         // Show the info modal
         document.getElementById('info-overlay').classList.remove('hidden');
     } catch (err) {
         console.error("Failed to load Pokémon info:", err);
         alert("Could not load Pokémon details. Please try again later.");
     } finally {
+        // Always hide the loading overlay, even on error
         overlay.classList.add('hidden');
     }
 }
@@ -1964,6 +1938,10 @@ async function generateMapFromTheme(mapConfig) {
                 const firstTileClass = currentMap?.tileClasses?.[0] || 'dirt';
                 if (mapData[ny][nx] !== firstTileClass && Math.random() < 0.15) startBattle();
             }
+             // Only attempt encounter if cooldown is false
+    if (!encounterCooldown && mapData[ny][nx] !== 'dirt' && Math.random() < 0.15) {
+        startBattle();
+    }
         }
 
         window.movePlayer=movePlayer;
@@ -2178,33 +2156,64 @@ async function generateMapFromTheme(mapConfig) {
 async function runTurn(selectedMove) {
     if (isProcessing) return;
     isProcessing = true;
-    
-    // Disable buttons immediately to prevent multi-clicking
-    toggleBattleUI(true);
+    toggleBattleUI(true);  // Disable all battle buttons immediately
 
-    const b = currentBattle;
-    const first = getFirstAttacker(b.player, b.wild);
+    addBattleLog("Trainer is concentrating...");  // Optional: visual feedback
 
-    const getRandomMove = (pokemon) => {
-        const available = pokemon.moves.filter(m => m.power > 0);
-        if (!available.length) return { name: "Struggle", power: 50, type: "normal" };
-        return available[Math.floor(Math.random() * available.length)];
-    };
-
-    if (first === 'player') {
-        const wildFainted = executeAttack(b.player, b.wild, selectedMove, true);
-        renderBattleUI();
-        updateCatchChance();
-
-        if (wildFainted) {
-            addBattleLog("Wild Pokemon fainted! Victory!");
-            await resolveBattle(true);
-            // Note: isProcessing remains true until the screen is hidden in resolveBattle
+    // Wait 3 seconds before executing the move
+    setTimeout(async () => {
+        // Check if battle is still active (in case something happened during wait)
+        if (!currentBattle) {
+            isProcessing = false;
+            toggleBattleUI(false);
             return;
         }
 
-        setTimeout(async () => {
-            if (!currentBattle) return;
+        const b = currentBattle;
+        const first = getFirstAttacker(b.player, b.wild);
+
+        const getRandomMove = (pokemon) => {
+            const available = pokemon.moves.filter(m => m.power > 0);
+            if (!available.length) return { name: "Struggle", power: 50, type: "normal" };
+            return available[Math.floor(Math.random() * available.length)];
+        };
+
+        if (first === 'player') {
+            const wildFainted = executeAttack(b.player, b.wild, selectedMove, true);
+            renderBattleUI();
+            updateCatchChance();
+
+            if (wildFainted) {
+                addBattleLog("Wild Pokemon fainted! Victory!");
+                await resolveBattle(true);
+                // No need to unlock UI – resolveBattle will handle cleanup
+                return;
+            }
+
+            setTimeout(async () => {
+                if (!currentBattle) return;
+                const playerFainted = executeAttack(b.wild, b.player, getRandomMove(b.wild), false);
+                renderBattleUI();
+                updateCatchChance();
+
+                if (playerFainted) {
+                    const nextIdx = await handlePlayerFaint(b);
+                    if (nextIdx === null) {
+                        addBattleLog("All your Pokémon have fainted! You black out...");
+                        currentBattle = null;
+                        document.getElementById('battle-area').classList.add('hidden');
+                        stopBattleMusic();
+                        isProcessing = false;
+                    } else {
+                        isProcessing = false;
+                        toggleBattleUI(false);
+                    }
+                } else {
+                    isProcessing = false;
+                    toggleBattleUI(false);
+                }
+            }, 1000);
+        } else {
             const playerFainted = executeAttack(b.wild, b.player, getRandomMove(b.wild), false);
             renderBattleUI();
             updateCatchChance();
@@ -2217,50 +2226,29 @@ async function runTurn(selectedMove) {
                     document.getElementById('battle-area').classList.add('hidden');
                     stopBattleMusic();
                     isProcessing = false;
+                    return;
                 } else {
                     isProcessing = false;
-                    toggleBattleUI(false); // Re-enable for the new pokemon
+                    toggleBattleUI(false);
                 }
-            } else {
-                isProcessing = false;
-                toggleBattleUI(false); // Re-enable for next turn
             }
-        }, 1000);
-    } else {
-        const playerFainted = executeAttack(b.wild, b.player, getRandomMove(b.wild), false);
-        renderBattleUI();
-        updateCatchChance();
 
-        if (playerFainted) {
-            const nextIdx = await handlePlayerFaint(b);
-            if (nextIdx === null) {
-                addBattleLog("All your Pokémon have fainted! You black out...");
-                currentBattle = null;
-                document.getElementById('battle-area').classList.add('hidden');
-                stopBattleMusic();
-                isProcessing = false;
-                return;
-            } else {
-                isProcessing = false;
-                toggleBattleUI(false);
-            }
+            setTimeout(async () => {
+                if (!currentBattle) return;
+                const wildFainted = executeAttack(b.player, b.wild, selectedMove, true);
+                renderBattleUI();
+                updateCatchChance();
+
+                if (wildFainted) {
+                    addBattleLog("Wild Pokemon fainted! Victory!");
+                    await resolveBattle(true);
+                } else {
+                    isProcessing = false;
+                    toggleBattleUI(false);
+                }
+            }, 1000);
         }
-
-        setTimeout(async () => {
-            if (!currentBattle) return;
-            const wildFainted = executeAttack(b.player, b.wild, selectedMove, true);
-            renderBattleUI();
-            updateCatchChance();
-
-            if (wildFainted) {
-                addBattleLog("Wild Pokemon fainted! Victory!");
-                await resolveBattle(true);
-            } else {
-                isProcessing = false;
-                toggleBattleUI(false);
-            }
-        }, 1000);
-    }
+    }, 3000); // 3‑second delay before attack execution
 }
        
         
@@ -2582,8 +2570,15 @@ function endBattleCleanup() {
     document.getElementById('battle-area').classList.add('hidden');
     currentBattle = null;
     isProcessing = false;
-    toggleBattleUI(false); 
+    toggleBattleUI(false);
     stopBattleMusic();
+
+    // Add cooldown after battle
+    encounterCooldown = true;
+    setTimeout(() => {
+        encounterCooldown = false;
+        addBattleLog("You can now encounter wild Pokémon again.");
+    }, 5000);
 }
 
 // --- UPDATED: showBattleSummary with Bonus Icons ---

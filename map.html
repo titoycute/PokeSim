@@ -572,6 +572,14 @@ footer a:hover {
             .move-btn { padding: 8px 10px; font-size: 0.75rem; }
             .arrow-up, .arrow-down, .arrow-left, .arrow-right { width: 50px; padding: 8px; font-size: 1rem; }
         }
+
+        #preview-weaknesses .type-badge {
+    margin: 2px;
+    font-size: 0.7rem;
+}
+#preview-capture-status, #preview-encounter-count {
+    font-weight: 500;
+}
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
@@ -614,6 +622,9 @@ footer a:hover {
             <img id="preview-sprite" class="encounter-sprite" src="" alt="">
             <div id="preview-name" class="encounter-name"></div>
             <div id="preview-badges" class="encounter-badges"></div>
+            <div id="preview-weaknesses" style="margin: 10px 0; font-size: 0.9rem;"></div>
+            <div id="preview-capture-status" style="margin: 5px 0; font-size: 0.9rem;"></div>
+            <div id="preview-encounter-count" style="margin: 5px 0; font-size: 0.9rem;"></div>
             <div style="margin-top: 20px;">A wild Pokémon appeared!</div>
         </div>
     </div>
@@ -654,11 +665,15 @@ footer a:hover {
 </div>
 
     <!-- Auth Screen -->
-    <div id="auth-screen">
-        <div class="auth-card">
-            <img src="Byahe.png" alt="PokeSim Logo for Byahe">
-        </div>
+ <div id="auth-screen">
+    <div class="auth-card">
+        <img src="Byahe.png" alt="PokeSim Logo for Byahe">
+        <p id="auth-message" style="margin: 20px 0 10px; font-size: 1rem; color: var(--text-light); display: none;"></p>
+        <button id="redirect-to-login" class="btn btn-primary" style="width: 100%; display: none;">
+            <i class="fas fa-sign-in-alt"></i> Go to Login
+        </button>
     </div>
+</div>
 
     <!-- Map Selection Container -->
    <div id="map-selection-container" class="container">
@@ -670,6 +685,14 @@ footer a:hover {
     <!-- New landscape image -->
     <img src="Map_0.jpg" alt="Region overview" class="map-landscape">
     <div id="map-list" class="map-grid"></div>
+</div>
+
+<div id="deactivated-overlay" class="overlay hidden">
+  <div class="modal" style="max-width: 400px; text-align: center;">
+    <h2>⛔ Account Suspended</h2>
+    <p>Your account has been deactivated by an administrator. Please contact support for assistance.</p>
+    <button id="logout-deactivated" class="btn btn-primary">Log Out</button>
+  </div>
 </div>
 
 
@@ -790,9 +813,18 @@ footer a:hover {
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, updateDoc, deleteDoc, writeBatch, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, updateDoc, deleteDoc, writeBatch, increment, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        const firebaseConfig = { apiKey: "AIzaSyDkCE0wBrsQ1s-7zplvTtWOSE28ISaCFfQ", authDomain: "pokesim-7f9b7.firebaseapp.com", projectId: "pokesim-7f9b7", storageBucket: "pokesim-7f9b7.firebasestorage.app", messagingSenderId: "1087100425430", appId: "1:1087100425430:web:9558a79ee5330d4a792577" };
+      const firebaseConfig = {
+  apiKey: "AIzaSyDkCE0wBrsQ1s-7zplvTtWOSE28ISaCFfQ",
+  authDomain: "pokesim-7f9b7.firebaseapp.com",
+  databaseURL: "https://pokesim-7f9b7-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "pokesim-7f9b7",
+  storageBucket: "pokesim-7f9b7.firebasestorage.app",
+  messagingSenderId: "1087100425430",
+  appId: "1:1087100425430:web:873ce4073ec2db1e792577",
+  measurementId: "G-KBD7LRW880"
+};
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
@@ -806,7 +838,7 @@ footer a:hover {
         let cachedActivePokemon = null;
         let lastMoveTime = 0;
         let pendingRecordUpdates = {};
-        const MOVE_DELAY = 200;
+        const MOVE_DELAY = 300;
         const TRAINER_GIF = "https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/078dadf7-4d9b-4bf4-9855-0112be351700/d54f6cb-230b552c-50d1-45ad-be7e-7eab211c1cf8.gif?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7InBhdGgiOiIvZi8wNzhkYWRmNy00ZDliLTRiZjQtOTg1NS0wMTEyYmUzNTE3MDAvZDU0ZjZjYi0yMzBiNTUyYy01MGQxLTQ1YWQtYmU3ZS03ZWFiMjExYzFjZjguZ2lmIn1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmZpbGUuZG93bmxvYWQiXX0.A8hNnEQQMDN-XZI-VOQkzR71AozVAvgQDF6FcAAqi6M";
         const TYPE_ICONS = { fire: "🔥", water: "💧", grass: "🌿", electric: "⚡", normal: "🔘", ice: "❄️", psychic: "🔮", poison: "🧪", ground: "🏜️", flying: "🦅", dragon: "🐲", bug: "🐛", rock: "🪨", ghost: "👻", dark: "🌙", steel: "⚙️", fairy: "✨", fighting: "👊" };
         const bgMusic = document.getElementById('bg-music');
@@ -976,13 +1008,19 @@ footer a:hover {
         }
         // --- Helper: Close Battle and Refresh ---
         function endBattleCleanup() {
-            document.getElementById('battle-summary-modal').classList.add('hidden');
-            document.getElementById('battle-area').classList.add('hidden');
-            currentBattle = null;
-            isProcessing = false;
-            toggleBattleUI(false); 
-            stopBattleMusic();
-        }
+    document.getElementById('battle-summary-modal').classList.add('hidden');
+    document.getElementById('battle-area').classList.add('hidden');
+    currentBattle = null;
+    isProcessing = false;
+    toggleBattleUI(false);
+    stopBattleMusic();
+
+    encounterCooldown = true;
+    setTimeout(() => {
+        encounterCooldown = false;
+        if (!currentBattle) addBattleLog("You are ready for another encounter.");
+    }, 5000);
+}
 
 
 // --- UPDATED: showBattleSummary with Bonus Icons ---
@@ -1611,36 +1649,71 @@ function showEvoModal(newId, oldName, newName) {
         }
     }, 1000);
 }
-       async function runTurn(selectedMove) {
+    
+
+
+
+async function runTurn(selectedMove) {
     if (isProcessing) return;
     isProcessing = true;
-    
-    // Disable buttons immediately to prevent multi-clicking
-    toggleBattleUI(true);
+    toggleBattleUI(true);  // Disable all battle buttons immediately
 
-    const b = currentBattle;
-    const first = getFirstAttacker(b.player, b.wild);
+    addBattleLog("Trainer is concentrating...");  // Optional: visual feedback
 
-    const getRandomMove = (pokemon) => {
-        const available = pokemon.moves.filter(m => m.power > 0);
-        if (!available.length) return { name: "Struggle", power: 50, type: "normal" };
-        return available[Math.floor(Math.random() * available.length)];
-    };
-
-    if (first === 'player') {
-        const wildFainted = executeAttack(b.player, b.wild, selectedMove, true);
-        renderBattleUI();
-        updateCatchChance();
-
-        if (wildFainted) {
-            addBattleLog("Wild Pokemon fainted! Victory!");
-            await resolveBattle(true);
-            // Note: isProcessing remains true until the screen is hidden in resolveBattle
+    // Wait 3 seconds before executing the move
+    setTimeout(async () => {
+        // Check if battle is still active (in case something happened during wait)
+        if (!currentBattle) {
+            isProcessing = false;
+            toggleBattleUI(false);
             return;
         }
 
-        setTimeout(async () => {
-            if (!currentBattle) return;
+        const b = currentBattle;
+        const first = getFirstAttacker(b.player, b.wild);
+
+        const getRandomMove = (pokemon) => {
+            const available = pokemon.moves.filter(m => m.power > 0);
+            if (!available.length) return { name: "Struggle", power: 50, type: "normal" };
+            return available[Math.floor(Math.random() * available.length)];
+        };
+
+        if (first === 'player') {
+            const wildFainted = executeAttack(b.player, b.wild, selectedMove, true);
+            renderBattleUI();
+            updateCatchChance();
+
+            if (wildFainted) {
+                addBattleLog("Wild Pokemon fainted! Victory!");
+                await resolveBattle(true);
+                // No need to unlock UI – resolveBattle will handle cleanup
+                return;
+            }
+
+            setTimeout(async () => {
+                if (!currentBattle) return;
+                const playerFainted = executeAttack(b.wild, b.player, getRandomMove(b.wild), false);
+                renderBattleUI();
+                updateCatchChance();
+
+                if (playerFainted) {
+                    const nextIdx = await handlePlayerFaint(b);
+                    if (nextIdx === null) {
+                        addBattleLog("All your Pokémon have fainted! You black out...");
+                        currentBattle = null;
+                        document.getElementById('battle-area').classList.add('hidden');
+                        stopBattleMusic();
+                        isProcessing = false;
+                    } else {
+                        isProcessing = false;
+                        toggleBattleUI(false);
+                    }
+                } else {
+                    isProcessing = false;
+                    toggleBattleUI(false);
+                }
+            }, 1000);
+        } else {
             const playerFainted = executeAttack(b.wild, b.player, getRandomMove(b.wild), false);
             renderBattleUI();
             updateCatchChance();
@@ -1653,50 +1726,29 @@ function showEvoModal(newId, oldName, newName) {
                     document.getElementById('battle-area').classList.add('hidden');
                     stopBattleMusic();
                     isProcessing = false;
+                    return;
                 } else {
                     isProcessing = false;
-                    toggleBattleUI(false); // Re-enable for the new pokemon
+                    toggleBattleUI(false);
                 }
-            } else {
-                isProcessing = false;
-                toggleBattleUI(false); // Re-enable for next turn
             }
-        }, 1000);
-    } else {
-        const playerFainted = executeAttack(b.wild, b.player, getRandomMove(b.wild), false);
-        renderBattleUI();
-        updateCatchChance();
 
-        if (playerFainted) {
-            const nextIdx = await handlePlayerFaint(b);
-            if (nextIdx === null) {
-                addBattleLog("All your Pokémon have fainted! You black out...");
-                currentBattle = null;
-                document.getElementById('battle-area').classList.add('hidden');
-                stopBattleMusic();
-                isProcessing = false;
-                return;
-            } else {
-                isProcessing = false;
-                toggleBattleUI(false);
-            }
+            setTimeout(async () => {
+                if (!currentBattle) return;
+                const wildFainted = executeAttack(b.player, b.wild, selectedMove, true);
+                renderBattleUI();
+                updateCatchChance();
+
+                if (wildFainted) {
+                    addBattleLog("Wild Pokemon fainted! Victory!");
+                    await resolveBattle(true);
+                } else {
+                    isProcessing = false;
+                    toggleBattleUI(false);
+                }
+            }, 1000);
         }
-
-        setTimeout(async () => {
-            if (!currentBattle) return;
-            const wildFainted = executeAttack(b.player, b.wild, selectedMove, true);
-            renderBattleUI();
-            updateCatchChance();
-
-            if (wildFainted) {
-                addBattleLog("Wild Pokemon fainted! Victory!");
-                await resolveBattle(true);
-            } else {
-                isProcessing = false;
-                toggleBattleUI(false);
-            }
-        }, 1000);
-    }
+    }, 3000); // 3‑second delay before attack execution
 }
 
         function renderBattleUI() {
@@ -1757,6 +1809,21 @@ function showEvoModal(newId, oldName, newName) {
                 await setDoc(recordRef, { name: name, count: newCount, pokemonId: parseInt(id) }, { merge: true });
                 return newCount;
             } catch (err) { console.error("Error saving record:", err); return 1; }
+        }
+
+        async function isSpeciesOwned(pokemonId) {
+            const q = query(
+                collection(db, "users", auth.currentUser.uid, "pokemon"),
+                where("pokemonId", "==", pokemonId)
+            );
+            const snap = await getDocs(q);
+            return !snap.empty;
+        }
+
+        async function getEncounterCount(pokemonId) {
+            const docRef = doc(db, "users", auth.currentUser.uid, "records", pokemonId.toString());
+            const snap = await getDoc(docRef);
+            return snap.exists() ? snap.data().count : 0;
         }
 
         // ========== MAP GENERATION ==========
@@ -1985,7 +2052,8 @@ function showEvoModal(newId, oldName, newName) {
             document.getElementById('player').style.backgroundImage = `url(${TRAINER_GIF})`;
             document.getElementById('map-grid').style.transform = `translate(${275 - playerPos.x * 50}px, ${175 - playerPos.y * 50}px)`;
         }
-
+        let encounterCooldown = false;
+     
         function movePlayer(dx, dy) {
             if (currentBattle) return;
             const n = Date.now();
@@ -1997,7 +2065,10 @@ function showEvoModal(newId, oldName, newName) {
                 playerPos.y = ny;
                 if (dx !== 0) document.getElementById('player').style.transform = dx < 0 ? 'scaleX(-1)' : 'scaleX(1)';
                 renderPlayer();
-                if (mapData[ny][nx] !== 'dirt' && Math.random() < 0.15) startBattle();
+                // Encounter only if NOT on cooldown and tile is not dirt
+                if (!encounterCooldown && mapData[ny][nx] !== 'dirt' && Math.random() < 0.15) {
+                    startBattle();
+                }
             }
         }
 
@@ -2086,6 +2157,30 @@ function showEvoModal(newId, oldName, newName) {
                 document.getElementById('preview-badges').innerHTML = badgesHtml;
                 const card = document.getElementById('encounter-card');
                 if (isSpecial || isGmax) card.classList.add('special'); else card.classList.remove('special');
+                // Fetch ownership and encounter count in parallel
+                const [owned, encounterCount] = await Promise.all([
+                    isSpeciesOwned(wildId),
+                    getEncounterCount(wildId)
+                ]);
+
+                // Compute weaknesses
+                const allTypes = ['normal','fire','water','electric','grass','ice','fighting','poison','ground','flying','psychic','bug','rock','ghost','dragon','dark','steel','fairy'];
+                const wildTypes = wildData.types.map(t => t.type.name);
+                const weaknesses = allTypes.filter(t => getTypeEffectiveness(t, wildTypes) === 2);
+
+                // Update preview elements
+                const weaknessesDiv = document.getElementById('preview-weaknesses');
+                weaknessesDiv.innerHTML = weaknesses.length > 0
+                    ? `<strong>Weaknesses:</strong> ${weaknesses.map(t => `<span class="type-badge" style="background: ${getTypeColor(t)};">${t.toUpperCase()}</span>`).join(' ')}`
+                    : `<strong>Weaknesses:</strong> None (or neutral)`;
+
+                const captureDiv = document.getElementById('preview-capture-status');
+                captureDiv.innerHTML = owned
+                    ? `<span style="color: var(--success);">✓ Already captured</span>`
+                    : `<span style="color: var(--danger);">✗ Not yet captured</span>`;
+
+                const encounterDiv = document.getElementById('preview-encounter-count');
+                encounterDiv.innerHTML = `📖 Encountered ${encounterCount} time${encounterCount !== 1 ? 's' : ''} before this battle.`;
                 document.getElementById('encounter-preview').classList.remove('hidden');
 
                 let wildLevel;
@@ -2231,34 +2326,82 @@ function showEvoModal(newId, oldName, newName) {
 
         document.getElementById('escape-btn').onclick = attemptEscape;
         document.getElementById('switch-btn').onclick = attemptSwitch;
-        // ========== AUTH & INIT ==========
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                const uDoc = await getDoc(doc(db, "users", user.uid));
-                const data = uDoc.data();
-                document.getElementById('auth-screen').classList.add('hidden');
-                userTotalLevel = data?.totalLevels || 0;
-                isAdmin = data?.role === 'admin';
-                activePokemonId = data?.activePokemonId || null;
-                if (activePokemonId) {
-                    
-                    const a = await getDoc(doc(db, "users", user.uid, "pokemon", activePokemonId));
-                    if (a.exists()) cachedActivePokemon = { id: a.id, ...a.data() };
-                }
-                updateNavDisplay();
-                if (isAdmin) document.getElementById('add-map-btn').classList.remove('hidden');
-                await loadMaps();
-                document.getElementById('game-screen').classList.add('hidden');
-                document.getElementById('map-selection-container').classList.remove('hidden');
-            } else {
-                document.getElementById('auth-screen').classList.remove('hidden');
-                document.getElementById('game-screen').classList.add('hidden');
-                document.getElementById('map-selection-container').classList.add('hidden');
-                bgMusic.pause();
-                battleMusic.pause();
-                specialMusic.pause();
-            }
-        });
+// ========== AUTH & INIT ==========
+onAuthStateChanged(auth, async (user) => {
+  // Helper to reset UI to "just logo" state
+  const resetAuthCard = () => {
+    document.getElementById('auth-message').style.display = 'none';
+    document.getElementById('redirect-to-login').style.display = 'none';
+  };
+
+  if (user) {
+    // User is logged in → check if account is active
+    const uDoc = await getDoc(doc(db, "users", user.uid));
+    const data = uDoc.data();
+
+    if (data?.active === false) {
+      // Deactivated account: show modal, hide auth screen
+      resetAuthCard();
+      document.getElementById('auth-screen').classList.add('hidden');
+      document.getElementById('deactivated-overlay').classList.remove('hidden');
+      // Set up logout button
+      document.getElementById('logout-deactivated').onclick = async () => {
+        await signOut(auth);
+        window.location.reload(); // reload to show login screen
+      };
+      return;
+    }
+
+    // Active account: proceed normally
+    document.getElementById('auth-screen').classList.add('hidden');
+    document.getElementById('deactivated-overlay').classList.add('hidden');
+    userTotalLevel = data?.totalLevels || 0;
+    isAdmin = data?.role === 'admin';
+    activePokemonId = data?.activePokemonId || null;
+
+    // Check active Pokémon
+    if (!activePokemonId) {
+      alert("You need to choose a starter Pokémon first!");
+      window.location.href = 'index.html';
+      return;
+    }
+
+    const activePokemonSnap = await getDoc(doc(db, "users", user.uid, "pokemon", activePokemonId));
+    if (!activePokemonSnap.exists()) {
+      alert("Your active Pokémon is missing! Please set a new one.");
+      window.location.href = 'index.html';
+      return;
+    }
+
+    cachedActivePokemon = { id: activePokemonId, ...activePokemonSnap.data() };
+    updateNavDisplay();
+    if (isAdmin) document.getElementById('add-map-btn').classList.remove('hidden');
+    await loadMaps();
+    document.getElementById('game-screen').classList.add('hidden');
+    document.getElementById('map-selection-container').classList.remove('hidden');
+  } else {
+    // No user logged in: show auth card with login message and button
+    resetAuthCard();
+    document.getElementById('deactivated-overlay').classList.add('hidden');
+    document.getElementById('auth-screen').classList.remove('hidden');
+    // Show the message and button
+    const msgElem = document.getElementById('auth-message');
+    msgElem.innerText = "Please log in to access the maps.";
+    msgElem.style.display = 'block';
+    const btnElem = document.getElementById('redirect-to-login');
+    btnElem.innerHTML = '<i class="fas fa-sign-in-alt"></i> Go to Login';
+    btnElem.style.display = 'block';
+    btnElem.onclick = () => {
+      window.location.href = 'index.html';
+    };
+    // Hide game screens and stop music
+    document.getElementById('game-screen').classList.add('hidden');
+    document.getElementById('map-selection-container').classList.add('hidden');
+    bgMusic.pause();
+    battleMusic.pause();
+    specialMusic.pause();
+  }
+});
 
         document.getElementById('add-map-btn').onclick = () => openMapEditModal();
         document.querySelector('.arrow-up')?.addEventListener('click', () => movePlayer(0, -1));

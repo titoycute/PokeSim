@@ -2550,6 +2550,7 @@ function endBattleCleanup() {
     stopBattleMusic();
 }
 
+// --- UPDATED: showBattleSummary with Bonus Icons ---
 function showBattleSummary(type, data = {}) {
     const b = currentBattle;
     if (!b) return;
@@ -2569,12 +2570,11 @@ function showBattleSummary(type, data = {}) {
         header.style.color = "var(--success)";
         loadImageWithFallback(sprite, getBattleSpriteUrl(b.player.pokemonId, 'front'));
         
-        // Generate Player Bonus Icons
         let pIcons = '';
         if (b.player.bonusStats?.atk) pIcons += '⚔️';
         if (b.player.bonusStats?.def) pIcons += '🛡️';
         if (b.player.bonusStats?.spd) pIcons += '🏃';
-        
+
         name.innerHTML = `${b.player.name.toUpperCase()} ${pIcons}`;
         info.innerText = `Level ${b.player.level}`;
         typesDiv.innerHTML = generateTypeBadges(b.player.types);
@@ -2590,7 +2590,6 @@ function showBattleSummary(type, data = {}) {
         header.style.color = "var(--primary)";
         loadImageWithFallback(sprite, getBattleSpriteUrl(b.wild.pokemonId, 'front'));
         
-        // Generate Wild Bonus Icons
         let wIcons = '';
         if (b.wild.bonusStats?.atk) wIcons += '⚔️';
         if (b.wild.bonusStats?.def) wIcons += '🛡️';
@@ -2607,7 +2606,7 @@ function showBattleSummary(type, data = {}) {
         details.innerHTML = `
             <div style="font-weight:bold; margin-bottom:5px;">Moveset:</div>
             <div style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:10px;">${movesHtml}</div>
-            <div style="font-size:0.8rem; color:var(--text-light); text-align:center;">This Pokémon has been added to your collection!</div>
+            <div style="font-size:0.8rem; color:var(--text-light); text-align:center;">Sent to your Collection!</div>
         `;
     } 
     else if (type === 'defeat') {
@@ -2617,7 +2616,7 @@ function showBattleSummary(type, data = {}) {
         name.innerText = b.wild.name.toUpperCase();
         info.innerText = `Defeated by wild ${b.wild.name}`;
         typesDiv.innerHTML = generateTypeBadges(b.wild.types);
-        details.innerHTML = `<p style="text-align:center;">Your team is exhausted. You fainted and rushed to the Pokémon Center!</p>`;
+        details.innerHTML = `<p style="text-align:center;">Your team fainted!</p>`;
     }
 
     modal.classList.remove('hidden');
@@ -3087,7 +3086,8 @@ document.getElementById('confirm-trainer-starter').onclick = async () => {
             coins: 10000,
             lastNameChange: null,
             totalLevels: 10,
-            totalEncounters: 0
+            totalEncounters: 0,
+            active: true 
         });
         trackWrite();
 
@@ -3121,13 +3121,17 @@ document.getElementById('back-to-selection').onclick = () => {
 
 // ========== AUTH STATE ==========
         onAuthStateChanged(auth, async (user) => {
+             console.log("1. Auth state changed. User:", user ? user.uid : "none");
             if (user) {
+                console.log("2. User logged in, fetching user doc...");
                 const uDoc = await getDoc(doc(db, "users", user.uid));
                 trackRead();
                 const data = uDoc.data();
+                 console.log("3. User data:", data);
                 document.getElementById('auth-screen').classList.add('hidden');
 
                 if (!data || !data.hasStarter) {
+                     console.log("4. No starter, showing modal");
                     pendingUser = user;
                     const modal = document.getElementById('trainer-starter-modal');
                     const nameInput = document.getElementById('trainer-name-input');
@@ -3138,6 +3142,14 @@ document.getElementById('back-to-selection').onclick = () => {
                     modal.classList.remove('hidden');
                     return;
                 }
+
+                if (data.active === false) {
+                    console.log("5. Account deactivated, logging out");
+            await signOut(auth);
+            alert('Your account has been deactivated. Please contact the administrator.');
+            window.location.href = 'index.html';
+            return;
+        }
 
                 // ========== MIGRATION: Add bonusStats to all existing Pokémon ==========
                 const pokemonSnap = await getDocs(collection(db, "users", user.uid, "pokemon"));
@@ -3172,7 +3184,10 @@ document.getElementById('back-to-selection').onclick = () => {
                 if (isAdmin) {
                     document.getElementById('admin-link').style.display = 'inline-block';
                 }
+
+                 console.log("6. Starting game...");
             } else {
+                 console.log("No user, showing auth screen");
                 document.getElementById('auth-screen').classList.remove('hidden');
                 document.getElementById('game-screen').classList.add('hidden');
                 if (bgMusic) bgMusic.pause();

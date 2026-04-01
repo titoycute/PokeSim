@@ -580,6 +580,85 @@ footer a:hover {
 #preview-capture-status, #preview-encounter-count {
     font-weight: 500;
 }
+
+   /* Move selection grid */
+#battle-moves {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin: 15px 0;
+}
+
+.move-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border: none;
+    border-radius: 32px;
+    cursor: pointer;
+    font-weight: 600;
+    color: white;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.2);
+    transition: transform 0.2s, filter 0.2s;
+    background: var(--type-color, #a0aec0);
+}
+
+.move-btn:hover {
+    transform: translateY(-2px);
+    filter: brightness(0.95);
+}
+
+.move-btn:active {
+    transform: translateY(0);
+}
+
+.move-btn .move-icon {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    margin-right: 12px;
+    filter: drop-shadow(0 1px 1px rgba(0,0,0,0.2));
+}
+
+.move-btn .move-name {
+    flex: 1;
+    text-align: left;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+}
+
+.move-btn .move-power {
+    font-size: 0.85rem;
+    font-weight: bold;
+    background: rgba(0,0,0,0.3);
+    padding: 4px 8px;
+    border-radius: 20px;
+    margin-left: 8px;
+}
+
+@media (max-width: 600px) {
+    #battle-moves {
+        gap: 8px;
+    }
+    .move-btn {
+        padding: 8px 12px;
+    }
+    .move-icon {
+    width: 28px !important;
+    height: 28px !important;
+    image-rendering: crisp-edges; /* Keep pixel‑perfect */
+}
+    .move-name {
+        font-size: 0.75rem;
+    }
+    .move-power {
+        font-size: 0.7rem;
+        padding: 2px 6px;
+    }
+}
+
+
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
@@ -1786,13 +1865,39 @@ async function runTurn(selectedMove) {
             const currentXP = b.player.exp || 0;
             const xpPercent = Math.floor((currentXP / neededXP) * 100);
             document.getElementById('p-xp-text').innerHTML = `XP: ${currentXP}/${neededXP} (${xpPercent}%)`;
+            // Type to ID mapping (Sword/Shield order)
+            const typeToId = {
+                normal: 1, fighting: 2, flying: 3, poison: 4, ground: 5, rock: 6,
+                bug: 7, ghost: 8, steel: 9, fire: 10, water: 11, grass: 12,
+                electric: 13, psychic: 14, ice: 15, dragon: 16, dark: 17, fairy: 18
+            };
+
             const movesDiv = document.getElementById('battle-moves');
             movesDiv.innerHTML = "";
             b.player.moves.forEach(m => {
                 const btn = document.createElement('button');
-                btn.style.backgroundColor = getTypeColor(m.type);
                 btn.className = "move-btn";
-                btn.innerHTML = `<span>${m.name.toUpperCase()}</span>`;
+                btn.style.backgroundColor = getTypeColor(m.type);
+
+                const typeId = typeToId[m.type];
+                const iconUrl = typeId 
+                    ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/types/generation-viii/sword-shield/small/${typeId}.png`
+                    : null;
+                const fallbackEmoji = TYPE_ICONS[m.type] || '⚙️';
+
+                btn.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
+                        ${iconUrl ? `
+                            <img class="move-icon" src="${iconUrl}" alt="${m.type}" 
+                                onerror="this.onerror=null; this.style.display='none'; this.parentElement.querySelector('.move-icon-fallback').style.display='inline-block';"
+                                style="width: 32px; height: 32px; object-fit: contain;">
+                        ` : ''}
+                        <span class="move-icon-fallback" style="display: ${iconUrl ? 'none' : 'inline-block'};">${fallbackEmoji}</span>
+                        <span class="move-name">${m.name.toUpperCase()}</span>
+                        <span class="move-power">${m.power}</span>
+                    </div>
+                `;
+
                 btn.onclick = () => runTurn(m);
                 movesDiv.appendChild(btn);
             });

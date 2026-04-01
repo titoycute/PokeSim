@@ -590,6 +590,91 @@
             .stat-box { width: 140px; font-size: 0.75rem; }
             .move-btn { font-size: 0.7rem; padding: 6px 8px; }
         }
+
+        /* Move selection grid */
+#battle-moves {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin: 15px 0;
+}
+
+.move-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border: none;
+    border-radius: 32px;
+    cursor: pointer;
+    font-weight: 600;
+    color: white;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.2);
+    transition: transform 0.2s, filter 0.2s;
+    background: var(--type-color, #a0aec0);
+}
+
+.move-btn:hover {
+    transform: translateY(-2px);
+    filter: brightness(0.95);
+}
+
+.move-btn:active {
+    transform: translateY(0);
+}
+
+.move-btn .move-icon {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    margin-right: 12px;
+    filter: drop-shadow(0 1px 1px rgba(0,0,0,0.2));
+}
+
+.move-btn .move-name {
+    flex: 1;
+    text-align: left;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+}
+
+.move-btn .move-power {
+    font-size: 0.85rem;
+    font-weight: bold;
+    background: rgba(0,0,0,0.3);
+    padding: 4px 8px;
+    border-radius: 20px;
+    margin-left: 8px;
+}
+
+@media (max-width: 600px) {
+    #battle-moves {
+        gap: 8px;
+    }
+    .move-btn {
+        padding: 8px 12px;
+    }
+    .move-icon {
+    width: 28px !important;
+    height: 28px !important;
+    image-rendering: crisp-edges; /* Keep pixel‑perfect */
+}
+    .move-name {
+        font-size: 0.75rem;
+    }
+    .move-power {
+        font-size: 0.7rem;
+        padding: 2px 6px;
+    }
+}
+
+#preview-weaknesses .type-badge {
+    margin: 2px;
+    font-size: 0.7rem;
+}
+#preview-capture-status, #preview-encounter-count {
+    font-weight: 500;
+}
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
@@ -626,6 +711,9 @@
             <img id="preview-sprite" class="encounter-sprite" src="" alt="">
             <div id="preview-name" class="encounter-name"></div>
             <div id="preview-badges" class="encounter-badges"></div>
+            <div id="preview-weaknesses" style="margin: 10px 0; font-size: 0.9rem;"></div>
+            <div id="preview-capture-status" style="margin: 5px 0; font-size: 0.9rem;"></div>
+            <div id="preview-encounter-count" style="margin: 5px 0; font-size: 0.9rem;"></div>
             <div style="margin-top: 20px;">A wild Pokémon appeared!</div>
         </div>
     </div>
@@ -899,7 +987,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, updateDoc, deleteDoc, writeBatch, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, updateDoc, deleteDoc, writeBatch, increment, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         const POWER_PRICE_MULTIPLIER = 35;
         const firebaseConfig = { apiKey: "AIzaSyDkCE0wBrsQ1s-7zplvTtWOSE28ISaCFfQ", authDomain: "pokesim-7f9b7.firebaseapp.com", projectId: "pokesim-7f9b7", storageBucket: "pokesim-7f9b7.firebasestorage.app", messagingSenderId: "1087100425430", appId: "1:1087100425430:web:9558a79ee5330d4a792577" };
         const app = initializeApp(firebaseConfig);
@@ -1948,7 +2036,7 @@ async function generateMapFromTheme(mapConfig) {
         function renderPlayer() { document.getElementById('player').style.backgroundImage=`url(${TRAINER_GIF})`; document.getElementById('map-grid').style.transform=`translate(${275-playerPos.x*50}px,${175-playerPos.y*50}px)`; }
         async function getMoveDetails(moves) { return Promise.all(moves.slice(0,4).map(async m=>{const d=await fetch(m.move?m.move.url:m.url).then(r=>r.json()); return {name:d.name,power:d.power||40,type:d.type.name,icon:TYPE_ICONS[d.type.name]||d.type.name,accuracy:d.accuracy||100};})); }
         
-       async function startBattle() {
+async function startBattle() {
     if (!currentMap) { alert("No map loaded!"); return; }
     document.getElementById('loading-overlay').classList.remove('hidden');
     try {
@@ -2003,7 +2091,6 @@ async function generateMapFromTheme(mapConfig) {
         if (currentMap.specialLevelRange?.enabled) {
             wildLevel = Math.floor(Math.random() * (currentMap.specialLevelRange.max - currentMap.specialLevelRange.min + 1)) + currentMap.specialLevelRange.min;
         } else {
-            // Use average level of team (or just first pokemon's level)
             const avgLevel = Math.floor(team.reduce((sum, p) => sum + p.level, 0) / team.length);
             wildLevel = avgLevel + Math.floor(Math.random() * 21) - 10;
         }
@@ -2019,7 +2106,32 @@ async function generateMapFromTheme(mapConfig) {
         const isSpecial = isLegendary || isMythical || isParadox;
         const generation = getGeneration(species.generation?.url);
 
-        // Preview UI
+        // ========== NEW: Fetch owned status and encounter count BEFORE preview ==========
+        const [owned, encounterCount] = await Promise.all([
+            isSpeciesOwned(wildId),
+            getEncounterCount(wildId)
+        ]);
+
+        // Compute weaknesses
+        const allTypes = ['normal','fire','water','electric','grass','ice','fighting','poison','ground','flying','psychic','bug','rock','ghost','dragon','dark','steel','fairy'];
+        const wildTypes = wild.types.map(t => t.type.name);
+        const weaknesses = allTypes.filter(t => getTypeEffectiveness(t, wildTypes) === 2);
+
+        // Update preview elements (these will be visible during the 3-second preview)
+        const weaknessesDiv = document.getElementById('preview-weaknesses');
+        weaknessesDiv.innerHTML = weaknesses.length > 0
+            ? `<strong>Weaknesses:</strong> ${weaknesses.map(t => `<span class="type-badge" style="background: ${getTypeColor(t)};">${t.toUpperCase()}</span>`).join(' ')}`
+            : `<strong>Weaknesses:</strong> None (or neutral)`;
+
+        const captureDiv = document.getElementById('preview-capture-status');
+        captureDiv.innerHTML = owned
+            ? `<span style="color: var(--success);">✓ Already captured</span>`
+            : `<span style="color: var(--danger);">✗ Not yet captured</span>`;
+
+        const encounterDiv = document.getElementById('preview-encounter-count');
+        encounterDiv.innerHTML = `📖 Encountered ${encounterCount} time${encounterCount !== 1 ? 's' : ''} before this battle.`;
+
+        // Prepare preview modal
         const preview = document.getElementById('encounter-preview');
         const ps = document.getElementById('preview-sprite');
         const pn = document.getElementById('preview-name');
@@ -2041,20 +2153,20 @@ async function generateMapFromTheme(mapConfig) {
         if (isParadox) badgesHtml += `<span class="special-badge">🌀 PARADOX</span>`;
         badgesDiv.innerHTML = badgesHtml;
         if (isSpecial) card.classList.add('special'); else card.classList.remove('special');
+
+        // Show the preview (all info is now ready)
         preview.classList.remove('hidden');
 
-        // Wait 3 seconds for preview, then show team selection
+        // Wait 3 seconds, then proceed to team selection and battle
         setTimeout(async () => {
             preview.classList.add('hidden');
-            
-            // Show team selection modal
+
             const selectedPokemon = await showPreBattleSelectModal(team);
             if (!selectedPokemon) {
-                // User cancelled, abort battle
                 document.getElementById('loading-overlay').classList.add('hidden');
                 return;
             }
-            
+
             const activeIndex = team.findIndex(p => p.id === selectedPokemon.id);
             if (activeIndex === -1) {
                 alert("Selected Pokémon not found in team.");
@@ -2062,13 +2174,12 @@ async function generateMapFromTheme(mapConfig) {
                 return;
             }
 
-            // Start battle with chosen Pokémon
-           team[activeIndex].currentHp = team[activeIndex].maxHp;
+            team[activeIndex].currentHp = team[activeIndex].maxHp;
 
             currentBattle = {
-             playerTeam: team,
+                playerTeam: team,
                 activePokemonIndex: activeIndex,
-                player: team[activeIndex],   // direct reference – no copy!
+                player: team[activeIndex],
                 wild: {
                     pokemonId: wildId,
                     name: wild.name,
@@ -2082,6 +2193,7 @@ async function generateMapFromTheme(mapConfig) {
                     bonusStats: wildBonus
                 }
             };
+
             document.querySelectorAll('.list-container').forEach(el => el.classList.add('hidden'));
             renderBattleUI();
             document.getElementById('battle-area').classList.remove('hidden');
@@ -2090,10 +2202,11 @@ async function generateMapFromTheme(mapConfig) {
             document.getElementById('escape-btn').disabled = false;
             document.getElementById('switch-btn').disabled = false;
             document.getElementById('catch-btn').disabled = false;
+
             document.getElementById('loading-overlay').classList.add('hidden');
             playBattleMusic();
-        }, 3000);
-        
+        }, 5000);
+
     } catch (err) {
         console.error(err);
         alert("Encounter failed to load.");
@@ -2139,16 +2252,42 @@ async function generateMapFromTheme(mapConfig) {
     const xpPercent = Math.floor((currentXP / neededXP) * 100);
     document.getElementById('p-xp-text').innerHTML = `XP: ${currentXP}/${neededXP} (${xpPercent}%)`;
     
-    const mv=document.getElementById('battle-moves'); 
-    mv.innerHTML="";
-    b.player.moves.forEach(m=>{
-        const btn=document.createElement('button');
-        btn.style.backgroundColor = getTypeColor(m.type);
-        btn.className = "move-btn";
-        btn.innerHTML = `<span>${m.name.toUpperCase()}</span>`;
-        btn.onclick=()=>runTurn(m);
-        mv.appendChild(btn);
-    });
+   // Type to ID mapping (Sword/Shield order)
+const typeToId = {
+    normal: 1, fighting: 2, flying: 3, poison: 4, ground: 5, rock: 6,
+    bug: 7, ghost: 8, steel: 9, fire: 10, water: 11, grass: 12,
+    electric: 13, psychic: 14, ice: 15, dragon: 16, dark: 17, fairy: 18
+};
+
+const movesDiv = document.getElementById('battle-moves');
+movesDiv.innerHTML = "";
+b.player.moves.forEach(m => {
+    const btn = document.createElement('button');
+    btn.className = "move-btn";
+    btn.style.backgroundColor = getTypeColor(m.type);
+
+    const typeId = typeToId[m.type];
+    const iconUrl = typeId 
+        ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/types/generation-viii/sword-shield/small/${typeId}.png`
+        : null;
+    const fallbackEmoji = TYPE_ICONS[m.type] || '⚙️';
+
+    btn.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
+            ${iconUrl ? `
+                <img class="move-icon" src="${iconUrl}" alt="${m.type}" 
+                     onerror="this.onerror=null; this.style.display='none'; this.parentElement.querySelector('.move-icon-fallback').style.display='inline-block';"
+                     style="width: 32px; height: 32px; object-fit: contain;">
+            ` : ''}
+            <span class="move-icon-fallback" style="display: ${iconUrl ? 'none' : 'inline-block'};">${fallbackEmoji}</span>
+            <span class="move-name">${m.name.toUpperCase()}</span>
+            <span class="move-power">${m.power}</span>
+        </div>
+    `;
+
+    btn.onclick = () => runTurn(m);
+    movesDiv.appendChild(btn);
+});
 }
 
 
@@ -2542,6 +2681,21 @@ async function attemptSwitch() {
             await updateUserTotalEncounters(auth.currentUser.uid, 1);
             if(Object.keys(pendingRecordUpdates).length>=5) flushRecordUpdates();
             return (pendingRecordUpdates[id]?.count||1);
+        }
+
+        async function isSpeciesOwned(pokemonId) {
+            const q = query(
+                collection(db, "users", auth.currentUser.uid, "pokemon"),
+                where("pokemonId", "==", pokemonId)
+            );
+            const snap = await getDocs(q);
+            return !snap.empty;
+        }
+
+        async function getEncounterCount(pokemonId) {
+            const docRef = doc(db, "users", auth.currentUser.uid, "records", pokemonId.toString());
+            const snap = await getDoc(docRef);
+            return snap.exists() ? snap.data().count : 0;
         }
         
         async function flushRecordUpdates() {

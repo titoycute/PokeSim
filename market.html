@@ -1,0 +1,1555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>PokeSim | Market</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* === Your existing styles (unchanged) === */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Inter', system-ui, sans-serif;
+        }
+        :root {
+            --bg: #f0f2f5;
+            --card-bg: #ffffff;
+            --primary: #3b4cca;
+            --primary-dark: #00238f;
+            --accent: #ffde00;
+            --text-dark: #2d3748;
+            --text-light: #5a6e8a;
+            --border: #e2e8f0;
+            --success: #48bb78;
+            --danger: #f56565;
+        }
+        body {
+            background: var(--bg);
+            min-height: 100vh;
+            color: var(--text-dark);
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            border-radius: 32px;
+            padding: 30px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .user-info {
+            background: #fef9e3;
+            padding: 8px 16px;
+            border-radius: 40px;
+            font-weight: bold;
+            display: flex;
+            gap: 20px;
+        }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+            border-bottom: 2px solid var(--border);
+            flex-wrap: wrap;
+        }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            font-weight: 600;
+            border-radius: 40px 40px 0 0;
+            transition: 0.2s;
+            background: transparent;
+            border: none;
+            font-size: 1rem;
+        }
+        .tab.active {
+            background: var(--primary);
+            color: white;
+        }
+        .market-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .pokemon-card {
+            background: white;
+            border-radius: 24px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+        }
+        .pokemon-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 20px rgba(0,0,0,0.1);
+        }
+        .card-header {
+            position: relative;
+            background: #f8fafc;
+            padding: 15px;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+        }
+        .card-header img {
+            width: 150px;
+            height: 150px;
+            object-fit: contain;
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.2));
+        }
+        .special-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: linear-gradient(135deg, #f6d365, #fda085);
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(1); opacity: 0.8; }
+        }
+        .card-body {
+            padding: 15px;
+        }
+        .pokemon-name {
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .bonus-icons {
+            font-size: 1rem;
+        }
+        .types {
+            margin: 8px 0;
+        }
+        .type-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 16px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            margin: 0 2px;
+            color: white;
+            text-shadow: 0 1px 1px rgba(0,0,0,0.2);
+        }
+        .level-info {
+            font-size: 0.85rem;
+            color: var(--text-light);
+            margin: 8px 0;
+        }
+        .moves {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin: 10px 0;
+        }
+        .move-badge {
+            background: #f1f5f9;
+            padding: 2px 8px;
+            border-radius: 16px;
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+        .price {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--primary);
+            margin: 10px 0;
+        }
+        .stock {
+            font-size: 0.8rem;
+            color: var(--text-light);
+            margin: 5px 0;
+        }
+        .owner {
+            font-size: 0.8rem;
+            color: var(--text-light);
+            margin: 5px 0;
+        }
+        .card-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 40px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.2s;
+            font-size: 0.85rem;
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-light);
+        }
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 5000;
+            backdrop-filter: blur(4px);
+        }
+        .modal-content {
+            background: var(--card-bg);
+            border-radius: 32px;
+            padding: 30px;
+            max-width: 800px;
+            width: 90%;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+        .hidden {
+            display: none !important;
+        }
+        .flex-between {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .form-group {
+            margin: 15px 0;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            font-size: 0.9rem;
+        }
+        .warning {
+            color: var(--danger);
+            font-size: 0.8rem;
+            margin-top: 5px;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-light);
+        }
+        .empty {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-light);
+        }
+        .evolution-stage {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            min-width: 120px;
+        }
+        .evolution-stage img {
+            width: 100px;
+            height: 100px;
+            object-fit: contain;
+        }
+        .evolution-arrow {
+            font-size: 2rem;
+            margin: 0 10px;
+        }
+        .evolution-chain {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .move-table-container {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            margin: 16px 0;
+        }
+        .move-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .move-table th, .move-table td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        .move-table th {
+            position: sticky;
+            top: 0;
+            background: #f8fafc;
+        }
+        .move-select {
+            text-align: center;
+        }
+        .move-select input {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        .move-search {
+            margin-bottom: 12px;
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 40px;
+        }
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            .market-grid {
+                grid-template-columns: 1fr;
+            }
+            .evolution-arrow {
+                transform: rotate(90deg);
+                margin: 0;
+            }
+            .evolution-chain {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <div class="logo"><img src="PokeSim Word.png" alt="PokeSim" style="height:40px;"></div>
+        <div class="user-info">
+            <span><i class="fas fa-user"></i> <span id="trainer-name"></span></span>
+            <span><i class="fas fa-chart-line"></i> Lv. <span id="trainer-level">0</span></span>
+            <span><i class="fas fa-coins"></i> <span id="coin-amount">0</span></span>
+            <button id="logout-btn" class="btn btn-outline" style="padding: 4px 12px;">Logout</button>
+        </div>
+    </div>
+    <div class="tabs">
+        <button class="tab active" data-tab="shop">🏪 PokeSim Market</button>
+        <button class="tab" data-tab="sell">💰 Peso Market</button>
+        <button class="tab" data-tab="trade">🤝 Trade Market</button>
+        <button class="tab" data-tab="redeem">🎫 Redeem Codes</button>
+    </div>
+
+    <div id="shop-tab" class="tab-content">
+        <div class="flex-between">
+            <h2>PokeSim Market</h2>
+            <button id="admin-add-listing" class="btn btn-primary hidden">+ Add New Listing</button>
+        </div>
+        <div id="shop-listings" class="market-grid"></div>
+    </div>
+
+    <div id="sell-tab" class="tab-content hidden">
+        <div class="flex-between">
+            <h2>Sell Your Pokémon</h2>
+            <button id="create-sell-listing" class="btn btn-primary">List a Pokémon</button>
+        </div>
+        <div id="sell-listings" class="market-grid"></div>
+    </div>
+
+    <div id="trade-tab" class="tab-content hidden">
+        <div class="flex-between">
+            <h2>Trade Market</h2>
+            <button id="create-trade-offer" class="btn btn-primary">Create Trade Offer</button>
+        </div>
+        <div id="trade-listings" class="market-grid"></div>
+    </div>
+
+    <div id="redeem-tab" class="tab-content hidden">
+        <div class="flex-between">
+            <h2>Redeem a Code</h2>
+            <div>
+                <input type="text" id="redeem-code-input" placeholder="Enter code" style="width: 200px;">
+                <button id="redeem-code-btn" class="btn btn-primary">Redeem</button>
+            </div>
+            <button id="admin-add-code" class="btn btn-primary hidden">+ Add Code</button>
+        </div>
+        <div id="redeem-listings" class="market-grid"></div>
+    </div>
+</div>
+
+<!-- Modals -->
+<div id="shop-listing-modal" class="modal hidden"><div class="modal-content"><div class="flex-between"><h3>Add Shop Listing</h3><button id="close-shop-modal">✕</button></div><div id="shop-listing-form"></div></div></div>
+<div id="sell-listing-modal" class="modal hidden"><div class="modal-content"><div class="flex-between"><h3>Sell Your Pokémon</h3><button id="close-sell-modal">✕</button></div><div id="sell-listing-form"></div></div></div>
+<div id="trade-offer-modal" class="modal hidden"><div class="modal-content"><div class="flex-between"><h3>Create Trade Offer</h3><button id="close-trade-modal">✕</button></div><div id="trade-offer-form"></div></div></div>
+<div id="accept-trade-modal" class="modal hidden"><div class="modal-content"><div class="flex-between"><h3>Accept Trade</h3><button id="close-accept-modal">✕</button></div><div id="accept-trade-form"></div></div></div>
+<div id="evolution-modal" class="modal hidden"><div class="modal-content"><div class="flex-between"><h3>Evolution Chain</h3><button id="close-evolution-modal">✕</button></div><div id="evolution-content" class="evolution-chain"></div></div></div>
+<div id="redeem-code-modal" class="modal hidden"><div class="modal-content"><div class="flex-between"><h3>Manage Redeem Code</h3><button id="close-redeem-modal">✕</button></div><div id="redeem-code-form"></div></div></div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, getDocs, collection, addDoc, updateDoc, deleteDoc, query, where, runTransaction, increment, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyDkCE0wBrsQ1s-7zplvTtWOSE28ISaCFfQ",
+        authDomain: "pokesim-7f9b7.firebaseapp.com",
+        projectId: "pokesim-7f9b7",
+        storageBucket: "pokesim-7f9b7.firebasestorage.app",
+        messagingSenderId: "1087100425430",
+        appId: "1:1087100425430:web:9558a79ee5330d4a792577"
+    };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    let currentUser = null;
+    let userData = null;
+    let isAdmin = false;
+    let moveDatabase = [];
+
+    // ========== Helper Functions (unchanged) ==========
+    function getTypeColor(type) {
+        const colors = {
+            normal: '#A8A77A', fire: '#EE8130', water: '#6390F0', electric: '#F7D02C',
+            grass: '#7AC74C', ice: '#96D9D6', fighting: '#C22E28', poison: '#A33EA1',
+            ground: '#E2BF65', flying: '#A98FF3', psychic: '#F95587', bug: '#A6B91A',
+            rock: '#B6A136', ghost: '#735797', dragon: '#6F35FC', dark: '#705746',
+            steel: '#B7B7CE', fairy: '#D685AD'
+        };
+        return colors[type] || '#777777';
+    }
+
+    function generateTypeBadges(types) {
+        return types.map(t => `<span class="type-badge" style="background: ${getTypeColor(t)};">${t.toUpperCase()}</span>`).join('');
+    }
+
+    function getShowdownSpriteUrl(id) {
+        return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/${id}.gif`;
+    }
+
+    function getStaticSpriteUrl(id) {
+        return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
+    }
+
+    async function fetchPokemonData(id) {
+        const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
+        return res.json();
+    }
+
+    async function fetchSpeciesData(id) {
+        const res = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}`);
+        return res.json();
+    }
+
+    async function getIsSpecial(id) {
+        try {
+            const species = await fetchSpeciesData(id);
+            return species.is_legendary || species.is_mythical;
+        } catch (e) { return false; }
+    }
+
+    async function getEvolutionChain(speciesId) {
+        const species = await fetchSpeciesData(speciesId);
+        const chainRes = await fetch(species.evolution_chain.url);
+        return chainRes.json();
+    }
+
+    function parseEvolutionChain(chain) {
+        const stages = [];
+        let current = chain.chain;
+        while (current) {
+            const id = parseInt(current.species.url.split('/').filter(p=>p).pop());
+            const evoDetail = current.evolution_details[0];
+            let level = evoDetail?.min_level || (evoDetail?.min_happiness ? 'Happiness' : (evoDetail?.item ? `Item: ${evoDetail.item.name}` : null));
+            stages.push({ id, name: current.species.name, level });
+            if (current.evolves_to.length) current = current.evolves_to[0];
+            else break;
+        }
+        return stages;
+    }
+
+    async function showEvolutionModal(pokemonId, speciesId) {
+        try {
+            const chain = await getEvolutionChain(speciesId);
+            const stages = parseEvolutionChain(chain);
+            const enriched = await Promise.all(stages.map(async s => {
+                const p = await fetchPokemonData(s.id);
+                return {
+                    ...s,
+                    types: p.types.map(t=>t.type.name),
+                    sprite: getShowdownSpriteUrl(s.id)
+                };
+            }));
+            const modal = document.getElementById('evolution-modal');
+            const content = document.getElementById('evolution-content');
+            content.innerHTML = enriched.map((stage, idx) => `
+                <div class="evolution-stage">
+                    <img src="${stage.sprite}" onerror="this.src='${getStaticSpriteUrl(stage.id)}'">
+                    <strong>${stage.name.toUpperCase()}</strong>
+                    <div class="types">${generateTypeBadges(stage.types)}</div>
+                    <small>${stage.level ? `Evolves at Lv.${stage.level}` : 'Base form'}</small>
+                </div>
+                ${idx < enriched.length-1 ? '<div class="evolution-arrow">→</div>' : ''}
+            `).join('');
+            modal.classList.remove('hidden');
+            document.getElementById('close-evolution-modal').onclick = () => modal.classList.add('hidden');
+        } catch(e) {
+            alert('Could not load evolution data.');
+        }
+    }
+
+    function createPokemonCard(pokemon, actions, speciesId = null, extraInfo = null) {
+        const card = document.createElement('div');
+        card.className = 'pokemon-card';
+        const spriteUrl = getShowdownSpriteUrl(pokemon.pokemonId);
+        const fallback = getStaticSpriteUrl(pokemon.pokemonId);
+        const bonusIcons = [];
+        if (pokemon.bonusStats?.atk) bonusIcons.push('⚔️');
+        if (pokemon.bonusStats?.def) bonusIcons.push('🛡️');
+        if (pokemon.bonusStats?.spd) bonusIcons.push('🏃');
+        const bonusHtml = bonusIcons.length ? `<span class="bonus-icons">${bonusIcons.join('')}</span>` : '';
+        const movesHtml = (pokemon.moves || []).slice(0,4).map(m => `<span class="move-badge">${m.name.toUpperCase()}</span>`).join('');
+        const isSpecial = pokemon.isSpecial || false;
+        card.innerHTML = `
+            <div class="card-header">
+                <img src="${spriteUrl}" alt="${pokemon.name}" onerror="this.src='${fallback}'">
+                ${isSpecial ? '<div class="special-badge">✨ SPECIAL ✨</div>' : ''}
+            </div>
+            <div class="card-body">
+                <div class="pokemon-name">
+                    <span>${pokemon.name.toUpperCase()}</span> ${bonusHtml}
+                </div>
+                <div class="types">${generateTypeBadges(pokemon.types)}</div>
+                <div class="level-info">Lvl ${pokemon.level}</div>
+                <div class="moves">${movesHtml}</div>
+                ${pokemon.price ? `<div class="price">💰 ${pokemon.price.toLocaleString()} coins</div>` : ''}
+                ${pokemon.stock ? `<div class="stock">📦 Stock: ${pokemon.stock}</div>` : ''}
+                ${extraInfo ? `<div class="owner">👤 Owner: ${extraInfo.ownerName}</div>` : ''}
+                <div class="card-actions">
+                    ${actions.map(a => `<button class="btn ${a.class}" data-action="${a.label}">${a.label}</button>`).join('')}
+                    <button class="btn btn-outline" data-action="evolution">🔍 Evolution</button>
+                </div>
+            </div>
+        `;
+        const evoBtn = card.querySelector('[data-action="evolution"]');
+        if (speciesId) evoBtn.onclick = () => showEvolutionModal(pokemon.id, speciesId);
+        else evoBtn.onclick = () => showEvolutionModal(pokemon.pokemonId, pokemon.pokemonId);
+        card.querySelectorAll('[data-action]').forEach(btn => {
+            const label = btn.dataset.action;
+            const action = actions.find(a => a.label === label);
+            if (action) btn.onclick = action.action;
+        });
+        return card;
+    }
+
+    // ========== SHOP TAB (no coupon) ==========
+    async function loadShopListings() {
+        const container = document.getElementById('shop-listings');
+        container.innerHTML = '<div class="loading">Loading market...</div>';
+        try {
+            const snap = await getDocs(collection(db, "market_shop_listings"));
+            const listings = [];
+            snap.forEach(doc => listings.push({ id: doc.id, ...doc.data() }));
+            if (listings.length === 0) { container.innerHTML = '<div class="empty">No Pokémon available in the market yet.</div>'; return; }
+            container.innerHTML = '';
+            for (const listing of listings) {
+                const pokemon = {
+                    pokemonId: listing.pokemonId,
+                    name: listing.name,
+                    types: listing.types,
+                    level: listing.level,
+                    moves: listing.moves,
+                    bonusStats: listing.bonusStats,
+                    price: listing.price,
+                    stock: listing.stock,
+                    isSpecial: listing.isSpecial
+                };
+                const actions = [{ label: 'Buy', class: 'btn-primary', action: () => buyFromShop(listing.id, listing.price) }];
+                if (isAdmin) {
+                    actions.push({ label: 'Edit', class: 'btn-outline', action: () => showEditShopListingModal(listing) });
+                    actions.push({ label: 'Delete', class: 'btn-danger', action: () => deleteShopListing(listing.id) });
+                }
+                const card = createPokemonCard(pokemon, actions, listing.pokemonId);
+                container.appendChild(card);
+            }
+        } catch(e) { container.innerHTML = '<div class="empty">Failed to load market.</div>'; }
+    }
+
+    async function buyFromShop(listingId, price) {
+        if (!currentUser) { alert('Please log in.'); return; }
+        const userRef = doc(db, "users", currentUser.uid);
+        const userSnap = await getDoc(userRef);
+        const coins = userSnap.data()?.coins || 0;
+        if (coins < price) { alert(`Insufficient coins! Need ${price} coins.`); return; }
+        try {
+            await runTransaction(db, async (transaction) => {
+                const listingRef = doc(db, "market_shop_listings", listingId);
+                const listingSnap = await transaction.get(listingRef);
+                if (!listingSnap.exists()) throw new Error("Listing no longer exists.");
+                const listing = listingSnap.data();
+                if (listing.price !== price) throw new Error("Price mismatch.");
+                if (listing.stock <= 0) throw new Error("Out of stock.");
+
+                const newPokemon = {
+                    pokemonId: listing.pokemonId,
+                    name: listing.name,
+                    level: listing.level,
+                    exp: 0,
+                    moves: listing.moves,
+                    types: listing.types,
+                    inTeam: false,
+                    capturedAt: new Date(),
+                    bonusStats: listing.bonusStats
+                };
+                const pokemonRef = doc(collection(db, "users", currentUser.uid, "pokemon"));
+                transaction.set(pokemonRef, newPokemon);
+                transaction.update(userRef, { coins: increment(-price) });
+
+                if (listing.stock === 1) {
+                    transaction.delete(listingRef);
+                } else {
+                    transaction.update(listingRef, { stock: increment(-1) });
+                }
+            });
+            alert('Purchase successful!');
+            loadShopListings();
+            updateNavDisplay();
+        } catch (err) {
+            alert('Purchase failed: ' + err.message);
+        }
+    }
+
+    async function deleteShopListing(listingId) {
+        if (!confirm('Delete this listing?')) return;
+        await deleteDoc(doc(db, "market_shop_listings", listingId));
+        loadShopListings();
+    }
+
+    async function showEditShopListingModal(listing) {
+        await loadMoveDatabase();
+        const modal = document.getElementById('shop-listing-modal');
+        const formDiv = document.getElementById('shop-listing-form');
+        formDiv.innerHTML = `
+            <div class="form-group"><label>Pokémon ID</label><input type="number" id="listing-pokemon-id" value="${listing.pokemonId}" disabled></div>
+            <div class="form-group"><label>Level</label><input type="number" id="listing-level" value="${listing.level}" disabled></div>
+            <div class="form-group"><label>Price (coins)</label><input type="number" id="listing-price" value="${listing.price}" min="0"></div>
+            <div class="form-group"><label>Stock (quantity)</label><input type="number" id="listing-stock" value="${listing.stock}" min="1"></div>
+            <div class="form-group"><label>Bonus Stats</label>
+                <div><label><input type="checkbox" id="bonus-atk" ${listing.bonusStats?.atk ? 'checked' : ''}> ⚔️ +ATK</label></div>
+                <div><label><input type="checkbox" id="bonus-def" ${listing.bonusStats?.def ? 'checked' : ''}> 🛡️ +DEF</label></div>
+                <div><label><input type="checkbox" id="bonus-spd" ${listing.bonusStats?.spd ? 'checked' : ''}> 🏃 +SPD</label></div>
+            </div>
+            <div class="form-group"><label>Moves (select up to 4)</label><div id="move-selector-container"></div></div>
+            <button id="update-shop-listing" class="btn btn-primary">Update Listing</button>
+        `;
+        let selectedMoves = listing.moves || [];
+        await renderMoveSelector('move-selector-container', selectedMoves, (newMoves) => { selectedMoves = newMoves; });
+        modal.classList.remove('hidden');
+
+        document.getElementById('update-shop-listing').onclick = async () => {
+            const price = parseInt(formDiv.querySelector('#listing-price').value);
+            const stock = parseInt(formDiv.querySelector('#listing-stock').value);
+            const atk = formDiv.querySelector('#bonus-atk').checked;
+            const def = formDiv.querySelector('#bonus-def').checked;
+            const spd = formDiv.querySelector('#bonus-spd').checked;
+            let moves = [...selectedMoves];
+            while (moves.length < 4) moves.push({ name: 'tackle', type: 'normal', power: 40, accuracy: 100 });
+            try {
+                await updateDoc(doc(db, "market_shop_listings", listing.id), {
+                    price: price,
+                    stock: stock,
+                    bonusStats: { atk, def, spd },
+                    moves: moves.slice(0,4)
+                });
+                modal.classList.add('hidden');
+                loadShopListings();
+            } catch (e) { alert('Update failed: ' + e.message); }
+        };
+        document.getElementById('close-shop-modal').onclick = () => modal.classList.add('hidden');
+    }
+
+    // Admin add shop listing (unchanged, but coupon removed)
+    let allPokemonList = [];
+    async function loadAllPokemonNames() {
+        if (allPokemonList.length) return;
+        const res = await fetch('https://pokeapi.co/api/v2/pokemon?limit=2000');
+        const data = await res.json();
+        allPokemonList = data.results.map((p, idx) => ({ id: idx+1, name: p.name }));
+    }
+
+    async function loadMoveDatabase() {
+        if (moveDatabase.length) return;
+        try {
+            const listRes = await fetch('https://pokeapi.co/api/v2/move?limit=2000&offset=0');
+            const listData = await listRes.json();
+            const moves = [];
+            for (const m of listData.results) {
+                const detail = await fetch(m.url).then(r => r.json());
+                if (detail.power && detail.accuracy && detail.power > 0 && detail.accuracy > 0) {
+                    moves.push({
+                        name: detail.name,
+                        type: detail.type.name,
+                        power: detail.power,
+                        accuracy: detail.accuracy
+                    });
+                }
+            }
+            moveDatabase = moves;
+        } catch(e) { console.error("Failed to load moves", e); }
+    }
+
+    async function renderMoveSelector(containerId, currentMoves, onChange) {
+        await loadMoveDatabase();
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        container.innerHTML = `
+            <input type="text" class="move-search" placeholder="Search moves...">
+            <div class="move-table-container">
+                <table class="move-table">
+                    <thead><tr><th>Move</th><th>Type</th><th>Power</th><th style="width: 50px;">Select</th></tr></thead>
+                    <tbody id="move-table-body"></tbody>
+                </table>
+            </div>
+            <div class="selected-moves-preview" style="margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px;"></div>
+        `;
+        const searchInput = container.querySelector('.move-search');
+        const tbody = container.querySelector('#move-table-body');
+        const previewDiv = container.querySelector('.selected-moves-preview');
+        const selected = [...currentMoves];
+        const updatePreview = () => {
+            previewDiv.innerHTML = selected.map(m => `
+                <span style="background: ${getTypeColor(m.type)}; color: white; padding: 2px 8px; border-radius: 20px; font-size: 0.7rem;">
+                    ${m.name.toUpperCase()} (${m.power})
+                    <button class="remove-move" data-name="${m.name}" style="background: none; border: none; color: white; margin-left: 5px; cursor: pointer;">✕</button>
+                </span>
+            `).join('');
+            document.querySelectorAll('.remove-move').forEach(btn => {
+                btn.onclick = () => {
+                    const name = btn.dataset.name;
+                    const idx = selected.findIndex(m => m.name === name);
+                    if (idx !== -1) selected.splice(idx, 1);
+                    updateTable();
+                    updatePreview();
+                    if (onChange) onChange(selected);
+                };
+            });
+        };
+        const updateTable = () => {
+            const searchTerm = searchInput.value.toLowerCase();
+            const filtered = moveDatabase.filter(m => m.name.includes(searchTerm));
+            tbody.innerHTML = filtered.map(m => `
+                <tr data-name="${m.name}">
+                    <td>${m.name.toUpperCase()}</td>
+                    <td><span class="type-badge" style="background: ${getTypeColor(m.type)};">${m.type.toUpperCase()}</span></td>
+                    <td>${m.power}</td>
+                    <td class="move-select"><input type="checkbox" ${selected.some(s => s.name === m.name) ? 'checked' : ''}></td>
+                </tr>
+            `).join('');
+            tbody.querySelectorAll('tr').forEach(tr => {
+                const name = tr.dataset.name;
+                const move = moveDatabase.find(m => m.name === name);
+                const cb = tr.querySelector('input');
+                cb.onchange = () => {
+                    if (cb.checked) {
+                        if (selected.length < 4) {
+                            selected.push({
+                                name: move.name,
+                                type: move.type,
+                                power: move.power,
+                                accuracy: move.accuracy
+                            });
+                        } else {
+                            alert('You can only select up to 4 moves.');
+                            cb.checked = false;
+                        }
+                    } else {
+                        const idx = selected.findIndex(s => s.name === name);
+                        if (idx !== -1) selected.splice(idx, 1);
+                    }
+                    updatePreview();
+                    if (onChange) onChange(selected);
+                };
+            });
+        };
+        searchInput.addEventListener('input', updateTable);
+        updateTable();
+        updatePreview();
+        if (onChange) onChange(selected);
+    }
+
+    async function showAddShopListingModal() {
+        await loadAllPokemonNames();
+        await loadMoveDatabase();
+        const modal = document.getElementById('shop-listing-modal');
+        const formDiv = document.getElementById('shop-listing-form');
+        formDiv.innerHTML = `
+            <div class="form-group"><label>Pokémon ID</label><input type="number" id="listing-pokemon-id" min="1"><div id="pokemon-name-preview"></div></div>
+            <div class="form-group"><label>Level</label><input type="number" id="listing-level" value="50" min="1" max="100"></div>
+            <div class="form-group"><label>Price (coins)</label><input type="number" id="listing-price" value="5000" min="0"></div>
+            <div class="form-group"><label>Stock (quantity)</label><input type="number" id="listing-stock" value="1" min="1"></div>
+            <div class="form-group"><label>Bonus Stats</label>
+                <div><label><input type="checkbox" id="bonus-atk"> ⚔️ +ATK</label></div>
+                <div><label><input type="checkbox" id="bonus-def"> 🛡️ +DEF</label></div>
+                <div><label><input type="checkbox" id="bonus-spd"> 🏃 +SPD</label></div>
+            </div>
+            <div class="form-group"><label>Moves (select up to 4)</label><div id="move-selector-container"></div></div>
+            <button id="submit-shop-listing" class="btn btn-primary">Add Listing</button>
+        `;
+        const idInput = formDiv.querySelector('#listing-pokemon-id');
+        const preview = formDiv.querySelector('#pokemon-name-preview');
+        idInput.oninput = async () => {
+            const id = parseInt(idInput.value);
+            if (id && !isNaN(id)) {
+                try {
+                    const p = await fetchPokemonData(id);
+                    preview.innerHTML = `<strong>${p.name.toUpperCase()}</strong> ${generateTypeBadges(p.types.map(t=>t.type.name))}`;
+                } catch(e) { preview.innerHTML = '<span style="color:red;">Invalid ID</span>'; }
+            } else preview.innerHTML = '';
+        };
+        let selectedMoves = [];
+        const moveContainer = formDiv.querySelector('#move-selector-container');
+        await renderMoveSelector('move-selector-container', selectedMoves, (newMoves) => { selectedMoves = newMoves; });
+        modal.classList.remove('hidden');
+        document.getElementById('submit-shop-listing').onclick = async () => {
+            const id = parseInt(idInput.value);
+            const level = parseInt(formDiv.querySelector('#listing-level').value);
+            const price = parseInt(formDiv.querySelector('#listing-price').value);
+            const stock = parseInt(formDiv.querySelector('#listing-stock').value);
+            const atk = formDiv.querySelector('#bonus-atk').checked;
+            const def = formDiv.querySelector('#bonus-def').checked;
+            const spd = formDiv.querySelector('#bonus-spd').checked;
+            if (!id || isNaN(id) || id < 1) { alert('Enter a valid Pokémon ID.'); return; }
+            try {
+                const pokemon = await fetchPokemonData(id);
+                const types = pokemon.types.map(t => t.type.name);
+                const isSpecial = await getIsSpecial(id);
+                let moves = [...selectedMoves];
+                while (moves.length < 4) moves.push({ name: 'tackle', type: 'normal', power: 40, accuracy: 100 });
+                const listing = {
+                    pokemonId: id,
+                    name: pokemon.name,
+                    types: types,
+                    level: level,
+                    moves: moves.slice(0,4),
+                    bonusStats: { atk, def, spd },
+                    price: price,
+                    stock: stock,
+                    isSpecial: isSpecial,
+                    createdAt: new Date()
+                };
+                await addDoc(collection(db, "market_shop_listings"), listing);
+                modal.classList.add('hidden');
+                loadShopListings();
+            } catch(e) { alert('Error: ' + e.message); }
+        };
+        document.getElementById('close-shop-modal').onclick = () => modal.classList.add('hidden');
+    }
+
+    // ========== SELL LISTINGS (unchanged) ==========
+    async function loadSellListings() {
+        const container = document.getElementById('sell-listings');
+        container.innerHTML = '<div class="loading">Loading listings...</div>';
+        try {
+            const snap = await getDocs(collection(db, "market_sell_listings"));
+            const listings = [];
+            snap.forEach(doc => listings.push({ id: doc.id, ...doc.data() }));
+            if (listings.length === 0) { container.innerHTML = '<div class="empty">No Pokémon for sale.</div>'; return; }
+            container.innerHTML = '';
+            for (const listing of listings) {
+                const pokemon = {
+                    pokemonId: listing.pokemonId,
+                    name: listing.name,
+                    types: listing.types,
+                    level: listing.level,
+                    moves: listing.moves,
+                    bonusStats: listing.bonusStats,
+                    price: listing.price,
+                    isSpecial: listing.isSpecial
+                };
+                const actions = [{ label: 'Buy', class: 'btn-primary', action: () => buyFromSellListing(listing.id, listing.price, listing.ownerId) }];
+                if (listing.ownerId === currentUser?.uid) actions.push({ label: 'Cancel', class: 'btn-danger', action: () => cancelSellListing(listing.id) });
+                const extraInfo = { ownerName: listing.ownerName || "Unknown" };
+                const card = createPokemonCard(pokemon, actions, listing.pokemonId, extraInfo);
+                container.appendChild(card);
+            }
+        } catch(e) { container.innerHTML = '<div class="empty">Failed to load listings.</div>'; }
+    }
+
+    async function showCreateSellListingModal() {
+        const owned = await getUserPokemon();
+        if (owned.length === 0) { alert('You have no Pokémon to sell.'); return; }
+        const listedSnap = await getDocs(collection(db, "market_sell_listings"));
+        const listedIds = new Set();
+        listedSnap.forEach(d => listedIds.add(d.data().originalPokemonId));
+        const available = owned.filter(p => !listedIds.has(p.id));
+        if (available.length === 0) { alert('All your Pokémon are already listed for sale.'); return; }
+
+        const modal = document.getElementById('sell-listing-modal');
+        const formDiv = document.getElementById('sell-listing-form');
+        formDiv.innerHTML = `
+            <div class="form-group"><label>Select Pokémon</label><select id="sell-pokemon-select">
+                ${available.map(p => `<option value="${p.id}" data-name="${p.name}" data-level="${p.level}" data-types='${JSON.stringify(p.types)}' data-moves='${JSON.stringify(p.moves)}' data-bonus='${JSON.stringify(p.bonusStats)}' data-pokemonid="${p.pokemonId}">${p.name.toUpperCase()} (Lv.${p.level})</option>`).join('')}
+            </select></div>
+            <div class="form-group"><label>Price (coins)</label><input type="number" id="sell-price" value="1000" min="1"></div>
+            <button id="submit-sell-listing" class="btn btn-primary">List for Sale</button>
+        `;
+        modal.classList.remove('hidden');
+
+        document.getElementById('submit-sell-listing').onclick = async () => {
+            const select = formDiv.querySelector('#sell-pokemon-select');
+            const selectedOption = select.options[select.selectedIndex];
+            const pokemonId = select.value;
+            const price = parseInt(formDiv.querySelector('#sell-price').value);
+
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const pokemonRef = doc(db, "users", currentUser.uid, "pokemon", pokemonId);
+                    const pokemonSnap = await transaction.get(pokemonRef);
+                    if (!pokemonSnap.exists()) throw new Error("Pokémon no longer exists.");
+                    const pokemonData = pokemonSnap.data();
+
+                    const listing = {
+                        ownerId: currentUser.uid,
+                        ownerName: userData?.trainerName || currentUser.email,
+                        originalPokemonId: pokemonId,
+                        pokemonId: pokemonData.pokemonId,
+                        name: pokemonData.name,
+                        types: pokemonData.types,
+                        level: pokemonData.level,
+                        moves: pokemonData.moves,
+                        bonusStats: pokemonData.bonusStats,
+                        price: price,
+                        isSpecial: pokemonData.isSpecial || false,
+                        createdAt: new Date()
+                    };
+                    transaction.delete(pokemonRef);
+                    const listingRef = doc(collection(db, "market_sell_listings"));
+                    transaction.set(listingRef, listing);
+                });
+                modal.classList.add('hidden');
+                loadSellListings();
+                updateNavDisplay();
+                alert('Pokémon listed for sale.');
+            } catch (err) {
+                alert('Failed to list: ' + err.message);
+            }
+        };
+        document.getElementById('close-sell-modal').onclick = () => modal.classList.add('hidden');
+    }
+
+    async function cancelSellListing(listingId) {
+        if (!confirm('Remove this listing? The Pokémon will be returned to your collection.')) return;
+        try {
+            await runTransaction(db, async (transaction) => {
+                const listingRef = doc(db, "market_sell_listings", listingId);
+                const listingSnap = await transaction.get(listingRef);
+                if (!listingSnap.exists()) throw new Error("Listing no longer exists.");
+                const listing = listingSnap.data();
+                if (listing.ownerId !== currentUser.uid) throw new Error("You can only cancel your own listings.");
+
+                const restoredPokemon = {
+                    pokemonId: listing.pokemonId,
+                    name: listing.name,
+                    level: listing.level,
+                    exp: 0,
+                    moves: listing.moves,
+                    types: listing.types,
+                    inTeam: false,
+                    capturedAt: new Date(),
+                    bonusStats: listing.bonusStats,
+                    isSpecial: listing.isSpecial
+                };
+                const newPokemonRef = doc(collection(db, "users", currentUser.uid, "pokemon"));
+                transaction.set(newPokemonRef, restoredPokemon);
+                transaction.delete(listingRef);
+            });
+            loadSellListings();
+            updateNavDisplay();
+            alert('Listing cancelled. Pokémon returned to your collection.');
+        } catch (err) {
+            alert('Cancellation failed: ' + err.message);
+        }
+    }
+
+    async function buyFromSellListing(listingId, price, sellerId) {
+        if (!currentUser) { alert('Please log in.'); return; }
+        if (sellerId === currentUser.uid) { alert('You cannot buy your own listing.'); return; }
+        try {
+            await runTransaction(db, async (transaction) => {
+                const listingRef = doc(db, "market_sell_listings", listingId);
+                const listingSnap = await transaction.get(listingRef);
+                if (!listingSnap.exists()) throw new Error("Listing no longer exists.");
+                const listing = listingSnap.data();
+                if (listing.price !== price) throw new Error("Price mismatch.");
+                if (listing.ownerId !== sellerId) throw new Error("Invalid seller.");
+
+                const buyerRef = doc(db, "users", currentUser.uid);
+                const buyerSnap = await transaction.get(buyerRef);
+                const buyerCoins = buyerSnap.data()?.coins || 0;
+                if (buyerCoins < price) throw new Error("Insufficient coins.");
+
+                const sellerRef = doc(db, "users", sellerId);
+                transaction.update(sellerRef, { coins: increment(price) });
+                transaction.update(buyerRef, { coins: increment(-price) });
+
+                const newPokemon = {
+                    pokemonId: listing.pokemonId,
+                    name: listing.name,
+                    level: listing.level,
+                    exp: 0,
+                    moves: listing.moves,
+                    types: listing.types,
+                    inTeam: false,
+                    capturedAt: new Date(),
+                    bonusStats: listing.bonusStats,
+                    isSpecial: listing.isSpecial || false
+                };
+                const buyerPokemonRef = doc(collection(db, "users", currentUser.uid, "pokemon"));
+                transaction.set(buyerPokemonRef, newPokemon);
+                transaction.delete(listingRef);
+            });
+            alert('Purchase successful!');
+            loadSellListings();
+            updateNavDisplay();
+        } catch (err) {
+            alert('Purchase failed: ' + err.message);
+        }
+    }
+
+    // ========== TRADE OFFERS (unchanged) ==========
+    async function loadTradeListings() {
+        const container = document.getElementById('trade-listings');
+        container.innerHTML = '<div class="loading">Loading trades...</div>';
+        try {
+            const q = query(collection(db, "market_trade_offers"), where("status", "==", "open"));
+            const snap = await getDocs(q);
+            const offers = [];
+            snap.forEach(doc => offers.push({ id: doc.id, ...doc.data() }));
+            if (offers.length === 0) { container.innerHTML = '<div class="empty">No open trade offers.</div>'; return; }
+            container.innerHTML = '';
+            for (const offer of offers) {
+                const pokemon = {
+                    pokemonId: offer.pokemonId,
+                    name: offer.pokemonName,
+                    types: offer.pokemonTypes,
+                    level: offer.pokemonLevel,
+                    moves: offer.pokemonMoves,
+                    bonusStats: offer.pokemonBonusStats,
+                    price: null,
+                    isSpecial: offer.isSpecial
+                };
+                const actions = [{ label: 'Accept', class: 'btn-primary', action: () => showAcceptTradeModal(offer) }];
+                if (offer.ownerId === currentUser?.uid) actions.push({ label: 'Cancel', class: 'btn-danger', action: () => cancelTradeOffer(offer.id) });
+                const extraInfo = { ownerName: offer.ownerName || "Unknown" };
+                const card = createPokemonCard(pokemon, actions, offer.pokemonId, extraInfo);
+                const requestDiv = document.createElement('div');
+                requestDiv.className = 'price';
+                requestDiv.innerHTML = `🔄 Wants: ${offer.requestPokemonName ? offer.requestPokemonName.toUpperCase() : 'Any Pokémon'}`;
+                card.querySelector('.card-body').appendChild(requestDiv);
+                container.appendChild(card);
+            }
+        } catch(e) { container.innerHTML = '<div class="empty">Failed to load trades.</div>'; }
+    }
+
+    async function showCreateTradeOfferModal() {
+        const owned = await getUserPokemon();
+        if (owned.length === 0) { alert('You have no Pokémon to offer.'); return; }
+        const listedSnap = await getDocs(collection(db, "market_trade_offers"));
+        const listedIds = new Set();
+        listedSnap.forEach(d => listedIds.add(d.data().originalPokemonId));
+        const available = owned.filter(p => !listedIds.has(p.id));
+        if (available.length === 0) { alert('All your Pokémon are already listed in trades.'); return; }
+
+        const modal = document.getElementById('trade-offer-modal');
+        const formDiv = document.getElementById('trade-offer-form');
+        formDiv.innerHTML = `
+            <div class="form-group"><label>Your Pokémon</label><select id="trade-pokemon-select">
+                ${available.map(p => `<option value="${p.id}" data-name="${p.name}" data-level="${p.level}" data-types='${JSON.stringify(p.types)}' data-moves='${JSON.stringify(p.moves)}' data-bonus='${JSON.stringify(p.bonusStats)}' data-pokemonid="${p.pokemonId}">${p.name.toUpperCase()} (Lv.${p.level})</option>`).join('')}
+            </select></div>
+            <div class="form-group"><label>Requested Pokémon (ID or name)</label><input type="text" id="request-pokemon" placeholder="e.g., 25 or Pikachu"><div class="warning">Leave empty for any Pokémon.</div></div>
+            <button id="submit-trade-offer" class="btn btn-primary">Post Trade</button>
+        `;
+        modal.classList.remove('hidden');
+
+        document.getElementById('submit-trade-offer').onclick = async () => {
+            const select = formDiv.querySelector('#trade-pokemon-select');
+            const selectedOption = select.options[select.selectedIndex];
+            const pokemonId = select.value;
+            const reqPokemon = formDiv.querySelector('#request-pokemon').value.trim();
+
+            let requestPokemonId = null;
+            let requestPokemonName = null;
+            if (reqPokemon) {
+                const id = parseInt(reqPokemon);
+                if (!isNaN(id)) {
+                    requestPokemonId = id;
+                } else {
+                    const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${reqPokemon.toLowerCase()}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        requestPokemonId = data.id;
+                        requestPokemonName = data.name;
+                    } else {
+                        alert('Could not find that Pokémon. Leave empty for any Pokémon.');
+                        return;
+                    }
+                }
+            }
+
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const pokemonRef = doc(db, "users", currentUser.uid, "pokemon", pokemonId);
+                    const pokemonSnap = await transaction.get(pokemonRef);
+                    if (!pokemonSnap.exists()) throw new Error("Pokémon no longer exists.");
+                    const pokemonData = pokemonSnap.data();
+
+                    const offer = {
+                        ownerId: currentUser.uid,
+                        ownerName: userData?.trainerName || currentUser.email,
+                        originalPokemonId: pokemonId,
+                        pokemonId: pokemonData.pokemonId,
+                        pokemonName: pokemonData.name,
+                        pokemonTypes: pokemonData.types,
+                        pokemonLevel: pokemonData.level,
+                        pokemonMoves: pokemonData.moves,
+                        pokemonBonusStats: pokemonData.bonusStats,
+                        requestType: 'pokemon',
+                        requestPokemonId: requestPokemonId,
+                        requestPokemonName: requestPokemonName,
+                        isSpecial: pokemonData.isSpecial || false,
+                        status: 'open',
+                        createdAt: new Date()
+                    };
+                    transaction.delete(pokemonRef);
+                    const offerRef = doc(collection(db, "market_trade_offers"));
+                    transaction.set(offerRef, offer);
+                });
+                modal.classList.add('hidden');
+                loadTradeListings();
+                updateNavDisplay();
+                alert('Trade offer posted.');
+            } catch (err) {
+                alert('Failed to post trade: ' + err.message);
+            }
+        };
+        document.getElementById('close-trade-modal').onclick = () => modal.classList.add('hidden');
+    }
+
+    async function cancelTradeOffer(offerId) {
+        if (!confirm('Cancel this trade offer? The Pokémon will be returned to your collection.')) return;
+        try {
+            await runTransaction(db, async (transaction) => {
+                const offerRef = doc(db, "market_trade_offers", offerId);
+                const offerSnap = await transaction.get(offerRef);
+                if (!offerSnap.exists()) throw new Error("Offer no longer exists.");
+                const offer = offerSnap.data();
+                if (offer.ownerId !== currentUser.uid) throw new Error("You can only cancel your own offers.");
+
+                const restoredPokemon = {
+                    pokemonId: offer.pokemonId,
+                    name: offer.pokemonName,
+                    level: offer.pokemonLevel,
+                    exp: 0,
+                    moves: offer.pokemonMoves,
+                    types: offer.pokemonTypes,
+                    inTeam: false,
+                    capturedAt: new Date(),
+                    bonusStats: offer.pokemonBonusStats,
+                    isSpecial: offer.isSpecial || false
+                };
+                const newPokemonRef = doc(collection(db, "users", currentUser.uid, "pokemon"));
+                transaction.set(newPokemonRef, restoredPokemon);
+                transaction.delete(offerRef);
+            });
+            loadTradeListings();
+            updateNavDisplay();
+            alert('Trade offer cancelled. Pokémon returned to your collection.');
+        } catch (err) {
+            alert('Cancellation failed: ' + err.message);
+        }
+    }
+
+    async function showAcceptTradeModal(offer) {
+        if (offer.ownerId === currentUser.uid) { alert('You cannot accept your own trade.'); return; }
+        const userPokemon = await getUserPokemon();
+        if (userPokemon.length === 0) { alert('You have no Pokémon to offer.'); return; }
+
+        const modal = document.getElementById('accept-trade-modal');
+        const formDiv = document.getElementById('accept-trade-form');
+        let formHtml = `<div class="form-group"><label>Your Offer</label><select id="offer-pokemon-select">
+            <option value="">Select a Pokémon</option>
+            ${userPokemon.map(p => `<option value="${p.id}" data-name="${p.name}" data-level="${p.level}" data-pokemonid="${p.pokemonId}">${p.name.toUpperCase()} (Lv.${p.level})</option>`).join('')}
+        </select>`;
+        if (offer.requestPokemonId) {
+            formHtml += `<div class="warning">Must match: ${offer.requestPokemonName || offer.requestPokemonId}</div>`;
+        }
+        formHtml += `</div><button id="confirm-accept" class="btn btn-primary">Accept Trade</button>`;
+        formDiv.innerHTML = formHtml;
+        modal.classList.remove('hidden');
+
+        document.getElementById('confirm-accept').onclick = async () => {
+            const selectedId = formDiv.querySelector('#offer-pokemon-select').value;
+            if (!selectedId) { alert('Select a Pokémon to offer.'); return; }
+
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const offerRef = doc(db, "market_trade_offers", offer.id);
+                    const offerSnap = await transaction.get(offerRef);
+                    if (!offerSnap.exists()) throw new Error("Trade no longer available.");
+                    const currentOffer = offerSnap.data();
+                    if (currentOffer.status !== 'open') throw new Error("Trade already completed.");
+
+                    const offeredPokemonRef = doc(db, "users", currentUser.uid, "pokemon", selectedId);
+                    const offeredSnap = await transaction.get(offeredPokemonRef);
+                    if (!offeredSnap.exists()) throw new Error("You no longer have that Pokémon.");
+                    const offeredPokemon = offeredSnap.data();
+
+                    if (currentOffer.requestPokemonId && offeredPokemon.pokemonId !== currentOffer.requestPokemonId) {
+                        throw new Error("The offered Pokémon does not match the requested species.");
+                    }
+
+                    transaction.delete(offeredPokemonRef);
+
+                    const offererPokemon = {
+                        pokemonId: offeredPokemon.pokemonId,
+                        name: offeredPokemon.name,
+                        level: offeredPokemon.level,
+                        exp: 0,
+                        moves: offeredPokemon.moves,
+                        types: offeredPokemon.types,
+                        inTeam: false,
+                        capturedAt: new Date(),
+                        bonusStats: offeredPokemon.bonusStats,
+                        isSpecial: offeredPokemon.isSpecial || false
+                    };
+                    const offererPokemonRef = doc(collection(db, "users", currentOffer.ownerId, "pokemon"));
+                    transaction.set(offererPokemonRef, offererPokemon);
+
+                    const accepterPokemon = {
+                        pokemonId: currentOffer.pokemonId,
+                        name: currentOffer.pokemonName,
+                        level: currentOffer.pokemonLevel,
+                        exp: 0,
+                        moves: currentOffer.pokemonMoves,
+                        types: currentOffer.pokemonTypes,
+                        inTeam: false,
+                        capturedAt: new Date(),
+                        bonusStats: currentOffer.pokemonBonusStats,
+                        isSpecial: currentOffer.isSpecial || false
+                    };
+                    const accepterPokemonRef = doc(collection(db, "users", currentUser.uid, "pokemon"));
+                    transaction.set(accepterPokemonRef, accepterPokemon);
+
+                    transaction.update(offerRef, { status: 'accepted' });
+                });
+                alert('Trade completed!');
+                loadTradeListings();
+                updateNavDisplay();
+                modal.classList.add('hidden');
+            } catch (err) {
+                alert('Trade failed: ' + err.message);
+            }
+        };
+        document.getElementById('close-accept-modal').onclick = () => modal.classList.add('hidden');
+    }
+
+    // ========== REDEEM CODES ==========
+    async function loadRedeemListings() {
+        const container = document.getElementById('redeem-listings');
+        container.innerHTML = '<div class="loading">Loading codes...</div>';
+        try {
+            const snap = await getDocs(collection(db, "redeem_codes"));
+            const codes = [];
+            snap.forEach(doc => codes.push({ id: doc.id, ...doc.data() }));
+            if (codes.length === 0) { container.innerHTML = '<div class="empty">No active redeem codes.</div>'; return; }
+            container.innerHTML = '';
+            for (const codeDoc of codes) {
+                // Check if code is still valid (stock > 0 and not expired)
+                const now = new Date();
+                const expiry = codeDoc.expiry ? codeDoc.expiry.toDate() : null;
+                if (codeDoc.stock <= 0 || (expiry && expiry < now)) continue;
+
+                const pokemon = {
+                    pokemonId: codeDoc.pokemonId,
+                    name: codeDoc.name,
+                    types: codeDoc.types,
+                    level: codeDoc.level,
+                    moves: codeDoc.moves,
+                    bonusStats: codeDoc.bonusStats,
+                    isSpecial: codeDoc.isSpecial
+                };
+                const actions = [{ label: 'Redeem', class: 'btn-primary', action: () => redeemCode(codeDoc.id, codeDoc.code) }];
+                if (isAdmin) {
+                    actions.push({ label: 'Edit', class: 'btn-outline', action: () => showEditRedeemCodeModal(codeDoc) });
+                    actions.push({ label: 'Delete', class: 'btn-danger', action: () => deleteRedeemCode(codeDoc.id) });
+                }
+                // Add stock and expiry info
+                const extraInfo = {
+                    stock: codeDoc.stock,
+                    expiry: expiry ? expiry.toLocaleDateString() : 'No expiry',
+                    code: isAdmin ? codeDoc.code : '••••••'
+                };
+                const card = createPokemonCard(pokemon, actions, codeDoc.pokemonId);
+                const infoDiv = document.createElement('div');
+                infoDiv.className = 'price';
+                infoDiv.innerHTML = `🎟️ Code: ${extraInfo.code}<br>📦 Stock: ${extraInfo.stock}<br>⏰ Expires: ${extraInfo.expiry}`;
+                card.querySelector('.card-body').appendChild(infoDiv);
+                container.appendChild(card);
+            }
+            if (container.children.length === 0) container.innerHTML = '<div class="empty">No active redeem codes.</div>';
+        } catch(e) { container.innerHTML = '<div class="empty">Failed to load codes.</div>'; }
+    }
+
+    async function redeemCode(codeId, code) {
+        if (!currentUser) { alert('Please log in.'); return; }
+        const enteredCode = prompt("Enter the redeem code:");
+        if (!enteredCode) return;
+        if (enteredCode !== code) { alert("Invalid code."); return; }
+
+        try {
+            await runTransaction(db, async (transaction) => {
+                const codeRef = doc(db, "redeem_codes", codeId);
+                const codeSnap = await transaction.get(codeRef);
+                if (!codeSnap.exists()) throw new Error("Code no longer exists.");
+                const codeData = codeSnap.data();
+                const now = new Date();
+                const expiry = codeData.expiry ? codeData.expiry.toDate() : null;
+                if (codeData.stock <= 0) throw new Error("No stock remaining.");
+                if (expiry && expiry < now) throw new Error("This code has expired.");
+
+                // Check if user already redeemed this code
+                const claimRef = doc(db, "redeem_codes", codeId, "claims", currentUser.uid);
+                const claimSnap = await transaction.get(claimRef);
+                if (claimSnap.exists()) throw new Error("You have already redeemed this code.");
+
+                // Create the Pokémon for the user
+                const newPokemon = {
+                    pokemonId: codeData.pokemonId,
+                    name: codeData.name,
+                    level: codeData.level,
+                    exp: 0,
+                    moves: codeData.moves,
+                    types: codeData.types,
+                    inTeam: false,
+                    capturedAt: new Date(),
+                    bonusStats: codeData.bonusStats,
+                    isSpecial: codeData.isSpecial || false
+                };
+                const pokemonRef = doc(collection(db, "users", currentUser.uid, "pokemon"));
+                transaction.set(pokemonRef, newPokemon);
+
+                // Decrement stock
+                if (codeData.stock === 1) {
+                    transaction.delete(codeRef);
+                } else {
+                    transaction.update(codeRef, { stock: increment(-1) });
+                }
+                // Record claim
+                transaction.set(claimRef, { redeemedAt: serverTimestamp() });
+            });
+            alert('Code redeemed successfully!');
+            loadRedeemListings();
+            updateNavDisplay();
+        } catch (err) {
+            alert('Redemption failed: ' + err.message);
+        }
+    }
+
+    async function deleteRedeemCode(codeId) {
+        if (!confirm('Delete this code?')) return;
+        await deleteDoc(doc(db, "redeem_codes", codeId));
+        loadRedeemListings();
+    }
+
+    async function showAddRedeemCodeModal() {
+        await loadAllPokemonNames();
+        await loadMoveDatabase();
+        const modal = document.getElementById('redeem-code-modal');
+        const formDiv = document.getElementById('redeem-code-form');
+        formDiv.innerHTML = `
+            <div class="form-group"><label>Pokémon ID</label><input type="number" id="code-pokemon-id" min="1"><div id="pokemon-name-preview"></div></div>
+            <div class="form-group"><label>Level</label><input type="number" id="code-level" value="50" min="1" max="100"></div>
+            <div class="form-group"><label>Stock (number of uses)</label><input type="number" id="code-stock" value="1" min="1"></div>
+            <div class="form-group"><label>Expiration (optional)</label><input type="datetime-local" id="code-expiry"></div>
+            <div class="form-group"><label>Bonus Stats</label>
+                <div><label><input type="checkbox" id="code-bonus-atk"> ⚔️ +ATK</label></div>
+                <div><label><input type="checkbox" id="code-bonus-def"> 🛡️ +DEF</label></div>
+                <div><label><input type="checkbox" id="code-bonus-spd"> 🏃 +SPD</label></div>
+            </div>
+            <div class="form-group"><label>Moves (select up to 4)</label><div id="code-move-selector-container"></div></div>
+            <button id="submit-redeem-code" class="btn btn-primary">Create Code</button>
+        `;
+        const idInput = formDiv.querySelector('#code-pokemon-id');
+        const preview = formDiv.querySelector('#pokemon-name-preview');
+        idInput.oninput = async () => {
+            const id = parseInt(idInput.value);
+            if (id && !isNaN(id)) {
+                try {
+                    const p = await fetchPokemonData(id);
+                    preview.innerHTML = `<strong>${p.name.toUpperCase()}</strong> ${generateTypeBadges(p.types.map(t=>t.type.name))}`;
+                } catch(e) { preview.innerHTML = '<span style="color:red;">Invalid ID</span>'; }
+            } else preview.innerHTML = '';
+        };
+        let selectedMoves = [];
+        const moveContainer = formDiv.querySelector('#code-move-selector-container');
+        await renderMoveSelector('code-move-selector-container', selectedMoves, (newMoves) => { selectedMoves = newMoves; });
+        modal.classList.remove('hidden');
+
+        document.getElementById('submit-redeem-code').onclick = async () => {
+            const id = parseInt(idInput.value);
+            const level = parseInt(formDiv.querySelector('#code-level').value);
+            const stock = parseInt(formDiv.querySelector('#code-stock').value);
+            const expiryStr = formDiv.querySelector('#code-expiry').value;
+            const atk = formDiv.querySelector('#code-bonus-atk').checked;
+            const def = formDiv.querySelector('#code-bonus-def').checked;
+            const spd = formDiv.querySelector('#code-bonus-spd').checked;
+            if (!id || isNaN(id) || id < 1) { alert('Enter a valid Pokémon ID.'); return; }
+            try {
+                const pokemon = await fetchPokemonData(id);
+                const types = pokemon.types.map(t => t.type.name);
+                const isSpecial = await getIsSpecial(id);
+                let moves = [...selectedMoves];
+                while (moves.length < 4) moves.push({ name: 'tackle', type: 'normal', power: 40, accuracy: 100 });
+                const code = generateRandomCode(); // implement a function to generate unique codes
+                const codeData = {
+                    code: code,
+                    pokemonId: id,
+                    name: pokemon.name,
+                    types: types,
+                    level: level,
+                    moves: moves.slice(0,4),
+                    bonusStats: { atk, def, spd },
+                    stock: stock,
+                    isSpecial: isSpecial,
+                    createdAt: new Date()
+                };
+                if (expiryStr) codeData.expiry = new Date(expiryStr);
+                await addDoc(collection(db, "redeem_codes"), codeData);
+                modal.classList.add('hidden');
+                loadRedeemListings();
+                alert(`Code created: ${code}`);
+            } catch(e) { alert('Error: ' + e.message); }
+        };
+        document.getElementById('close-redeem-modal').onclick = () => modal.classList.add('hidden');
+    }
+
+    function generateRandomCode() {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        let code = '';
+        for (let i = 0; i < 8; i++) code += chars[Math.floor(Math.random() * chars.length)];
+        return code;
+    }
+
+    async function showEditRedeemCodeModal(codeDoc) {
+        await loadMoveDatabase();
+        const modal = document.getElementById('redeem-code-modal');
+        const formDiv = document.getElementById('redeem-code-form');
+        formDiv.innerHTML = `
+            <div class="form-group"><label>Code</label><input type="text" id="edit-code" value="${codeDoc.code}" disabled></div>
+            <div class="form-group"><label>Stock</label><input type="number" id="edit-stock" value="${codeDoc.stock}" min="0"></div>
+            <div class="form-group"><label>Expiration (optional)</label><input type="datetime-local" id="edit-expiry" value="${codeDoc.expiry ? new Date(codeDoc.expiry.toDate()).toISOString().slice(0,16) : ''}"></div>
+            <button id="update-redeem-code" class="btn btn-primary">Update</button>
+        `;
+        modal.classList.remove('hidden');
+        document.getElementById('update-redeem-code').onclick = async () => {
+            const stock = parseInt(formDiv.querySelector('#edit-stock').value);
+            const expiryStr = formDiv.querySelector('#edit-expiry').value;
+            const updates = { stock: stock };
+            if (expiryStr) updates.expiry = new Date(expiryStr);
+            else updates.expiry = null;
+            await updateDoc(doc(db, "redeem_codes", codeDoc.id), updates);
+            modal.classList.add('hidden');
+            loadRedeemListings();
+        };
+        document.getElementById('close-redeem-modal').onclick = () => modal.classList.add('hidden');
+    }
+
+    // ========== Common functions ==========
+    async function getUserPokemon() {
+        const snap = await getDocs(collection(db, "users", currentUser.uid, "pokemon"));
+        const list = [];
+        snap.forEach(d => list.push({ id: d.id, ...d.data() }));
+        return list;
+    }
+
+    async function updateNavDisplay() {
+        if (!currentUser) return;
+        const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+        const data = userDoc.data();
+        document.getElementById('trainer-name').innerText = data?.trainerName || currentUser.email.split('@')[0];
+        document.getElementById('trainer-level').innerText = data?.totalLevels || 0;
+        document.getElementById('coin-amount').innerText = data?.coins?.toLocaleString() || '0';
+    }
+
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+        document.getElementById(`${tabId}-tab`).classList.remove('hidden');
+        document.querySelectorAll('.tab').forEach(btn => btn.classList.remove('active'));
+        document.querySelector(`.tab[data-tab="${tabId}"]`).classList.add('active');
+        if (tabId === 'shop') loadShopListings();
+        else if (tabId === 'sell') loadSellListings();
+        else if (tabId === 'trade') loadTradeListings();
+        else if (tabId === 'redeem') loadRedeemListings();
+    }
+
+    document.querySelectorAll('.tab').forEach(btn => btn.onclick = () => switchTab(btn.dataset.tab));
+    document.getElementById('redeem-code-btn').onclick = () => {
+        // Prompt for code – will be handled in the modal? Actually we already have a redeem button per code.
+        alert('Enter the code from the Pokémon card.');
+    };
+
+    onAuthStateChanged(auth, async (user) => {
+        if (!user) { window.location.href = 'index.html'; return; }
+        currentUser = user;
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        userData = userDoc.data();
+        isAdmin = userData?.role === 'admin';
+        if (isAdmin) {
+            document.getElementById('admin-add-listing').classList.remove('hidden');
+            document.getElementById('admin-add-code').classList.remove('hidden');
+        }
+        document.getElementById('admin-add-listing').onclick = showAddShopListingModal;
+        document.getElementById('create-sell-listing').onclick = showCreateSellListingModal;
+        document.getElementById('create-trade-offer').onclick = showCreateTradeOfferModal;
+        document.getElementById('admin-add-code').onclick = showAddRedeemCodeModal;
+        document.getElementById('logout-btn').onclick = () => signOut(auth).then(() => window.location.href = 'index.html');
+        await updateNavDisplay();
+        switchTab('shop');
+    });
+</script>
+</body>
+</html>

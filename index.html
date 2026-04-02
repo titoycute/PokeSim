@@ -770,14 +770,20 @@
             <h2 id="starter-modal-title">🧑🏽‍💻 Mabuhay trainer!</h2>
             
             <!-- Selection View -->
-            <div id="starter-selection-view">
-                <div style="display: flex; align-items: center; gap: 20px; margin: 20px 0;">
-                    <div id="trainer-sprite-preview" style="width: 80px; height: 80px; background-size: contain; background-repeat: no-repeat; background-position: center; background-image: url('https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/078dadf7-4d9b-4bf4-9855-0112be351700/d54f6cb-230b552c-50d1-45ad-be7e-7eab211c1cf8.gif?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7InBhdGgiOiIvZi8wNzhkYWRmNy00ZDliLTRiZjQtOTg1NS0wMTEyYmUzNTE3MDAvZDU0ZjZjYi0yMzBiNTUyYy01MGQxLTQ1YWQtYmU3ZS03ZWFiMjExYzFjZjguZ2lmIn1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmZpbGUuZG93bmxvYWQiXX0.A8hNnEQQMDN-XZI-VOQkzR71AozVAvgQDF6FcAAqi6M')"></div>
-                    <input type="text" id="trainer-name-input" placeholder="Enter your trainer name" style="flex: 1;">
-                </div>
-                <p>Choose your first partner:</p>
-                <div id="starter-grid-modal" class="starter-grid" style="max-height: 40vh;"></div>
-            </div>
+        <div id="starter-selection-view">
+    <div style="display: flex; align-items: center; gap: 20px; margin: 20px 0;">
+        <div id="trainer-sprite-preview" style="width: 80px; height: 80px; ..."></div>
+        <input type="text" id="trainer-name-input" placeholder="Enter your trainer name" style="flex: 1;">
+    </div>
+    <div style="margin: 10px 0;">
+        <label for="trainer-birthdate">Birthdate:</label>
+        <input type="date" id="trainer-birthdate" required>
+    </div>
+    <p>Choose your first partner:</p>
+    <div id="starter-grid-modal" class="starter-grid" style="max-height: 40vh;"></div>
+</div>
+
+
 
             <!-- Confirmation View (Hidden by default) -->
             <div id="starter-confirm-view" class="hidden" style="padding: 20px 0;">
@@ -848,6 +854,20 @@
         </div>
 
         <button id="close-summary-btn" class="btn btn-primary" style="width: 100%; padding: 12px;">Continue Adventure</button>
+    </div>
+</div>
+
+<!-- Deactivated Account Overlay -->
+<!-- Deactivated Account Overlay -->
+<div id="deactivated-overlay" class="overlay hidden">
+    <div class="modal">
+        <img src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExNGt5dzJqYnVpNWx2ZmxqYnExNWg2dzRuNXo2amQ0a2c3d3A3cHQzdiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/Y4CQZdm9vzp2LHS3wL/giphy.gif"
+             alt="Pokemon sleeping"
+             style="width: 250px; height: auto; margin-bottom: 20px; border-radius: 16px;">
+        <h2>⏳ Account Pending Activation</h2>
+        <p>Your account has been created but is not yet active.</p>
+        <p>Please contact the <a href="https://www.facebook.com/profile.php?id=61574391684893" target="_blank">PokeSim Facebook Page</a>  or <a href="https://www.facebook.com/tootzkiecute" target="_blank">Tootzkie Facebook Page</a> to activate your account.</p>
+        <button id="logout-deactivated" class="btn btn-primary">Log Out</button>
     </div>
 </div>
 
@@ -3264,17 +3284,22 @@ async function getPokemonIdFromName(name) {
 
 // Function to handle the "Start Adventure" / "Confirm Partner" button
 document.getElementById('confirm-trainer-starter').onclick = async () => {
-    if (isSubmittingStarter) return; // Prevent multiple clicks
+    if (isSubmittingStarter) return;
 
     const selectionView = document.getElementById('starter-selection-view');
     const confirmView = document.getElementById('starter-confirm-view');
     const mainBtn = document.getElementById('confirm-trainer-starter');
     const trainerName = document.getElementById('trainer-name-input').value.trim();
+    const birthdate = document.getElementById('trainer-birthdate').value;
 
-    // Verification Step 1: Show the Confirmation Card
+    // Step 1: Show confirmation card
     if (confirmView.classList.contains('hidden')) {
         if (!trainerName) {
             alert("Please enter a trainer name.");
+            return;
+        }
+        if (!birthdate) {
+            alert("Please enter your birthdate.");
             return;
         }
         if (!window.selectedStarter) {
@@ -3282,65 +3307,59 @@ document.getElementById('confirm-trainer-starter').onclick = async () => {
             return;
         }
 
-        // Setup confirmation details
-         document.getElementById('confirm-partner-name').innerText = window.selectedStarter.name.toUpperCase();
-    document.getElementById('confirm-trainer-name').innerText = trainerName;
-    loadImageWithFallback(document.getElementById('confirm-partner-img'), getStaticSpriteUrl(window.selectedStarter.id));
+        document.getElementById('confirm-partner-name').innerText = window.selectedStarter.name.toUpperCase();
+        document.getElementById('confirm-trainer-name').innerText = trainerName;
+        loadImageWithFallback(document.getElementById('confirm-partner-img'), getStaticSpriteUrl(window.selectedStarter.id));
 
-    // Clear previous evolution list and show loading
-    const evolutionList = document.getElementById('evolution-list');
-    evolutionList.innerHTML = '<div style="text-align:center; padding:10px;">🌀 Loading evolution data...</div>';
-    
-    
-   // Fetch and display evolution chain using Showdown GIFs
-fetchEvolutionChain(window.selectedStarter.id).then(stages => {
-    if (stages.length === 0) {
-        evolutionList.innerHTML = '<div style="color:#999;">Evolution data not available</div>';
+        const evolutionList = document.getElementById('evolution-list');
+        evolutionList.innerHTML = '<div style="text-align:center; padding:10px;">🌀 Loading evolution data...</div>';
+
+        fetchEvolutionChain(window.selectedStarter.id).then(stages => {
+            if (stages.length === 0) {
+                evolutionList.innerHTML = '<div style="color:#999;">Evolution data not available</div>';
+                return;
+            }
+            evolutionList.innerHTML = stages.map((stage, idx) => {
+                const spriteUrl = getBattleSpriteUrl(stage.id, 'front')[0];
+                const typeBadges = stage.types.map(t => `<span class="type-badge" style="background: ${getTypeColor(t)};">${t.toUpperCase()}</span>`).join('');
+                const levelText = stage.level ? `Lv. ${stage.level}` : (idx === 0 ? 'Start' : 'Final Stage');
+                return `
+                    <div style="text-align: center; width: 120px;">
+                        <img src="${spriteUrl}" style="width: 96px; height: 96px; object-fit: contain; image-rendering: crisp-edges;"
+                             onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${stage.id}.png'">
+                        <div><strong>${stage.name.toUpperCase()}</strong></div>
+                        <div style="font-size:0.7rem; margin:4px 0;">${typeBadges}</div>
+                        <div style="font-size:0.7rem; color:var(--primary-dark);">${levelText}</div>
+                    </div>
+                    ${idx < stages.length-1 ? '<div style="font-size:1.5rem; align-self:center;">→</div>' : ''}
+                `;
+            }).join('');
+        }).catch(() => {
+            evolutionList.innerHTML = '<div style="color:#999;">Could not load evolution data</div>';
+        });
+
+        selectionView.classList.add('hidden');
+        confirmView.classList.remove('hidden');
+        document.getElementById('starter-modal-title').innerText = "Confirm Partner";
+        mainBtn.innerText = "Yes, Let's Go!";
         return;
     }
-    
-    evolutionList.innerHTML = stages.map((stage, idx) => {
-        // Use the first URL from getBattleSpriteUrl (Showdown GIF)
-        const spriteUrl = getBattleSpriteUrl(stage.id, 'front')[0];
-        const typeBadges = stage.types.map(t => `<span class="type-badge" style="background: ${getTypeColor(t)};">${t.toUpperCase()}</span>`).join('');
-        const levelText = stage.level ? `Lv. ${stage.level}` : (idx === 0 ? 'Start' : 'Final Stage');
-        
-        return `
-            <div style="text-align: center; width: 120px;">
-                <img src="${spriteUrl}" 
-                     style="width: 96px; height: 96px; object-fit: contain; image-rendering: crisp-edges;"
-                     onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${stage.id}.png'">
-                <div><strong>${stage.name.toUpperCase()}</strong></div>
-                <div style="font-size:0.7rem; margin:4px 0;">${typeBadges}</div>
-                <div style="font-size:0.7rem; color:var(--primary-dark);">${levelText}</div>
-            </div>
-            ${idx < stages.length-1 ? '<div style="font-size:1.5rem; align-self:center;">→</div>' : ''}
-        `;
-    }).join('');
-}).catch(() => {
-    evolutionList.innerHTML = '<div style="color:#999;">Could not load evolution data</div>';
-});
 
-    // Toggle Views
-    selectionView.classList.add('hidden');
-    confirmView.classList.remove('hidden');
-    document.getElementById('starter-modal-title').innerText = "Confirm Partner";
-    mainBtn.innerText = "Yes, Let's Go!";
-    return;
-    }
-
-    // Verification Step 2: Final Save to Database
+    // Step 2: Final save (account becomes inactive)
     isSubmittingStarter = true;
     mainBtn.disabled = true;
-    mainBtn.innerText = "Initializing World...";
+    mainBtn.innerText = "Submitting...";
 
     try {
         const user = pendingUser;
         if (!user) throw new Error("No user session found.");
 
+        // Force token refresh
+        await user.getIdToken(true);
+
         const starter = window.selectedStarter;
         const moves = await getMoveDetails(starter.data.moves.slice(0, 4));
-        
+
         const mon = {
             pokemonId: starter.id,
             name: starter.name,
@@ -3349,28 +3368,34 @@ fetchEvolutionChain(window.selectedStarter.id).then(stages => {
             moves: moves,
             types: starter.data.types.map(t => t.type.name),
             inTeam: true,
-             bonusStats: { atk: false, def: false, spd: false }
+            bonusStats: { atk: false, def: false, spd: false }
         };
 
-        // Create the first pokemon document
         const added = await addDoc(collection(db, "users", user.uid, "pokemon"), mon);
         trackWrite();
 
-        // Create the user document
+        // Small delay for token propagation
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Create user document – active: false
         await setDoc(doc(db, "users", user.uid), {
             hasStarter: true,
             activePokemonId: added.id,
             trainerName: trainerName,
-            coins: 10000,
+            birthdate: birthdate,
+            coins: 0,
             lastNameChange: null,
             totalLevels: 10,
             totalEncounters: 0,
-            active: true 
-        });
+            active: false
+        }, { merge: true });
         trackWrite();
 
+        // Hide the starter modal – the auth state handler will show the deactivated overlay
         document.getElementById('trainer-starter-modal').classList.add('hidden');
-        location.reload();
+
+        // Clear pendingUser
+        pendingUser = null;
 
     } catch (err) {
         console.error(err);
@@ -3380,6 +3405,9 @@ fetchEvolutionChain(window.selectedStarter.id).then(stages => {
         mainBtn.innerText = "Start Adventure";
     }
 };
+
+
+
 
 // Back button logic
 document.getElementById('back-to-selection').onclick = () => {
@@ -3422,13 +3450,22 @@ document.getElementById('back-to-selection').onclick = () => {
                     return;
                 }
 
-                if (data.active === false) {
-                    console.log("5. Account deactivated, logging out");
+              if (data.active === false) {
+    console.log("Account inactive, showing activation overlay");
+    document.getElementById('auth-screen').classList.add('hidden');
+    document.getElementById('game-screen').classList.add('hidden');
+    const deactivatedOverlay = document.getElementById('deactivated-overlay');
+    deactivatedOverlay.classList.remove('hidden');
+    // Set up logout button if not already set
+    const logoutBtn = document.getElementById('logout-deactivated');
+    if (logoutBtn) {
+        logoutBtn.onclick = async () => {
             await signOut(auth);
-            alert('Your account has been deactivated. Please contact the administrator.');
-            window.location.href = 'index.html';
-            return;
-        }
+            window.location.reload();
+        };
+    }
+    return;
+}
 
                 // ========== MIGRATION: Add bonusStats to all existing Pokémon ==========
                 const pokemonSnap = await getDocs(collection(db, "users", user.uid, "pokemon"));

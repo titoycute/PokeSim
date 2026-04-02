@@ -441,7 +441,7 @@
     let isAdmin = false;
     let moveDatabase = [];
 
-    // ========== Helper Functions (unchanged) ==========
+    // ========== Helper Functions ==========
     function getTypeColor(type) {
         const colors = {
             normal: '#A8A77A', fire: '#EE8130', water: '#6390F0', electric: '#F7D02C',
@@ -457,12 +457,19 @@
         return types.map(t => `<span class="type-badge" style="background: ${getTypeColor(t)};">${t.toUpperCase()}</span>`).join('');
     }
 
-    function getShowdownSpriteUrl(id) {
-        return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/${id}.gif`;
-    }
-
     function getStaticSpriteUrl(id) {
         return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
+    }
+
+    // Shiny showdown sprite URL
+    function getShinyShowdownSpriteUrl(pokemonName, id) {
+        const name = pokemonName.toLowerCase();
+        return `https://play.pokemonshowdown.com/sprites/ani-shiny/${name}.gif`;
+    }
+
+    // Normal showdown sprite URL
+    function getShowdownSpriteUrl(id) {
+        return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/${id}.gif`;
     }
 
     async function fetchPokemonData(id) {
@@ -532,11 +539,20 @@
         }
     }
 
+    // UPDATED: createPokemonCard with shiny sprite support
     function createPokemonCard(pokemon, actions, speciesId = null, extraInfo = null) {
         const card = document.createElement('div');
         card.className = 'pokemon-card';
-        const spriteUrl = getShowdownSpriteUrl(pokemon.pokemonId);
+        
+        // Choose sprite URL based on shiny status
+        let spriteUrl;
+        if (pokemon.isShiny) {
+            spriteUrl = getShinyShowdownSpriteUrl(pokemon.name, pokemon.pokemonId);
+        } else {
+            spriteUrl = getShowdownSpriteUrl(pokemon.pokemonId);
+        }
         const fallback = getStaticSpriteUrl(pokemon.pokemonId);
+        
         const bonusIcons = [];
         if (pokemon.bonusStats?.atk) bonusIcons.push('⚔️');
         if (pokemon.bonusStats?.def) bonusIcons.push('🛡️');
@@ -544,10 +560,14 @@
         const bonusHtml = bonusIcons.length ? `<span class="bonus-icons">${bonusIcons.join('')}</span>` : '';
         const movesHtml = (pokemon.moves || []).slice(0,4).map(m => `<span class="move-badge">${m.name.toUpperCase()}</span>`).join('');
         const isSpecial = pokemon.isSpecial || false;
+        let shinyBadge = '';
+        if (pokemon.isShiny) shinyBadge = '<span class="special-badge" style="background: #ffcc00; color: #333; animation: pulse 1s infinite;">✨ SHINY</span>';
+        
         card.innerHTML = `
             <div class="card-header">
                 <img src="${spriteUrl}" alt="${pokemon.name}" onerror="this.src='${fallback}'">
                 ${isSpecial ? '<div class="special-badge">✨ SPECIAL ✨</div>' : ''}
+                ${shinyBadge}
             </div>
             <div class="card-body">
                 <div class="pokemon-name">
@@ -576,7 +596,7 @@
         return card;
     }
 
-    // ========== SHOP TAB (no coupon) ==========
+    // ========== SHOP TAB (with shiny support) ==========
     async function loadShopListings() {
         const container = document.getElementById('shop-listings');
         container.innerHTML = '<div class="loading">Loading market...</div>';
@@ -596,7 +616,8 @@
                     bonusStats: listing.bonusStats,
                     price: listing.price,
                     stock: listing.stock,
-                    isSpecial: listing.isSpecial
+                    isSpecial: listing.isSpecial,
+                    isShiny: listing.isShiny || false
                 };
                 const actions = [{ label: 'Buy', class: 'btn-primary', action: () => buyFromShop(listing.id, listing.price) }];
                 if (isAdmin) {
@@ -633,7 +654,8 @@
                     types: listing.types,
                     inTeam: false,
                     capturedAt: new Date(),
-                    bonusStats: listing.bonusStats
+                    bonusStats: listing.bonusStats,
+                    isShiny: listing.isShiny || false
                 };
                 const pokemonRef = doc(collection(db, "users", currentUser.uid, "pokemon"));
                 transaction.set(pokemonRef, newPokemon);
@@ -673,6 +695,7 @@
                 <div><label><input type="checkbox" id="bonus-def" ${listing.bonusStats?.def ? 'checked' : ''}> 🛡️ +DEF</label></div>
                 <div><label><input type="checkbox" id="bonus-spd" ${listing.bonusStats?.spd ? 'checked' : ''}> 🏃 +SPD</label></div>
             </div>
+            <div class="form-group"><label><input type="checkbox" id="is-shiny" ${listing.isShiny ? 'checked' : ''}> ✨ Shiny Pokémon</label></div>
             <div class="form-group"><label>Moves (select up to 4)</label><div id="move-selector-container"></div></div>
             <button id="update-shop-listing" class="btn btn-primary">Update Listing</button>
         `;
@@ -686,6 +709,7 @@
             const atk = formDiv.querySelector('#bonus-atk').checked;
             const def = formDiv.querySelector('#bonus-def').checked;
             const spd = formDiv.querySelector('#bonus-spd').checked;
+            const isShiny = formDiv.querySelector('#is-shiny').checked;
             let moves = [...selectedMoves];
             while (moves.length < 4) moves.push({ name: 'tackle', type: 'normal', power: 40, accuracy: 100 });
             try {
@@ -693,7 +717,8 @@
                     price: price,
                     stock: stock,
                     bonusStats: { atk, def, spd },
-                    moves: moves.slice(0,4)
+                    moves: moves.slice(0,4),
+                    isShiny: isShiny
                 });
                 modal.classList.add('hidden');
                 loadShopListings();
@@ -702,7 +727,7 @@
         document.getElementById('close-shop-modal').onclick = () => modal.classList.add('hidden');
     }
 
-    // Admin add shop listing (unchanged, but coupon removed)
+    // Admin add shop listing (with shiny checkbox)
     let allPokemonList = [];
     async function loadAllPokemonNames() {
         if (allPokemonList.length) return;
@@ -826,6 +851,7 @@
                 <div><label><input type="checkbox" id="bonus-def"> 🛡️ +DEF</label></div>
                 <div><label><input type="checkbox" id="bonus-spd"> 🏃 +SPD</label></div>
             </div>
+            <div class="form-group"><label><input type="checkbox" id="is-shiny"> ✨ Shiny Pokémon</label></div>
             <div class="form-group"><label>Moves (select up to 4)</label><div id="move-selector-container"></div></div>
             <button id="submit-shop-listing" class="btn btn-primary">Add Listing</button>
         `;
@@ -852,6 +878,7 @@
             const atk = formDiv.querySelector('#bonus-atk').checked;
             const def = formDiv.querySelector('#bonus-def').checked;
             const spd = formDiv.querySelector('#bonus-spd').checked;
+            const isShiny = formDiv.querySelector('#is-shiny').checked;
             if (!id || isNaN(id) || id < 1) { alert('Enter a valid Pokémon ID.'); return; }
             try {
                 const pokemon = await fetchPokemonData(id);
@@ -869,6 +896,7 @@
                     price: price,
                     stock: stock,
                     isSpecial: isSpecial,
+                    isShiny: isShiny,
                     createdAt: new Date()
                 };
                 await addDoc(collection(db, "market_shop_listings"), listing);
@@ -879,7 +907,7 @@
         document.getElementById('close-shop-modal').onclick = () => modal.classList.add('hidden');
     }
 
-    // ========== SELL LISTINGS (unchanged) ==========
+    // ========== SELL LISTINGS (preserve isShiny) ==========
     async function loadSellListings() {
         const container = document.getElementById('sell-listings');
         container.innerHTML = '<div class="loading">Loading listings...</div>';
@@ -898,7 +926,8 @@
                     moves: listing.moves,
                     bonusStats: listing.bonusStats,
                     price: listing.price,
-                    isSpecial: listing.isSpecial
+                    isSpecial: listing.isSpecial,
+                    isShiny: listing.isShiny || false
                 };
                 const actions = [{ label: 'Buy', class: 'btn-primary', action: () => buyFromSellListing(listing.id, listing.price, listing.ownerId) }];
                 if (listing.ownerId === currentUser?.uid) actions.push({ label: 'Cancel', class: 'btn-danger', action: () => cancelSellListing(listing.id) });
@@ -922,7 +951,7 @@
         const formDiv = document.getElementById('sell-listing-form');
         formDiv.innerHTML = `
             <div class="form-group"><label>Select Pokémon</label><select id="sell-pokemon-select">
-                ${available.map(p => `<option value="${p.id}" data-name="${p.name}" data-level="${p.level}" data-types='${JSON.stringify(p.types)}' data-moves='${JSON.stringify(p.moves)}' data-bonus='${JSON.stringify(p.bonusStats)}' data-pokemonid="${p.pokemonId}">${p.name.toUpperCase()} (Lv.${p.level})</option>`).join('')}
+                ${available.map(p => `<option value="${p.id}" data-name="${p.name}" data-level="${p.level}" data-types='${JSON.stringify(p.types)}' data-moves='${JSON.stringify(p.moves)}' data-bonus='${JSON.stringify(p.bonusStats)}' data-pokemonid="${p.pokemonId}" data-shiny="${p.isShiny || false}">${p.name.toUpperCase()} (Lv.${p.level}) ${p.isShiny ? '✨ SHINY' : ''}</option>`).join('')}
             </select></div>
             <div class="form-group"><label>Price (coins)</label><input type="number" id="sell-price" value="1000" min="1"></div>
             <button id="submit-sell-listing" class="btn btn-primary">List for Sale</button>
@@ -934,6 +963,7 @@
             const selectedOption = select.options[select.selectedIndex];
             const pokemonId = select.value;
             const price = parseInt(formDiv.querySelector('#sell-price').value);
+            const isShiny = selectedOption.dataset.shiny === 'true';
 
             try {
                 await runTransaction(db, async (transaction) => {
@@ -954,6 +984,7 @@
                         bonusStats: pokemonData.bonusStats,
                         price: price,
                         isSpecial: pokemonData.isSpecial || false,
+                        isShiny: isShiny,
                         createdAt: new Date()
                     };
                     transaction.delete(pokemonRef);
@@ -991,7 +1022,8 @@
                     inTeam: false,
                     capturedAt: new Date(),
                     bonusStats: listing.bonusStats,
-                    isSpecial: listing.isSpecial
+                    isSpecial: listing.isSpecial,
+                    isShiny: listing.isShiny || false
                 };
                 const newPokemonRef = doc(collection(db, "users", currentUser.uid, "pokemon"));
                 transaction.set(newPokemonRef, restoredPokemon);
@@ -1036,7 +1068,8 @@
                     inTeam: false,
                     capturedAt: new Date(),
                     bonusStats: listing.bonusStats,
-                    isSpecial: listing.isSpecial || false
+                    isSpecial: listing.isSpecial || false,
+                    isShiny: listing.isShiny || false
                 };
                 const buyerPokemonRef = doc(collection(db, "users", currentUser.uid, "pokemon"));
                 transaction.set(buyerPokemonRef, newPokemon);
@@ -1050,7 +1083,7 @@
         }
     }
 
-    // ========== TRADE OFFERS (unchanged) ==========
+    // ========== TRADE OFFERS (preserve isShiny) ==========
     async function loadTradeListings() {
         const container = document.getElementById('trade-listings');
         container.innerHTML = '<div class="loading">Loading trades...</div>';
@@ -1070,7 +1103,8 @@
                     moves: offer.pokemonMoves,
                     bonusStats: offer.pokemonBonusStats,
                     price: null,
-                    isSpecial: offer.isSpecial
+                    isSpecial: offer.isSpecial,
+                    isShiny: offer.isShiny || false
                 };
                 const actions = [{ label: 'Accept', class: 'btn-primary', action: () => showAcceptTradeModal(offer) }];
                 if (offer.ownerId === currentUser?.uid) actions.push({ label: 'Cancel', class: 'btn-danger', action: () => cancelTradeOffer(offer.id) });
@@ -1098,7 +1132,7 @@
         const formDiv = document.getElementById('trade-offer-form');
         formDiv.innerHTML = `
             <div class="form-group"><label>Your Pokémon</label><select id="trade-pokemon-select">
-                ${available.map(p => `<option value="${p.id}" data-name="${p.name}" data-level="${p.level}" data-types='${JSON.stringify(p.types)}' data-moves='${JSON.stringify(p.moves)}' data-bonus='${JSON.stringify(p.bonusStats)}' data-pokemonid="${p.pokemonId}">${p.name.toUpperCase()} (Lv.${p.level})</option>`).join('')}
+                ${available.map(p => `<option value="${p.id}" data-name="${p.name}" data-level="${p.level}" data-types='${JSON.stringify(p.types)}' data-moves='${JSON.stringify(p.moves)}' data-bonus='${JSON.stringify(p.bonusStats)}' data-pokemonid="${p.pokemonId}" data-shiny="${p.isShiny || false}">${p.name.toUpperCase()} (Lv.${p.level}) ${p.isShiny ? '✨ SHINY' : ''}</option>`).join('')}
             </select></div>
             <div class="form-group"><label>Requested Pokémon (ID or name)</label><input type="text" id="request-pokemon" placeholder="e.g., 25 or Pikachu"><div class="warning">Leave empty for any Pokémon.</div></div>
             <button id="submit-trade-offer" class="btn btn-primary">Post Trade</button>
@@ -1110,6 +1144,7 @@
             const selectedOption = select.options[select.selectedIndex];
             const pokemonId = select.value;
             const reqPokemon = formDiv.querySelector('#request-pokemon').value.trim();
+            const isShiny = selectedOption.dataset.shiny === 'true';
 
             let requestPokemonId = null;
             let requestPokemonName = null;
@@ -1151,6 +1186,7 @@
                         requestPokemonId: requestPokemonId,
                         requestPokemonName: requestPokemonName,
                         isSpecial: pokemonData.isSpecial || false,
+                        isShiny: isShiny,
                         status: 'open',
                         createdAt: new Date()
                     };
@@ -1189,7 +1225,8 @@
                     inTeam: false,
                     capturedAt: new Date(),
                     bonusStats: offer.pokemonBonusStats,
-                    isSpecial: offer.isSpecial || false
+                    isSpecial: offer.isSpecial || false,
+                    isShiny: offer.isShiny || false
                 };
                 const newPokemonRef = doc(collection(db, "users", currentUser.uid, "pokemon"));
                 transaction.set(newPokemonRef, restoredPokemon);
@@ -1212,7 +1249,7 @@
         const formDiv = document.getElementById('accept-trade-form');
         let formHtml = `<div class="form-group"><label>Your Offer</label><select id="offer-pokemon-select">
             <option value="">Select a Pokémon</option>
-            ${userPokemon.map(p => `<option value="${p.id}" data-name="${p.name}" data-level="${p.level}" data-pokemonid="${p.pokemonId}">${p.name.toUpperCase()} (Lv.${p.level})</option>`).join('')}
+            ${userPokemon.map(p => `<option value="${p.id}" data-name="${p.name}" data-level="${p.level}" data-pokemonid="${p.pokemonId}" data-shiny="${p.isShiny || false}">${p.name.toUpperCase()} (Lv.${p.level}) ${p.isShiny ? '✨ SHINY' : ''}</option>`).join('')}
         </select>`;
         if (offer.requestPokemonId) {
             formHtml += `<div class="warning">Must match: ${offer.requestPokemonName || offer.requestPokemonId}</div>`;
@@ -1224,6 +1261,7 @@
         document.getElementById('confirm-accept').onclick = async () => {
             const selectedId = formDiv.querySelector('#offer-pokemon-select').value;
             if (!selectedId) { alert('Select a Pokémon to offer.'); return; }
+            const isShiny = formDiv.querySelector(`#offer-pokemon-select option[value="${selectedId}"]`).dataset.shiny === 'true';
 
             try {
                 await runTransaction(db, async (transaction) => {
@@ -1254,7 +1292,8 @@
                         inTeam: false,
                         capturedAt: new Date(),
                         bonusStats: offeredPokemon.bonusStats,
-                        isSpecial: offeredPokemon.isSpecial || false
+                        isSpecial: offeredPokemon.isSpecial || false,
+                        isShiny: isShiny
                     };
                     const offererPokemonRef = doc(collection(db, "users", currentOffer.ownerId, "pokemon"));
                     transaction.set(offererPokemonRef, offererPokemon);
@@ -1269,7 +1308,8 @@
                         inTeam: false,
                         capturedAt: new Date(),
                         bonusStats: currentOffer.pokemonBonusStats,
-                        isSpecial: currentOffer.isSpecial || false
+                        isSpecial: currentOffer.isSpecial || false,
+                        isShiny: currentOffer.isShiny || false
                     };
                     const accepterPokemonRef = doc(collection(db, "users", currentUser.uid, "pokemon"));
                     transaction.set(accepterPokemonRef, accepterPokemon);
@@ -1287,7 +1327,7 @@
         document.getElementById('close-accept-modal').onclick = () => modal.classList.add('hidden');
     }
 
-    // ========== REDEEM CODES ==========
+    // ========== REDEEM CODES (with shiny) ==========
     async function loadRedeemListings() {
         const container = document.getElementById('redeem-listings');
         container.innerHTML = '<div class="loading">Loading codes...</div>';
@@ -1298,7 +1338,6 @@
             if (codes.length === 0) { container.innerHTML = '<div class="empty">No active redeem codes.</div>'; return; }
             container.innerHTML = '';
             for (const codeDoc of codes) {
-                // Check if code is still valid (stock > 0 and not expired)
                 const now = new Date();
                 const expiry = codeDoc.expiry ? codeDoc.expiry.toDate() : null;
                 if (codeDoc.stock <= 0 || (expiry && expiry < now)) continue;
@@ -1310,14 +1349,14 @@
                     level: codeDoc.level,
                     moves: codeDoc.moves,
                     bonusStats: codeDoc.bonusStats,
-                    isSpecial: codeDoc.isSpecial
+                    isSpecial: codeDoc.isSpecial,
+                    isShiny: codeDoc.isShiny || false
                 };
                 const actions = [{ label: 'Redeem', class: 'btn-primary', action: () => redeemCode(codeDoc.id, codeDoc.code) }];
                 if (isAdmin) {
                     actions.push({ label: 'Edit', class: 'btn-outline', action: () => showEditRedeemCodeModal(codeDoc) });
                     actions.push({ label: 'Delete', class: 'btn-danger', action: () => deleteRedeemCode(codeDoc.id) });
                 }
-                // Add stock and expiry info
                 const extraInfo = {
                     stock: codeDoc.stock,
                     expiry: expiry ? expiry.toLocaleDateString() : 'No expiry',
@@ -1351,12 +1390,10 @@
                 if (codeData.stock <= 0) throw new Error("No stock remaining.");
                 if (expiry && expiry < now) throw new Error("This code has expired.");
 
-                // Check if user already redeemed this code
                 const claimRef = doc(db, "redeem_codes", codeId, "claims", currentUser.uid);
                 const claimSnap = await transaction.get(claimRef);
                 if (claimSnap.exists()) throw new Error("You have already redeemed this code.");
 
-                // Create the Pokémon for the user
                 const newPokemon = {
                     pokemonId: codeData.pokemonId,
                     name: codeData.name,
@@ -1367,18 +1404,17 @@
                     inTeam: false,
                     capturedAt: new Date(),
                     bonusStats: codeData.bonusStats,
-                    isSpecial: codeData.isSpecial || false
+                    isSpecial: codeData.isSpecial || false,
+                    isShiny: codeData.isShiny || false
                 };
                 const pokemonRef = doc(collection(db, "users", currentUser.uid, "pokemon"));
                 transaction.set(pokemonRef, newPokemon);
 
-                // Decrement stock
                 if (codeData.stock === 1) {
                     transaction.delete(codeRef);
                 } else {
                     transaction.update(codeRef, { stock: increment(-1) });
                 }
-                // Record claim
                 transaction.set(claimRef, { redeemedAt: serverTimestamp() });
             });
             alert('Code redeemed successfully!');
@@ -1410,6 +1446,7 @@
                 <div><label><input type="checkbox" id="code-bonus-def"> 🛡️ +DEF</label></div>
                 <div><label><input type="checkbox" id="code-bonus-spd"> 🏃 +SPD</label></div>
             </div>
+            <div class="form-group"><label><input type="checkbox" id="code-is-shiny"> ✨ Shiny Pokémon</label></div>
             <div class="form-group"><label>Moves (select up to 4)</label><div id="code-move-selector-container"></div></div>
             <button id="submit-redeem-code" class="btn btn-primary">Create Code</button>
         `;
@@ -1437,6 +1474,7 @@
             const atk = formDiv.querySelector('#code-bonus-atk').checked;
             const def = formDiv.querySelector('#code-bonus-def').checked;
             const spd = formDiv.querySelector('#code-bonus-spd').checked;
+            const isShiny = formDiv.querySelector('#code-is-shiny').checked;
             if (!id || isNaN(id) || id < 1) { alert('Enter a valid Pokémon ID.'); return; }
             try {
                 const pokemon = await fetchPokemonData(id);
@@ -1444,7 +1482,7 @@
                 const isSpecial = await getIsSpecial(id);
                 let moves = [...selectedMoves];
                 while (moves.length < 4) moves.push({ name: 'tackle', type: 'normal', power: 40, accuracy: 100 });
-                const code = generateRandomCode(); // implement a function to generate unique codes
+                const code = generateRandomCode();
                 const codeData = {
                     code: code,
                     pokemonId: id,
@@ -1455,6 +1493,7 @@
                     bonusStats: { atk, def, spd },
                     stock: stock,
                     isSpecial: isSpecial,
+                    isShiny: isShiny,
                     createdAt: new Date()
                 };
                 if (expiryStr) codeData.expiry = new Date(expiryStr);
@@ -1482,13 +1521,15 @@
             <div class="form-group"><label>Code</label><input type="text" id="edit-code" value="${codeDoc.code}" disabled></div>
             <div class="form-group"><label>Stock</label><input type="number" id="edit-stock" value="${codeDoc.stock}" min="0"></div>
             <div class="form-group"><label>Expiration (optional)</label><input type="datetime-local" id="edit-expiry" value="${codeDoc.expiry ? new Date(codeDoc.expiry.toDate()).toISOString().slice(0,16) : ''}"></div>
+            <div class="form-group"><label><input type="checkbox" id="edit-is-shiny" ${codeDoc.isShiny ? 'checked' : ''}> ✨ Shiny Pokémon</label></div>
             <button id="update-redeem-code" class="btn btn-primary">Update</button>
         `;
         modal.classList.remove('hidden');
         document.getElementById('update-redeem-code').onclick = async () => {
             const stock = parseInt(formDiv.querySelector('#edit-stock').value);
             const expiryStr = formDiv.querySelector('#edit-expiry').value;
-            const updates = { stock: stock };
+            const isShiny = formDiv.querySelector('#edit-is-shiny').checked;
+            const updates = { stock: stock, isShiny: isShiny };
             if (expiryStr) updates.expiry = new Date(expiryStr);
             else updates.expiry = null;
             await updateDoc(doc(db, "redeem_codes", codeDoc.id), updates);
@@ -1528,7 +1569,6 @@
 
     document.querySelectorAll('.tab').forEach(btn => btn.onclick = () => switchTab(btn.dataset.tab));
     document.getElementById('redeem-code-btn').onclick = () => {
-        // Prompt for code – will be handled in the modal? Actually we already have a redeem button per code.
         alert('Enter the code from the Pokémon card.');
     };
 

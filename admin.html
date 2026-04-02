@@ -1,3 +1,7 @@
+
+    
+    
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -51,12 +55,15 @@
             align-items: center;
             flex-wrap: wrap;
         }
-        .nav-links a {
+        .nav-links a, .nav-links button {
             color: var(--primary);
             text-decoration: none;
             font-weight: bold;
+            background: none;
+            border: none;
+            cursor: pointer;
         }
-        .nav-links a:hover {
+        .nav-links a:hover, .nav-links button:hover {
             text-decoration: underline;
         }
         .search-input {
@@ -71,6 +78,12 @@
             width: 100%;
             border-collapse: collapse;
             margin-top: 10px;
+            overflow-x: auto;
+            display: block;
+        }
+        .ranking-table thead, .ranking-table tbody {
+            display: table;
+            width: 100%;
         }
         .ranking-table th, .ranking-table td {
             padding: 12px;
@@ -81,12 +94,10 @@
             cursor: pointer;
             background: #f8fafc;
             font-weight: 600;
+            user-select: none;
         }
         .ranking-table th:hover {
             background: #eef2ff;
-        }
-        .ranking-table tr:hover {
-            background: #f8fafc;
         }
         .btn {
             padding: 6px 12px;
@@ -224,31 +235,85 @@
             border-radius: 16px;
             font-size: 0.9rem;
         }
-        .move-list {
+        .bonus-checkboxes {
+            display: flex;
+            gap: 20px;
+            margin: 10px 0;
+        }
+        .bonus-checkboxes label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: normal;
+        }
+        .move-table-container {
             max-height: 400px;
             overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: 16px;
             margin: 16px 0;
+        }
+        .move-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .move-table th, .move-table td {
+            padding: 8px 12px;
             text-align: left;
+            border-bottom: 1px solid var(--border);
         }
-        .move-button {
-            display: inline-block;
-            margin: 4px;
-            padding: 4px 12px;
-            border-radius: 20px;
+        .move-table th {
+            position: sticky;
+            top: 0;
+            background: #f8fafc;
+            font-weight: 600;
+        }
+        .move-select {
             cursor: pointer;
-            font-size: 0.8rem;
-            font-weight: bold;
-            background: var(--text-light);
+            text-align: center;
+        }
+        .move-select input {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        .move-search {
+            margin-bottom: 12px;
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 40px;
+        }
+        .species-preview {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+        .species-preview img {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 8px;
+        }
+        .species-preview .preview-info {
+            flex: 1;
+        }
+        .animated-btn {
+            background: var(--primary);
             color: white;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-size: 0.7rem;
+            margin-left: auto;
         }
-        .move-button.selected {
-            outline: 2px solid gold;
-            filter: brightness(1.1);
-        }
-        .species-info {
-            margin-top: 5px;
-            font-size: 0.85rem;
-            color: var(--primary);
+        .animated-btn:hover {
+            background: var(--primary-dark);
         }
         @media (max-width: 768px) {
             .container {
@@ -263,6 +328,20 @@
                 height: 40px;
                 margin-right: 12px;
             }
+            .modal {
+                padding: 20px;
+            }
+            .bonus-checkboxes {
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+            .species-preview {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .animated-btn {
+                margin-left: 0;
+            }
         }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -275,12 +354,13 @@
             <button id="logout-btn" class="btn btn-outline">Logout</button>
         </div>
         <h1>👑 Admin Panel</h1>
-        <input type="text" id="user-search" class="search-input" placeholder="Search by trainer name...">
+        <input type="text" id="user-search" class="search-input" placeholder="Search by trainer name or email...">
         <div style="overflow-x: auto;">
             <table class="ranking-table" id="user-table">
                 <thead>
                     <tr>
                         <th data-sort="name">Trainer</th>
+                        <th data-sort="email">Email</th>
                         <th data-sort="totalLevels">Total Level ⬇️</th>
                         <th data-sort="totalEncounters">Total Encounters</th>
                         <th>Status</th>
@@ -288,24 +368,22 @@
                     </tr>
                 </thead>
                 <tbody id="user-body">
-                    <tr><td colspan="5">Loading users...</td></tr>
+                     <tr><td colspan="6">Loading users...</td></tr>
                 </tbody>
             </table>
         </div>
     </div>
 
-    <!-- Manage User Modal -->
+    <!-- Manage User Modal (unchanged) -->
     <div id="manage-user-modal" class="overlay hidden" onclick="if(event.target===this) this.classList.add('hidden')">
         <div class="modal" onclick="event.stopPropagation()">
             <div class="flex-between" style="margin-bottom: 20px;">
                 <h2 id="manage-user-title">Manage Trainer</h2>
                 <button onclick="document.getElementById('manage-user-modal').classList.add('hidden')" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
             </div>
-            <div class="flex-between" style="margin-bottom: 20px;">
-                <div><strong>Coins:</strong> <span id="manage-coins">0</span></div>
-                <div><button id="edit-coins-btn" class="btn btn-outline">Edit Coins</button></div>
-                <div><strong>Total Level:</strong> <span id="manage-total-level">0</span></div>
-                <div><button id="edit-total-level-btn" class="btn btn-outline">Edit Total Level</button></div>
+            <div class="flex-between" style="margin-bottom: 20px; gap: 15px; flex-wrap: wrap;">
+                <div><strong>Coins:</strong> <span id="manage-coins">0</span> <button id="edit-coins-btn" class="btn btn-outline">Edit</button></div>
+                <div><strong>Total Level:</strong> <span id="manage-total-level">0</span> <button id="edit-total-level-btn" class="btn btn-outline">Edit</button></div>
             </div>
             <div style="margin-top: 20px;">
                 <div class="flex-between">
@@ -319,9 +397,9 @@
         </div>
     </div>
 
-    <!-- Edit Pokémon Modal -->
+    <!-- Edit Pokémon Modal (unchanged) -->
     <div id="edit-pokemon-modal" class="overlay hidden" onclick="if(event.target===this) this.classList.add('hidden')">
-        <div class="modal" style="max-width: 700px;" onclick="event.stopPropagation()">
+        <div class="modal" style="max-width: 900px;" onclick="event.stopPropagation()">
             <div class="flex-between" style="margin-bottom: 20px;">
                 <h2>Edit Pokémon</h2>
                 <button onclick="document.getElementById('edit-pokemon-modal').classList.add('hidden')" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
@@ -330,9 +408,9 @@
         </div>
     </div>
 
-    <!-- Add Pokémon Modal -->
+    <!-- Add Pokémon Modal (unchanged) -->
     <div id="add-pokemon-modal" class="overlay hidden" onclick="if(event.target===this) this.classList.add('hidden')">
-        <div class="modal" style="max-width: 600px;" onclick="event.stopPropagation()">
+        <div class="modal" style="max-width: 700px;" onclick="event.stopPropagation()">
             <div class="flex-between" style="margin-bottom: 20px;">
                 <h2>Add Pokémon</h2>
                 <button onclick="document.getElementById('add-pokemon-modal').classList.add('hidden')" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
@@ -341,484 +419,631 @@
         </div>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, getDocs, collection, updateDoc, deleteDoc, addDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    <!-- Animated Sprite Modal (unchanged) -->
+    <div id="animated-sprite-modal" class="overlay hidden" onclick="if(event.target===this) this.classList.add('hidden')">
+        <div class="modal" style="max-width: 500px; text-align: center;" onclick="event.stopPropagation()">
+            <div class="flex-between" style="margin-bottom: 20px;">
+                <h2 id="animated-title">Animated Sprite</h2>
+                <button onclick="document.getElementById('animated-sprite-modal').classList.add('hidden')" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+            </div>
+            <img id="animated-sprite-img" style="width: 200px; height: 200px; object-fit: contain; margin: 10px auto;" alt="">
+            <div id="animated-info" style="margin-top: 10px;"></div>
+            <div id="animated-error" style="color: var(--danger); margin: 10px;"></div>
+            <button id="retry-animated-btn" class="btn btn-outline" style="margin-top: 10px;">Retry</button>
+        </div>
+    </div>
 
-        const firebaseConfig = { apiKey: "AIzaSyDkCE0wBrsQ1s-7zplvTtWOSE28ISaCFfQ", authDomain: "pokesim-7f9b7.firebaseapp.com", projectId: "pokesim-7f9b7", storageBucket: "pokesim-7f9b7.firebasestorage.app", messagingSenderId: "1087100425430", appId: "1:1087100425430:web:9558a79ee5330d4a792577" };
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+ <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, getDocs, collection, updateDoc, deleteDoc, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // ========== MOVE DATABASE ==========
-        let moveDatabase = [];
-        let isMoveDatabaseLoaded = false;
+    const firebaseConfig = { apiKey: "AIzaSyDkCE0wBrsQ1s-7zplvTtWOSE28ISaCFfQ", authDomain: "pokesim-7f9b7.firebaseapp.com", projectId: "pokesim-7f9b7", storageBucket: "pokesim-7f9b7.firebasestorage.app", messagingSenderId: "1087100425430", appId: "1:1087100425430:web:9558a79ee5330d4a792577" };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
-        async function loadMoveDatabase() {
-            if (isMoveDatabaseLoaded) return;
-            console.log("Loading move database for admin...");
-            try {
-                const listRes = await fetch('https://pokeapi.co/api/v2/move?limit=2000&offset=0');
-                const listData = await listRes.json();
-                const allMoves = listData.results;
-                const moveDetails = [];
-                for (let i = 0; i < allMoves.length; i++) {
-                    const move = allMoves[i];
-                    try {
-                        const detail = await fetch(move.url).then(r => r.json());
-                        if (detail.power && detail.accuracy && detail.power > 0 && detail.accuracy > 0) {
-                            moveDetails.push({
-                                name: detail.name,
-                                type: detail.type.name,
-                                power: detail.power,
-                                accuracy: detail.accuracy,
-                                learners: detail.learned_by_pokemon.map(p => {
-                                    const parts = p.url.split('/').filter(part => part);
-                                    return parseInt(parts[parts.length - 1], 10);
-                                })
-                            });
-                        }
-                    } catch(e) { console.warn("Failed move", move.name); }
-                }
-                moveDatabase = moveDetails;
-                isMoveDatabaseLoaded = true;
-                console.log(`Loaded ${moveDatabase.length} damaging moves.`);
-            } catch(err) {
-                console.error("Failed to load move database:", err);
-            }
-        }
-        loadMoveDatabase();
+    // ========== MOVE DATABASE ==========
+    let moveDatabase = [];
+    let isMoveDatabaseLoaded = false;
 
-        // ========== ALL POKÉMON SPECIES ==========
-        let allPokemon = []; // { id, name, types, sprite }
-
-        async function loadAllPokemon() {
-            if (allPokemon.length) return;
-            console.log("Loading all Pokémon species...");
-            try {
-                const res = await fetch('https://pokeapi.co/api/v2/pokemon?limit=2000&offset=0');
-                const data = await res.json();
-                const promises = data.results.map(async (p, idx) => {
-                    const id = idx + 1; // assumes order
-                    const detail = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`).then(r => r.json());
-                    return {
-                        id: id,
-                        name: detail.name,
-                        types: detail.types.map(t => t.type.name),
-                        sprite: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`
-                    };
-                });
-                allPokemon = await Promise.all(promises);
-                console.log(`Loaded ${allPokemon.length} Pokémon.`);
-            } catch(e) {
-                console.error("Failed to load Pokémon species:", e);
-            }
-        }
-
-        // Helper functions
-        function getTypeColor(type) {
-            const colors = {
-                normal: '#A8A77A', fire: '#EE8130', water: '#6390F0', electric: '#F7D02C',
-                grass: '#7AC74C', ice: '#96D9D6', fighting: '#C22E28', poison: '#A33EA1',
-                ground: '#E2BF65', flying: '#A98FF3', psychic: '#F95587', bug: '#A6B91A',
-                rock: '#B6A136', ghost: '#735797', dragon: '#6F35FC', dark: '#705746',
-                steel: '#B7B7CE', fairy: '#D685AD'
-            };
-            return colors[type] || '#777777';
-        }
-
-        function generateTypeBadges(types) {
-            return types.map(t => `<span class="type-badge" style="background: ${getTypeColor(t)};">${t.toUpperCase()}</span>`).join('');
-        }
-
-        function getStaticSpriteUrl(id) {
-            return [`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`, `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`];
-        }
-
-        function loadImageWithFallback(img, urls) {
-            let i=0;
-            function next() {
-                if(i>=urls.length) return;
-                img.src=urls[i];
-                img.onerror=()=>{ i++; next(); };
-            }
-            next();
-        }
-
-        function getExpNeededForNextLevel(l) { return l*300; }
-
-        function escapeHtml(str) {
-            return str.replace(/[&<>]/g, function(m) {
-                if (m === '&') return '&amp;';
-                if (m === '<') return '&lt;';
-                if (m === '>') return '&gt;';
-                return m;
-            });
-        }
-
-        // ========== USER MANAGEMENT ==========
-        let allUsers = [];
-        let currentEditingUser = null;
-
-        async function fetchAllUsers() {
-            const usersSnap = await getDocs(collection(db, "users"));
-            const users = [];
-            for (const docSnap of usersSnap.docs) {
-                const data = docSnap.data();
-                if (!data.hasStarter) continue; // skip incomplete
-                const trainerName = data.trainerName || docSnap.id.split('@')[0];
-                users.push({
-                    uid: docSnap.id,
-                    name: trainerName,
-                    totalLevels: data.totalLevels || 0,
-                    totalEncounters: data.totalEncounters || 0,
-                    active: data.active !== false, // default true
-                    coins: data.coins || 0,
-                    role: data.role || null
-                });
-            }
-            return users;
-        }
-
-        function renderUserTable(users, filterTerm = '') {
-            const tbody = document.getElementById('user-body');
-            const filtered = users.filter(u => u.name.toLowerCase().includes(filterTerm));
-            if (filtered.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5">No users found.</td></tr>';
-                return;
-            }
-            tbody.innerHTML = filtered.map(u => `
-                <tr data-uid="${u.uid}">
-                    <td>${escapeHtml(u.name)}</td>
-                    <td>${u.totalLevels}</td>
-                    <td>${u.totalEncounters}</td>
-                    <td><span class="active-badge ${!u.active ? 'inactive-badge' : ''}">${u.active ? 'Active' : 'Inactive'}</span></td>
-                    <td>
-                        <button class="btn btn-primary toggle-active" data-uid="${u.uid}" data-active="${u.active}">${u.active ? 'Deactivate' : 'Activate'}</button>
-                        <button class="btn btn-outline manage-user" data-uid="${u.uid}">Manage</button>
-                    </td>
-                </tr>
-            `).join('');
-
-            // Attach event listeners
-            document.querySelectorAll('.toggle-active').forEach(btn => {
-                btn.onclick = async (e) => {
-                    e.stopPropagation();
-                    const uid = btn.dataset.uid;
-                    const newActive = btn.dataset.active === 'true' ? false : true;
-                    await updateDoc(doc(db, "users", uid), { active: newActive });
-                    allUsers = await fetchAllUsers();
-                    renderUserTable(allUsers, document.getElementById('user-search').value.toLowerCase());
-                };
-            });
-            document.querySelectorAll('.manage-user').forEach(btn => {
-                btn.onclick = async (e) => {
-                    e.stopPropagation();
-                    const uid = btn.dataset.uid;
-                    try {
-                        await openManageUserModal(uid);
-                    } catch (err) {
-                        console.error("Error opening manage modal:", err);
-                        alert("Could not open user management. Check console.");
+    async function loadMoveDatabase() {
+        if (isMoveDatabaseLoaded) return;
+        console.log("Loading move database...");
+        try {
+            const listRes = await fetch('https://pokeapi.co/api/v2/move?limit=2000&offset=0');
+            const listData = await listRes.json();
+            const allMoves = listData.results;
+            const moveDetails = [];
+            for (let i = 0; i < allMoves.length; i++) {
+                const move = allMoves[i];
+                try {
+                    const detail = await fetch(move.url).then(r => r.json());
+                    if (detail.power && detail.accuracy && detail.power > 0 && detail.accuracy > 0) {
+                        moveDetails.push({
+                            name: detail.name,
+                            type: detail.type.name,
+                            power: detail.power,
+                            accuracy: detail.accuracy,
+                            learners: detail.learned_by_pokemon.map(p => {
+                                const parts = p.url.split('/').filter(part => part);
+                                return parseInt(parts[parts.length - 1], 10);
+                            })
+                        });
                     }
-                };
-            });
-        }
-
-        async function openManageUserModal(uid) {
-            currentEditingUser = uid;
-            const userDoc = await getDoc(doc(db, "users", uid));
-            if (!userDoc.exists()) {
-                alert("User not found.");
-                return;
+                } catch(e) { console.warn("Failed move", move.name); }
             }
-            const userData = userDoc.data();
-            const trainerName = userData.trainerName || uid.split('@')[0];
-            document.getElementById('manage-user-title').innerText = `Manage ${escapeHtml(trainerName)}`;
-            document.getElementById('manage-coins').innerText = userData.coins || 0;
-            document.getElementById('manage-total-level').innerText = userData.totalLevels || 0;
-            document.getElementById('edit-coins-btn').onclick = () => editCoins(uid);
-            document.getElementById('edit-total-level-btn').onclick = () => editTotalLevel(uid);
-            
-            // Load Pokémon
-            const pokemonSnap = await getDocs(collection(db, "users", uid, "pokemon"));
-            const team = [];
-            const collectionList = [];
-            pokemonSnap.forEach(doc => {
-                const p = { id: doc.id, ...doc.data() };
-                // Ensure moves array exists (fallback)
-                if (!p.moves || !Array.isArray(p.moves)) {
-                    p.moves = [{ name: 'tackle', type: 'normal', power: 40, accuracy: 100, effect: '-', effectAccuracy: '-', icon: '🔘' }];
-                }
-                if (p.inTeam) team.push(p);
-                else collectionList.push(p);
-            });
-            renderPokemonList('team-list', team, true, uid);
-            renderPokemonList('collection-list', collectionList, false, uid);
-            document.getElementById('manage-user-modal').classList.remove('hidden');
-            document.getElementById('add-pokemon-btn').onclick = () => openAddPokemonModal(uid);
+            moveDatabase = moveDetails;
+            isMoveDatabaseLoaded = true;
+            console.log(`Loaded ${moveDatabase.length} damaging moves.`);
+        } catch(err) {
+            console.error("Failed to load move database:", err);
         }
+    }
+    loadMoveDatabase();
 
-        function renderPokemonList(containerId, pokemonList, isTeam, uid) {
-            const container = document.getElementById(containerId);
-            if (pokemonList.length === 0) {
-                container.innerHTML = '<p>No Pokémon here.</p>';
-                return;
-            }
-            container.innerHTML = '';
-            for (const p of pokemonList) {
-                const div = document.createElement('div');
-                div.className = 'mon-item';
-                const img = document.createElement('img');
-                loadImageWithFallback(img, getStaticSpriteUrl(p.pokemonId));
-                div.appendChild(img);
-                const info = document.createElement('div');
-                info.className = 'mon-info';
-                const expNeeded = getExpNeededForNextLevel(p.level);
-                const expCur = p.exp || 0;
-                const prog = Math.floor((expCur/expNeeded)*100);
-                const moveBadges = p.moves.map(m => `<span class="move-badge" style="background: ${getTypeColor(m.type)};">${m.name.toUpperCase()}</span>`).join('');
-                info.innerHTML = `
-                    <b>${escapeHtml(p.name.toUpperCase())}</b> (Lvl ${p.level} | XP: ${expCur}/${expNeeded} [${prog}%])<br>
-                    <small>${p.types.join(', ')}</small><br>
-                    <div style="margin-top: 6px;">${moveBadges}</div>
-                `;
-                div.appendChild(info);
-                const btnDiv = document.createElement('div');
-                btnDiv.className = 'mon-buttons';
-                const editBtn = document.createElement('button');
-                editBtn.className = 'btn btn-outline';
-                editBtn.innerText = 'Edit';
-                editBtn.onclick = () => openEditPokemonModal(p.id, uid);
-                btnDiv.appendChild(editBtn);
-                const deleteBtn = document.createElement('button');
-                deleteBtn.className = 'btn btn-danger';
-                deleteBtn.innerText = 'Delete';
-                deleteBtn.onclick = () => deletePokemon(p.id, uid, p.name);
-                btnDiv.appendChild(deleteBtn);
-                if (isTeam) {
-                    const moveToColl = document.createElement('button');
-                    moveToColl.className = 'btn btn-outline';
-                    moveToColl.innerText = 'Move to Collection';
-                    moveToColl.onclick = () => movePokemonTeamStatus(p.id, uid, false);
-                    btnDiv.appendChild(moveToColl);
-                } else {
-                    const moveToTeam = document.createElement('button');
-                    moveToTeam.className = 'btn btn-outline';
-                    moveToTeam.innerText = 'Add to Team';
-                    moveToTeam.onclick = () => movePokemonTeamStatus(p.id, uid, true);
-                    btnDiv.appendChild(moveToTeam);
-                }
-                div.appendChild(btnDiv);
-                container.appendChild(div);
-            }
-        }
+    // ========== ALL POKÉMON SPECIES ==========
+    let allPokemon = [];
+    let pokemonNameMap = new Map();
 
-        async function movePokemonTeamStatus(pokemonId, uid, inTeam) {
-            await updateDoc(doc(db, "users", uid, "pokemon", pokemonId), { inTeam });
-            await openManageUserModal(uid);
-        }
-
-        async function deletePokemon(pokemonId, uid, name) {
-            if (confirm(`Delete ${name}? This cannot be undone.`)) {
-                await deleteDoc(doc(db, "users", uid, "pokemon", pokemonId));
-                await openManageUserModal(uid);
-            }
-        }
-
-        async function editCoins(uid) {
-            const newCoins = prompt("Enter new coin amount:", document.getElementById('manage-coins').innerText);
-            if (newCoins !== null && !isNaN(parseInt(newCoins))) {
-                await updateDoc(doc(db, "users", uid), { coins: parseInt(newCoins) });
-                document.getElementById('manage-coins').innerText = newCoins;
-                // Refresh user list to reflect changes
-                allUsers = await fetchAllUsers();
-                renderUserTable(allUsers, document.getElementById('user-search').value.toLowerCase());
-            }
-        }
-
-        async function editTotalLevel(uid) {
-            const newTotalLevel = prompt("Enter new total level:", document.getElementById('manage-total-level').innerText);
-            if (newTotalLevel !== null && !isNaN(parseInt(newTotalLevel))) {
-                await updateDoc(doc(db, "users", uid), { totalLevels: parseInt(newTotalLevel) });
-                document.getElementById('manage-total-level').innerText = newTotalLevel;
-                // Refresh user list to reflect changes
-                allUsers = await fetchAllUsers();
-                renderUserTable(allUsers, document.getElementById('user-search').value.toLowerCase());
-            }
-        }
-
-        // ========== POKEMON SELECTION (WITH FALLBACK) ==========
-        async function getPokemonById(id) {
-            // First try from preloaded list
-            let pokemon = allPokemon.find(p => p.id === id);
-            if (pokemon) return pokemon;
-            // Fallback: fetch directly from PokeAPI
-            try {
-                const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
-                if (!res.ok) return null;
-                const data = await res.json();
+    async function loadAllPokemon() {
+        if (allPokemon.length) return;
+        console.log("Loading all Pokémon species...");
+        try {
+            const res = await fetch('https://pokeapi.co/api/v2/pokemon?limit=2000&offset=0');
+            const data = await res.json();
+            const promises = data.results.map(async (p, idx) => {
+                const id = idx + 1;
+                const detail = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`).then(r => r.json());
                 return {
                     id: id,
-                    name: data.name,
-                    types: data.types.map(t => t.type.name),
+                    name: detail.name,
+                    types: detail.types.map(t => t.type.name),
                     sprite: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`
                 };
-            } catch (err) {
-                console.warn(`Failed to fetch Pokémon ${id}:`, err);
-                return null;
-            }
-        }
-
-        async function createSpeciesInput(currentId, onChange) {
-            const container = document.createElement('div');
-            container.className = 'form-group';
-            container.innerHTML = `
-                <label>Pokémon ID</label>
-                <input type="number" id="species-id-input" class="species-id-input" value="${currentId}" min="1" max="1025" step="1">
-                <div id="species-info" class="species-info">Loading...</div>
-            `;
-            const input = container.querySelector('#species-id-input');
-            const infoDiv = container.querySelector('#species-info');
-            
-            async function updateInfo() {
-                const id = parseInt(input.value, 10);
-                if (isNaN(id) || id < 1) {
-                    infoDiv.innerHTML = '<span style="color: var(--danger);">Enter a valid ID (1-1025)</span>';
-                    if (onChange) onChange(null, null);
-                    return;
-                }
-                infoDiv.innerHTML = '<span>Loading...</span>';
-                const species = await getPokemonById(id);
-                if (species) {
-                    infoDiv.innerHTML = `<strong>${species.name.toUpperCase()}</strong> (${species.types.join(', ')})`;
-                    if (onChange) onChange(id, species);
-                } else {
-                    infoDiv.innerHTML = '<span style="color: var(--danger);">Invalid Pokémon ID</span>';
-                    if (onChange) onChange(null, null);
-                }
-            }
-            
-            input.addEventListener('input', updateInfo);
-            await updateInfo(); // initial
-            return container;
-        }
-
-        async function openEditPokemonModal(pokemonId, uid) {
-            // Ensure moves database loaded
-            if (!isMoveDatabaseLoaded) {
-                await loadMoveDatabase();
-            }
-            const pokemonRef = doc(db, "users", uid, "pokemon", pokemonId);
-            const pokemonSnap = await getDoc(pokemonRef);
-            const p = pokemonSnap.data();
-            const formContainer = document.getElementById('edit-pokemon-form');
-            formContainer.innerHTML = `
-                <div id="edit-species-container"></div>
-                <div class="form-group">
-                    <label>Level</label>
-                    <input type="number" id="edit-level" value="${p.level}" min="1" max="100">
-                </div>
-                <div class="form-group">
-                    <label>XP</label>
-                    <input type="number" id="edit-exp" value="${p.exp || 0}" min="0">
-                </div>
-                <div class="form-group">
-                    <label>Moves (click to toggle, up to 4)</label>
-                    <div id="edit-moves-list" style="max-height: 300px; overflow-y: auto;"></div>
-                </div>
-                <button id="save-pokemon-edit" class="btn btn-primary">Save Changes</button>
-            `;
-            let selectedSpeciesId = p.pokemonId;
-            let selectedSpecies = await getPokemonById(selectedSpeciesId);
-            const speciesContainer = document.getElementById('edit-species-container');
-            const speciesInput = await createSpeciesInput(selectedSpeciesId, (id, species) => {
-                selectedSpeciesId = id;
-                selectedSpecies = species;
             });
-            speciesContainer.appendChild(speciesInput);
-            
-            await populateMoveSelector('edit-moves-list', p.moves);
-            
-            document.getElementById('save-pokemon-edit').onclick = async () => {
-                const newSpeciesId = selectedSpeciesId;
-                const newLevel = parseInt(document.getElementById('edit-level').value);
-                const newExp = parseInt(document.getElementById('edit-exp').value);
-                const selectedMoves = getSelectedMovesFromUI();
-                if (!selectedSpecies) {
-                    alert("Invalid Pokémon ID. Please fix before saving.");
-                    return;
-                }
-                await updateDoc(pokemonRef, {
-                    pokemonId: newSpeciesId,
-                    name: selectedSpecies.name,
-                    level: newLevel,
-                    exp: newExp,
-                    types: selectedSpecies.types,
-                    moves: selectedMoves
-                });
-                document.getElementById('edit-pokemon-modal').classList.add('hidden');
+            allPokemon = await Promise.all(promises);
+            allPokemon.forEach(p => pokemonNameMap.set(p.name, p.id));
+            console.log(`Loaded ${allPokemon.length} Pokémon.`);
+        } catch(e) {
+            console.error("Failed to load Pokémon species:", e);
+        }
+    }
+
+    // Helper functions
+    function getTypeColor(type) {
+        const colors = {
+            normal: '#A8A77A', fire: '#EE8130', water: '#6390F0', electric: '#F7D02C',
+            grass: '#7AC74C', ice: '#96D9D6', fighting: '#C22E28', poison: '#A33EA1',
+            ground: '#E2BF65', flying: '#A98FF3', psychic: '#F95587', bug: '#A6B91A',
+            rock: '#B6A136', ghost: '#735797', dragon: '#6F35FC', dark: '#705746',
+            steel: '#B7B7CE', fairy: '#D685AD'
+        };
+        return colors[type] || '#777777';
+    }
+
+    function generateTypeBadges(types) {
+        return types.map(t => `<span class="type-badge" style="background: ${getTypeColor(t)};">${t.toUpperCase()}</span>`).join('');
+    }
+
+    function getStaticSpriteUrl(id) {
+        return [`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`, `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`];
+    }
+
+    function getShowdownSpriteUrl(id) {
+        return [`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/${id}.gif`, `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.gif`];
+    }
+
+    function loadImageWithFallback(img, urls) {
+        let i=0;
+        function next() {
+            if(i>=urls.length) return;
+            img.src=urls[i];
+            img.onerror=()=>{ i++; next(); };
+        }
+        next();
+    }
+
+    function getExpNeededForNextLevel(l) { return l*300; }
+
+    function escapeHtml(str) {
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    // ========== USER MANAGEMENT ==========
+    let allUsers = [];
+    let currentEditingUser = null;
+
+    async function fetchAllUsers() {
+        const usersSnap = await getDocs(collection(db, "users"));
+        const users = [];
+        for (const docSnap of usersSnap.docs) {
+            const data = docSnap.data();
+            if (!data.hasStarter) continue;
+            const trainerName = data.trainerName || docSnap.id.split('@')[0];
+            const email = data.email || docSnap.id;
+            users.push({
+                uid: docSnap.id,
+                name: trainerName,
+                email: email,
+                totalLevels: data.totalLevels || 0,
+                totalEncounters: data.totalEncounters || 0,
+                active: data.active !== false,
+                coins: data.coins || 0,
+                role: data.role || null
+            });
+        }
+        return users;
+    }
+
+    function renderUserTable(users, filterTerm = '') {
+        const tbody = document.getElementById('user-body');
+        const filtered = users.filter(u => 
+            u.name.toLowerCase().includes(filterTerm) ||
+            u.email.toLowerCase().includes(filterTerm)
+        );
+        if (filtered.length === 0) {
+            tbody.innerHTML = '在美国<td colspan="6">No users found.</td></td>';
+            return;
+        }
+        tbody.innerHTML = filtered.map(u => `
+            <tr data-uid="${u.uid}">
+                 <td>${escapeHtml(u.name)}</td>
+                 <td>${escapeHtml(u.email)}</td>
+                 <td>${u.totalLevels}</td>
+                 <td>${u.totalEncounters}</td>
+                 <td><span class="active-badge ${!u.active ? 'inactive-badge' : ''}">${u.active ? 'Active' : 'Inactive'}</span></td>
+                 <td>
+                    <button class="btn btn-primary toggle-active" data-uid="${u.uid}" data-active="${u.active}">${u.active ? 'Deactivate' : 'Activate'}</button>
+                    <button class="btn btn-outline manage-user" data-uid="${u.uid}">Manage</button>
+                  </td>
+             </tr>
+        `).join('');
+
+        document.querySelectorAll('.toggle-active').forEach(btn => {
+            btn.onclick = async (e) => {
+                e.stopPropagation();
+                const uid = btn.dataset.uid;
+                const newActive = btn.dataset.active === 'true' ? false : true;
+                await updateDoc(doc(db, "users", uid), { active: newActive });
+                allUsers = await fetchAllUsers();
+                renderUserTable(allUsers, document.getElementById('user-search').value.toLowerCase());
+            };
+        });
+        document.querySelectorAll('.manage-user').forEach(btn => {
+            btn.onclick = async (e) => {
+                e.stopPropagation();
+                const uid = btn.dataset.uid;
                 await openManageUserModal(uid);
             };
-            document.getElementById('edit-pokemon-modal').classList.remove('hidden');
+        });
+    }
+
+    async function openManageUserModal(uid) {
+        currentEditingUser = uid;
+        const userDoc = await getDoc(doc(db, "users", uid));
+        if (!userDoc.exists()) {
+            alert("User not found.");
+            return;
+        }
+        const userData = userDoc.data();
+        const trainerName = userData.trainerName || uid.split('@')[0];
+        document.getElementById('manage-user-title').innerText = `Manage ${escapeHtml(trainerName)}`;
+        document.getElementById('manage-coins').innerText = userData.coins || 0;
+        document.getElementById('manage-total-level').innerText = userData.totalLevels || 0;
+        document.getElementById('edit-coins-btn').onclick = () => editCoins(uid);
+        document.getElementById('edit-total-level-btn').onclick = () => editTotalLevel(uid);
+
+        const pokemonSnap = await getDocs(collection(db, "users", uid, "pokemon"));
+        const team = [];
+        const collectionList = [];
+        pokemonSnap.forEach(doc => {
+            const p = { id: doc.id, ...doc.data() };
+            if (!p.moves || !Array.isArray(p.moves)) {
+                p.moves = [{ name: 'tackle', type: 'normal', power: 40, accuracy: 100, effect: '-', effectAccuracy: '-', icon: '🔘' }];
+            }
+            if (p.inTeam) team.push(p);
+            else collectionList.push(p);
+        });
+        renderPokemonList('team-list', team, true, uid);
+        renderPokemonList('collection-list', collectionList, false, uid);
+        document.getElementById('manage-user-modal').classList.remove('hidden');
+        document.getElementById('add-pokemon-btn').onclick = () => openAddPokemonModal(uid);
+    }
+
+    function renderPokemonList(containerId, pokemonList, isTeam, uid) {
+        const container = document.getElementById(containerId);
+        if (pokemonList.length === 0) {
+            container.innerHTML = '<p>No Pokémon here.</p>';
+            return;
+        }
+        container.innerHTML = '';
+        for (const p of pokemonList) {
+            const div = document.createElement('div');
+            div.className = 'mon-item';
+            const img = document.createElement('img');
+            loadImageWithFallback(img, getStaticSpriteUrl(p.pokemonId));
+            div.appendChild(img);
+            const info = document.createElement('div');
+            info.className = 'mon-info';
+            const expNeeded = getExpNeededForNextLevel(p.level);
+            const expCur = p.exp || 0;
+            const prog = Math.floor((expCur/expNeeded)*100);
+            const moveBadges = p.moves.map(m => `<span class="move-badge" style="background: ${getTypeColor(m.type)};">${m.name.toUpperCase()}</span>`).join('');
+            const bonusIcons = [];
+            if (p.bonusStats?.atk) bonusIcons.push('⚔️');
+            if (p.bonusStats?.def) bonusIcons.push('🛡️');
+            if (p.bonusStats?.spd) bonusIcons.push('🏃');
+            const bonusHtml = bonusIcons.length ? `<span style="margin-left: 8px;">${bonusIcons.join('')}</span>` : '';
+            let shinyBadge = '';
+            if (p.isShiny) shinyBadge = '<span class="special-badge" style="background: #ffcc00; color: #333; margin-left: 8px;">✨ SHINY</span>';
+            info.innerHTML = `
+                <b>${escapeHtml(p.name.toUpperCase())}</b> ${bonusHtml} ${shinyBadge} (Lvl ${p.level} | XP: ${expCur}/${expNeeded} [${prog}%])<br>
+                <small>${p.types.join(', ')}</small><br>
+                <div style="margin-top: 6px;">${moveBadges}</div>
+            `;
+            div.appendChild(info);
+            const btnDiv = document.createElement('div');
+            btnDiv.className = 'mon-buttons';
+            const editBtn = document.createElement('button');
+            editBtn.className = 'btn btn-outline';
+            editBtn.innerText = 'Edit';
+            editBtn.onclick = () => openEditPokemonModal(p.id, uid);
+            btnDiv.appendChild(editBtn);
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'btn btn-danger';
+            deleteBtn.innerText = 'Delete';
+            deleteBtn.onclick = () => deletePokemon(p.id, uid, p.name);
+            btnDiv.appendChild(deleteBtn);
+            if (isTeam) {
+                const moveToColl = document.createElement('button');
+                moveToColl.className = 'btn btn-outline';
+                moveToColl.innerText = 'Move to Collection';
+                moveToColl.onclick = () => movePokemonTeamStatus(p.id, uid, false);
+                btnDiv.appendChild(moveToColl);
+            } else {
+                const moveToTeam = document.createElement('button');
+                moveToTeam.className = 'btn btn-outline';
+                moveToTeam.innerText = 'Add to Team';
+                moveToTeam.onclick = () => movePokemonTeamStatus(p.id, uid, true);
+                btnDiv.appendChild(moveToTeam);
+            }
+            div.appendChild(btnDiv);
+            container.appendChild(div);
+        }
+    }
+
+    async function movePokemonTeamStatus(pokemonId, uid, inTeam) {
+        await updateDoc(doc(db, "users", uid, "pokemon", pokemonId), { inTeam });
+        await openManageUserModal(uid);
+    }
+
+    async function deletePokemon(pokemonId, uid, name) {
+        if (confirm(`Delete ${name}? This cannot be undone.`)) {
+            await deleteDoc(doc(db, "users", uid, "pokemon", pokemonId));
+            await openManageUserModal(uid);
+        }
+    }
+
+    async function editCoins(uid) {
+        const newCoins = prompt("Enter new coin amount:", document.getElementById('manage-coins').innerText);
+        if (newCoins !== null && !isNaN(parseInt(newCoins))) {
+            await updateDoc(doc(db, "users", uid), { coins: parseInt(newCoins) });
+            document.getElementById('manage-coins').innerText = newCoins;
+            allUsers = await fetchAllUsers();
+            renderUserTable(allUsers, document.getElementById('user-search').value.toLowerCase());
+        }
+    }
+
+    async function editTotalLevel(uid) {
+        const newTotalLevel = prompt("Enter new total level:", document.getElementById('manage-total-level').innerText);
+        if (newTotalLevel !== null && !isNaN(parseInt(newTotalLevel))) {
+            await updateDoc(doc(db, "users", uid), { totalLevels: parseInt(newTotalLevel) });
+            document.getElementById('manage-total-level').innerText = newTotalLevel;
+            allUsers = await fetchAllUsers();
+            renderUserTable(allUsers, document.getElementById('user-search').value.toLowerCase());
+        }
+    }
+
+    // ========== POKEMON SELECTION (with shiny checkbox) ==========
+    async function getPokemonById(id) {
+        let pokemon = allPokemon.find(p => p.id === id);
+        if (pokemon) return pokemon;
+        try {
+            const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
+            if (!res.ok) return null;
+            const data = await res.json();
+            return {
+                id: id,
+                name: data.name,
+                types: data.types.map(t => t.type.name),
+                sprite: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`
+            };
+        } catch (err) {
+            return null;
+        }
+    }
+
+    async function createSpeciesInput(currentId, onChange) {
+        const container = document.createElement('div');
+        container.className = 'form-group';
+        container.innerHTML = `
+            <label>Pokémon ID / Name</label>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <input type="number" id="species-id-input" class="species-id-input" value="${currentId}" min="1" max="1025" step="1" style="flex: 1;">
+                <input type="text" id="species-name-input" class="species-name-input" placeholder="or enter name" list="pokemon-names" style="flex: 2;">
+                <datalist id="pokemon-names">
+                    ${allPokemon.map(p => `<option value="${p.name}">`).join('')}
+                </datalist>
+            </div>
+            <div id="species-preview" class="species-preview">
+                <img id="species-sprite" src="" alt="">
+                <div class="preview-info">
+                    <div id="species-info">Loading...</div>
+                </div>
+                <button id="view-animated-btn" class="animated-btn" style="margin-left: auto;">🎬 View Animated</button>
+            </div>
+        `;
+        const idInput = container.querySelector('#species-id-input');
+        const nameInput = container.querySelector('#species-name-input');
+        const spriteImg = container.querySelector('#species-sprite');
+        const infoDiv = container.querySelector('#species-info');
+        const viewAnimatedBtn = container.querySelector('#view-animated-btn');
+        let currentSpecies = null;
+
+        async function updatePreview() {
+            if (!currentSpecies) return;
+            const urls = getStaticSpriteUrl(currentSpecies.id);
+            loadImageWithFallback(spriteImg, urls);
+            infoDiv.innerHTML = `<strong>${currentSpecies.name.toUpperCase()}</strong> (${currentSpecies.types.join(', ')})`;
+            if (onChange) onChange(currentSpecies.id, currentSpecies);
         }
 
-        async function populateMoveSelector(containerId, currentMoves) {
-            const container = document.getElementById(containerId);
-            if (!container) return;
-            const moves = moveDatabase.map(m => ({
-                name: m.name,
-                type: m.type,
-                power: m.power,
-                accuracy: m.accuracy
-            }));
-            const uniqueMoves = [];
-            const seen = new Set();
-            for (const m of moves) {
-                if (!seen.has(m.name)) {
-                    seen.add(m.name);
-                    uniqueMoves.push(m);
+        async function setSpeciesById(id) {
+            const species = await getPokemonById(id);
+            if (species) {
+                currentSpecies = species;
+                idInput.value = id;
+                nameInput.value = species.name;
+                await updatePreview();
+            } else {
+                currentSpecies = null;
+                infoDiv.innerHTML = '<span style="color: var(--danger);">Invalid Pokémon ID</span>';
+                spriteImg.style.display = 'none';
+                if (onChange) onChange(null, null);
+            }
+        }
+
+        async function onIdChange() {
+            const id = parseInt(idInput.value, 10);
+            if (isNaN(id) || id < 1) {
+                infoDiv.innerHTML = '<span style="color: var(--danger);">Enter a valid ID (1-1025)</span>';
+                spriteImg.style.display = 'none';
+                if (onChange) onChange(null, null);
+                return;
+            }
+            await setSpeciesById(id);
+        }
+
+        async function onNameChange() {
+            const name = nameInput.value.toLowerCase().trim();
+            if (!name) return;
+            const matchingPokemon = allPokemon.find(p => p.name === name);
+            if (matchingPokemon) {
+                await setSpeciesById(matchingPokemon.id);
+            } else {
+                try {
+                    const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${name}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        const species = {
+                            id: data.id,
+                            name: data.name,
+                            types: data.types.map(t => t.type.name),
+                            sprite: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${data.id}.png`
+                        };
+                        currentSpecies = species;
+                        idInput.value = species.id;
+                        nameInput.value = species.name;
+                        await updatePreview();
+                    } else {
+                        infoDiv.innerHTML = '<span style="color: var(--danger);">Pokémon not found</span>';
+                        spriteImg.style.display = 'none';
+                        if (onChange) onChange(null, null);
+                    }
+                } catch(e) {
+                    infoDiv.innerHTML = '<span style="color: var(--danger);">Error searching</span>';
                 }
             }
-            uniqueMoves.sort((a,b) => a.name.localeCompare(b.name));
-            container.innerHTML = '';
-            uniqueMoves.forEach(move => {
-                const btn = document.createElement('button');
-                btn.className = 'move-button';
-                btn.textContent = `${move.name.toUpperCase()} (${move.power})`;
-                btn.style.backgroundColor = getTypeColor(move.type);
-                btn.style.color = 'white';
-                btn.dataset.name = move.name;
-                btn.onclick = () => {
-                    btn.classList.toggle('selected');
-                };
-                if (currentMoves.some(m => m.name === move.name)) {
-                    btn.classList.add('selected');
-                }
-                container.appendChild(btn);
-            });
         }
 
-        function getSelectedMovesFromUI() {
-            const selected = [];
-            document.querySelectorAll('#edit-moves-list .move-button.selected').forEach(btn => {
-                const name = btn.dataset.name;
-                const move = moveDatabase.find(m => m.name === name);
-                if (move) {
-                    selected.push({
-                        name: move.name,
-                        type: move.type,
-                        power: move.power,
-                        accuracy: move.accuracy,
-                        effect: '-',
-                        effectAccuracy: '-',
-                        icon: '✨'
-                    });
-                }
+        idInput.addEventListener('input', onIdChange);
+        nameInput.addEventListener('change', onNameChange);
+        await setSpeciesById(currentId);
+
+        viewAnimatedBtn.onclick = () => {
+            if (!currentSpecies) {
+                alert("No Pokémon selected.");
+                return;
+            }
+            const modal = document.getElementById('animated-sprite-modal');
+            const title = document.getElementById('animated-title');
+            const img = document.getElementById('animated-sprite-img');
+            const info = document.getElementById('animated-info');
+            const errorDiv = document.getElementById('animated-error');
+            const retryBtn = document.getElementById('retry-animated-btn');
+
+            title.innerText = currentSpecies.name.toUpperCase();
+            info.innerHTML = generateTypeBadges(currentSpecies.types);
+            errorDiv.innerHTML = '';
+            img.style.display = 'block';
+            img.style.width = '200px';
+            img.style.height = '200px';
+            img.onerror = () => {
+                errorDiv.innerHTML = 'Failed to load animated sprite. Click retry.';
+                img.style.display = 'none';
+            };
+            const loadGif = () => {
+                img.onload = () => { img.style.display = 'block'; errorDiv.innerHTML = ''; };
+                loadImageWithFallback(img, getShowdownSpriteUrl(currentSpecies.id));
+            };
+            loadGif();
+            retryBtn.onclick = () => loadGif();
+            modal.classList.remove('hidden');
+        };
+        return container;
+    }
+
+    function renderMoveSelector(containerId, currentMoves, onChange) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        container.innerHTML = `
+            <input type="text" class="move-search" placeholder="Search moves...">
+            <div class="move-table-container">
+                <table class="move-table">
+                    <thead>
+                         <tr><th>Move</th><th>Type</th><th>Power</th><th style="width: 50px;">Select</th> </thead>
+                    </thead>
+                    <tbody id="move-table-body"></tbody>
+                </table>
+            </div>
+            <div class="selected-moves-preview" style="margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px;"></div>
+        `;
+        const searchInput = container.querySelector('.move-search');
+        const tbody = container.querySelector('#move-table-body');
+        const previewDiv = container.querySelector('.selected-moves-preview');
+        const selected = [...currentMoves];
+        const updatePreview = () => {
+            previewDiv.innerHTML = selected.map(m => `
+                <span style="background: ${getTypeColor(m.type)}; color: white; padding: 2px 8px; border-radius: 20px; font-size: 0.7rem;">
+                    ${m.name.toUpperCase()} (${m.power})
+                    <button class="remove-move" data-name="${m.name}" style="background: none; border: none; color: white; margin-left: 5px; cursor: pointer;">✕</button>
+                </span>
+            `).join('');
+            document.querySelectorAll('.remove-move').forEach(btn => {
+                btn.onclick = () => {
+                    const name = btn.dataset.name;
+                    const idx = selected.findIndex(m => m.name === name);
+                    if (idx !== -1) selected.splice(idx, 1);
+                    updateTable();
+                    updatePreview();
+                    if (onChange) onChange(selected);
+                };
             });
-            while (selected.length < 4) {
-                selected.push({
+        };
+        const updateTable = () => {
+            const searchTerm = searchInput.value.toLowerCase();
+            const filtered = moveDatabase.filter(m => m.name.includes(searchTerm));
+            tbody.innerHTML = filtered.map(m => `
+                <tr data-name="${m.name}">
+                    <td>${m.name.toUpperCase()}</td>
+                    <td><span class="type-badge" style="background: ${getTypeColor(m.type)};">${m.type.toUpperCase()}</span></td>
+                    <td>${m.power}</td>
+                    <td class="move-select"><input type="checkbox" ${selected.some(s => s.name === m.name) ? 'checked' : ''}></td>
+                </tr>
+            `).join('');
+            tbody.querySelectorAll('tr').forEach(tr => {
+                const name = tr.dataset.name;
+                const move = moveDatabase.find(m => m.name === name);
+                const cb = tr.querySelector('input');
+                cb.onchange = () => {
+                    if (cb.checked) {
+                        if (selected.length < 4) {
+                            selected.push({
+                                name: move.name,
+                                type: move.type,
+                                power: move.power,
+                                accuracy: move.accuracy,
+                                effect: '-',
+                                effectAccuracy: '-',
+                                icon: '✨'
+                            });
+                        } else {
+                            alert('You can only select up to 4 moves.');
+                            cb.checked = false;
+                        }
+                    } else {
+                        const idx = selected.findIndex(s => s.name === name);
+                        if (idx !== -1) selected.splice(idx, 1);
+                    }
+                    updatePreview();
+                    if (onChange) onChange(selected);
+                };
+            });
+        };
+        searchInput.addEventListener('input', updateTable);
+        updateTable();
+        updatePreview();
+        if (onChange) onChange(selected);
+    }
+
+    async function openEditPokemonModal(pokemonId, uid) {
+        if (!isMoveDatabaseLoaded) await loadMoveDatabase();
+        const pokemonRef = doc(db, "users", uid, "pokemon", pokemonId);
+        const pokemonSnap = await getDoc(pokemonRef);
+        const p = pokemonSnap.data();
+        const formContainer = document.getElementById('edit-pokemon-form');
+        formContainer.innerHTML = `
+            <div id="edit-species-container"></div>
+            <div class="form-group">
+                <label>Level</label>
+                <input type="number" id="edit-level" value="${p.level}" min="1" max="100">
+            </div>
+            <div class="form-group">
+                <label>XP</label>
+                <input type="number" id="edit-exp" value="${p.exp || 0}" min="0">
+            </div>
+            <div class="form-group">
+                <label>Bonus Stats</label>
+                <div class="bonus-checkboxes">
+                    <label><input type="checkbox" id="edit-bonus-atk" ${p.bonusStats?.atk ? 'checked' : ''}> ⚔️ +ATK</label>
+                    <label><input type="checkbox" id="edit-bonus-def" ${p.bonusStats?.def ? 'checked' : ''}> 🛡️ +DEF</label>
+                    <label><input type="checkbox" id="edit-bonus-spd" ${p.bonusStats?.spd ? 'checked' : ''}> 🏃 +SPD</label>
+                </div>
+            </div>
+            <div class="form-group">
+                <label><input type="checkbox" id="edit-is-shiny" ${p.isShiny ? 'checked' : ''}> ✨ Shiny Pokémon</label>
+            </div>
+            <div class="form-group">
+                <label>Moves (select up to 4)</label>
+                <div id="edit-moves-list"></div>
+            </div>
+            <button id="save-pokemon-edit" class="btn btn-primary">Save Changes</button>
+        `;
+        let selectedSpeciesId = p.pokemonId;
+        let selectedSpecies = await getPokemonById(selectedSpeciesId);
+        const speciesContainer = document.getElementById('edit-species-container');
+        const speciesInput = await createSpeciesInput(selectedSpeciesId, (id, species) => {
+            selectedSpeciesId = id;
+            selectedSpecies = species;
+        });
+        speciesContainer.appendChild(speciesInput);
+        let selectedMoves = [...p.moves];
+        renderMoveSelector('edit-moves-list', selectedMoves, (newMoves) => {
+            selectedMoves = newMoves;
+        });
+        document.getElementById('save-pokemon-edit').onclick = async () => {
+            const newSpeciesId = selectedSpeciesId;
+            const newLevel = parseInt(document.getElementById('edit-level').value);
+            const newExp = parseInt(document.getElementById('edit-exp').value);
+            const bonusStats = {
+                atk: document.getElementById('edit-bonus-atk').checked,
+                def: document.getElementById('edit-bonus-def').checked,
+                spd: document.getElementById('edit-bonus-spd').checked
+            };
+            const isShiny = document.getElementById('edit-is-shiny').checked;
+            if (!selectedSpecies) {
+                alert("Invalid Pokémon ID. Please fix before saving.");
+                return;
+            }
+            let finalMoves = [...selectedMoves];
+            while (finalMoves.length < 4) {
+                finalMoves.push({
                     name: 'tackle',
                     type: 'normal',
                     power: 40,
@@ -828,126 +1053,157 @@
                     icon: '🔘'
                 });
             }
-            return selected.slice(0,4);
-        }
-
-        async function openAddPokemonModal(uid) {
-            const formContainer = document.getElementById('add-pokemon-form');
-            formContainer.innerHTML = `
-                <div id="add-species-container"></div>
-                <div class="form-group">
-                    <label>Level</label>
-                    <input type="number" id="add-level" value="10" min="1" max="100">
-                </div>
-                <div class="form-group">
-                    <label>XP</label>
-                    <input type="number" id="add-exp" value="0" min="0">
-                </div>
-                <div class="form-group">
-                    <label>Add to Team?</label>
-                    <input type="checkbox" id="add-to-team">
-                </div>
-                <button id="confirm-add-pokemon" class="btn btn-primary">Add Pokémon</button>
-            `;
-            let selectedSpeciesId = 1;
-            let selectedSpecies = await getPokemonById(1);
-            const speciesContainer = document.getElementById('add-species-container');
-            const speciesInput = await createSpeciesInput(1, (id, species) => {
-                selectedSpeciesId = id;
-                selectedSpecies = species;
+            await updateDoc(pokemonRef, {
+                pokemonId: newSpeciesId,
+                name: selectedSpecies.name,
+                level: newLevel,
+                exp: newExp,
+                types: selectedSpecies.types,
+                moves: finalMoves.slice(0,4),
+                bonusStats: bonusStats,
+                isShiny: isShiny
             });
-            speciesContainer.appendChild(speciesInput);
-            
-            document.getElementById('confirm-add-pokemon').onclick = async () => {
-                const speciesId = selectedSpeciesId;
-                const level = parseInt(document.getElementById('add-level').value);
-                const exp = parseInt(document.getElementById('add-exp').value);
-                const inTeam = document.getElementById('add-to-team').checked;
-                if (!selectedSpecies) {
-                    alert("Invalid Pokémon ID. Please fix before adding.");
-                    return;
-                }
-                // Fetch default moves from API
-                const pokeRes = await fetch(`https://pokeapi.co/api/v2/pokemon/${speciesId}`);
-                const pokeData = await pokeRes.json();
-                const defaultMoves = await getMoveDetails(pokeData.moves.slice(0,4));
-                const newPokemon = {
-                    pokemonId: speciesId,
-                    name: selectedSpecies.name,
-                    level: level,
-                    exp: exp,
-                    moves: defaultMoves,
-                    types: selectedSpecies.types,
-                    inTeam: inTeam
-                };
-                await addDoc(collection(db, "users", uid, "pokemon"), newPokemon);
-                document.getElementById('add-pokemon-modal').classList.add('hidden');
-                await openManageUserModal(uid);
-            };
-            document.getElementById('add-pokemon-modal').classList.remove('hidden');
-        }
+            document.getElementById('edit-pokemon-modal').classList.add('hidden');
+            await openManageUserModal(uid);
+        };
+        document.getElementById('edit-pokemon-modal').classList.remove('hidden');
+    }
 
-        async function getMoveDetails(moves) {
-            const results = [];
-            for (const m of moves) {
-                const url = m.move ? m.move.url : m.url;
-                const detail = await fetch(url).then(r => r.json());
-                results.push({
-                    name: detail.name,
-                    power: detail.power || 40,
-                    type: detail.type.name,
-                    accuracy: detail.accuracy || 100,
+    async function openAddPokemonModal(uid) {
+        if (!isMoveDatabaseLoaded) await loadMoveDatabase();
+        const formContainer = document.getElementById('add-pokemon-form');
+        formContainer.innerHTML = `
+            <div id="add-species-container"></div>
+            <div class="form-group">
+                <label>Level</label>
+                <input type="number" id="add-level" value="10" min="1" max="100">
+            </div>
+            <div class="form-group">
+                <label>XP</label>
+                <input type="number" id="add-exp" value="0" min="0">
+            </div>
+            <div class="form-group">
+                <label>Bonus Stats</label>
+                <div class="bonus-checkboxes">
+                    <label><input type="checkbox" id="add-bonus-atk"> ⚔️ +ATK</label>
+                    <label><input type="checkbox" id="add-bonus-def"> 🛡️ +DEF</label>
+                    <label><input type="checkbox" id="add-bonus-spd"> 🏃 +SPD</label>
+                </div>
+            </div>
+            <div class="form-group">
+                <label><input type="checkbox" id="add-is-shiny"> ✨ Shiny Pokémon</label>
+            </div>
+            <div class="form-group">
+                <label>Add to Team?</label>
+                <input type="checkbox" id="add-to-team">
+            </div>
+            <div class="form-group">
+                <label>Moves (select up to 4)</label>
+                <div id="add-moves-list"></div>
+            </div>
+            <button id="confirm-add-pokemon" class="btn btn-primary">Add Pokémon</button>
+        `;
+        let selectedSpeciesId = 1;
+        let selectedSpecies = await getPokemonById(1);
+        const speciesContainer = document.getElementById('add-species-container');
+        const speciesInput = await createSpeciesInput(1, (id, species) => {
+            selectedSpeciesId = id;
+            selectedSpecies = species;
+        });
+        speciesContainer.appendChild(speciesInput);
+        let selectedMoves = [];
+        renderMoveSelector('add-moves-list', selectedMoves, (newMoves) => {
+            selectedMoves = newMoves;
+        });
+        document.getElementById('confirm-add-pokemon').onclick = async () => {
+            const speciesId = selectedSpeciesId;
+            const level = parseInt(document.getElementById('add-level').value);
+            const exp = parseInt(document.getElementById('add-exp').value);
+            const inTeam = document.getElementById('add-to-team').checked;
+            const bonusStats = {
+                atk: document.getElementById('add-bonus-atk').checked,
+                def: document.getElementById('add-bonus-def').checked,
+                spd: document.getElementById('add-bonus-spd').checked
+            };
+            const isShiny = document.getElementById('add-is-shiny').checked;
+            if (!selectedSpecies) {
+                alert("Invalid Pokémon ID. Please fix before adding.");
+                return;
+            }
+            let finalMoves = [...selectedMoves];
+            while (finalMoves.length < 4) {
+                finalMoves.push({
+                    name: 'tackle',
+                    type: 'normal',
+                    power: 40,
+                    accuracy: 100,
                     effect: '-',
                     effectAccuracy: '-',
-                    icon: '✨'
+                    icon: '🔘'
                 });
             }
-            return results;
+            const newPokemon = {
+                pokemonId: speciesId,
+                name: selectedSpecies.name,
+                level: level,
+                exp: exp,
+                moves: finalMoves.slice(0,4),
+                types: selectedSpecies.types,
+                inTeam: inTeam,
+                bonusStats: bonusStats,
+                isShiny: isShiny
+            };
+            await addDoc(collection(db, "users", uid, "pokemon"), newPokemon);
+            document.getElementById('add-pokemon-modal').classList.add('hidden');
+            await openManageUserModal(uid);
+        };
+        document.getElementById('add-pokemon-modal').classList.remove('hidden');
+    }
+
+    // ========== AUTH & INIT ==========
+    onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+            window.location.href = 'index.html';
+            return;
         }
-
-        // ========== AUTH & INIT ==========
-        onAuthStateChanged(auth, async (user) => {
-            if (!user) {
-                window.location.href = 'index.html';
-                return;
-            }
-            const userDoc = await getDoc(doc(db, "users", user.uid));
-            const userData = userDoc.data();
-            if (userData?.role !== 'admin') {
-                alert("Access denied. You are not an admin.");
-                window.location.href = 'index.html';
-                return;
-            }
-            // Load all users and Pokémon species in parallel
-            await Promise.all([fetchAllUsers(), loadAllPokemon()]);
-            allUsers = await fetchAllUsers();
-            renderUserTable(allUsers, '');
-            document.getElementById('user-search').addEventListener('input', (e) => {
-                renderUserTable(allUsers, e.target.value.toLowerCase());
-            });
-            // Sorting
-            const headers = document.querySelectorAll('#user-table th');
-            headers.forEach(th => {
-                th.onclick = () => {
-                    const sortBy = th.dataset.sort;
-                    if (!sortBy) return;
-                    const order = th.classList.contains('desc') ? 'asc' : 'desc';
-                    allUsers.sort((a,b) => {
-                        let aVal = a[sortBy], bVal = b[sortBy];
-                        if (sortBy === 'name') {
-                            aVal = a.name.toLowerCase();
-                            bVal = b.name.toLowerCase();
-                        }
-                        if (order === 'desc') return bVal - aVal;
-                        else return aVal - bVal;
-                    });
-                    renderUserTable(allUsers, document.getElementById('user-search').value.toLowerCase());
-                    th.classList.toggle('desc', order === 'desc');
-                };
-            });
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        const userData = userDoc.data();
+        if (userData?.role !== 'admin') {
+            alert("Access denied. You are not an admin.");
+            window.location.href = 'index.html';
+            return;
+        }
+        await Promise.all([fetchAllUsers(), loadAllPokemon()]);
+        allUsers = await fetchAllUsers();
+        renderUserTable(allUsers, '');
+        document.getElementById('user-search').addEventListener('input', (e) => {
+            renderUserTable(allUsers, e.target.value.toLowerCase());
         });
+        const headers = document.querySelectorAll('#user-table th');
+        headers.forEach(th => {
+            th.onclick = () => {
+                const sortBy = th.dataset.sort;
+                if (!sortBy) return;
+                const order = th.classList.contains('desc') ? 'asc' : 'desc';
+                allUsers.sort((a,b) => {
+                    let aVal = a[sortBy], bVal = b[sortBy];
+                    if (sortBy === 'name') {
+                        aVal = a.name.toLowerCase();
+                        bVal = b.name.toLowerCase();
+                    } else if (sortBy === 'email') {
+                        aVal = a.email.toLowerCase();
+                        bVal = b.email.toLowerCase();
+                    }
+                    if (order === 'desc') return bVal - aVal;
+                    else return aVal - bVal;
+                });
+                renderUserTable(allUsers, document.getElementById('user-search').value.toLowerCase());
+                th.classList.toggle('desc', order === 'desc');
+            };
+        });
+    });
 
-        document.getElementById('logout-btn').onclick = () => signOut(auth).then(() => window.location.href = 'index.html');
-    </script>
+    document.getElementById('logout-btn').onclick = () => signOut(auth).then(() => window.location.href = 'index.html');
+</script>
 </body>
 </html>

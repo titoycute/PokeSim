@@ -889,46 +889,171 @@ footer a:hover {
     <p><strong>Credits:</strong> Pokémon data and images provided by <a href="https://pokeapi.co/" target="_blank">PokeAPI</a>. Game backend powered by <a href="https://firebase.google.com/" target="_blank">Firebase</a>. Special thanks to the open‑source community.</p>
 </footer>
     
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, updateDoc, deleteDoc, writeBatch, increment, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, updateDoc, deleteDoc, writeBatch, increment, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-      const firebaseConfig = {
-  apiKey: "AIzaSyDkCE0wBrsQ1s-7zplvTtWOSE28ISaCFfQ",
-  authDomain: "pokesim-7f9b7.firebaseapp.com",
-  databaseURL: "https://pokesim-7f9b7-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "pokesim-7f9b7",
-  storageBucket: "pokesim-7f9b7.firebasestorage.app",
-  messagingSenderId: "1087100425430",
-  appId: "1:1087100425430:web:873ce4073ec2db1e792577",
-  measurementId: "G-KBD7LRW880"
-};
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+    const firebaseConfig = {
+        apiKey: "AIzaSyDkCE0wBrsQ1s-7zplvTtWOSE28ISaCFfQ",
+        authDomain: "pokesim-7f9b7.firebaseapp.com",
+        databaseURL: "https://pokesim-7f9b7-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "pokesim-7f9b7",
+        storageBucket: "pokesim-7f9b7.firebasestorage.app",
+        messagingSenderId: "1087100425430",
+        appId: "1:1087100425430:web:873ce4073ec2db1e792577",
+        measurementId: "G-KBD7LRW880"
+    };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
-        // ========== GLOBALS ==========
-        let playerPos = { x: 25, y: 25 };
-        let mapData = [];
-        let currentBattle = null;
-        let isProcessing = false;
-        let activePokemonId = null;
-        let cachedActivePokemon = null;
-        let lastMoveTime = 0;
-        let pendingRecordUpdates = {};
-        const MOVE_DELAY = 300;
-        const TRAINER_GIF = "https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/078dadf7-4d9b-4bf4-9855-0112be351700/d54f6cb-230b552c-50d1-45ad-be7e-7eab211c1cf8.gif?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7InBhdGgiOiIvZi8wNzhkYWRmNy00ZDliLTRiZjQtOTg1NS0wMTEyYmUzNTE3MDAvZDU0ZjZjYi0yMzBiNTUyYy01MGQxLTQ1YWQtYmU3ZS03ZWFiMjExYzFjZjguZ2lmIn1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmZpbGUuZG93bmxvYWQiXX0.A8hNnEQQMDN-XZI-VOQkzR71AozVAvgQDF6FcAAqi6M";
-        const TYPE_ICONS = { fire: "🔥", water: "💧", grass: "🌿", electric: "⚡", normal: "🔘", ice: "❄️", psychic: "🔮", poison: "🧪", ground: "🏜️", flying: "🦅", dragon: "🐲", bug: "🐛", rock: "🪨", ghost: "👻", dark: "🌙", steel: "⚙️", fairy: "✨", fighting: "👊" };
-        const bgMusic = document.getElementById('bg-music');
-        const battleMusic = document.getElementById('battle-music');
-        const specialMusic = document.getElementById('special-music');
-        let isMuted = false;
-        let currentMap = null;
-        let userTotalLevel = 0;
-        let isAdmin = false;
+    // ========== SHINY RATE ==========
+    const SHINY_RATE = 1; // 1/8192 chance – change to 1 for testing
 
-        //== LEVEL DISPLAY FUNCTION
+    // ========== GLOBALS ==========
+    let playerPos = { x: 25, y: 25 };
+    let mapData = [];
+    let currentBattle = null;
+    let isProcessing = false;
+    let activePokemonId = null;
+    let cachedActivePokemon = null;
+    let lastMoveTime = 0;
+    let pendingRecordUpdates = {};
+    const MOVE_DELAY = 300;
+    const TRAINER_GIF = "https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/078dadf7-4d9b-4bf4-9855-0112be351700/d54f6cb-230b552c-50d1-45ad-be7e-7eab211c1cf8.gif?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7InBhdGgiOiIvZi8wNzhkYWRmNy00ZDliLTRiZjQtOTg1NS0wMTEyYmUzNTE3MDAvZDU0ZjZjYi0yMzBiNTUyYy01MGQxLTQ1YWQtYmU3ZS03ZWFiMjExYzFjZjguZ2lmIn1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmZpbGUuZG93bmxvYWQiXX0.A8hNnEQQMDN-XZI-VOQkzR71AozVAvgQDF6FcAAqi6M";
+    const TYPE_ICONS = { fire: "🔥", water: "💧", grass: "🌿", electric: "⚡", normal: "🔘", ice: "❄️", psychic: "🔮", poison: "🧪", ground: "🏜️", flying: "🦅", dragon: "🐲", bug: "🐛", rock: "🪨", ghost: "👻", dark: "🌙", steel: "⚙️", fairy: "✨", fighting: "👊" };
+    const bgMusic = document.getElementById('bg-music');
+    const battleMusic = document.getElementById('battle-music');
+    const specialMusic = document.getElementById('special-music');
+    let isMuted = false;
+    let currentMap = null;
+    let userTotalLevel = 0;
+    let isAdmin = false;
+
+    // ========== UTILITY FUNCTIONS ==========
+    function getTypeColor(type) {
+        const colors = {
+            normal: '#A8A77A', fire: '#EE8130', water: '#6390F0', electric: '#F7D02C',
+            grass: '#7AC74C', ice: '#96D9D6', fighting: '#C22E28', poison: '#A33EA1',
+            ground: '#E2BF65', flying: '#A98FF3', psychic: '#F95587', bug: '#A6B91A',
+            rock: '#B6A136', ghost: '#735797', dragon: '#6F35FC', dark: '#705746',
+            steel: '#B7B7CE', fairy: '#D685AD'
+        };
+        return colors[type] || '#777777';
+    }
+
+    function generateTypeBadges(types) {
+        return types.map(t => `<span class="type-badge" style="background: ${getTypeColor(t)};">${t.toUpperCase()}</span>`).join('');
+    }
+
+    function getStaticSpriteUrl(id) { return [`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`, `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`]; }
+    function getBattleSpriteUrl(id, side='front') { const base = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown`; if(side==='back') return [`${base}/back/${id}.gif`, `${base}/${id}.gif`, `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/${id}.png`, getStaticSpriteUrl(id)[0]]; else return [`${base}/${id}.gif`, ...getStaticSpriteUrl(id)]; }
+    function getShinyBattleSpriteUrl(pokemonName, id, side = 'front') {
+        const name = pokemonName.toLowerCase();
+        const officialShiny = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/shiny/${id}.png`;
+        if (side === 'back') {
+            return [
+                `https://play.pokemonshowdown.com/sprites/ani-back-shiny/${name}.gif`,
+                officialShiny,
+                `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/shiny/${id}.png`,
+                getStaticSpriteUrl(id)[0]
+            ];
+        } else {
+            return [
+                `https://play.pokemonshowdown.com/sprites/ani-shiny/${name}.gif`,
+                officialShiny,
+                `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/shiny/${id}.gif`,
+                getStaticSpriteUrl(id)[0]
+            ];
+        }
+    }
+    function loadImageWithFallback(img, urls) { let i=0; function next() { if(i>=urls.length) return; img.src=urls[i]; img.onerror=()=>{ i++; next(); }; } next(); }
+
+    // Bonus stats helpers
+    function generateWildBonusStats() {
+        const r = Math.random() * 100;
+        let stats = { atk: false, def: false, spd: false };
+        if (r < 3) stats = { atk: true, def: true, spd: true };
+        else if (r < 13) {
+            const all = ['atk', 'def', 'spd'];
+            for (let i = all.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [all[i], all[j]] = [all[j], all[i]];
+            }
+            stats[all[0]] = true;
+            stats[all[1]] = true;
+        } else if (r < 38) {
+            const one = ['atk', 'def', 'spd'][Math.floor(Math.random() * 3)];
+            stats[one] = true;
+        }
+        return stats;
+    }
+
+    function getEffectiveSpeed(pokemon) {
+        let speed = pokemon.level;
+        if (pokemon.bonusStats?.spd) speed = Math.floor(speed * 1.25);
+        return speed;
+    }
+
+    function getFirstAttacker(player, wild) {
+        const playerSpeed = getEffectiveSpeed(player);
+        const wildSpeed = getEffectiveSpeed(wild);
+        if (playerSpeed > wildSpeed) return 'player';
+        if (wildSpeed > playerSpeed) return 'wild';
+        return Math.random() < 0.5 ? 'player' : 'wild';
+    }
+
+    function applyDamageModifiers(damage, attackerBonus, defenderBonus) {
+        let multiplier = 1;
+        if (attackerBonus?.atk) multiplier *= 1.25;
+        if (defenderBonus?.def) multiplier *= 0.75;
+        return Math.floor(damage * multiplier);
+    }
+
+    function executeAttack(attacker, defender, move, isPlayerAttacking) {
+        let eff = getTypeEffectiveness(move.type, defender.types);
+        let effText = "";
+        if (eff === 2) effText = "It's super effective!";
+        else if (eff === 0.5) effText = "It's not very effective...";
+        else if (eff === 0) effText = "It doesn't affect the wild Pokémon!";
+        let dmg = Math.floor((move.power / 5) * (attacker.level / 2) * eff);
+        if (dmg < 1 && eff > 0) dmg = 1;
+        dmg = applyDamageModifiers(dmg, attacker.bonusStats, defender.bonusStats);
+        defender.currentHp = Math.max(0, defender.currentHp - dmg);
+        const sprite = isPlayerAttacking ? document.getElementById('e-sprite-btl') : document.getElementById('p-sprite-btl');
+        if (sprite) {
+            sprite.classList.remove('shake-effect');
+            void sprite.offsetWidth;
+            sprite.classList.add('shake-effect');
+        }
+        addBattleLog(`${attacker.name.toUpperCase()} used ${move.name.toUpperCase()}! Deals ${dmg} dmg. ${effText}`);
+        return defender.currentHp <= 0;
+    }
+
+    const typeEffectiveness = {
+        normal: { rock: 0.5, steel: 0.5, ghost: 0 },
+        fire: { fire: 0.5, water: 0.5, grass: 2, ice: 2, bug: 2, rock: 0.5, dragon: 0.5, steel: 2 },
+        water: { fire: 2, water: 0.5, grass: 0.5, ground: 2, rock: 2, dragon: 0.5 },
+        electric: { water: 2, electric: 0.5, grass: 0.5, ground: 0, flying: 2, dragon: 0.5 },
+        grass: { fire: 0.5, water: 2, grass: 0.5, poison: 0.5, ground: 2, flying: 0.5, bug: 0.5, rock: 2, dragon: 0.5, steel: 0.5 },
+        ice: { fire: 0.5, water: 0.5, grass: 2, ice: 0.5, ground: 2, flying: 2, dragon: 2, steel: 0.5 },
+        fighting: { normal: 2, ice: 2, poison: 0.5, flying: 0.5, psychic: 0.5, bug: 0.5, rock: 2, ghost: 0, dark: 2, steel: 2, fairy: 0.5 },
+        poison: { grass: 2, poison: 0.5, ground: 0.5, rock: 0.5, ghost: 0.5, steel: 0, fairy: 2 },
+        ground: { fire: 2, electric: 2, grass: 0.5, poison: 2, flying: 0, bug: 0.5, rock: 2, steel: 2 },
+        flying: { electric: 0.5, grass: 2, fighting: 2, bug: 2, rock: 0.5, steel: 0.5 },
+        psychic: { fighting: 2, poison: 2, psychic: 0.5, dark: 0, steel: 0.5 },
+        bug: { fire: 0.5, grass: 2, fighting: 0.5, poison: 0.5, flying: 0.5, psychic: 2, ghost: 0.5, dark: 2, steel: 0.5, fairy: 0.5 },
+        rock: { fire: 2, ice: 2, fighting: 0.5, ground: 0.5, flying: 2, bug: 2, steel: 0.5 },
+        ghost: { normal: 0, psychic: 0, ghost: 2, dark: 0.5 },
+        dragon: { dragon: 2, steel: 0.5, fairy: 0 },
+        dark: { fighting: 0.5, psychic: 2, ghost: 2, dark: 0.5, fairy: 0.5 },
+        steel: { fire: 0.5, water: 0.5, electric: 0.5, ice: 2, rock: 2, steel: 0.5, fairy: 2 },
+        fairy: { fire: 0.5, fighting: 2, poison: 0.5, dragon: 2, dark: 2, steel: 0.5 }
+    };
+    function getTypeEffectiveness(at, def) { let m=1; for(let d of def) { const c=typeEffectiveness[at]; if(c&&c[d]!==undefined) m*=c[d]; } return m; }
+    function getExpNeededForNextLevel(l) { return l*300; }
+
     async function updateNavDisplay() {
         const user = auth.currentUser;
         if (!user) return;
@@ -936,845 +1061,602 @@ footer a:hover {
         const data = userDoc.data();
         const levelSpan = document.getElementById('trainer-level');
         if (levelSpan) levelSpan.innerText = data?.totalLevels || 0;
-        // Also update coins if you have a coin display in map.html (optional)
         const coinSpan = document.getElementById('coin-amount');
         if (coinSpan) coinSpan.innerText = data?.coins?.toLocaleString() || '0';
-        }
+    }
 
-        // ========== UTILITY FUNCTIONS ==========
-        function getTypeColor(type) {
-            const colors = {
-                normal: '#A8A77A', fire: '#EE8130', water: '#6390F0', electric: '#F7D02C',
-                grass: '#7AC74C', ice: '#96D9D6', fighting: '#C22E28', poison: '#A33EA1',
-                ground: '#E2BF65', flying: '#A98FF3', psychic: '#F95587', bug: '#A6B91A',
-                rock: '#B6A136', ghost: '#735797', dragon: '#6F35FC', dark: '#705746',
-                steel: '#B7B7CE', fairy: '#D685AD'
-            };
-            return colors[type] || '#777777';
-        }
-        // ========== BONUS STATS HELPERS ==========
-        function generateWildBonusStats() {
-            const r = Math.random() * 100;
-            let stats = { atk: false, def: false, spd: false };
-            if (r < 3) stats = { atk: true, def: true, spd: true };
-            else if (r < 13) {
-                const all = ['atk', 'def', 'spd'];
-                for (let i = all.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [all[i], all[j]] = [all[j], all[i]];
-                }
-                stats[all[0]] = true;
-                stats[all[1]] = true;
-            } else if (r < 38) {
-                const one = ['atk', 'def', 'spd'][Math.floor(Math.random() * 3)];
-                stats[one] = true;
-            }
-            return stats;
-        }
+    async function updateUserTotalLevels(userId, delta) {
+        await updateDoc(doc(db, "users", userId), { totalLevels: increment(delta) });
+    }
+    async function updateUserTotalEncounters(userId, delta) {
+        await updateDoc(doc(db, "users", userId), { totalEncounters: increment(delta) });
+    }
 
-        function getEffectiveSpeed(pokemon) {
-            let speed = pokemon.level;
-            if (pokemon.bonusStats?.spd) speed = Math.floor(speed * 1.25);
-            return speed;
-        }
+    // ========== BATTLE FUNCTIONS (with shiny support) ==========
+    async function getMoveDetails(moves) {
+        return Promise.all(moves.slice(0,4).map(async m=>{
+            const d = await fetch(m.move ? m.move.url : m.url).then(r=>r.json());
+            return { name: d.name, power: d.power||40, type: d.type.name, icon: TYPE_ICONS[d.type.name]||d.type.name, accuracy: d.accuracy||100 };
+        }));
+    }
 
-        function showPreBattleSelectModal(team) {
-            return new Promise((resolve) => {
-                const modal = document.getElementById('pre-battle-select-modal');
-                const listDiv = document.getElementById('pre-battle-select-list');
-                listDiv.innerHTML = '';
-                team.forEach((p) => {
-                    const btn = document.createElement('button');
-                    btn.className = 'btn btn-outline';
-                    btn.style.margin = '5px';
-                    btn.style.display = 'flex';
-                    btn.style.alignItems = 'center';
-                    btn.style.gap = '12px';
-                    btn.style.textAlign = 'left';
-                    btn.style.padding = '10px';
-                    btn.style.width = '100%';
-                    const img = document.createElement('img');
-                    const spriteUrl = getStaticSpriteUrl(p.pokemonId)[0];
-                    img.src = spriteUrl;
-                    img.style.width = '50px';
-                    img.style.height = '50px';
-                    img.style.objectFit = 'contain';
-                    img.onerror = () => { img.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.pokemonId}.png`; };
-                    btn.appendChild(img);
-                    let bonusIcons = '';
-                    if (p.bonusStats?.atk) bonusIcons += '⚔️';
-                    if (p.bonusStats?.def) bonusIcons += '🛡️';
-                    if (p.bonusStats?.spd) bonusIcons += '🏃';
-                    const textDiv = document.createElement('div');
-                    textDiv.style.flex = '1';
-                    const hpPct = Math.floor((p.currentHp / p.maxHp) * 100);
-                    const neededXP = getExpNeededForNextLevel(p.level);
-                    const currentXP = p.exp || 0;
-                    const xpPercent = Math.floor((currentXP / neededXP) * 100);
-                    const typeBadgesHtml = generateTypeBadges(p.types);
-                    textDiv.innerHTML = `
-                        <strong>${p.name.toUpperCase()} ${bonusIcons}</strong><br>
-                        <div>${typeBadgesHtml}</div>
-                        <small>Lvl ${p.level} — HP: ${p.currentHp}/${p.maxHp} (${hpPct}%)</small><br>
-                        <small>XP: ${currentXP}/${neededXP} (${xpPercent}%)</small>
-                    `;
-                    btn.appendChild(textDiv);
-                    btn.onclick = () => {
-                        modal.classList.add('hidden');
-                        resolve(p);
-                    };
-                    listDiv.appendChild(btn);
-                });
-                document.getElementById('cancel-pre-battle').onclick = () => {
+    function addBattleLog(m) { const log = document.getElementById('battle-log'); if(log) { log.innerHTML += `<div>> ${m}</div>`; log.scrollTop = log.scrollHeight; } }
+
+    function showPreBattleSelectModal(team) {
+        return new Promise((resolve) => {
+            const modal = document.getElementById('pre-battle-select-modal');
+            const listDiv = document.getElementById('pre-battle-select-list');
+            listDiv.innerHTML = '';
+            team.forEach((p) => {
+                const btn = document.createElement('button');
+                btn.className = 'btn btn-outline';
+                btn.style.margin = '5px';
+                btn.style.display = 'flex';
+                btn.style.alignItems = 'center';
+                btn.style.gap = '12px';
+                btn.style.textAlign = 'left';
+                btn.style.padding = '10px';
+                btn.style.width = '100%';
+                const img = document.createElement('img');
+                const spriteUrl = getStaticSpriteUrl(p.pokemonId)[0];
+                img.src = spriteUrl;
+                img.style.width = '50px';
+                img.style.height = '50px';
+                img.style.objectFit = 'contain';
+                img.onerror = () => { img.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.pokemonId}.png`; };
+                btn.appendChild(img);
+                let bonusIcons = '';
+                if (p.bonusStats?.atk) bonusIcons += '⚔️';
+                if (p.bonusStats?.def) bonusIcons += '🛡️';
+                if (p.bonusStats?.spd) bonusIcons += '🏃';
+                let shinyBadge = '';
+                if (p.isShiny) shinyBadge = '<span style="background: #ffcc00; color: #333; padding: 2px 6px; border-radius: 20px; font-size: 0.6rem; margin-left: 8px;">✨ SHINY</span>';
+                const textDiv = document.createElement('div');
+                textDiv.style.flex = '1';
+                const hpPct = Math.floor((p.currentHp / p.maxHp) * 100);
+                const neededXP = getExpNeededForNextLevel(p.level);
+                const currentXP = p.exp || 0;
+                const xpPercent = Math.floor((currentXP / neededXP) * 100);
+                const typeBadgesHtml = generateTypeBadges(p.types);
+                textDiv.innerHTML = `
+                    <strong>${p.name.toUpperCase()} ${bonusIcons}</strong> ${shinyBadge}<br>
+                    <div>${typeBadgesHtml}</div>
+                    <small>Lvl ${p.level} — HP: ${p.currentHp}/${p.maxHp} (${hpPct}%)</small><br>
+                    <small>XP: ${currentXP}/${neededXP} (${xpPercent}%)</small>
+                `;
+                btn.appendChild(textDiv);
+                btn.onclick = () => {
                     modal.classList.add('hidden');
-                    resolve(null);
+                    resolve(p);
                 };
-                modal.classList.remove('hidden');
+                listDiv.appendChild(btn);
             });
-        }
-
-        function getFirstAttacker(player, wild) {
-            const playerSpeed = getEffectiveSpeed(player);
-            const wildSpeed = getEffectiveSpeed(wild);
-            if (playerSpeed > wildSpeed) return 'player';
-            if (wildSpeed > playerSpeed) return 'wild';
-            return Math.random() < 0.5 ? 'player' : 'wild';
-        }
-
-        function applyDamageModifiers(damage, attackerBonus, defenderBonus) {
-            let multiplier = 1;
-            if (attackerBonus?.atk) multiplier *= 1.25;
-            if (defenderBonus?.def) multiplier *= 0.75;
-            return Math.floor(damage * multiplier);
-        }
-
-        function executeAttack(attacker, defender, move, isPlayerAttacking) {
-            let eff = getTypeEffectiveness(move.type, defender.types);
-            let effText = "";
-            if (eff === 2) effText = "It's super effective!";
-            else if (eff === 0.5) effText = "It's not very effective...";
-            else if (eff === 0) effText = "It doesn't affect the wild Pokémon!";
-            let dmg = Math.floor((move.power / 5) * (attacker.level / 2) * eff);
-            if (dmg < 1 && eff > 0) dmg = 1;
-            dmg = applyDamageModifiers(dmg, attacker.bonusStats, defender.bonusStats);
-            defender.currentHp = Math.max(0, defender.currentHp - dmg);
-            const sprite = isPlayerAttacking ? document.getElementById('e-sprite-btl') : document.getElementById('p-sprite-btl');
-            if (sprite) {
-                sprite.classList.remove('shake-effect');
-                void sprite.offsetWidth;
-                sprite.classList.add('shake-effect');
-            }
-            addBattleLog(`${attacker.name.toUpperCase()} used ${move.name.toUpperCase()}! Deals ${dmg} dmg. ${effText}`);
-            return defender.currentHp <= 0;
-        }
-        
-        function generateTypeBadges(types) {
-            return types.map(t => `<span class="type-badge" style="background: ${getTypeColor(t)};">${t.toUpperCase()}</span>`).join('');
-        }
-        function getStaticSpriteUrl(id) { return [`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`, `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`]; }
-        function getBattleSpriteUrl(id, side='front') { const base = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown`; if(side==='back') return [`${base}/back/${id}.gif`, `${base}/${id}.gif`, `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/${id}.png`, getStaticSpriteUrl(id)[0]]; else return [`${base}/${id}.gif`, ...getStaticSpriteUrl(id)]; }
-        function loadImageWithFallback(img, urls) { let i=0; function next() { if(i>=urls.length) return; img.src=urls[i]; img.onerror=()=>{ i++; next(); }; } next(); }
-
-        
-        // --- Helper: UI Lock ---
-        function toggleBattleUI(disabled) {
-            const moveBtns = document.querySelectorAll('.move-btn');
-            moveBtns.forEach(btn => btn.disabled = disabled);
-            ['catch-btn', 'switch-btn', 'escape-btn'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.disabled = disabled;
-            });
-        }
-        // --- Helper: Close Battle and Refresh ---
-        function endBattleCleanup() {
-    document.getElementById('battle-summary-modal').classList.add('hidden');
-    document.getElementById('battle-area').classList.add('hidden');
-    currentBattle = null;
-    isProcessing = false;
-    toggleBattleUI(false);
-    stopBattleMusic();
-
-    encounterCooldown = true;
-    setTimeout(() => {
-        encounterCooldown = false;
-        if (!currentBattle) addBattleLog("You are ready for another encounter.");
-    }, 5000);
-}
-
-
-// --- UPDATED: showBattleSummary with Bonus Icons ---
-function showBattleSummary(type, data = {}) {
-    const b = currentBattle;
-    if (!b) return;
-
-    const modal = document.getElementById('battle-summary-modal');
-    const header = document.getElementById('summary-header');
-    const sprite = document.getElementById('summary-sprite');
-    const name = document.getElementById('summary-name');
-    const info = document.getElementById('summary-info');
-    const typesDiv = document.getElementById('summary-types');
-    const details = document.getElementById('summary-details');
-
-    typesDiv.innerHTML = "";
-    
-    if (type === 'win') {
-        header.innerText = "YOU'VE WON!";
-        header.style.color = "var(--success)";
-        loadImageWithFallback(sprite, getBattleSpriteUrl(b.player.pokemonId, 'front'));
-        
-        let pIcons = '';
-        if (b.player.bonusStats?.atk) pIcons += '⚔️';
-        if (b.player.bonusStats?.def) pIcons += '🛡️';
-        if (b.player.bonusStats?.spd) pIcons += '🏃';
-
-        name.innerHTML = `${b.player.name.toUpperCase()} ${pIcons}`;
-        info.innerText = `Level ${b.player.level}`;
-        typesDiv.innerHTML = generateTypeBadges(b.player.types);
-        
-        details.innerHTML = `
-            <div style="display:flex; justify-content:space-between;"><span>Experience Gain:</span> <strong>+${data.xp}</strong></div>
-            <div style="display:flex; justify-content:space-between;"><span>Coins Earned:</span> <strong>₱${data.coins}</strong></div>
-            ${data.leveledUp ? `<div style="color:var(--success); font-weight:bold; margin-top:5px; text-align:center;">⭐ LEVEL UP! ⭐</div>` : ''}
-        `;
-    } 
-    else if (type === 'catch') {
-        header.innerText = "SUCCESSFULLY CAPTURED!";
-        header.style.color = "var(--primary)";
-        loadImageWithFallback(sprite, getBattleSpriteUrl(b.wild.pokemonId, 'front'));
-        
-        let wIcons = '';
-        if (b.wild.bonusStats?.atk) wIcons += '⚔️';
-        if (b.wild.bonusStats?.def) wIcons += '🛡️';
-        if (b.wild.bonusStats?.spd) wIcons += '🏃';
-
-        name.innerHTML = `${b.wild.name.toUpperCase()} ${wIcons}`;
-        info.innerText = `Level ${b.wild.level}`;
-        typesDiv.innerHTML = generateTypeBadges(b.wild.types);
-        
-        let movesHtml = b.wild.moves.map(m => 
-            `<span class="move-badge" style="background:${getTypeColor(m.type)}">${m.name.toUpperCase()}</span>`
-        ).join('');
-
-        details.innerHTML = `
-            <div style="font-weight:bold; margin-bottom:5px;">Moveset:</div>
-            <div style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:10px;">${movesHtml}</div>
-            <div style="font-size:0.8rem; color:var(--text-light); text-align:center;">Sent to your Collection!</div>
-        `;
-    } 
-    else if (type === 'defeat') {
-        header.innerText = "DEFEATED!";
-        header.style.color = "var(--danger)";
-        loadImageWithFallback(sprite, getBattleSpriteUrl(b.wild.pokemonId, 'front'));
-        name.innerText = b.wild.name.toUpperCase();
-        info.innerText = `Defeated by wild ${b.wild.name}`;
-        typesDiv.innerHTML = generateTypeBadges(b.wild.types);
-        details.innerHTML = `<p style="text-align:center;">Your team fainted!</p>`;
-    }
-
-    modal.classList.remove('hidden');
-    document.getElementById('close-summary-btn').onclick = endBattleCleanup;
-}
-
-
-
-// --- FIXED: Attempt Catch with all original Logic Keys ---
-async function attemptCatch() {
-    if (!currentBattle || isProcessing || !currentMap) return;
-    const b = currentBattle;
-    
-    const requiredXPPercent = currentMap.requiredExpPercent || 10;
-    const penaltyPercent = (currentMap.catchXpPenaltyPercent || 10) / 100;
-    const expNeededTotal = b.player.level * 300;
-    const requiredXPNeeded = expNeededTotal * (requiredXPPercent / 100);
-    const currentXP = b.player.exp || 0;
-
-    if (b.player.level <= 10) {
-        alert("Active Pokémon must be above level 10 to catch!");
-        return;
-    }
-    if (currentXP < requiredXPNeeded) {
-        alert(`Need at least ${requiredXPPercent}% XP progress to catch! Current: ${Math.floor((currentXP/expNeededTotal)*100)}%`);
-        return;
-    }
-
-    isProcessing = true;
-    toggleBattleUI(true);
-
-    try {
-        // 1. Deduct XP
-        const penalty = Math.floor(expNeededTotal * penaltyPercent);
-        const newExp = Math.max(0, currentXP - penalty);
-        await updateDoc(doc(db, "users", auth.currentUser.uid, "pokemon", b.player.id), { exp: newExp });
-        
-        // 2. Update local state and UI
-        b.player.exp = newExp;
-        if (cachedActivePokemon && cachedActivePokemon.id === b.player.id) cachedActivePokemon.exp = newExp;
-        addBattleLog(`Catch attempt! Spent ${penalty} XP.`);
-        renderBattleUI(); // Update the XP bar visually
-
-        const hpPct = b.wild.currentHp / b.wild.maxHp;
-        let catchChance = Math.min((currentMap.catchRate || 45) / 100, (1 - hpPct) * 0.8 + 0.05);
-
-        if (Math.random() < catchChance) {
-            const newPokemon = {
-                pokemonId: b.wild.pokemonId, name: b.wild.name, level: b.wild.level,
-                exp: 0, moves: b.wild.moves, types: b.wild.types, inTeam: false,
-                capturedAt: new Date(), bonusStats: b.wild.bonusStats
+            document.getElementById('cancel-pre-battle').onclick = () => {
+                modal.classList.add('hidden');
+                resolve(null);
             };
-            await addDoc(collection(db, "users", auth.currentUser.uid, "pokemon"), newPokemon);
-            await updateUserTotalLevels(auth.currentUser.uid, b.wild.level);
-            
-            showBattleSummary('catch');
-            updateNavDisplay();
-        } else {
-            addBattleLog(`It broke free!`);
-            setTimeout(() => {
-                if (!currentBattle) return;
-                const wM = b.wild.moves[Math.floor(Math.random() * b.wild.moves.length)];
-                executeAttack(b.wild, b.player, wM, false);
-                renderBattleUI();
-                if (b.player.currentHp <= 0) handlePlayerFaint(b);
-                else { isProcessing = false; toggleBattleUI(false); }
-            }, 1000);
-        }
-    } catch (err) {
-        console.error(err);
+            modal.classList.remove('hidden');
+        });
+    }
+
+    async function showSwitchPokemonModal(availablePokemon, isForced = false) {
+        return new Promise((resolve) => {
+            const modal = document.getElementById('switch-pokemon-modal');
+            const listDiv = document.getElementById('switch-pokemon-list');
+            const cancelBtn = modal.querySelector('.btn-outline');
+            if (isForced) {
+                cancelBtn.classList.add('hidden');
+            } else {
+                cancelBtn.classList.remove('hidden');
+            }
+            listDiv.innerHTML = '';
+            availablePokemon.forEach((p) => {
+                const btn = document.createElement('button');
+                btn.className = 'btn btn-outline';
+                btn.style.margin = '5px';
+                btn.style.display = 'flex';
+                btn.style.alignItems = 'center';
+                btn.style.gap = '12px';
+                btn.style.padding = '10px';
+                btn.style.width = '100%';
+                const img = document.createElement('img');
+                img.src = getStaticSpriteUrl(p.pokemonId)[0];
+                img.style.width = '50px';
+                img.style.height = '50px';
+                img.style.objectFit = 'contain';
+                img.onerror = () => { img.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.pokemonId}.png`; };
+                btn.appendChild(img);
+                let bonusIcons = '';
+                if (p.bonusStats?.atk) bonusIcons += '⚔️';
+                if (p.bonusStats?.def) bonusIcons += '🛡️';
+                if (p.bonusStats?.spd) bonusIcons += '🏃';
+                let shinyBadge = '';
+                if (p.isShiny) shinyBadge = '<span style="background: #ffcc00; color: #333; padding: 2px 6px; border-radius: 20px; font-size: 0.6rem; margin-left: 8px;">✨ SHINY</span>';
+                const textDiv = document.createElement('div');
+                textDiv.style.flex = '1';
+                textDiv.style.textAlign = 'left';
+                const hpPct = Math.floor((p.currentHp / p.maxHp) * 100);
+                const typeBadgesHtml = generateTypeBadges(p.types);
+                textDiv.innerHTML = `
+                    <strong>${p.name.toUpperCase()} ${bonusIcons}</strong> ${shinyBadge}<br>
+                    <div>${typeBadgesHtml}</div>
+                    <small>Lvl ${p.level} — HP: ${p.currentHp}/${p.maxHp} (${hpPct}%)</small>
+                `;
+                btn.appendChild(textDiv);
+                btn.onclick = () => {
+                    modal.classList.add('hidden');
+                    resolve(p);
+                };
+                listDiv.appendChild(btn);
+            });
+            cancelBtn.onclick = () => {
+                modal.classList.add('hidden');
+                resolve(null);
+            };
+            modal.classList.remove('hidden');
+        });
+    }
+
+    async function handlePlayerFaint(battle) {
+        const available = battle.playerTeam.filter(p => p.currentHp > 0);
+        if (available.length === 0) { showBattleSummary('defeat'); return null; }
+        addBattleLog(`${battle.player.name.toUpperCase()} fainted! Choose another.`);
+        const selected = await showSwitchPokemonModal(available, true);
+        if (!selected) { showBattleSummary('defeat'); return null; }
+        const newIdx = battle.playerTeam.findIndex(p => p.id === selected.id);
+        battle.activePokemonIndex = newIdx;
+        battle.player = battle.playerTeam[newIdx];
+        battle.player.currentHp = battle.player.maxHp;
+        renderBattleUI();
+        addBattleLog(`Go! ${battle.player.name.toUpperCase()}!`);
         isProcessing = false;
         toggleBattleUI(false);
+        return newIdx;
     }
-}
 
-
-        const typeEffectiveness = {
-            normal: { rock: 0.5, steel: 0.5, ghost: 0 },
-            fire: { fire: 0.5, water: 0.5, grass: 2, ice: 2, bug: 2, rock: 0.5, dragon: 0.5, steel: 2 },
-            water: { fire: 2, water: 0.5, grass: 0.5, ground: 2, rock: 2, dragon: 0.5 },
-            electric: { water: 2, electric: 0.5, grass: 0.5, ground: 0, flying: 2, dragon: 0.5 },
-            grass: { fire: 0.5, water: 2, grass: 0.5, poison: 0.5, ground: 2, flying: 0.5, bug: 0.5, rock: 2, dragon: 0.5, steel: 0.5 },
-            ice: { fire: 0.5, water: 0.5, grass: 2, ice: 0.5, ground: 2, flying: 2, dragon: 2, steel: 0.5 },
-            fighting: { normal: 2, ice: 2, poison: 0.5, flying: 0.5, psychic: 0.5, bug: 0.5, rock: 2, ghost: 0, dark: 2, steel: 2, fairy: 0.5 },
-            poison: { grass: 2, poison: 0.5, ground: 0.5, rock: 0.5, ghost: 0.5, steel: 0, fairy: 2 },
-            ground: { fire: 2, electric: 2, grass: 0.5, poison: 2, flying: 0, bug: 0.5, rock: 2, steel: 2 },
-            flying: { electric: 0.5, grass: 2, fighting: 2, bug: 2, rock: 0.5, steel: 0.5 },
-            psychic: { fighting: 2, poison: 2, psychic: 0.5, dark: 0, steel: 0.5 },
-            bug: { fire: 0.5, grass: 2, fighting: 0.5, poison: 0.5, flying: 0.5, psychic: 2, ghost: 0.5, dark: 2, steel: 0.5, fairy: 0.5 },
-            rock: { fire: 2, ice: 2, fighting: 0.5, ground: 0.5, flying: 2, bug: 2, steel: 0.5 },
-            ghost: { normal: 0, psychic: 0, ghost: 2, dark: 0.5 },
-            dragon: { dragon: 2, steel: 0.5, fairy: 0 },
-            dark: { fighting: 0.5, psychic: 2, ghost: 2, dark: 0.5, fairy: 0.5 },
-            steel: { fire: 0.5, water: 0.5, electric: 0.5, ice: 2, rock: 2, steel: 0.5, fairy: 2 },
-            fairy: { fire: 0.5, fighting: 2, poison: 0.5, dragon: 2, dark: 2, steel: 0.5 }
-        };
-        function getTypeEffectiveness(at, def) { let m=1; for(let d of def) { const c=typeEffectiveness[at]; if(c&&c[d]!==undefined) m*=c[d]; } return m; }
-        function getExpNeededForNextLevel(l) { return l*300; }
-
-        // ========== BATTLE FUNCTIONS ==========
-        async function getMoveDetails(moves) {
-            return Promise.all(moves.slice(0,4).map(async m=>{
-                const d = await fetch(m.move ? m.move.url : m.url).then(r=>r.json());
-                return { name: d.name, power: d.power||40, type: d.type.name, icon: TYPE_ICONS[d.type.name]||d.type.name, accuracy: d.accuracy||100 };
-            }));
+    async function resolveBattle(win) {
+        isProcessing = true;
+        toggleBattleUI(true);
+        if (win && currentBattle) {
+            const b = currentBattle;
+            const userId = auth.currentUser.uid;
+            if(b.wild.encounterCount === 5) {
+                const newPokemon = {
+                    pokemonId: b.wild.pokemonId, name: b.wild.name, level: b.wild.level,
+                    exp: 0, moves: b.wild.moves, types: b.wild.types, inTeam: false,
+                    capturedAt: new Date(), bonusStats: b.wild.bonusStats, isShiny: b.wild.isShiny
+                };
+                await addDoc(collection(db, "users", userId, "pokemon"), newPokemon);
+                await updateUserTotalLevels(userId, b.wild.level);
+                showBattleSummary('catch');
+                return;
+            }
+            let gainXP = Math.floor(b.wild.level * 15);
+            let coins = Math.floor(b.wild.level * 5);
+            let leveledUp = false;
+            const monRef = doc(db, "users", userId, "pokemon", b.player.id);
+            let curExp = b.player.exp || 0;
+            let newExp = curExp + gainXP;
+            let newLvl = b.player.level;
+            while(newExp >= getExpNeededForNextLevel(newLvl)) {
+                newExp -= getExpNeededForNextLevel(newLvl);
+                newLvl++;
+                leveledUp = true;
+                await checkEvolution(b.player.id, newLvl, b.player.pokemonId);
+            }
+            if (leveledUp) await updateUserTotalLevels(userId, (newLvl - b.player.level));
+            await updateDoc(monRef, { exp: newExp, level: newLvl });
+            await updateDoc(doc(db, "users", userId), { coins: increment(coins) });
+            showBattleSummary('win', { xp: gainXP, coins: coins, leveledUp: leveledUp });
+            updateNavDisplay();
         }
-        
-        function addBattleLog(m) { const log = document.getElementById('battle-log'); if(log) { log.innerHTML += `<div>> ${m}</div>`; log.scrollTop = log.scrollHeight; } }
-        
-async function showSwitchPokemonModal(availablePokemon, isForced = false) {
-    return new Promise((resolve) => {
-        const modal = document.getElementById('switch-pokemon-modal');
-        const listDiv = document.getElementById('switch-pokemon-list');
-        const cancelBtn = modal.querySelector('.btn-outline'); // The Cancel button
-        
-        // If Pokémon fainted, hide the cancel button (Player MUST pick)
-        if (isForced) {
-            cancelBtn.classList.add('hidden');
-        } else {
-            cancelBtn.classList.remove('hidden');
-        }
+    }
 
-        listDiv.innerHTML = '';
-        
-        availablePokemon.forEach((p) => {
-            const btn = document.createElement('button');
-            btn.className = 'btn btn-outline';
-            btn.style.margin = '5px';
-            btn.style.display = 'flex';
-            btn.style.alignItems = 'center';
-            btn.style.gap = '12px';
-            btn.style.padding = '10px';
-            btn.style.width = '100%';
+    async function checkEvolution(id, lvl, apiId) {
+        try {
+            const s = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${apiId}`).then(r => r.json());
+            const e = await fetch(s.evolution_chain.url).then(r => r.json());
+            let stage = e.chain;
+            let next = null;
+            while (stage && stage.species.name !== s.name) stage = stage.evolves_to[0];
+            if (stage && stage.evolves_to.length > 0) {
+                const details = stage.evolves_to[0].evolution_details[0];
+                if (details.min_level && lvl >= details.min_level) next = stage.evolves_to[0].species.name;
+            }
+            if (next) {
+                const oldName = s.name.toUpperCase();
+                const np = await fetch(`https://pokeapi.co/api/v2/pokemon/${next}`).then(r => r.json());
+                const newName = np.name.toUpperCase();
+                const newMoves = await getMoveDetails(np.moves.slice(0, 4));
+                const existingSnap = await getDoc(doc(db, "users", auth.currentUser.uid, "pokemon", id));
+                const bonusStats = existingSnap.data().bonusStats || { atk: false, def: false, spd: false };
+                await updateDoc(doc(db, "users", auth.currentUser.uid, "pokemon", id), {
+                    name: np.name,
+                    pokemonId: np.id,
+                    types: np.types.map(t => t.type.name),
+                    moves: newMoves,
+                    bonusStats: bonusStats,
+                    isShiny: existingSnap.data().isShiny || false
+                });
+                showEvoModal(np.id, oldName, newName);
+                return true;
+            }
+        } catch (e) { console.error("Evo Error:", e); }
+        return false;
+    }
 
-            const img = document.createElement('img');
-            img.src = getStaticSpriteUrl(p.pokemonId)[0];
-            img.style.width = '50px';
-            img.style.height = '50px';
-            img.style.objectFit = 'contain';
-            img.onerror = () => { img.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.pokemonId}.png`; };
-            btn.appendChild(img);
-
-            let bonusIcons = '';
-            if (p.bonusStats?.atk) bonusIcons += '⚔️';
-            if (p.bonusStats?.def) bonusIcons += '🛡️';
-            if (p.bonusStats?.spd) bonusIcons += '🏃';
-
-            const textDiv = document.createElement('div');
-            textDiv.style.flex = '1';
-            textDiv.style.textAlign = 'left';
-            
-            // Standardize to currentHp / maxHp
-            const hpPct = Math.floor((p.currentHp / p.maxHp) * 100);
-            const typeBadgesHtml = generateTypeBadges(p.types);
-
-            textDiv.innerHTML = `
-                <strong>${p.name.toUpperCase()} ${bonusIcons}</strong><br>
-                <div>${typeBadgesHtml}</div>
-                <small>Lvl ${p.level} — HP: ${p.currentHp}/${p.maxHp} (${hpPct}%)</small>
-            `;
-            btn.appendChild(textDiv);
-
-            btn.onclick = () => {
-                modal.classList.add('hidden');
-                resolve(p);
-            };
-            listDiv.appendChild(btn);
-        });
-        
-        // Handle Cancel button click
-        cancelBtn.onclick = () => {
-            modal.classList.add('hidden');
-            resolve(null);
-        };
-        
+    function showEvoModal(newId, oldName, newName) {
+        const modal = document.getElementById('evolution-modal');
+        const sprite = document.getElementById('evo-sprite');
+        const text = document.getElementById('evo-text');
+        const glow = document.getElementById('evo-glow');
+        const btn = document.getElementById('close-evo-btn');
+        sprite.src = getStaticSpriteUrl(newId)[0];
+        sprite.classList.add('evo-pulse');
+        glow.style.opacity = "1";
+        text.innerText = `What? ${oldName} is evolving!`;
         modal.classList.remove('hidden');
-    });
-}
-
-    // --- FIXED: Handle Faint with Black Out Logic ---
-async function handlePlayerFaint(battle) {
-    // 1. Find all Pokémon with HP > 0
-    const available = battle.playerTeam.filter(p => p.currentHp > 0);
-
-    // 2. If NO Pokémon are left, show Defeat
-    if (available.length === 0) {
-        showBattleSummary('defeat');
-        return null;
+        btn.style.display = "none";
+        setTimeout(() => {
+            sprite.classList.remove('evo-pulse');
+            sprite.classList.add('evo-final');
+            glow.style.opacity = "0";
+            text.innerHTML = `Congratulations!<br>Your ${oldName} evolved into <strong>${newName}</strong>!`;
+            btn.style.display = "block";
+        }, 3000);
+        btn.onclick = () => {
+            modal.classList.add('hidden');
+            sprite.classList.remove('evo-final');
+        };
     }
 
-    addBattleLog(`${battle.player.name.toUpperCase()} fainted! Choose another.`);
-    
-    // 3. Force the switch (isForced = true)
-    const selected = await showSwitchPokemonModal(available, true);
-    
-    // Safety check: This shouldn't be null because cancel is hidden, 
-    // but if the modal is closed via escape key etc:
-    if (!selected) {
-        showBattleSummary('defeat');
-        return null;
+    async function showInfo(id) {
+        const overlay = document.getElementById('loading-overlay');
+        overlay.classList.remove('hidden');
+        try {
+            const [pokemonRes, speciesRes] = await Promise.all([
+                fetch(`https://pokeapi.co/api/v2/pokemon/${id}`),
+                fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}`)
+            ]);
+            if (!pokemonRes.ok || !speciesRes.ok) throw new Error();
+            const p = await pokemonRes.json();
+            const s = await speciesRes.json();
+            const desc = s.flavor_text_entries.find(e => e.language.name === 'en')?.flavor_text.replace(/\f/g, ' ') || 'No description available.';
+            loadImageWithFallback(document.getElementById('info-img'), getBattleSpriteUrl(id, 'front'));
+            document.getElementById('info-name').innerText = p.name.toUpperCase();
+            document.getElementById('info-desc').innerText = `"${desc}"`;
+            document.getElementById('info-stats').innerHTML = `Height: ${p.height/10}m | Weight: ${p.weight/10}kg | Types: ${p.types.map(t=>t.type.name).join('/')}`;
+            document.getElementById('info-overlay').classList.remove('hidden');
+        } catch(err) { alert("Could not load Pokémon details."); }
+        finally { overlay.classList.add('hidden'); }
+    }
+    window.showInfo = showInfo;
+
+    function toggleBattleUI(disabled) {
+        const moveBtns = document.querySelectorAll('.move-btn');
+        moveBtns.forEach(btn => btn.disabled = disabled);
+        ['catch-btn', 'switch-btn', 'escape-btn'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.disabled = disabled;
+        });
     }
 
-    // 4. Swap to the new Pokémon
-    const newIdx = battle.playerTeam.findIndex(p => p.id === selected.id);
-    battle.activePokemonIndex = newIdx;
-    battle.player = battle.playerTeam[newIdx];
-    
-    renderBattleUI();
-    addBattleLog(`Go! ${battle.player.name.toUpperCase()}!`);
-    
-    // 5. Unlock UI for the next turn
-    isProcessing = false;
-    toggleBattleUI(false);
-    return newIdx;
-}
+    let encounterCooldown = false;
 
+    function endBattleCleanup() {
+        document.getElementById('battle-summary-modal').classList.add('hidden');
+        document.getElementById('battle-area').classList.add('hidden');
+        currentBattle = null;
+        isProcessing = false;
+        toggleBattleUI(false);
+        stopBattleMusic();
+        encounterCooldown = true;
+        setTimeout(() => {
+            encounterCooldown = false;
+            if (!currentBattle) addBattleLog("You are ready for another encounter.");
+        }, 5000);
+    }
 
-        function finishBattle() {
-            setTimeout(() => {
-                currentBattle = null;
-                isProcessing = false;
-                document.getElementById('battle-area').classList.add('hidden');
-                stopBattleMusic();
-            }, 3000);
-        }
-
-        // --- FIXED: Resolve Battle for Win Logic ---
-   async function resolveBattle(win) {
-    isProcessing = true;
-    toggleBattleUI(true);
-
-    if (win && currentBattle) {
+    function showBattleSummary(type, data = {}) {
         const b = currentBattle;
-        const userId = auth.currentUser.uid;
-        
-        if(b.wild.encounterCount === 5) {
-            const newPokemon = {
-                pokemonId: b.wild.pokemonId, name: b.wild.name, level: b.wild.level,
-                exp: 0, moves: b.wild.moves, types: b.wild.types, inTeam: false, 
-                capturedAt: new Date(), bonusStats: b.wild.bonusStats
-            };
-            await addDoc(collection(db, "users", userId, "pokemon"), newPokemon);
-            await updateUserTotalLevels(userId, b.wild.level);
-            showBattleSummary('catch');
-            return;
-        }
+        if (!b) return;
+        const modal = document.getElementById('battle-summary-modal');
+        const header = document.getElementById('summary-header');
+        const sprite = document.getElementById('summary-sprite');
+        const name = document.getElementById('summary-name');
+        const info = document.getElementById('summary-info');
+        const typesDiv = document.getElementById('summary-types');
+        const details = document.getElementById('summary-details');
+        typesDiv.innerHTML = "";
 
-        let gainXP = Math.floor(b.wild.level * 15);
-        let coins = Math.floor(b.wild.level * 5);
-        let leveledUp = false;
-
-        const monRef = doc(db, "users", userId, "pokemon", b.player.id);
-        let curExp = b.player.exp || 0;
-        let newExp = curExp + gainXP;
-        let newLvl = b.player.level;
-
-        while(newExp >= getExpNeededForNextLevel(newLvl)) { 
-            newExp -= getExpNeededForNextLevel(newLvl); 
-            newLvl++; 
-            leveledUp = true;
-            await checkEvolution(b.player.id, newLvl, b.player.pokemonId); 
-        }
-
-        if (leveledUp) await updateUserTotalLevels(userId, (newLvl - b.player.level));
-        await updateDoc(monRef, { exp: newExp, level: newLvl });
-        await updateDoc(doc(db, "users", userId), { coins: increment(coins) });
-
-        showBattleSummary('win', { xp: gainXP, coins: coins, leveledUp: leveledUp });
-        updateNavDisplay();
-    }
-}
-
-       async function checkEvolution(id, lvl, apiId) {
-    try {
-        const s = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${apiId}`).then(r => r.json());
-        const e = await fetch(s.evolution_chain.url).then(r => r.json());
-        
-        let stage = e.chain;
-        let next = null;
-        
-        // Find current stage in chain
-        while (stage && stage.species.name !== s.name) {
-            stage = stage.evolves_to[0];
-        }
-        
-        // Check if next stage exists and level is met
-        if (stage && stage.evolves_to.length > 0) {
-            const details = stage.evolves_to[0].evolution_details[0];
-            if (details.min_level && lvl >= details.min_level) {
-                next = stage.evolves_to[0].species.name;
-            }
-        }
-
-        if (next) {
-            const oldName = s.name.toUpperCase();
-            const np = await fetch(`https://pokeapi.co/api/v2/pokemon/${next}`).then(r => r.json());
-            const newName = np.name.toUpperCase();
-            const newMoves = await getMoveDetails(np.moves.slice(0, 4));
-
-            // Get existing stats so they aren't lost
-            const existingSnap = await getDoc(doc(db, "users", auth.currentUser.uid, "pokemon", id));
-            const bonusStats = existingSnap.data().bonusStats || { atk: false, def: false, spd: false };
-
-            // Update Database
-            await updateDoc(doc(db, "users", auth.currentUser.uid, "pokemon", id), {
-                name: np.name,
-                pokemonId: np.id,
-                types: np.types.map(t => t.type.name),
-                moves: newMoves,
-                bonusStats: bonusStats
-            });
-
-            // Trigger Modal Animation
-            showEvoModal(np.id, oldName, newName);
-            return true;
-        }
-    } catch (e) { console.error("Evo Error:", e); }
-    return false;
-}
-
-function showEvoModal(newId, oldName, newName) {
-    const modal = document.getElementById('evolution-modal');
-    const sprite = document.getElementById('evo-sprite');
-    const text = document.getElementById('evo-text');
-    const glow = document.getElementById('evo-glow');
-    const btn = document.getElementById('close-evo-btn');
-
-    // Setup initial state
-    sprite.src = getStaticSpriteUrl(newId)[0];
-    sprite.classList.add('evo-pulse');
-    glow.style.opacity = "1";
-    text.innerText = `What? ${oldName} is evolving!`;
-    modal.classList.remove('hidden');
-    btn.style.display = "none";
-
-    // Play "Animation" sequence
-    setTimeout(() => {
-        sprite.classList.remove('evo-pulse');
-        sprite.classList.add('evo-final');
-        glow.style.opacity = "0";
-        text.innerHTML = `Congratulations!<br>Your ${oldName} evolved into <strong>${newName}</strong>!`;
-        btn.style.display = "block";
-    }, 3000);
-
-    btn.onclick = () => {
-        modal.classList.add('hidden');
-        sprite.classList.remove('evo-final');
-    };
-}
-
-        async function showInfo(id) {
-            const overlay = document.getElementById('loading-overlay');
-            overlay.classList.remove('hidden');
-            try {
-                const [pokemonRes, speciesRes] = await Promise.all([
-                    fetch(`https://pokeapi.co/api/v2/pokemon/${id}`),
-                    fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}`)
-                ]);
-                if (!pokemonRes.ok || !speciesRes.ok) throw new Error();
-                const p = await pokemonRes.json();
-                const s = await speciesRes.json();
-                const desc = s.flavor_text_entries.find(e => e.language.name === 'en')?.flavor_text.replace(/\f/g, ' ') || 'No description available.';
-                loadImageWithFallback(document.getElementById('info-img'), getBattleSpriteUrl(id, 'front'));
-                document.getElementById('info-name').innerText = p.name.toUpperCase();
-                document.getElementById('info-desc').innerText = `"${desc}"`;
-                document.getElementById('info-stats').innerHTML = `Height: ${p.height/10}m | Weight: ${p.weight/10}kg | Types: ${p.types.map(t=>t.type.name).join('/')}`;
-                document.getElementById('info-overlay').classList.remove('hidden');
-            } catch(err) { alert("Could not load Pokémon details."); }
-            finally { overlay.classList.add('hidden'); }
-        }
-        window.showInfo = showInfo;
-
-        async function updateUserTotalLevels(userId, delta) {
-            await updateDoc(doc(db, "users", userId), { totalLevels: increment(delta) });
-        }
-        async function updateUserTotalEncounters(userId, delta) {
-            await updateDoc(doc(db, "users", userId), { totalEncounters: increment(delta) });
-        }
-
-       
-       
-        function updateCatchChance() {
-            if (!currentBattle || !currentMap) return;
-            const b = currentBattle;
-            const btn = document.getElementById('catch-btn');
-            const requiredXPPercent = currentMap.requiredExpPercent || 10;
-            const requiredXPNeeded = (b.player.level * 300) * (requiredXPPercent / 100);
-            const currentXP = b.player.exp || 0;
-            if (b.player.level <= 10) {
-                document.getElementById('catch-chance').innerHTML = `❌ Catch requires Lv > 10`;
-                if (btn) btn.disabled = true;
-                return;
-            }
-            if (currentXP < requiredXPNeeded) {
-                document.getElementById('catch-chance').innerHTML = `❌ Need ${requiredXPPercent}% XP progress to catch`;
-                if (btn) btn.disabled = true;
-                return;
-            }
-            const hpPct = b.wild.currentHp / b.wild.maxHp;
-            const mapCatchRate = (currentMap.catchRate || 45) / 100;
-            let chance = (1 - hpPct) * 0.8 + 0.05;
-            chance = Math.min(mapCatchRate, Math.max(0.05, chance));
-            const penaltyPercent = currentMap.catchXpPenaltyPercent || 10;
-            document.getElementById('catch-chance').innerHTML = `🎯 Catch chance: ${Math.floor(chance*100)}% (max ${Math.floor(mapCatchRate*100)}%) | Cost: ${penaltyPercent}% XP`;
-            if (btn) btn.disabled = false;
-        }
-
-    
-
-        async function attemptEscape() {
-            if (!currentBattle || isProcessing) return;
-            isProcessing = true;
-            const btn = document.getElementById('escape-btn');
-            if (btn) btn.disabled = true;
-            const b = currentBattle;
-            let chance = 0.5 + (b.player.level - b.wild.level) * 0.02;
-            chance = Math.min(0.95, Math.max(0.05, chance));
-            const success = Math.random() < chance;
-            if (success) {
-                addBattleLog("You got away safely!");
-                currentBattle = null;
-                document.getElementById('battle-area').classList.add('hidden');
-                stopBattleMusic();
-                isProcessing = false;
-                if (btn) btn.disabled = false;
-                return;
+        if (type === 'win') {
+            header.innerText = "YOU'VE WON!";
+            header.style.color = "var(--success)";
+            if (b.player.isShiny) {
+                loadImageWithFallback(sprite, getShinyBattleSpriteUrl(b.player.name, b.player.pokemonId, 'front'));
             } else {
-                addBattleLog("Couldn't escape! The wild Pokémon attacks!");
-                const wM = b.wild.moves[Math.floor(Math.random() * b.wild.moves.length)];
-                const effWild = getTypeEffectiveness(wM.type, b.player.types);
-                let wDmg = Math.floor((wM.power / 5) * (b.wild.level / 2) * effWild);
-                if (wDmg < 1 && effWild > 0) wDmg = 1;
-                b.player.currentHp = Math.max(0, b.player.currentHp - wDmg);
-                addBattleLog(`Wild ${b.wild.name} used ${wM.name.toUpperCase()}! Deals ${wDmg} dmg.`);
-                renderBattleUI();
-                if (b.player.currentHp <= 0) {
-                    const nextIdx = await handlePlayerFaint(b);
-                    if (nextIdx === null) {
-                        addBattleLog("All your Pokémon have fainted! You black out...");
-                        currentBattle = null;
-                        document.getElementById('battle-area').classList.add('hidden');
-                        stopBattleMusic();
-                        isProcessing = false;
-                        if (btn) btn.disabled = false;
-                        return;
-                    }
+                loadImageWithFallback(sprite, getBattleSpriteUrl(b.player.pokemonId, 'front'));
+            }
+            let pIcons = '';
+            let displayName = b.player.name.toUpperCase();
+            if (b.player.isShiny) displayName = '✨ SHINY ' + displayName;
+            if (b.player.bonusStats?.atk) pIcons += '⚔️';
+            if (b.player.bonusStats?.def) pIcons += '🛡️';
+            if (b.player.bonusStats?.spd) pIcons += '🏃';
+            name.innerHTML = `${displayName} ${pIcons}`;
+            info.innerText = `Level ${b.player.level}`;
+            typesDiv.innerHTML = generateTypeBadges(b.player.types);
+            details.innerHTML = `
+                <div style="display:flex; justify-content:space-between;"><span>Experience Gain:</span> <strong>+${data.xp}</strong></div>
+                <div style="display:flex; justify-content:space-between;"><span>Coins Earned:</span> <strong>₱${data.coins}</strong></div>
+                ${data.leveledUp ? `<div style="color:var(--success); font-weight:bold; margin-top:5px; text-align:center;">⭐ LEVEL UP! ⭐</div>` : ''}
+            `;
+        } else if (type === 'catch') {
+            header.innerText = "SUCCESSFULLY CAPTURED!";
+            header.style.color = "var(--primary)";
+            if (b.wild.isShiny) {
+                loadImageWithFallback(sprite, getShinyBattleSpriteUrl(b.wild.name, b.wild.pokemonId, 'front'));
+            } else {
+                loadImageWithFallback(sprite, getBattleSpriteUrl(b.wild.pokemonId, 'front'));
+            }
+            let wIcons = '';
+            let displayName = b.wild.name.toUpperCase();
+            if (b.wild.isShiny) displayName = '✨ SHINY ' + displayName;
+            if (b.wild.bonusStats?.atk) wIcons += '⚔️';
+            if (b.wild.bonusStats?.def) wIcons += '🛡️';
+            if (b.wild.bonusStats?.spd) wIcons += '🏃';
+            name.innerHTML = `${displayName} ${wIcons}`;
+            info.innerText = `Level ${b.wild.level}`;
+            typesDiv.innerHTML = generateTypeBadges(b.wild.types);
+            let movesHtml = b.wild.moves.map(m => `<span class="move-badge" style="background:${getTypeColor(m.type)}">${m.name.toUpperCase()}</span>`).join('');
+            details.innerHTML = `
+                <div style="font-weight:bold; margin-bottom:5px;">Moveset:</div>
+                <div style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:10px;">${movesHtml}</div>
+                <div style="font-size:0.8rem; color:var(--text-light); text-align:center;">Sent to your Collection!</div>
+            `;
+        } else if (type === 'defeat') {
+            header.innerText = "DEFEATED!";
+            header.style.color = "var(--danger)";
+            if (b.wild.isShiny) {
+                loadImageWithFallback(sprite, getShinyBattleSpriteUrl(b.wild.name, b.wild.pokemonId, 'front'));
+            } else {
+                loadImageWithFallback(sprite, getBattleSpriteUrl(b.wild.pokemonId, 'front'));
+            }
+            let displayName = b.wild.name.toUpperCase();
+            if (b.wild.isShiny) displayName = '✨ SHINY ' + displayName;
+            name.innerText = displayName;
+            info.innerText = `Defeated by wild ${b.wild.name}`;
+            typesDiv.innerHTML = generateTypeBadges(b.wild.types);
+            details.innerHTML = `<p style="text-align:center;">Your team fainted!</p>`;
+        }
+        modal.classList.remove('hidden');
+        document.getElementById('close-summary-btn').onclick = endBattleCleanup;
+    }
+
+    async function attemptCatch() {
+        if (!currentBattle || isProcessing || !currentMap) return;
+        const b = currentBattle;
+        const requiredXPPercent = currentMap.requiredExpPercent || 10;
+        const penaltyPercent = (currentMap.catchXpPenaltyPercent || 10) / 100;
+        const expNeededTotal = b.player.level * 300;
+        const requiredXPNeeded = expNeededTotal * (requiredXPPercent / 100);
+        const currentXP = b.player.exp || 0;
+        if (b.player.level <= 10) { alert("Active Pokémon must be above level 10 to catch!"); return; }
+        if (currentXP < requiredXPNeeded) { alert(`Need at least ${requiredXPPercent}% XP progress to catch! Current: ${Math.floor((currentXP/expNeededTotal)*100)}%`); return; }
+        isProcessing = true;
+        toggleBattleUI(true);
+        try {
+            const penalty = Math.floor(expNeededTotal * penaltyPercent);
+            const newExp = Math.max(0, currentXP - penalty);
+            await updateDoc(doc(db, "users", auth.currentUser.uid, "pokemon", b.player.id), { exp: newExp });
+            b.player.exp = newExp;
+            if (cachedActivePokemon && cachedActivePokemon.id === b.player.id) cachedActivePokemon.exp = newExp;
+            addBattleLog(`Catch attempt! Spent ${penalty} XP.`);
+            renderBattleUI();
+            const hpPct = b.wild.currentHp / b.wild.maxHp;
+            let catchChance = Math.min((currentMap.catchRate || 45) / 100, (1 - hpPct) * 0.8 + 0.05);
+            if (Math.random() < catchChance) {
+                const newPokemon = {
+                    pokemonId: b.wild.pokemonId, name: b.wild.name, level: b.wild.level,
+                    exp: 0, moves: b.wild.moves, types: b.wild.types, inTeam: false,
+                    capturedAt: new Date(), bonusStats: b.wild.bonusStats, isShiny: b.wild.isShiny
+                };
+                await addDoc(collection(db, "users", auth.currentUser.uid, "pokemon"), newPokemon);
+                await updateUserTotalLevels(auth.currentUser.uid, b.wild.level);
+                showBattleSummary('catch');
+                updateNavDisplay();
+            } else {
+                addBattleLog(`It broke free!`);
+                setTimeout(() => {
+                    if (!currentBattle) return;
+                    const wM = b.wild.moves[Math.floor(Math.random() * b.wild.moves.length)];
+                    executeAttack(b.wild, b.player, wM, false);
+                    renderBattleUI();
+                    if (b.player.currentHp <= 0) handlePlayerFaint(b);
+                    else { isProcessing = false; toggleBattleUI(false); }
+                }, 1000);
+            }
+        } catch (err) {
+            console.error(err);
+            isProcessing = false;
+            toggleBattleUI(false);
+        }
+    }
+
+    async function attemptEscape() {
+        if (!currentBattle || isProcessing) return;
+        isProcessing = true;
+        const btn = document.getElementById('escape-btn');
+        if (btn) btn.disabled = true;
+        const b = currentBattle;
+        let chance = 0.5 + (b.player.level - b.wild.level) * 0.02;
+        chance = Math.min(0.95, Math.max(0.05, chance));
+        const success = Math.random() < chance;
+        if (success) {
+            addBattleLog("You got away safely!");
+            currentBattle = null;
+            document.getElementById('battle-area').classList.add('hidden');
+            stopBattleMusic();
+            isProcessing = false;
+            if (btn) btn.disabled = false;
+            return;
+        } else {
+            addBattleLog("Couldn't escape! The wild Pokémon attacks!");
+            const wM = b.wild.moves[Math.floor(Math.random() * b.wild.moves.length)];
+            const effWild = getTypeEffectiveness(wM.type, b.player.types);
+            let wDmg = Math.floor((wM.power / 5) * (b.wild.level / 2) * effWild);
+            if (wDmg < 1 && effWild > 0) wDmg = 1;
+            b.player.currentHp = Math.max(0, b.player.currentHp - wDmg);
+            addBattleLog(`Wild ${b.wild.name} used ${wM.name.toUpperCase()}! Deals ${wDmg} dmg.`);
+            renderBattleUI();
+            if (b.player.currentHp <= 0) {
+                const nextIdx = await handlePlayerFaint(b);
+                if (nextIdx === null) {
+                    addBattleLog("All your Pokémon have fainted! You black out...");
+                    currentBattle = null;
+                    document.getElementById('battle-area').classList.add('hidden');
+                    stopBattleMusic();
+                    isProcessing = false;
+                    if (btn) btn.disabled = false;
+                    return;
                 }
             }
-            setTimeout(() => {
-                if (btn) btn.disabled = false;
-                isProcessing = false;
-            }, 1000);
         }
+        setTimeout(() => { if (btn) btn.disabled = false; isProcessing = false; }, 1000);
+    }
 
-        // Show modal for voluntary switch (excludes current Pokémon)
-        function showSwitchModal(availablePokemon, currentId) {
-            return new Promise((resolve) => {
-                const modal = document.getElementById('switch-pokemon-modal');
-                const listDiv = document.getElementById('switch-pokemon-list');
-                listDiv.innerHTML = '';
-                availablePokemon.forEach((p) => {
-                    if (p.id === currentId) return;
-                    const btn = document.createElement('button');
-                    btn.className = 'btn btn-outline';
-                    btn.style.margin = '5px';
-                    btn.style.display = 'flex';
-                    btn.style.alignItems = 'center';
-                    btn.style.gap = '12px';
-                    btn.style.textAlign = 'left';
-                    btn.style.padding = '10px';
-                    btn.style.width = '100%';
-                    btn.style.justifyContent = 'flex-start';
-
-                    // Image
-                    const img = document.createElement('img');
-                    const spriteUrl = getStaticSpriteUrl(p.pokemonId)[0];
-                    img.src = spriteUrl;
-                    img.style.width = '50px';
-                    img.style.height = '50px';
-                    img.style.objectFit = 'contain';
-                    img.onerror = () => { img.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.pokemonId}.png`; };
-                    btn.appendChild(img);
-
-                    // Text container
-                    const textDiv = document.createElement('div');
-                    textDiv.style.flex = '1';
-
-                    const hpPct = Math.floor((p.hp / p.maxHp) * 100);
-                    const neededXP = getExpNeededForNextLevel(p.level);
-                    const currentXP = p.exp || 0;
-                    const xpPercent = Math.floor((currentXP / neededXP) * 100);
-                    const typeBadgesHtml = generateTypeBadges(p.types); // uses global function
-
-                    textDiv.innerHTML = `
-                        <strong>${p.name.toUpperCase()}</strong><br>
-                        <div style="margin: 4px 0;">${typeBadgesHtml}</div>
-                        <small>Lvl ${p.level} — HP: ${p.hp}/${p.maxHp} (${hpPct}%)</small><br>
-                        <small>XP: ${currentXP}/${neededXP} (${xpPercent}%)</small>
-                    `;
-                    btn.appendChild(textDiv);
-
-                    btn.onclick = () => {
-                        modal.classList.add('hidden');
-                        resolve(p);
-                    };
-                    listDiv.appendChild(btn);
-                });
-                modal.classList.remove('hidden');
+    function showSwitchModal(availablePokemon, currentId) {
+        return new Promise((resolve) => {
+            const modal = document.getElementById('switch-pokemon-modal');
+            const listDiv = document.getElementById('switch-pokemon-list');
+            listDiv.innerHTML = '';
+            availablePokemon.forEach((p) => {
+                if (p.id === currentId) return;
+                const btn = document.createElement('button');
+                btn.className = 'btn btn-outline';
+                btn.style.margin = '5px';
+                btn.style.display = 'flex';
+                btn.style.alignItems = 'center';
+                btn.style.gap = '12px';
+                btn.style.textAlign = 'left';
+                btn.style.padding = '10px';
+                btn.style.width = '100%';
+                btn.style.justifyContent = 'flex-start';
+                const img = document.createElement('img');
+                const spriteUrl = getStaticSpriteUrl(p.pokemonId)[0];
+                img.src = spriteUrl;
+                img.style.width = '50px';
+                img.style.height = '50px';
+                img.style.objectFit = 'contain';
+                img.onerror = () => { img.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.pokemonId}.png`; };
+                btn.appendChild(img);
+                let shinyBadge = '';
+                if (p.isShiny) shinyBadge = '<span style="background: #ffcc00; color: #333; padding: 2px 6px; border-radius: 20px; font-size: 0.6rem; margin-left: 8px;">✨ SHINY</span>';
+                const textDiv = document.createElement('div');
+                textDiv.style.flex = '1';
+                const hpPct = Math.floor((p.currentHp / p.maxHp) * 100);
+                const neededXP = getExpNeededForNextLevel(p.level);
+                const currentXP = p.exp || 0;
+                const xpPercent = Math.floor((currentXP / neededXP) * 100);
+                const typeBadgesHtml = generateTypeBadges(p.types);
+                textDiv.innerHTML = `
+                    <strong>${p.name.toUpperCase()}</strong> ${shinyBadge}<br>
+                    <div style="margin: 4px 0;">${typeBadgesHtml}</div>
+                    <small>Lvl ${p.level} — HP: ${p.currentHp}/${p.maxHp} (${hpPct}%)</small><br>
+                    <small>XP: ${currentXP}/${neededXP} (${xpPercent}%)</small>
+                `;
+                btn.appendChild(textDiv);
+                btn.onclick = () => { modal.classList.add('hidden'); resolve(p); };
+                listDiv.appendChild(btn);
             });
-        }
-
-
-      async function attemptSwitch() {
-    if (!currentBattle || isProcessing) return;
-    
-    const b = currentBattle;
-    // Filter out the one currently in battle
-    const available = b.playerTeam.filter(p => p.currentHp > 0 && p.id !== b.player.id);
-    
-    if (available.length === 0) {
-        addBattleLog("No other Pokémon can switch in!");
-        return;
+            modal.classList.remove('hidden');
+        });
     }
 
-    isProcessing = true;
-    toggleBattleUI(true);
-
-    // Manual switch (isForced = false)
-    const selected = await showSwitchPokemonModal(available, false);
-    
-    if (!selected) {
-        // User clicked cancel
-        isProcessing = false;
-        toggleBattleUI(false);
-        return;
-    }
-
-    const newIdx = b.playerTeam.findIndex(p => p.id === selected.id);
-    b.activePokemonIndex = newIdx;
-    b.player = b.playerTeam[newIdx];
-    
-    renderBattleUI();
-    addBattleLog(`Go! ${b.player.name.toUpperCase()}!`);
-
-    // Wild Pokémon gets a free hit because you switched
-    setTimeout(() => {
-        if (!currentBattle) return;
-        const wM = b.wild.moves[Math.floor(Math.random() * b.wild.moves.length)];
-        executeAttack(b.wild, b.player, wM, false);
-        renderBattleUI();
-        
-        if (b.player.currentHp <= 0) {
-            handlePlayerFaint(b);
-        } else {
-            isProcessing = false;
-            toggleBattleUI(false);
+    async function attemptSwitch() {
+        if (!currentBattle || isProcessing) return;
+        const b = currentBattle;
+        const available = b.playerTeam.filter(p => p.currentHp > 0 && p.id !== b.player.id);
+        if (available.length === 0) {
+            addBattleLog("No other Pokémon can switch in!");
+            return;
         }
-    }, 1000);
-}
-    
-
-
-
-async function runTurn(selectedMove) {
-    if (isProcessing) return;
-    isProcessing = true;
-    toggleBattleUI(true);  // Disable all battle buttons immediately
-
-    addBattleLog("Trainer is concentrating...");  // Optional: visual feedback
-
-    // Wait 3 seconds before executing the move
-    setTimeout(async () => {
-        // Check if battle is still active (in case something happened during wait)
-        if (!currentBattle) {
+        isProcessing = true;
+        toggleBattleUI(true);
+        const selected = await showSwitchModal(available, b.player.id);
+        if (!selected) {
             isProcessing = false;
             toggleBattleUI(false);
             return;
         }
-
-        const b = currentBattle;
-        const first = getFirstAttacker(b.player, b.wild);
-
-        const getRandomMove = (pokemon) => {
-            const available = pokemon.moves.filter(m => m.power > 0);
-            if (!available.length) return { name: "Struggle", power: 50, type: "normal" };
-            return available[Math.floor(Math.random() * available.length)];
-        };
-
-        if (first === 'player') {
-            const wildFainted = executeAttack(b.player, b.wild, selectedMove, true);
+        const newIdx = b.playerTeam.findIndex(p => p.id === selected.id);
+        b.activePokemonIndex = newIdx;
+        b.player = b.playerTeam[newIdx];
+        renderBattleUI();
+        addBattleLog(`Go! ${b.player.name.toUpperCase()}!`);
+        setTimeout(() => {
+            if (!currentBattle) return;
+            const wM = b.wild.moves[Math.floor(Math.random() * b.wild.moves.length)];
+            executeAttack(b.wild, b.player, wM, false);
             renderBattleUI();
-            updateCatchChance();
+            if (b.player.currentHp <= 0) handlePlayerFaint(b);
+            else { isProcessing = false; toggleBattleUI(false); }
+        }, 1000);
+    }
 
-            if (wildFainted) {
-                addBattleLog("Wild Pokemon fainted! Victory!");
-                await resolveBattle(true);
-                // No need to unlock UI – resolveBattle will handle cleanup
+    async function runTurn(selectedMove) {
+        if (isProcessing) return;
+        isProcessing = true;
+        toggleBattleUI(true);
+        addBattleLog("Trainer is concentrating...");
+        setTimeout(async () => {
+            if (!currentBattle) {
+                isProcessing = false;
+                toggleBattleUI(false);
                 return;
             }
-
-            setTimeout(async () => {
-                if (!currentBattle) return;
+            const b = currentBattle;
+            const first = getFirstAttacker(b.player, b.wild);
+            const getRandomMove = (pokemon) => {
+                const available = pokemon.moves.filter(m => m.power > 0);
+                if (!available.length) return { name: "Struggle", power: 50, type: "normal" };
+                return available[Math.floor(Math.random() * available.length)];
+            };
+            if (first === 'player') {
+                const wildFainted = executeAttack(b.player, b.wild, selectedMove, true);
+                renderBattleUI();
+                updateCatchChance();
+                if (wildFainted) {
+                    addBattleLog("Wild Pokemon fainted! Victory!");
+                    await resolveBattle(true);
+                    return;
+                }
+                setTimeout(async () => {
+                    if (!currentBattle) return;
+                    const playerFainted = executeAttack(b.wild, b.player, getRandomMove(b.wild), false);
+                    renderBattleUI();
+                    updateCatchChance();
+                    if (playerFainted) {
+                        const nextIdx = await handlePlayerFaint(b);
+                        if (nextIdx === null) {
+                            addBattleLog("All your Pokémon have fainted! You black out...");
+                            currentBattle = null;
+                            document.getElementById('battle-area').classList.add('hidden');
+                            stopBattleMusic();
+                            isProcessing = false;
+                        } else {
+                            isProcessing = false;
+                            toggleBattleUI(false);
+                        }
+                    } else {
+                        isProcessing = false;
+                        toggleBattleUI(false);
+                    }
+                }, 1000);
+            } else {
                 const playerFainted = executeAttack(b.wild, b.player, getRandomMove(b.wild), false);
                 renderBattleUI();
                 updateCatchChance();
-
                 if (playerFainted) {
                     const nextIdx = await handlePlayerFaint(b);
                     if (nextIdx === null) {
@@ -1783,799 +1665,740 @@ async function runTurn(selectedMove) {
                         document.getElementById('battle-area').classList.add('hidden');
                         stopBattleMusic();
                         isProcessing = false;
+                        return;
                     } else {
                         isProcessing = false;
                         toggleBattleUI(false);
                     }
-                } else {
-                    isProcessing = false;
-                    toggleBattleUI(false);
                 }
-            }, 1000);
+                setTimeout(async () => {
+                    if (!currentBattle) return;
+                    const wildFainted = executeAttack(b.player, b.wild, selectedMove, true);
+                    renderBattleUI();
+                    updateCatchChance();
+                    if (wildFainted) {
+                        addBattleLog("Wild Pokemon fainted! Victory!");
+                        await resolveBattle(true);
+                    } else {
+                        isProcessing = false;
+                        toggleBattleUI(false);
+                    }
+                }, 1000);
+            }
+        }, 3000);
+    }
+
+    function updateCatchChance() {
+        if (!currentBattle || !currentMap) return;
+        const b = currentBattle;
+        const btn = document.getElementById('catch-btn');
+        const requiredXPPercent = currentMap.requiredExpPercent || 10;
+        const requiredXPNeeded = (b.player.level * 300) * (requiredXPPercent / 100);
+        const currentXP = b.player.exp || 0;
+        if (b.player.level <= 10) {
+            document.getElementById('catch-chance').innerHTML = `❌ Catch requires Lv > 10`;
+            if (btn) btn.disabled = true;
+            return;
+        }
+        if (currentXP < requiredXPNeeded) {
+            document.getElementById('catch-chance').innerHTML = `❌ Need ${requiredXPPercent}% XP progress to catch`;
+            if (btn) btn.disabled = true;
+            return;
+        }
+        const hpPct = b.wild.currentHp / b.wild.maxHp;
+        const mapCatchRate = (currentMap.catchRate || 45) / 100;
+        let chance = (1 - hpPct) * 0.8 + 0.05;
+        chance = Math.min(mapCatchRate, Math.max(0.05, chance));
+        const penaltyPercent = currentMap.catchXpPenaltyPercent || 10;
+        document.getElementById('catch-chance').innerHTML = `🎯 Catch chance: ${Math.floor(chance*100)}% (max ${Math.floor(mapCatchRate*100)}%) | Cost: ${penaltyPercent}% XP`;
+        if (btn) btn.disabled = false;
+    }
+
+    function renderBattleUI() {
+        if (!currentBattle) return;
+        const b = currentBattle;
+        const enemySprite = document.getElementById('e-sprite-btl');
+        enemySprite.classList.remove('gmax-sprite', 'legendary-sprite', 'mythical-sprite', 'mega-sprite', 'ub-sprite');
+        if (b.wild.specialCategory) enemySprite.classList.add(`${b.wild.specialCategory}-sprite`);
+        if (b.wild.isShiny) {
+            loadImageWithFallback(enemySprite, getShinyBattleSpriteUrl(b.wild.name, b.wild.pokemonId, 'front'));
         } else {
-            const playerFainted = executeAttack(b.wild, b.player, getRandomMove(b.wild), false);
-            renderBattleUI();
-            updateCatchChance();
-
-            if (playerFainted) {
-                const nextIdx = await handlePlayerFaint(b);
-                if (nextIdx === null) {
-                    addBattleLog("All your Pokémon have fainted! You black out...");
-                    currentBattle = null;
-                    document.getElementById('battle-area').classList.add('hidden');
-                    stopBattleMusic();
-                    isProcessing = false;
-                    return;
-                } else {
-                    isProcessing = false;
-                    toggleBattleUI(false);
-                }
-            }
-
-            setTimeout(async () => {
-                if (!currentBattle) return;
-                const wildFainted = executeAttack(b.player, b.wild, selectedMove, true);
-                renderBattleUI();
-                updateCatchChance();
-
-                if (wildFainted) {
-                    addBattleLog("Wild Pokemon fainted! Victory!");
-                    await resolveBattle(true);
-                } else {
-                    isProcessing = false;
-                    toggleBattleUI(false);
-                }
-            }, 1000);
-        }
-    }, 3000); // 3‑second delay before attack execution
-}
-
-        function renderBattleUI() {
-            if (!currentBattle) return;
-            const b = currentBattle;
-            const enemySprite = document.getElementById('e-sprite-btl');
-            enemySprite.classList.remove('gmax-sprite', 'legendary-sprite', 'mythical-sprite', 'mega-sprite', 'ub-sprite');
-            if (b.wild.specialCategory) enemySprite.classList.add(`${b.wild.specialCategory}-sprite`);
             loadImageWithFallback(enemySprite, getBattleSpriteUrl(b.wild.pokemonId, 'front'));
-            enemySprite.onclick = () => showInfo(b.wild.pokemonId);
-            const playerSprite = document.getElementById('p-sprite-btl');
+        }
+        enemySprite.onclick = () => showInfo(b.wild.pokemonId);
+        const playerSprite = document.getElementById('p-sprite-btl');
+        if (b.player.isShiny) {
+            loadImageWithFallback(playerSprite, getShinyBattleSpriteUrl(b.player.name, b.player.pokemonId, 'back'));
+        } else {
             loadImageWithFallback(playerSprite, getBattleSpriteUrl(b.player.pokemonId, 'back'));
-            playerSprite.onclick = () => showInfo(b.player.pokemonId);
-            let wildName = b.wild.name.toUpperCase();
-            let wildBonusIcons = '';
-            if (b.wild.bonusStats?.atk) wildBonusIcons += '⚔️';
-            if (b.wild.bonusStats?.def) wildBonusIcons += '🛡️';
-            if (b.wild.bonusStats?.spd) wildBonusIcons += '🏃';
-            if (b.wild.specialBadge) wildName = b.wild.specialBadge.split(' ')[0] + ' ' + wildName;
-            document.getElementById('e-name').innerHTML = `${wildName} ${wildBonusIcons}`;
-            document.getElementById('e-lvl').innerText = "Lvl " + b.wild.level;
-            document.getElementById('e-hp-fill').style.width = (b.wild.currentHp / b.wild.maxHp * 100) + "%";
-            document.getElementById('e-hp-text').innerHTML = `HP: ${b.wild.currentHp}/${b.wild.maxHp}`;
-            document.getElementById('e-types-icons').innerHTML = generateTypeBadges(b.wild.types);
-            let playerBonusIcons = '';
-            if (b.player.bonusStats?.atk) playerBonusIcons += '⚔️';
-            if (b.player.bonusStats?.def) playerBonusIcons += '🛡️';
-            if (b.player.bonusStats?.spd) playerBonusIcons += '🏃';
-            document.getElementById('p-name').innerHTML = `${b.player.name.toUpperCase()} ${playerBonusIcons}`;
-            document.getElementById('p-lvl').innerText = "Lvl " + b.player.level;
-            document.getElementById('p-hp-fill').style.width = (b.player.currentHp / b.player.maxHp * 100) + "%";
-            document.getElementById('p-hp-text').innerHTML = `HP: ${b.player.currentHp}/${b.player.maxHp}`;
-            document.getElementById('p-types-icons').innerHTML = generateTypeBadges(b.player.types);
-            const neededXP = getExpNeededForNextLevel(b.player.level);
-            const currentXP = b.player.exp || 0;
-            const xpPercent = Math.floor((currentXP / neededXP) * 100);
-            document.getElementById('p-xp-text').innerHTML = `XP: ${currentXP}/${neededXP} (${xpPercent}%)`;
-            // Type to ID mapping (Sword/Shield order)
-            const typeToId = {
-                normal: 1, fighting: 2, flying: 3, poison: 4, ground: 5, rock: 6,
-                bug: 7, ghost: 8, steel: 9, fire: 10, water: 11, grass: 12,
-                electric: 13, psychic: 14, ice: 15, dragon: 16, dark: 17, fairy: 18
-            };
-
-            const movesDiv = document.getElementById('battle-moves');
-            movesDiv.innerHTML = "";
-            b.player.moves.forEach(m => {
-                const btn = document.createElement('button');
-                btn.className = "move-btn";
-                btn.style.backgroundColor = getTypeColor(m.type);
-
-                const typeId = typeToId[m.type];
-                const iconUrl = typeId 
-                    ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/types/generation-viii/sword-shield/small/${typeId}.png`
-                    : null;
-                const fallbackEmoji = TYPE_ICONS[m.type] || '⚙️';
-
-                btn.innerHTML = `
-                    <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
-                        ${iconUrl ? `
-                            <img class="move-icon" src="${iconUrl}" alt="${m.type}" 
-                                onerror="this.onerror=null; this.style.display='none'; this.parentElement.querySelector('.move-icon-fallback').style.display='inline-block';"
-                                style="width: 32px; height: 32px; object-fit: contain;">
-                        ` : ''}
-                        <span class="move-icon-fallback" style="display: ${iconUrl ? 'none' : 'inline-block'};">${fallbackEmoji}</span>
-                        <span class="move-name">${m.name.toUpperCase()}</span>
-                        <span class="move-power">${m.power}</span>
-                    </div>
-                `;
-
-                btn.onclick = () => runTurn(m);
-                movesDiv.appendChild(btn);
-            });
         }
-
-        async function trackRecord(id, name) {
-            try {
-                const userId = auth.currentUser.uid;
-                await updateUserTotalEncounters(userId, 1);
-                const recordRef = doc(db, "users", userId, "records", id.toString());
-                const snap = await getDoc(recordRef);
-                let newCount = 1;
-                if (snap.exists()) newCount = (snap.data().count || 0) + 1;
-                await setDoc(recordRef, { name: name, count: newCount, pokemonId: parseInt(id) }, { merge: true });
-                return newCount;
-            } catch (err) { console.error("Error saving record:", err); return 1; }
-        }
-
-        async function isSpeciesOwned(pokemonId) {
-            const q = query(
-                collection(db, "users", auth.currentUser.uid, "pokemon"),
-                where("pokemonId", "==", pokemonId)
-            );
-            const snap = await getDocs(q);
-            return !snap.empty;
-        }
-
-        async function getEncounterCount(pokemonId) {
-            const docRef = doc(db, "users", auth.currentUser.uid, "records", pokemonId.toString());
-            const snap = await getDoc(docRef);
-            return snap.exists() ? snap.data().count : 0;
-        }
-
-        // ========== MAP GENERATION ==========
-        async function generateMapFromTheme(mapConfig) {
-            const grid = document.getElementById('map-grid');
-            grid.innerHTML = '';
-            const tileColors = mapConfig.tileColors || ['#c2b280', '#78cd54'];
-            const tileClasses = mapConfig.tileClasses || ['dirt', 'grass'];
-            for (let y = 0; y < 50; y++) {
-                mapData[y] = [];
-                for (let x = 0; x < 50; x++) {
-                    const idx = Math.floor(Math.random() * tileClasses.length);
-                    const tileClass = tileClasses[idx];
-                    mapData[y][x] = tileClass;
-                    const d = document.createElement('div');
-                    d.className = `tile ${tileClass}`;
-                    d.style.backgroundColor = tileColors[idx];
-                    grid.appendChild(d);
-                }
-            }
-            renderPlayer();
-        }
-
-        // ========== MAP SELECTION (Admin CRUD) ==========
-        let maps = [];
-        async function loadMaps() {
-            const snap = await getDocs(collection(db, "maps"));
-            maps = [];
-            snap.forEach(doc => { maps.push({ id: doc.id, ...doc.data() }); });
-            renderMapCards();
-        }
-
-     function renderMapCards() {
-    const container = document.getElementById('map-list');
-    if (!container) return;
-    container.innerHTML = '';
-    if (maps.length === 0) {
-        container.innerHTML = '<p style="text-align:center; padding:40px;">No maps available. ' +
-            (isAdmin ? 'Click "Add New Map" to create one.' : 'Please check back later.') + '</p>';
-        return;
-    }
-    for (const map of maps) {
-        const unlocked = userTotalLevel >= map.requiredLevel;
-        const card = document.createElement('div');
-        card.className = 'map-card';
-        card.style.cursor = 'pointer';
-        card.onclick = () => showMapPokemonList(map);
-        card.innerHTML = `
-            <img src="${map.imageUrl || 'map1.png'}" alt="${map.name}" onerror="this.src='map1.png'">
-            <h3>${escapeHtml(map.name)}</h3>
-            <p style="font-weight: bold; color: var(--primary);">Gen ${map.generation || '?'}</p>
-            <p class="map-description" style="font-style: italic;">${map.description || ''}</p>
-            <!-- New catch info -->
-            <div style="font-size: 0.75rem; color: var(--text-light); margin: 8px 0;">
-                <div>🎯 Catch rate: ${map.catchRate || 45}% (max)</div>
-                <div>📊 Need ${map.requiredExpPercent || 10}% XP progress to catch</div>
-                <div>💸 Catch costs ${map.catchXpPenaltyPercent || 10}% of XP progress bar</div>
-            <div style="font-size: 0.75rem; color: var(--text-light); margin: 4px 0;">
-    ${map.specialLevelRange?.enabled ? 
-        `📈 Wild levels: ${map.specialLevelRange.min} – ${map.specialLevelRange.max}` : 
-        `📈 Wild levels: around your active Pokémon's level (±10, min 1)`}
-</div>
-                </div>
-
-            <p style="font-size: 0.75rem; color: var(--text-light);">Click card to view Pokémon list</p>
-            <p class="required ${unlocked ? 'unlocked' : 'locked'}">
-                ${unlocked ? '✓ Available' : `🔒 Requires total level ${map.requiredLevel}`}
-            </p>
-            <button class="btn btn-primary explore-btn" data-map-id="${map.id}" ${!unlocked ? 'disabled' : ''} 
-                onclick="event.stopPropagation();">Explore</button>
-        `;
-        const exploreBtn = card.querySelector('.explore-btn');
-        exploreBtn.onclick = (e) => {
-            e.stopPropagation();
-            if (unlocked) startGameWithMap(map);
-        };
-        if (isAdmin) {
-            const editBtn = document.createElement('button');
-            editBtn.className = 'admin-edit-btn';
-            editBtn.innerHTML = '<i class="fas fa-edit"></i>';
-            editBtn.onclick = (e) => { e.stopPropagation(); openMapEditModal(map); };
-            card.appendChild(editBtn);
-            const delBtn = document.createElement('button');
-            delBtn.className = 'admin-delete-btn';
-            delBtn.innerHTML = '<i class="fas fa-trash"></i>';
-            delBtn.onclick = async (e) => {
-                e.stopPropagation();
-                if (confirm(`Delete map "${map.name}"?`)) {
-                    await deleteDoc(doc(db, "maps", map.id));
-                    loadMaps();
-                }
-            };
-            card.appendChild(delBtn);
-        }
-        container.appendChild(card);
-    }
-    document.querySelectorAll('.explore-btn').forEach(btn => {
-        btn.onclick = () => {
-            const mapId = btn.dataset.mapId;
-            const selected = maps.find(m => m.id === mapId);
-            if (selected && userTotalLevel >= selected.requiredLevel) startGameWithMap(selected);
-            else alert("You don't meet the level requirement for this map.");
-        };
-    });
-}
-
-        function openMapEditModal(map = null) {
-            const modal = document.createElement('div');
-            modal.className = 'overlay';
-            const isNew = !map;
-            const mapData = map ? { ...map } : {
-                name: '',
-                generation: 'I',
-                requiredLevel: 0,
-                description: '',
-                catchRate: 45,
-                requiredExpPercent: 10,
-                catchXpPenaltyPercent: 10,
-                pokemonMin: 1,
-                pokemonMax: 151,
-                imageUrl: 'map1.png',
-                tileClasses: ['dirt', 'grass'],
-                tileColors: ['#c2b280', '#78cd54'],
-                specialLevelRange: { enabled: false, min: 1, max: 100 },
-                specialPokemonList: []
-            };
-            modal.innerHTML = `
-                <div class="modal" style="max-width: 600px;">
-                    <h3>${isNew ? 'Create New Map' : 'Edit Map'}</h3>
-                    <div style="text-align: left; margin: 20px 0;">
-                        <div class="form-group"><label>Map Name</label><input type="text" id="map-name" value="${escapeHtml(mapData.name)}"></div>
-                        <div class="form-group"><label>Description</label><textarea id="map-description">${escapeHtml(mapData.description || '')}</textarea></div>
-                        <div class="form-group"><label>Generation (I-IX)</label><input type="text" id="map-generation" value="${mapData.generation || 'I'}"></div>
-                        <div class="form-group"><label>Required Total Level</label><input type="number" id="map-req-level" value="${mapData.requiredLevel}" min="0"></div>
-                        <div class="form-group"><label>Catch Rate (%)</label><input type="number" id="map-catch-rate" value="${mapData.catchRate || 45}" min="1" max="100"></div>
-                        <div class="form-group"><label>Required XP % to Catch</label><input type="number" id="map-req-xp" value="${mapData.requiredExpPercent || 10}" min="1" max="100"></div>
-                        <div class="form-group"><label>Catch XP Penalty (%)</label><input type="number" id="map-catch-penalty" value="${mapData.catchXpPenaltyPercent || 10}" min="1" max="100"></div>
-                        <div class="form-group"><label>Pokémon ID Min</label><input type="number" id="map-pokemon-min" value="${mapData.pokemonMin}" min="1" max="20000"></div>
-                        <div class="form-group"><label>Pokémon ID Max</label><input type="number" id="map-pokemon-max" value="${mapData.pokemonMax}" min="1" max="20000"></div>
-                        <div class="form-group"><label>Map Image (filename from map1.png to map15.png)</label><input type="text" id="map-image" value="${mapData.imageUrl || 'map1.png'}"></div>
-                        <div class="form-group"><label>Tile Colors (comma‑separated hex codes, e.g., #c2b280,#78cd54)</label><input type="text" id="map-tile-colors" value="${(mapData.tileColors || ['#c2b280','#78cd54']).join(',')}"></div>
-                        <div class="form-group"><label>Tile Classes (comma‑separated, e.g., dirt,grass)</label><input type="text" id="map-tile-classes" value="${(mapData.tileClasses || ['dirt','grass']).join(',')}"></div>
-                        <div class="form-group"><label><input type="checkbox" id="special-level-enabled" ${mapData.specialLevelRange?.enabled ? 'checked' : ''}> Enable special level range for wild Pokémon</label></div>
-                        <div id="special-level-fields" style="display: ${mapData.specialLevelRange?.enabled ? 'block' : 'none'}; margin-left: 20px;">
-                            <div class="form-group"><label>Min Level</label><input type="number" id="special-level-min" value="${mapData.specialLevelRange?.min || 1}"></div>
-                            <div class="form-group"><label>Max Level</label><input type="number" id="special-level-max" value="${mapData.specialLevelRange?.max || 100}"></div>
-                        </div>
-                        <div class="form-group"><label>Special Pokémon IDs (comma‑separated, leave empty to use ID range)</label><input type="text" id="special-pokemon-list" value="${(mapData.specialPokemonList || []).join(',')}"></div>
-                    </div>
-                    <button id="save-map-btn" class="btn btn-primary">Save</button>
-                    <button id="cancel-map-btn" class="btn btn-outline">Cancel</button>
+        playerSprite.onclick = () => showInfo(b.player.pokemonId);
+        let wildName = b.wild.name.toUpperCase();
+        let wildBonusIcons = '';
+        if (b.wild.isShiny) wildName = '✨ SHINY ' + wildName;
+        if (b.wild.bonusStats?.atk) wildBonusIcons += '⚔️';
+        if (b.wild.bonusStats?.def) wildBonusIcons += '🛡️';
+        if (b.wild.bonusStats?.spd) wildBonusIcons += '🏃';
+        if (b.wild.specialBadge) wildName = b.wild.specialBadge.split(' ')[0] + ' ' + wildName;
+        document.getElementById('e-name').innerHTML = `${wildName} ${wildBonusIcons}`;
+        document.getElementById('e-lvl').innerText = "Lvl " + b.wild.level;
+        document.getElementById('e-hp-fill').style.width = (b.wild.currentHp / b.wild.maxHp * 100) + "%";
+        document.getElementById('e-hp-text').innerHTML = `HP: ${b.wild.currentHp}/${b.wild.maxHp}`;
+        document.getElementById('e-types-icons').innerHTML = generateTypeBadges(b.wild.types);
+        let playerBonusIcons = '';
+        if (b.player.isShiny) playerBonusIcons += ' ✨ SHINY';
+        if (b.player.bonusStats?.atk) playerBonusIcons += '⚔️';
+        if (b.player.bonusStats?.def) playerBonusIcons += '🛡️';
+        if (b.player.bonusStats?.spd) playerBonusIcons += '🏃';
+        document.getElementById('p-name').innerHTML = `${b.player.name.toUpperCase()} ${playerBonusIcons}`;
+        document.getElementById('p-lvl').innerText = "Lvl " + b.player.level;
+        document.getElementById('p-hp-fill').style.width = (b.player.currentHp / b.player.maxHp * 100) + "%";
+        document.getElementById('p-hp-text').innerHTML = `HP: ${b.player.currentHp}/${b.player.maxHp}`;
+        document.getElementById('p-types-icons').innerHTML = generateTypeBadges(b.player.types);
+        const neededXP = getExpNeededForNextLevel(b.player.level);
+        const currentXP = b.player.exp || 0;
+        const xpPercent = Math.floor((currentXP / neededXP) * 100);
+        document.getElementById('p-xp-text').innerHTML = `XP: ${currentXP}/${neededXP} (${xpPercent}%)`;
+        const typeToId = { normal:1, fighting:2, flying:3, poison:4, ground:5, rock:6, bug:7, ghost:8, steel:9, fire:10, water:11, grass:12, electric:13, psychic:14, ice:15, dragon:16, dark:17, fairy:18 };
+        const movesDiv = document.getElementById('battle-moves');
+        movesDiv.innerHTML = "";
+        b.player.moves.forEach(m => {
+            const btn = document.createElement('button');
+            btn.className = "move-btn";
+            btn.style.backgroundColor = getTypeColor(m.type);
+            const typeId = typeToId[m.type];
+            const iconUrl = typeId ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/types/generation-viii/sword-shield/small/${typeId}.png` : null;
+            const fallbackEmoji = TYPE_ICONS[m.type] || '⚙️';
+            btn.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
+                    ${iconUrl ? `<img class="move-icon" src="${iconUrl}" alt="${m.type}" onerror="this.onerror=null; this.style.display='none'; this.parentElement.querySelector('.move-icon-fallback').style.display='inline-block';" style="width: 32px; height: 32px; object-fit: contain;">` : ''}
+                    <span class="move-icon-fallback" style="display: ${iconUrl ? 'none' : 'inline-block'};">${fallbackEmoji}</span>
+                    <span class="move-name">${m.name.toUpperCase()}</span>
+                    <span class="move-power">${m.power}</span>
                 </div>
             `;
-            document.body.appendChild(modal);
-            const specialCheckbox = modal.querySelector('#special-level-enabled');
-            const specialFields = modal.querySelector('#special-level-fields');
-            specialCheckbox.onchange = () => specialFields.style.display = specialCheckbox.checked ? 'block' : 'none';
-            modal.querySelector('#save-map-btn').onclick = async () => {
-                const newMap = {
-                    name: modal.querySelector('#map-name').value.trim(),
-                    description: modal.querySelector('#map-description').value.trim(),
-                    generation: modal.querySelector('#map-generation').value.trim(),
-                    requiredLevel: parseInt(modal.querySelector('#map-req-level').value),
-                    catchRate: parseInt(modal.querySelector('#map-catch-rate').value),
-                    requiredExpPercent: parseInt(modal.querySelector('#map-req-xp').value),
-                    catchXpPenaltyPercent: parseInt(modal.querySelector('#map-catch-penalty').value),
-                    pokemonMin: parseInt(modal.querySelector('#map-pokemon-min').value),
-                    pokemonMax: parseInt(modal.querySelector('#map-pokemon-max').value),
-                    imageUrl: modal.querySelector('#map-image').value.trim(),
-                    tileColors: modal.querySelector('#map-tile-colors').value.split(',').map(s => s.trim()),
-                    tileClasses: modal.querySelector('#map-tile-classes').value.split(',').map(s => s.trim()),
-                    specialLevelRange: {
-                        enabled: specialCheckbox.checked,
-                        min: parseInt(modal.querySelector('#special-level-min').value),
-                        max: parseInt(modal.querySelector('#special-level-max').value)
-                    },
-                    specialPokemonList: modal.querySelector('#special-pokemon-list').value.split(',').map(s => s.trim()).filter(s => s && !isNaN(parseInt(s))).map(s => parseInt(s))
-                };
-                if (isNew) await addDoc(collection(db, "maps"), newMap);
-                else await updateDoc(doc(db, "maps", map.id), newMap);
-                modal.remove();
-                loadMaps();
-            };
-            modal.querySelector('#cancel-map-btn').onclick = () => modal.remove();
-        }
-
-        function escapeHtml(str) {
-            return str.replace(/[&<>]/g, function(m) {
-                if (m === '&') return '&amp;';
-                if (m === '<') return '&lt;';
-                if (m === '>') return '&gt;';
-                return m;
-            });
-        }
-
-        window.addEventListener('keydown', (e) => {
-            if (currentBattle) return;
-            switch (e.key) {
-                case 'ArrowUp': movePlayer(0, -1); break;
-                case 'ArrowDown': movePlayer(0, 1); break;
-                case 'ArrowLeft': movePlayer(-1, 0); break;
-                case 'ArrowRight': movePlayer(1, 0); break;
-                default: return;
-            }
-            e.preventDefault();
+            btn.onclick = () => runTurn(m);
+            movesDiv.appendChild(btn);
         });
+    }
 
-        // ========== START GAME WITH SELECTED MAP ==========
-        async function startGameWithMap(map) {
+    async function trackRecord(id, name) {
+        try {
+            const userId = auth.currentUser.uid;
+            await updateUserTotalEncounters(userId, 1);
+            const recordRef = doc(db, "users", userId, "records", id.toString());
+            const snap = await getDoc(recordRef);
+            let newCount = 1;
+            if (snap.exists()) newCount = (snap.data().count || 0) + 1;
+            await setDoc(recordRef, { name: name, count: newCount, pokemonId: parseInt(id) }, { merge: true });
+            return newCount;
+        } catch (err) { console.error("Error saving record:", err); return 1; }
+    }
+
+    async function isSpeciesOwned(pokemonId) {
+        const q = query(collection(db, "users", auth.currentUser.uid, "pokemon"), where("pokemonId", "==", pokemonId));
+        const snap = await getDocs(q);
+        return !snap.empty;
+    }
+
+    async function getEncounterCount(pokemonId) {
+        const docRef = doc(db, "users", auth.currentUser.uid, "records", pokemonId.toString());
+        const snap = await getDoc(docRef);
+        return snap.exists() ? snap.data().count : 0;
+    }
+
+    // ========== MAP GENERATION & SELECTION ==========
+    async function generateMapFromTheme(mapConfig) {
+        const grid = document.getElementById('map-grid');
+        grid.innerHTML = '';
+        const tileColors = mapConfig.tileColors || ['#c2b280', '#78cd54'];
+        const tileClasses = mapConfig.tileClasses || ['dirt', 'grass'];
+        for (let y = 0; y < 50; y++) {
+            mapData[y] = [];
+            for (let x = 0; x < 50; x++) {
+                const idx = Math.floor(Math.random() * tileClasses.length);
+                const tileClass = tileClasses[idx];
+                mapData[y][x] = tileClass;
+                const d = document.createElement('div');
+                d.className = `tile ${tileClass}`;
+                d.style.backgroundColor = tileColors[idx];
+                grid.appendChild(d);
+            }
+        }
+        renderPlayer();
+    }
+
+    function renderPlayer() {
+        document.getElementById('player').style.backgroundImage = `url(${TRAINER_GIF})`;
+        document.getElementById('map-grid').style.transform = `translate(${275 - playerPos.x * 50}px, ${175 - playerPos.y * 50}px)`;
+    }
+
+    function movePlayer(dx, dy) {
+        if (currentBattle) return;
+        const n = Date.now();
+        if (n - lastMoveTime < MOVE_DELAY) return;
+        lastMoveTime = n;
+        const nx = playerPos.x + dx, ny = playerPos.y + dy;
+        if (nx >= 0 && nx < 50 && ny >= 0 && ny < 50) {
+            playerPos.x = nx;
+            playerPos.y = ny;
+            if (dx !== 0) document.getElementById('player').style.transform = dx < 0 ? 'scaleX(-1)' : 'scaleX(1)';
+            renderPlayer();
+            if (!encounterCooldown && mapData[ny][nx] !== 'dirt' && Math.random() < 0.15) {
+                startBattle();
+            }
+        }
+    }
+    window.movePlayer = movePlayer;
+
+    async function startBattle() {
+        if (!activePokemonId) { alert("No active Pokémon! Please set one in the main game."); return; }
+        document.getElementById('loading-overlay').classList.remove('hidden');
+        try {
+            const teamSnap = await getDocs(collection(db, "users", auth.currentUser.uid, "pokemon"));
+            const team = [];
+            teamSnap.forEach(doc => {
+                const p = doc.data();
+                if (p.inTeam) {
+                    team.push({
+                        id: doc.id, pokemonId: p.pokemonId, name: p.name,
+                        level: p.level, exp: p.exp, moves: p.moves,
+                        types: p.types,
+                        bonusStats: p.bonusStats || { atk: false, def: false, spd: false },
+                        maxHp: p.level * 25,
+                        currentHp: p.level * 25,
+                        isShiny: p.isShiny || false
+                    });
+                }
+            });
+            if (team.length === 0) {
+                alert("You have no Pokémon in your team!");
+                document.getElementById('loading-overlay').classList.add('hidden');
+                return;
+            }
+
+            let wildId;
+            if (currentMap.specialPokemonList?.length > 0 && Math.random() < 0.5) {
+                wildId = currentMap.specialPokemonList[Math.floor(Math.random() * currentMap.specialPokemonList.length)];
+            } else {
+                let min = currentMap.pokemonMin || 1, max = currentMap.pokemonMax || 151;
+                let valid = false, attempts = 0;
+                while (!valid && attempts < 15) {
+                    wildId = Math.floor(Math.random() * (max - min + 1)) + min;
+                    if (!(wildId > 1025 && wildId < 10001)) valid = true;
+                    attempts++;
+                }
+                if (!valid) wildId = min;
+            }
+            const wildRes = await fetch(`https://pokeapi.co/api/v2/pokemon/${wildId}`);
+            const wildData = await wildRes.json();
+            let species = { id: wildId, is_legendary: false, is_mythical: false, generation: { url: "9" } };
+            try {
+                const speciesRes = await fetch(wildData.species.url);
+                if (speciesRes.ok) species = await speciesRes.json();
+            } catch (e) {}
+            let wildMoves = [];
+            let rawMoves = wildData.moves;
+            if (!rawMoves || rawMoves.length === 0) {
+                try {
+                    const baseRes = await fetch(`https://pokeapi.co/api/v2/pokemon/${species.id}`);
+                    if (baseRes.ok) {
+                        const baseData = await baseRes.json();
+                        rawMoves = baseData.moves;
+                    }
+                } catch (e) {}
+            }
+            if (!rawMoves || rawMoves.length === 0) wildMoves = DEFAULT_MOVESET;
+            else wildMoves = await getMoveDetails(rawMoves.slice(0, 4));
+
+            let specialCategory = null, specialBadge = null;
+            const nameLower = wildData.name.toLowerCase();
+            const isGmax = nameLower.includes('-gmax');
+            const isMega = nameLower.includes('-mega');
+            const isParadox = [984,985,986,987,988,989,990,991,992,993,994,995,1005,1006,1009,1010,1020,1021,1022,1023].includes(wildId);
+            const isUltraBeast = species.is_ultra_beast === true || nameLower.includes('-ub');
+            const isLegendary = species.is_legendary === true;
+            const isMythical = species.is_mythical === true;
+            const isSpecial = isLegendary || isMythical || isParadox || isUltraBeast || isMega;
+            if (isGmax) { specialCategory = 'gmax'; specialBadge = '🔴 G-MAX'; }
+            else if (isMega) { specialCategory = 'mega'; specialBadge = '💎 MEGA'; }
+            else if (isUltraBeast) { specialCategory = 'ub'; specialBadge = '🌀 ULTRA BEAST'; }
+            else if (isLegendary) { specialCategory = 'legendary'; specialBadge = '⭐ LEGENDARY'; }
+            else if (isMythical) { specialCategory = 'mythical'; specialBadge = '✨ MYTHICAL'; }
+
+            const isShiny = Math.random() < 1 / SHINY_RATE;
+
+            const ps = document.getElementById('preview-sprite');
+            ps.classList.remove('gmax-sprite', 'legendary-sprite', 'mythical-sprite', 'mega-sprite', 'ub-sprite');
+            if (specialCategory) ps.classList.add(`${specialCategory}-sprite`);
+            if (isShiny) {
+                loadImageWithFallback(ps, getShinyBattleSpriteUrl(wildData.name, wildId, 'front'));
+                document.getElementById('preview-name').innerText = '✨ SHINY ' + wildData.name.toUpperCase();
+            } else {
+                loadImageWithFallback(ps, getBattleSpriteUrl(wildId, 'front'));
+                document.getElementById('preview-name').innerText = wildData.name.toUpperCase();
+            }
+            let badgesHtml = wildData.types.map(t => `<span class="type-badge" style="background: ${getTypeColor(t.type.name)};">${t.type.name.toUpperCase()}</span>`).join('');
+            if (specialBadge) badgesHtml += `<span class="special-badge" style="background: ${specialCategory === 'gmax' ? 'red' : (specialCategory === 'mega' ? '#3399ff' : (specialCategory === 'ub' ? '#33cc99' : (specialCategory === 'legendary' ? '#ffaa33' : '#ff66cc')))}; color: white;">${specialBadge}</span>`;
+            document.getElementById('preview-badges').innerHTML = badgesHtml;
+            const card = document.getElementById('encounter-card');
+            if (isSpecial || isGmax) card.classList.add('special'); else card.classList.remove('special');
+
+            const [owned, encounterCount] = await Promise.all([isSpeciesOwned(wildId), getEncounterCount(wildId)]);
+            const allTypes = ['normal','fire','water','electric','grass','ice','fighting','poison','ground','flying','psychic','bug','rock','ghost','dragon','dark','steel','fairy'];
+            const wildTypes = wildData.types.map(t => t.type.name);
+            const weaknesses = allTypes.filter(t => getTypeEffectiveness(t, wildTypes) === 2);
+            document.getElementById('preview-weaknesses').innerHTML = weaknesses.length > 0 ? `<strong>Weaknesses:</strong> ${weaknesses.map(t => `<span class="type-badge" style="background: ${getTypeColor(t)};">${t.toUpperCase()}</span>`).join(' ')}` : `<strong>Weaknesses:</strong> None (or neutral)`;
+            document.getElementById('preview-capture-status').innerHTML = owned ? `<span style="color: var(--success);">✓ Already captured</span>` : `<span style="color: var(--danger);">✗ Not yet captured</span>`;
+            document.getElementById('preview-encounter-count').innerHTML = `📖 Encountered ${encounterCount} time${encounterCount !== 1 ? 's' : ''} before this battle.`;
+            document.getElementById('encounter-preview').classList.remove('hidden');
+
+            let wildLevel;
+            const wildBonus = generateWildBonusStats();
+            if (currentMap.specialLevelRange?.enabled) {
+                wildLevel = Math.floor(Math.random() * (currentMap.specialLevelRange.max - currentMap.specialLevelRange.min + 1)) + currentMap.specialLevelRange.min;
+            } else {
+                const avgLevel = Math.floor(team.reduce((sum, p) => sum + p.level, 0) / team.length);
+                wildLevel = avgLevel + Math.floor(Math.random() * 21) - 10;
+            }
+            wildLevel = Math.max(1, wildLevel);
+            const count = await trackRecord(wildId, wildData.name);
+
+            setTimeout(async () => {
+                document.getElementById('encounter-preview').classList.add('hidden');
+                const selectedPokemon = await showPreBattleSelectModal(team);
+                if (!selectedPokemon) {
+                    document.getElementById('loading-overlay').classList.add('hidden');
+                    return;
+                }
+                const activeIndex = team.findIndex(p => p.id === selectedPokemon.id);
+                if (activeIndex === -1) {
+                    document.getElementById('loading-overlay').classList.add('hidden');
+                    return;
+                }
+                team[activeIndex].currentHp = team[activeIndex].maxHp;
+                currentBattle = {
+                    playerTeam: team,
+                    activePokemonIndex: activeIndex,
+                    player: team[activeIndex],
+                    wild: {
+                        pokemonId: wildId,
+                        name: wildData.name,
+                        level: wildLevel,
+                        maxHp: wildLevel * 25,
+                        currentHp: wildLevel * 25,
+                        types: wildData.types.map(t => t.type.name),
+                        moves: wildMoves,
+                        encounterCount: count,
+                        isSpecial: isSpecial,
+                        specialCategory: specialCategory,
+                        specialBadge: specialBadge,
+                        bonusStats: wildBonus,
+                        isShiny: isShiny
+                    }
+                };
+                renderBattleUI();
+                document.getElementById('battle-area').classList.remove('hidden');
+                addBattleLog(`A wild ${wildData.name.toUpperCase()} appeared!`);
+                updateCatchChance();
+                document.getElementById('escape-btn').disabled = false;
+                document.getElementById('switch-btn').disabled = false;
+                document.getElementById('catch-btn').disabled = false;
+                document.getElementById('loading-overlay').classList.add('hidden');
+                playBattleMusic(isSpecial || isGmax);
+            }, 3000);
+        } catch (err) {
+            console.error(err);
+            alert("Encounter failed to load.");
+            document.getElementById('loading-overlay').classList.add('hidden');
+        }
+    }
+
+    async function showMapPokemonList(map) {
+        const modal = document.getElementById('map-info-modal');
+        const tableBody = document.getElementById('map-pokemon-table-body');
+        const title = document.getElementById('map-info-title');
+        title.innerText = `${map.name} - Pokémon List`;
+        tableBody.innerHTML = '<tr><td colspan="3" style="padding: 40px; text-align: center;">Loading Pokémon data......</td></tr>';
+        modal.classList.remove('hidden');
+        let idList = [];
+        for (let i = map.pokemonMin; i <= map.pokemonMax; i++) {
+            if (i > 1025 && i < 10001) continue;
+            idList.push(i);
+        }
+        if (map.specialPokemonList) {
+            map.specialPokemonList.forEach(id => { if (!idList.includes(id)) idList.push(id); });
+        }
+        idList.sort((a, b) => a - b);
+        const displayLimit = 150;
+        const listToLoad = idList.slice(0, displayLimit);
+        let html = '';
+        try {
+            const results = await Promise.all(listToLoad.map(async (id) => {
+                try {
+                    const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
+                    if (!res.ok) return null;
+                    const data = await res.json();
+                    return {
+                        id: id,
+                        name: data.name.replace('-', ' '),
+                        types: data.types.map(t => t.type.name),
+                        sprite: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`
+                    };
+                } catch (e) { return null; }
+            }));
+            const filteredResults = results.filter(r => r !== null);
+            filteredResults.forEach(p => {
+                html += `
+                    <tr style="border-bottom: 1px solid var(--border); transition: 0.2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
+                        <td style="padding: 8px; text-align: center;"><img src="${p.sprite}" style="width: 50px; height: 50px; object-fit: contain;" onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png'"></td>
+                        <td style="padding: 8px; font-weight: bold; text-transform: capitalize;">${p.name} <br><small style="color: #999;">#${p.id}</small></td>
+                        <td style="padding: 8px;">${generateTypeBadges(p.types)}</td>
+                    </tr>
+                `;
+            });
+            if (idList.length > displayLimit) {
+                html += `<tr><td colspan="3" style="padding: 15px; text-align: center; font-size: 0.8rem; color: #999;">...and ${idList.length - displayLimit} more</td></tr>`;
+            }
+            tableBody.innerHTML = html;
+        } catch (err) {
+            tableBody.innerHTML = '<tr><td colspan="3" style="color: var(--danger); padding: 20px;">Failed to load Pokémon list.</td></tr>';
+        }
+    }
+
+    // ========== MUSIC ==========
+    function playMainMusic() {
+        if (!isMuted) {
+            battleMusic.pause();
+            specialMusic.pause();
+            battleMusic.currentTime = 0;
+            specialMusic.currentTime = 0;
+            bgMusic.play().catch(e => console.log("Map music resume blocked:", e));
+        }
+    }
+    function playBattleMusic(isSpecialEncounter) {
+        if (!isMuted) {
+            bgMusic.pause();
+            battleMusic.pause();
+            specialMusic.pause();
+            battleMusic.currentTime = 0;
+            specialMusic.currentTime = 0;
+            if (isSpecialEncounter) specialMusic.play().catch(e => console.log("Music error:", e));
+            else battleMusic.play().catch(e => console.log("Music error:", e));
+        }
+    }
+    function stopBattleMusic() {
+        battleMusic.pause();
+        specialMusic.pause();
+        battleMusic.currentTime = 0;
+        specialMusic.currentTime = 0;
+        if (!isMuted) bgMusic.play().catch(e => console.log("Map music resume failed.", e));
+    }
+
+    // ========== MAP LIST & ADMIN ==========
+    let maps = [];
+    async function loadMaps() {
+        const snap = await getDocs(collection(db, "maps"));
+        maps = [];
+        snap.forEach(doc => { maps.push({ id: doc.id, ...doc.data() }); });
+        renderMapCards();
+    }
+
+    function renderMapCards() {
+        const container = document.getElementById('map-list');
+        if (!container) return;
+        container.innerHTML = '';
+        if (maps.length === 0) {
+            container.innerHTML = '<p style="text-align:center; padding:40px;">No maps available. ' + (isAdmin ? 'Click "Add New Map" to create one.' : 'Please check back later.') + '</p>';
+            return;
+        }
+        for (const map of maps) {
+            const unlocked = userTotalLevel >= map.requiredLevel;
+            const card = document.createElement('div');
+            card.className = 'map-card';
+            card.style.cursor = 'pointer';
+            card.onclick = () => showMapPokemonList(map);
+            card.innerHTML = `
+                <img src="${map.imageUrl || 'map1.png'}" alt="${map.name}" onerror="this.src='map1.png'">
+                <h3>${escapeHtml(map.name)}</h3>
+                <p style="font-weight: bold; color: var(--primary);">Gen ${map.generation || '?'}</p>
+                <p class="map-description" style="font-style: italic;">${map.description || ''}</p>
+                <div style="font-size: 0.75rem; color: var(--text-light); margin: 8px 0;">
+                    <div>🎯 Catch rate: ${map.catchRate || 45}% (max)</div>
+                    <div>📊 Need ${map.requiredExpPercent || 10}% XP progress to catch</div>
+                    <div>💸 Catch costs ${map.catchXpPenaltyPercent || 10}% of XP progress bar</div>
+                    <div style="font-size: 0.75rem; color: var(--text-light); margin: 4px 0;">
+                        ${map.specialLevelRange?.enabled ? `📈 Wild levels: ${map.specialLevelRange.min} – ${map.specialLevelRange.max}` : `📈 Wild levels: around your active Pokémon's level (±10, min 1)`}
+                    </div>
+                </div>
+                <p style="font-size: 0.75rem; color: var(--text-light);">Click card to view Pokémon list</p>
+                <p class="required ${unlocked ? 'unlocked' : 'locked'}">
+                    ${unlocked ? '✓ Available' : `🔒 Requires total level ${map.requiredLevel}`}
+                </p>
+                <button class="btn btn-primary explore-btn" data-map-id="${map.id}" ${!unlocked ? 'disabled' : ''} onclick="event.stopPropagation();">Explore</button>
+            `;
+            const exploreBtn = card.querySelector('.explore-btn');
+            exploreBtn.onclick = (e) => {
+                e.stopPropagation();
+                if (unlocked) startGameWithMap(map);
+            };
+            if (isAdmin) {
+                const editBtn = document.createElement('button');
+                editBtn.className = 'admin-edit-btn';
+                editBtn.innerHTML = '<i class="fas fa-edit"></i>';
+                editBtn.onclick = (e) => { e.stopPropagation(); openMapEditModal(map); };
+                card.appendChild(editBtn);
+                const delBtn = document.createElement('button');
+                delBtn.className = 'admin-delete-btn';
+                delBtn.innerHTML = '<i class="fas fa-trash"></i>';
+                delBtn.onclick = async (e) => {
+                    e.stopPropagation();
+                    if (confirm(`Delete map "${map.name}"?`)) {
+                        await deleteDoc(doc(db, "maps", map.id));
+                        loadMaps();
+                    }
+                };
+                card.appendChild(delBtn);
+            }
+            container.appendChild(card);
+        }
+        document.querySelectorAll('.explore-btn').forEach(btn => {
+            btn.onclick = () => {
+                const mapId = btn.dataset.mapId;
+                const selected = maps.find(m => m.id === mapId);
+                if (selected && userTotalLevel >= selected.requiredLevel) startGameWithMap(selected);
+                else alert("You don't meet the level requirement for this map.");
+            };
+        });
+    }
+
+    function openMapEditModal(map = null) {
+        const modal = document.createElement('div');
+        modal.className = 'overlay';
+        const isNew = !map;
+        const mapData = map ? { ...map } : {
+            name: '',
+            generation: 'I',
+            requiredLevel: 0,
+            description: '',
+            catchRate: 45,
+            requiredExpPercent: 10,
+            catchXpPenaltyPercent: 10,
+            pokemonMin: 1,
+            pokemonMax: 151,
+            imageUrl: 'map1.png',
+            tileClasses: ['dirt', 'grass'],
+            tileColors: ['#c2b280', '#78cd54'],
+            specialLevelRange: { enabled: false, min: 1, max: 100 },
+            specialPokemonList: []
+        };
+        modal.innerHTML = `
+            <div class="modal" style="max-width: 600px;">
+                <h3>${isNew ? 'Create New Map' : 'Edit Map'}</h3>
+                <div style="text-align: left; margin: 20px 0;">
+                    <div class="form-group"><label>Map Name</label><input type="text" id="map-name" value="${escapeHtml(mapData.name)}"></div>
+                    <div class="form-group"><label>Description</label><textarea id="map-description">${escapeHtml(mapData.description || '')}</textarea></div>
+                    <div class="form-group"><label>Generation (I-IX)</label><input type="text" id="map-generation" value="${mapData.generation || 'I'}"></div>
+                    <div class="form-group"><label>Required Total Level</label><input type="number" id="map-req-level" value="${mapData.requiredLevel}" min="0"></div>
+                    <div class="form-group"><label>Catch Rate (%)</label><input type="number" id="map-catch-rate" value="${mapData.catchRate || 45}" min="1" max="100"></div>
+                    <div class="form-group"><label>Required XP % to Catch</label><input type="number" id="map-req-xp" value="${mapData.requiredExpPercent || 10}" min="1" max="100"></div>
+                    <div class="form-group"><label>Catch XP Penalty (%)</label><input type="number" id="map-catch-penalty" value="${mapData.catchXpPenaltyPercent || 10}" min="1" max="100"></div>
+                    <div class="form-group"><label>Pokémon ID Min</label><input type="number" id="map-pokemon-min" value="${mapData.pokemonMin}" min="1" max="20000"></div>
+                    <div class="form-group"><label>Pokémon ID Max</label><input type="number" id="map-pokemon-max" value="${mapData.pokemonMax}" min="1" max="20000"></div>
+                    <div class="form-group"><label>Map Image (filename from map1.png to map15.png)</label><input type="text" id="map-image" value="${mapData.imageUrl || 'map1.png'}"></div>
+                    <div class="form-group"><label>Tile Colors (comma‑separated hex codes, e.g., #c2b280,#78cd54)</label><input type="text" id="map-tile-colors" value="${(mapData.tileColors || ['#c2b280','#78cd54']).join(',')}"></div>
+                    <div class="form-group"><label>Tile Classes (comma‑separated, e.g., dirt,grass)</label><input type="text" id="map-tile-classes" value="${(mapData.tileClasses || ['dirt','grass']).join(',')}"></div>
+                    <div class="form-group"><label><input type="checkbox" id="special-level-enabled" ${mapData.specialLevelRange?.enabled ? 'checked' : ''}> Enable special level range for wild Pokémon</label></div>
+                    <div id="special-level-fields" style="display: ${mapData.specialLevelRange?.enabled ? 'block' : 'none'}; margin-left: 20px;">
+                        <div class="form-group"><label>Min Level</label><input type="number" id="special-level-min" value="${mapData.specialLevelRange?.min || 1}"></div>
+                        <div class="form-group"><label>Max Level</label><input type="number" id="special-level-max" value="${mapData.specialLevelRange?.max || 100}"></div>
+                    </div>
+                    <div class="form-group"><label>Special Pokémon IDs (comma‑separated, leave empty to use ID range)</label><input type="text" id="special-pokemon-list" value="${(mapData.specialPokemonList || []).join(',')}"></div>
+                </div>
+                <button id="save-map-btn" class="btn btn-primary">Save</button>
+                <button id="cancel-map-btn" class="btn btn-outline">Cancel</button>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        const specialCheckbox = modal.querySelector('#special-level-enabled');
+        const specialFields = modal.querySelector('#special-level-fields');
+        specialCheckbox.onchange = () => specialFields.style.display = specialCheckbox.checked ? 'block' : 'none';
+        modal.querySelector('#save-map-btn').onclick = async () => {
+            const newMap = {
+                name: modal.querySelector('#map-name').value.trim(),
+                description: modal.querySelector('#map-description').value.trim(),
+                generation: modal.querySelector('#map-generation').value.trim(),
+                requiredLevel: parseInt(modal.querySelector('#map-req-level').value),
+                catchRate: parseInt(modal.querySelector('#map-catch-rate').value),
+                requiredExpPercent: parseInt(modal.querySelector('#map-req-xp').value),
+                catchXpPenaltyPercent: parseInt(modal.querySelector('#map-catch-penalty').value),
+                pokemonMin: parseInt(modal.querySelector('#map-pokemon-min').value),
+                pokemonMax: parseInt(modal.querySelector('#map-pokemon-max').value),
+                imageUrl: modal.querySelector('#map-image').value.trim(),
+                tileColors: modal.querySelector('#map-tile-colors').value.split(',').map(s => s.trim()),
+                tileClasses: modal.querySelector('#map-tile-classes').value.split(',').map(s => s.trim()),
+                specialLevelRange: {
+                    enabled: specialCheckbox.checked,
+                    min: parseInt(modal.querySelector('#special-level-min').value),
+                    max: parseInt(modal.querySelector('#special-level-max').value)
+                },
+                specialPokemonList: modal.querySelector('#special-pokemon-list').value.split(',').map(s => s.trim()).filter(s => s && !isNaN(parseInt(s))).map(s => parseInt(s))
+            };
+            if (isNew) await addDoc(collection(db, "maps"), newMap);
+            else await updateDoc(doc(db, "maps", map.id), newMap);
+            modal.remove();
+            loadMaps();
+        };
+        modal.querySelector('#cancel-map-btn').onclick = () => modal.remove();
+    }
+
+    function escapeHtml(str) {
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    async function startGameWithMap(map) {
+        if (!activePokemonId) {
+            alert("You need a starter Pokémon! Please go to the main game first.");
+            window.location.href = 'index.html';
+            return;
+        }
+        document.getElementById('current-map-name').innerText = map.name;
+        currentMap = map;
+        document.getElementById('map-selection-container').classList.add('hidden');
+        document.getElementById('game-screen').classList.remove('hidden');
+        updateNavDisplay();
+        await generateMapFromTheme(map);
+        playMainMusic();
+    }
+
+    // ========== AUTH & INIT ==========
+    onAuthStateChanged(auth, async (user) => {
+        const resetAuthCard = () => {
+            document.getElementById('auth-message').style.display = 'none';
+            document.getElementById('redirect-to-login').style.display = 'none';
+        };
+        if (user) {
+            const uDoc = await getDoc(doc(db, "users", user.uid));
+            const data = uDoc.data();
+            if (data?.active === false) {
+                resetAuthCard();
+                document.getElementById('auth-screen').classList.add('hidden');
+                document.getElementById('deactivated-overlay').classList.remove('hidden');
+                document.getElementById('logout-deactivated').onclick = async () => {
+                    await signOut(auth);
+                    window.location.reload();
+                };
+                return;
+            }
+            document.getElementById('auth-screen').classList.add('hidden');
+            document.getElementById('deactivated-overlay').classList.add('hidden');
+            userTotalLevel = data?.totalLevels || 0;
+            isAdmin = data?.role === 'admin';
+            activePokemonId = data?.activePokemonId || null;
             if (!activePokemonId) {
-                alert("You need a starter Pokémon! Please go to the main game first.");
+                alert("You need to choose a starter Pokémon first!");
                 window.location.href = 'index.html';
                 return;
             }
-            document.getElementById('current-map-name').innerText = map.name;
-            currentMap = map;
-            document.getElementById('map-selection-container').classList.add('hidden');
-            document.getElementById('game-screen').classList.remove('hidden');
+            const activePokemonSnap = await getDoc(doc(db, "users", user.uid, "pokemon", activePokemonId));
+            if (!activePokemonSnap.exists()) {
+                alert("Your active Pokémon is missing! Please set a new one.");
+                window.location.href = 'index.html';
+                return;
+            }
+            cachedActivePokemon = { id: activePokemonId, ...activePokemonSnap.data() };
             updateNavDisplay();
-            await generateMapFromTheme(map);
-            playMainMusic();
-        }
-
-        // ========== MAP MOVEMENT & BATTLE START ==========
-        function renderPlayer() {
-            document.getElementById('player').style.backgroundImage = `url(${TRAINER_GIF})`;
-            document.getElementById('map-grid').style.transform = `translate(${275 - playerPos.x * 50}px, ${175 - playerPos.y * 50}px)`;
-        }
-        let encounterCooldown = false;
-     
-        function movePlayer(dx, dy) {
-            if (currentBattle) return;
-            const n = Date.now();
-            if (n - lastMoveTime < MOVE_DELAY) return;
-            lastMoveTime = n;
-            const nx = playerPos.x + dx, ny = playerPos.y + dy;
-            if (nx >= 0 && nx < 50 && ny >= 0 && ny < 50) {
-                playerPos.x = nx;
-                playerPos.y = ny;
-                if (dx !== 0) document.getElementById('player').style.transform = dx < 0 ? 'scaleX(-1)' : 'scaleX(1)';
-                renderPlayer();
-                // Encounter only if NOT on cooldown and tile is not dirt
-                if (!encounterCooldown && mapData[ny][nx] !== 'dirt' && Math.random() < 0.15) {
-                    startBattle();
-                }
-            }
-        }
-
-        async function startBattle() {
-            if (!activePokemonId) { alert("No active Pokémon! Please set one in the main game."); return; }
-            document.getElementById('loading-overlay').classList.remove('hidden');
-            try {
-                const teamSnap = await getDocs(collection(db, "users", auth.currentUser.uid, "pokemon"));
-                const team = [];
-                teamSnap.forEach(doc => {
-                    const p = doc.data();
-                    if (p.inTeam) {
-                        team.push({
-                            id: doc.id, pokemonId: p.pokemonId, name: p.name,
-                            level: p.level, exp: p.exp, moves: p.moves,
-                            types: p.types,
-                            bonusStats: p.bonusStats || { atk: false, def: false, spd: false },
-                            maxHp: p.level * 25,
-                            currentHp: p.level * 25
-                        });
-                    }
-                });
-                if (team.length === 0) {
-                    alert("You have no Pokémon in your team!");
-                    document.getElementById('loading-overlay').classList.add('hidden');
-                    return;
-                }
-
-                // Choose wild Pokémon
-                let wildId;
-                if (currentMap.specialPokemonList?.length > 0 && Math.random() < 0.5) {
-                    wildId = currentMap.specialPokemonList[Math.floor(Math.random() * currentMap.specialPokemonList.length)];
-                } else {
-                    let min = currentMap.pokemonMin || 1, max = currentMap.pokemonMax || 151;
-                    let valid = false, attempts = 0;
-                    while (!valid && attempts < 15) {
-                        wildId = Math.floor(Math.random() * (max - min + 1)) + min;
-                        if (!(wildId > 1025 && wildId < 10001)) valid = true;
-                        attempts++;
-                    }
-                    if (!valid) wildId = min;
-                }
-                const wildRes = await fetch(`https://pokeapi.co/api/v2/pokemon/${wildId}`);
-                const wildData = await wildRes.json();
-                let species = { id: wildId, is_legendary: false, is_mythical: false, generation: { url: "9" } };
-                try {
-                    const speciesRes = await fetch(wildData.species.url);
-                    if (speciesRes.ok) species = await speciesRes.json();
-                } catch (e) {}
-                let wildMoves = [];
-                let rawMoves = wildData.moves;
-                if (!rawMoves || rawMoves.length === 0) {
-                    try {
-                        const baseRes = await fetch(`https://pokeapi.co/api/v2/pokemon/${species.id}`);
-                        if (baseRes.ok) {
-                            const baseData = await baseRes.json();
-                            rawMoves = baseData.moves;
-                        }
-                    } catch (e) {}
-                }
-                if (!rawMoves || rawMoves.length === 0) wildMoves = DEFAULT_MOVESET;
-                else wildMoves = await getMoveDetails(rawMoves.slice(0, 4));
-
-                let specialCategory = null, specialBadge = null;
-                const nameLower = wildData.name.toLowerCase();
-                const isGmax = nameLower.includes('-gmax');
-                const isMega = nameLower.includes('-mega');
-                const isParadox = [984,985,986,987,988,989,990,991,992,993,994,995,1005,1006,1009,1010,1020,1021,1022,1023].includes(wildId);
-                const isUltraBeast = species.is_ultra_beast === true || nameLower.includes('-ub');
-                const isLegendary = species.is_legendary === true;
-                const isMythical = species.is_mythical === true;
-                const isSpecial = isLegendary || isMythical || isParadox || isUltraBeast || isMega;
-                if (isGmax) { specialCategory = 'gmax'; specialBadge = '🔴 G-MAX'; }
-                else if (isMega) { specialCategory = 'mega'; specialBadge = '💎 MEGA'; }
-                else if (isUltraBeast) { specialCategory = 'ub'; specialBadge = '🌀 ULTRA BEAST'; }
-                else if (isLegendary) { specialCategory = 'legendary'; specialBadge = '⭐ LEGENDARY'; }
-                else if (isMythical) { specialCategory = 'mythical'; specialBadge = '✨ MYTHICAL'; }
-
-                const ps = document.getElementById('preview-sprite');
-                ps.classList.remove('gmax-sprite', 'legendary-sprite', 'mythical-sprite', 'mega-sprite', 'ub-sprite');
-                if (specialCategory) ps.classList.add(`${specialCategory}-sprite`);
-                loadImageWithFallback(ps, getBattleSpriteUrl(wildId, 'front'));
-                document.getElementById('preview-name').innerText = wildData.name.toUpperCase();
-                let badgesHtml = wildData.types.map(t => `<span class="type-badge" style="background: ${getTypeColor(t.type.name)};">${t.type.name.toUpperCase()}</span>`).join('');
-                if (specialBadge) badgesHtml += `<span class="special-badge" style="background: ${specialCategory === 'gmax' ? 'red' : (specialCategory === 'mega' ? '#3399ff' : (specialCategory === 'ub' ? '#33cc99' : (specialCategory === 'legendary' ? '#ffaa33' : '#ff66cc')))}; color: white;">${specialBadge}</span>`;
-                document.getElementById('preview-badges').innerHTML = badgesHtml;
-                const card = document.getElementById('encounter-card');
-                if (isSpecial || isGmax) card.classList.add('special'); else card.classList.remove('special');
-                // Fetch ownership and encounter count in parallel
-                const [owned, encounterCount] = await Promise.all([
-                    isSpeciesOwned(wildId),
-                    getEncounterCount(wildId)
-                ]);
-
-                // Compute weaknesses
-                const allTypes = ['normal','fire','water','electric','grass','ice','fighting','poison','ground','flying','psychic','bug','rock','ghost','dragon','dark','steel','fairy'];
-                const wildTypes = wildData.types.map(t => t.type.name);
-                const weaknesses = allTypes.filter(t => getTypeEffectiveness(t, wildTypes) === 2);
-
-                // Update preview elements
-                const weaknessesDiv = document.getElementById('preview-weaknesses');
-                weaknessesDiv.innerHTML = weaknesses.length > 0
-                    ? `<strong>Weaknesses:</strong> ${weaknesses.map(t => `<span class="type-badge" style="background: ${getTypeColor(t)};">${t.toUpperCase()}</span>`).join(' ')}`
-                    : `<strong>Weaknesses:</strong> None (or neutral)`;
-
-                const captureDiv = document.getElementById('preview-capture-status');
-                captureDiv.innerHTML = owned
-                    ? `<span style="color: var(--success);">✓ Already captured</span>`
-                    : `<span style="color: var(--danger);">✗ Not yet captured</span>`;
-
-                const encounterDiv = document.getElementById('preview-encounter-count');
-                encounterDiv.innerHTML = `📖 Encountered ${encounterCount} time${encounterCount !== 1 ? 's' : ''} before this battle.`;
-                document.getElementById('encounter-preview').classList.remove('hidden');
-
-                let wildLevel;
-                const wildBonus = generateWildBonusStats();
-                if (currentMap.specialLevelRange?.enabled) {
-                    wildLevel = Math.floor(Math.random() * (currentMap.specialLevelRange.max - currentMap.specialLevelRange.min + 1)) + currentMap.specialLevelRange.min;
-                } else {
-                    const avgLevel = Math.floor(team.reduce((sum, p) => sum + p.level, 0) / team.length);
-                    wildLevel = avgLevel + Math.floor(Math.random() * 21) - 10;
-                }
-                wildLevel = Math.max(1, wildLevel);
-                const count = await trackRecord(wildId, wildData.name);
-
-                setTimeout(async () => {
-                    document.getElementById('encounter-preview').classList.add('hidden');
-                    const selectedPokemon = await showPreBattleSelectModal(team);
-                    if (!selectedPokemon) {
-                        document.getElementById('loading-overlay').classList.add('hidden');
-                        return;
-                    }
-                    const activeIndex = team.findIndex(p => p.id === selectedPokemon.id);
-                    if (activeIndex === -1) {
-                        document.getElementById('loading-overlay').classList.add('hidden');
-                        return;
-                    }
-                    team[activeIndex].currentHp = team[activeIndex].maxHp; // ensure full HP
-                    currentBattle = {
-                        playerTeam: team,
-                        activePokemonIndex: activeIndex,
-                        player: team[activeIndex],
-                        wild: {
-                            pokemonId: wildId,
-                            name: wildData.name,
-                            level: wildLevel,
-                            maxHp: wildLevel * 25,
-                            currentHp: wildLevel * 25,
-                            types: wildData.types.map(t => t.type.name),
-                            moves: wildMoves,
-                            encounterCount: count,
-                            isSpecial: isSpecial,
-                            specialCategory: specialCategory,
-                            specialBadge: specialBadge,
-                            bonusStats: wildBonus
-                        }
-                    };
-                    renderBattleUI();
-                    document.getElementById('battle-area').classList.remove('hidden');
-                    addBattleLog(`A wild ${wildData.name.toUpperCase()} appeared!`);
-                    updateCatchChance();
-                    document.getElementById('escape-btn').disabled = false;
-                    document.getElementById('switch-btn').disabled = false;
-                    document.getElementById('catch-btn').disabled = false;
-                    document.getElementById('loading-overlay').classList.add('hidden');
-                    playBattleMusic(isSpecial || isGmax);
-                }, 3000);
-            } catch (err) {
-                console.error(err);
-                alert("Encounter failed to load.");
-                document.getElementById('loading-overlay').classList.add('hidden');
-            }
-        }
-
-        async function showMapPokemonList(map) {
-            const modal = document.getElementById('map-info-modal');
-            const tableBody = document.getElementById('map-pokemon-table-body');
-            const title = document.getElementById('map-info-title');
-            title.innerText = `${map.name} - Pokémon List`;
-            tableBody.innerHTML = '<tr><td colspan="3" style="padding: 40px; text-align: center;">Loading Pokémon data......</td></tr>';
-            modal.classList.remove('hidden');
-            let idList = [];
-            for (let i = map.pokemonMin; i <= map.pokemonMax; i++) {
-                if (i > 1025 && i < 10001) continue;
-                idList.push(i);
-            }
-            if (map.specialPokemonList) {
-                map.specialPokemonList.forEach(id => { if (!idList.includes(id)) idList.push(id); });
-            }
-            idList.sort((a, b) => a - b);
-            const displayLimit = 150;
-            const listToLoad = idList.slice(0, displayLimit);
-            let html = '';
-            try {
-                const results = await Promise.all(listToLoad.map(async (id) => {
-                    try {
-                        const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
-                        if (!res.ok) return null;
-                        const data = await res.json();
-                        return {
-                            id: id,
-                            name: data.name.replace('-', ' '),
-                            types: data.types.map(t => t.type.name),
-                            sprite: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`
-                        };
-                    } catch (e) { return null; }
-                }));
-                const filteredResults = results.filter(r => r !== null);
-                filteredResults.forEach(p => {
-                    html += `
-                        <tr style="border-bottom: 1px solid var(--border); transition: 0.2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
-                            <td style="padding: 8px; text-align: center;"><img src="${p.sprite}" style="width: 50px; height: 50px; object-fit: contain;" onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png'"></td>
-                            <td style="padding: 8px; font-weight: bold; text-transform: capitalize;">${p.name} <br><small style="color: #999;">#${p.id}</small></td>
-                            <td style="padding: 8px;">${generateTypeBadges(p.types)}</td>
-                        </tr>
-                    `;
-                });
-                if (idList.length > displayLimit) {
-                    html += `<tr><td colspan="3" style="padding: 15px; text-align: center; font-size: 0.8rem; color: #999;">...and ${idList.length - displayLimit} more</td></tr>`;
-                }
-                tableBody.innerHTML = html;
-            } catch (err) {
-                tableBody.innerHTML = '<tr><td colspan="3" style="color: var(--danger); padding: 20px;">Failed to load Pokémon list.</td></tr>';
-            }
-        }
-
-        // ========== MUSIC ==========
-        function playMainMusic() { 
-            if (!isMuted) { 
-                battleMusic.pause(); 
-                specialMusic.pause();
-                battleMusic.currentTime = 0;
-                specialMusic.currentTime = 0;
-                bgMusic.play().catch(e => console.log("Map music resume blocked:", e)); 
-            } 
-        }
-        function playBattleMusic(isSpecialEncounter) { 
-            if (!isMuted) { 
-                bgMusic.pause(); 
-                battleMusic.pause();
-                specialMusic.pause();
-                battleMusic.currentTime = 0;
-                specialMusic.currentTime = 0;
-                if (isSpecialEncounter) specialMusic.play().catch(e => console.log("Music error:", e));
-                else battleMusic.play().catch(e => console.log("Music error:", e));
-            } 
-        }
-        function stopBattleMusic() { 
-            battleMusic.pause(); 
-            specialMusic.pause(); 
-            battleMusic.currentTime = 0;
-            specialMusic.currentTime = 0;
-            if (!isMuted) bgMusic.play().catch(e => console.log("Map music resume failed.", e));
-        }
-
-        document.getElementById('escape-btn').onclick = attemptEscape;
-        document.getElementById('switch-btn').onclick = attemptSwitch;
-// ========== AUTH & INIT ==========
-onAuthStateChanged(auth, async (user) => {
-  // Helper to reset UI to "just logo" state
-  const resetAuthCard = () => {
-    document.getElementById('auth-message').style.display = 'none';
-    document.getElementById('redirect-to-login').style.display = 'none';
-  };
-
-  if (user) {
-    // User is logged in → check if account is active
-    const uDoc = await getDoc(doc(db, "users", user.uid));
-    const data = uDoc.data();
-
-    if (data?.active === false) {
-      // Deactivated account: show modal, hide auth screen
-      resetAuthCard();
-      document.getElementById('auth-screen').classList.add('hidden');
-      document.getElementById('deactivated-overlay').classList.remove('hidden');
-      // Set up logout button
-      document.getElementById('logout-deactivated').onclick = async () => {
-        await signOut(auth);
-        window.location.reload(); // reload to show login screen
-      };
-      return;
-    }
-
-    // Active account: proceed normally
-    document.getElementById('auth-screen').classList.add('hidden');
-    document.getElementById('deactivated-overlay').classList.add('hidden');
-    userTotalLevel = data?.totalLevels || 0;
-    isAdmin = data?.role === 'admin';
-    activePokemonId = data?.activePokemonId || null;
-
-    // Check active Pokémon
-    if (!activePokemonId) {
-      alert("You need to choose a starter Pokémon first!");
-      window.location.href = 'index.html';
-      return;
-    }
-
-    const activePokemonSnap = await getDoc(doc(db, "users", user.uid, "pokemon", activePokemonId));
-    if (!activePokemonSnap.exists()) {
-      alert("Your active Pokémon is missing! Please set a new one.");
-      window.location.href = 'index.html';
-      return;
-    }
-
-    cachedActivePokemon = { id: activePokemonId, ...activePokemonSnap.data() };
-    updateNavDisplay();
-    if (isAdmin) document.getElementById('add-map-btn').classList.remove('hidden');
-    await loadMaps();
-    document.getElementById('game-screen').classList.add('hidden');
-    document.getElementById('map-selection-container').classList.remove('hidden');
-  } else {
-    // No user logged in: show auth card with login message and button
-    resetAuthCard();
-    document.getElementById('deactivated-overlay').classList.add('hidden');
-    document.getElementById('auth-screen').classList.remove('hidden');
-    // Show the message and button
-    const msgElem = document.getElementById('auth-message');
-    msgElem.innerText = "Please log in to access the maps.";
-    msgElem.style.display = 'block';
-    const btnElem = document.getElementById('redirect-to-login');
-    btnElem.innerHTML = '<i class="fas fa-sign-in-alt"></i> Go to Login';
-    btnElem.style.display = 'block';
-    btnElem.onclick = () => {
-      window.location.href = 'index.html';
-    };
-    // Hide game screens and stop music
-    document.getElementById('game-screen').classList.add('hidden');
-    document.getElementById('map-selection-container').classList.add('hidden');
-    bgMusic.pause();
-    battleMusic.pause();
-    specialMusic.pause();
-  }
-});
-
-        document.getElementById('add-map-btn').onclick = () => openMapEditModal();
-        document.querySelector('.arrow-up')?.addEventListener('click', () => movePlayer(0, -1));
-        document.querySelector('.arrow-down')?.addEventListener('click', () => movePlayer(0, 1));
-        document.querySelector('.arrow-left')?.addEventListener('click', () => movePlayer(-1, 0));
-        document.querySelector('.arrow-right')?.addEventListener('click', () => movePlayer(1, 0));
-        document.getElementById('back-to-maps-btn')?.addEventListener('click', () => {
-            if (currentBattle) { alert("Finish the battle first."); return; }
+            if (isAdmin) document.getElementById('add-map-btn').classList.remove('hidden');
+            await loadMaps();
             document.getElementById('game-screen').classList.add('hidden');
             document.getElementById('map-selection-container').classList.remove('hidden');
-            stopBattleMusic();
-            playerPos = { x: 25, y: 25 };
-        });
-        document.getElementById('catch-btn')?.addEventListener('click', attemptCatch);
-        document.getElementById('volume-toggle')?.addEventListener('click', () => {
-            isMuted = !isMuted;
-            const v = document.getElementById('volume-toggle');
-            if (isMuted) { 
-                bgMusic.pause(); 
-                battleMusic.pause(); 
-                specialMusic.pause();
-                v.innerText = '🔇'; 
-            } else { 
-                if (currentBattle && !document.getElementById('battle-area').classList.contains('hidden')) {
-                    if (currentBattle.wild.isSpecial || currentBattle.wild.isGmax) specialMusic.play();
-                    else battleMusic.play();
-                } else bgMusic.play();
-                v.innerText = '🔊'; 
-            }
-        });
+        } else {
+            resetAuthCard();
+            document.getElementById('deactivated-overlay').classList.add('hidden');
+            document.getElementById('auth-screen').classList.remove('hidden');
+            const msgElem = document.getElementById('auth-message');
+            msgElem.innerText = "Please log in to access the maps.";
+            msgElem.style.display = 'block';
+            const btnElem = document.getElementById('redirect-to-login');
+            btnElem.innerHTML = '<i class="fas fa-sign-in-alt"></i> Go to Login';
+            btnElem.style.display = 'block';
+            btnElem.onclick = () => { window.location.href = 'index.html'; };
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('map-selection-container').classList.add('hidden');
+            bgMusic.pause();
+            battleMusic.pause();
+            specialMusic.pause();
+        }
+    });
 
-        const DEFAULT_MOVESET = [
-            { name: "bite", type: "dark", power: 60, accuracy: 100, icon: "🌙" },
-            { name: "boomburst", type: "normal", power: 140, accuracy: 100, icon: "🔘" },
-            { name: "take-down", type: "normal", power: 90, accuracy: 85, icon: "🔘" },
-            { name: "tackle", type: "normal", power: 40, accuracy: 100, icon: "🔘" }
-        ];
+    document.getElementById('add-map-btn').onclick = () => openMapEditModal();
+    document.querySelector('.arrow-up')?.addEventListener('click', () => movePlayer(0, -1));
+    document.querySelector('.arrow-down')?.addEventListener('click', () => movePlayer(0, 1));
+    document.querySelector('.arrow-left')?.addEventListener('click', () => movePlayer(-1, 0));
+    document.querySelector('.arrow-right')?.addEventListener('click', () => movePlayer(1, 0));
+    document.getElementById('back-to-maps-btn')?.addEventListener('click', () => {
+        if (currentBattle) { alert("Finish the battle first."); return; }
+        document.getElementById('game-screen').classList.add('hidden');
+        document.getElementById('map-selection-container').classList.remove('hidden');
+        stopBattleMusic();
+        playerPos = { x: 25, y: 25 };
+    });
+    document.getElementById('catch-btn')?.addEventListener('click', attemptCatch);
+    document.getElementById('escape-btn')?.addEventListener('click', attemptEscape);
+    document.getElementById('switch-btn')?.addEventListener('click', attemptSwitch);
+    document.getElementById('volume-toggle')?.addEventListener('click', () => {
+        isMuted = !isMuted;
+        const v = document.getElementById('volume-toggle');
+        if (isMuted) {
+            bgMusic.pause();
+            battleMusic.pause();
+            specialMusic.pause();
+            v.innerText = '🔇';
+        } else {
+            if (currentBattle && !document.getElementById('battle-area').classList.contains('hidden')) {
+                if (currentBattle.wild.isSpecial || currentBattle.wild.isGmax) specialMusic.play();
+                else battleMusic.play();
+            } else bgMusic.play();
+            v.innerText = '🔊';
+        }
+    });
 
-        // ========== SERVICE WORKER VERSION ==========
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js')
-        .then(reg => {
-            console.log('Service Worker Registered in map.html');
-            function requestVersion(worker) {
-                const messageChannel = new MessageChannel();
-                messageChannel.port1.onmessage = event => {
-                    const version = event.data.version;
-                    const versionSpan = document.getElementById('app-version');
-                    if (versionSpan) {
-                        versionSpan.innerText = version.replace('pokesim-', '');
-                    }
-                };
-                worker.postMessage({ type: 'GET_VERSION' }, [messageChannel.port2]);
-            }
-            if (reg.active) {
-                requestVersion(reg.active);
-            } else {
-                reg.addEventListener('updatefound', () => {
+    const DEFAULT_MOVESET = [
+        { name: "bite", type: "dark", power: 60, accuracy: 100, icon: "🌙" },
+        { name: "boomburst", type: "normal", power: 140, accuracy: 100, icon: "🔘" },
+        { name: "take-down", type: "normal", power: 90, accuracy: 85, icon: "🔘" },
+        { name: "tackle", type: "normal", power: 40, accuracy: 100, icon: "🔘" }
+    ];
+
+    // Service worker version
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js')
+            .then(reg => {
+                console.log('Service Worker Registered in map.html');
+                function requestVersion(worker) {
+                    const messageChannel = new MessageChannel();
+                    messageChannel.port1.onmessage = event => {
+                        const version = event.data.version;
+                        const versionSpan = document.getElementById('app-version');
+                        if (versionSpan) versionSpan.innerText = version.replace('pokesim-', '');
+                    };
+                    worker.postMessage({ type: 'GET_VERSION' }, [messageChannel.port2]);
+                }
+                if (reg.active) requestVersion(reg.active);
+                else reg.addEventListener('updatefound', () => {
                     const newWorker = reg.installing;
                     newWorker.addEventListener('statechange', () => {
-                        if (newWorker.state === 'activated') {
-                            requestVersion(reg.active);
-                        }
+                        if (newWorker.state === 'activated') requestVersion(reg.active);
                     });
                 });
-            }
-        })
-        .catch(err => console.log('Service Worker registration failed:', err));
-}
-    </script>
+            })
+            .catch(err => console.log('Service Worker registration failed:', err));
+    }
+</script>
 </body>
 </html>

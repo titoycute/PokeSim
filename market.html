@@ -401,11 +401,11 @@
     <div id="redeem-tab" class="tab-content hidden">
         <div class="flex-between">
             <h2>Redeem a Code</h2>
-            <div>
-                <input type="text" id="redeem-code-input" placeholder="Enter code" style="width: 200px;">
-                <button id="redeem-code-btn" class="btn btn-primary">Redeem</button>
-            </div>
             <button id="admin-add-code" class="btn btn-primary hidden">+ Add Code</button>
+        </div>
+        <!-- New redeem button that opens modal -->
+        <div style="display: flex; justify-content: center; margin: 20px 0;">
+            <button id="open-redeem-modal-btn" class="btn btn-primary">🎁 Enter Redeem Code</button>
         </div>
         <div id="redeem-listings" class="market-grid"></div>
     </div>
@@ -418,6 +418,21 @@
 <div id="accept-trade-modal" class="modal hidden"><div class="modal-content"><div class="flex-between"><h3>Accept Trade</h3><button id="close-accept-modal">✕</button></div><div id="accept-trade-form"></div></div></div>
 <div id="evolution-modal" class="modal hidden"><div class="modal-content"><div class="flex-between"><h3>Evolution Chain</h3><button id="close-evolution-modal">✕</button></div><div id="evolution-content" class="evolution-chain"></div></div></div>
 <div id="redeem-code-modal" class="modal hidden"><div class="modal-content"><div class="flex-between"><h3>Manage Redeem Code</h3><button id="close-redeem-modal">✕</button></div><div id="redeem-code-form"></div></div></div>
+
+<!-- New modal for entering redeem code -->
+<div id="redeem-input-modal" class="modal hidden">
+    <div class="modal-content" style="max-width: 400px;">
+        <div class="flex-between">
+            <h3>Enter Redeem Code</h3>
+            <button id="close-redeem-input-modal" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+        </div>
+        <div class="form-group">
+            <label for="modal-redeem-code">Code</label>
+            <input type="text" id="modal-redeem-code" placeholder="e.g., PIKACHU2024" style="text-transform: uppercase;">
+        </div>
+        <button id="modal-redeem-submit" class="btn btn-primary" style="width: 100%;">Redeem</button>
+    </div>
+</div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -461,13 +476,11 @@
         return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
     }
 
-    // Shiny showdown sprite URL
     function getShinyShowdownSpriteUrl(pokemonName, id) {
         const name = pokemonName.toLowerCase();
         return `https://play.pokemonshowdown.com/sprites/ani-shiny/${name}.gif`;
     }
 
-    // Normal showdown sprite URL
     function getShowdownSpriteUrl(id) {
         return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/${id}.gif`;
     }
@@ -539,12 +552,9 @@
         }
     }
 
-    // UPDATED: createPokemonCard with shiny sprite support
     function createPokemonCard(pokemon, actions, speciesId = null, extraInfo = null) {
         const card = document.createElement('div');
         card.className = 'pokemon-card';
-        
-        // Choose sprite URL based on shiny status
         let spriteUrl;
         if (pokemon.isShiny) {
             spriteUrl = getShinyShowdownSpriteUrl(pokemon.name, pokemon.pokemonId);
@@ -552,7 +562,6 @@
             spriteUrl = getShowdownSpriteUrl(pokemon.pokemonId);
         }
         const fallback = getStaticSpriteUrl(pokemon.pokemonId);
-        
         const bonusIcons = [];
         if (pokemon.bonusStats?.atk) bonusIcons.push('⚔️');
         if (pokemon.bonusStats?.def) bonusIcons.push('🛡️');
@@ -562,7 +571,6 @@
         const isSpecial = pokemon.isSpecial || false;
         let shinyBadge = '';
         if (pokemon.isShiny) shinyBadge = '<span class="special-badge" style="background: #ffcc00; color: #333; animation: pulse 1s infinite;">✨ SHINY</span>';
-        
         card.innerHTML = `
             <div class="card-header">
                 <img src="${spriteUrl}" alt="${pokemon.name}" onerror="this.src='${fallback}'">
@@ -727,7 +735,6 @@
         document.getElementById('close-shop-modal').onclick = () => modal.classList.add('hidden');
     }
 
-    // Admin add shop listing (with shiny checkbox)
     let allPokemonList = [];
     async function loadAllPokemonNames() {
         if (allPokemonList.length) return;
@@ -765,7 +772,7 @@
             <input type="text" class="move-search" placeholder="Search moves...">
             <div class="move-table-container">
                 <table class="move-table">
-                    <thead><tr><th>Move</th><th>Type</th><th>Power</th><th style="width: 50px;">Select</th></tr></thead>
+                    <thead><tr><th>Move</th><th>Type</th><th>Power</th><th style="width: 50px;">Select</th></td></thead>
                     <tbody id="move-table-body"></tbody>
                 </table>
             </div>
@@ -907,7 +914,7 @@
         document.getElementById('close-shop-modal').onclick = () => modal.classList.add('hidden');
     }
 
-    // ========== SELL LISTINGS (preserve isShiny) ==========
+    // ========== SELL LISTINGS ==========
     async function loadSellListings() {
         const container = document.getElementById('sell-listings');
         container.innerHTML = '<div class="loading">Loading listings...</div>';
@@ -1083,7 +1090,7 @@
         }
     }
 
-    // ========== TRADE OFFERS (preserve isShiny) ==========
+    // ========== TRADE OFFERS ==========
     async function loadTradeListings() {
         const container = document.getElementById('trade-listings');
         container.innerHTML = '<div class="loading">Loading trades...</div>';
@@ -1327,7 +1334,7 @@
         document.getElementById('close-accept-modal').onclick = () => modal.classList.add('hidden');
     }
 
-    // ========== REDEEM CODES (with shiny) ==========
+    // ========== REDEEM CODES (with modal input) ==========
     async function loadRedeemListings() {
         const container = document.getElementById('redeem-listings');
         container.innerHTML = '<div class="loading">Loading codes...</div>';
@@ -1375,10 +1382,6 @@
 
     async function redeemCode(codeId, code) {
         if (!currentUser) { alert('Please log in.'); return; }
-        const enteredCode = prompt("Enter the redeem code:");
-        if (!enteredCode) return;
-        if (enteredCode !== code) { alert("Invalid code."); return; }
-
         try {
             await runTransaction(db, async (transaction) => {
                 const codeRef = doc(db, "redeem_codes", codeId);
@@ -1539,6 +1542,47 @@
         document.getElementById('close-redeem-modal').onclick = () => modal.classList.add('hidden');
     }
 
+    // New function: redeem by code string (searches Firestore)
+    async function redeemByCodeString(codeString) {
+        const code = codeString.trim().toUpperCase();
+        if (!code) {
+            alert('Please enter a redeem code.');
+            return false;
+        }
+        try {
+            const q = query(collection(db, "redeem_codes"), where("code", "==", code));
+            const snap = await getDocs(q);
+            if (snap.empty) {
+                alert('Invalid or expired code.');
+                return false;
+            }
+            const codeDoc = snap.docs[0];
+            const codeData = codeDoc.data();
+            const now = new Date();
+            const expiry = codeData.expiry ? codeData.expiry.toDate() : null;
+            if (codeData.stock <= 0) {
+                alert('This code has no remaining stock.');
+                return false;
+            }
+            if (expiry && expiry < now) {
+                alert('This code has expired.');
+                return false;
+            }
+            const claimRef = doc(db, "redeem_codes", codeDoc.id, "claims", currentUser.uid);
+            const claimSnap = await getDoc(claimRef);
+            if (claimSnap.exists()) {
+                alert('You have already redeemed this code.');
+                return false;
+            }
+            await redeemCode(codeDoc.id, code);
+            return true;
+        } catch (err) {
+            console.error(err);
+            alert('Error redeeming code: ' + err.message);
+            return false;
+        }
+    }
+
     // ========== Common functions ==========
     async function getUserPokemon() {
         const snap = await getDocs(collection(db, "users", currentUser.uid, "pokemon"));
@@ -1568,9 +1612,32 @@
     }
 
     document.querySelectorAll('.tab').forEach(btn => btn.onclick = () => switchTab(btn.dataset.tab));
-    document.getElementById('redeem-code-btn').onclick = () => {
-        alert('Enter the code from the Pokémon card.');
+
+    // Modal redeem logic
+    const redeemModal = document.getElementById('redeem-input-modal');
+    const openModalBtn = document.getElementById('open-redeem-modal-btn');
+    const closeModalBtn = document.getElementById('close-redeem-input-modal');
+    const modalRedeemInput = document.getElementById('modal-redeem-code');
+    const modalRedeemSubmit = document.getElementById('modal-redeem-submit');
+
+    openModalBtn.onclick = () => {
+        modalRedeemInput.value = '';
+        redeemModal.classList.remove('hidden');
+        modalRedeemInput.focus();
     };
+    closeModalBtn.onclick = () => redeemModal.classList.add('hidden');
+    redeemModal.onclick = (e) => { if (e.target === redeemModal) redeemModal.classList.add('hidden'); };
+    modalRedeemSubmit.onclick = async () => {
+        const code = modalRedeemInput.value;
+        const success = await redeemByCodeString(code);
+        if (success) {
+            redeemModal.classList.add('hidden');
+            modalRedeemInput.value = '';
+        }
+    };
+    modalRedeemInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') modalRedeemSubmit.click();
+    });
 
     onAuthStateChanged(auth, async (user) => {
         if (!user) { window.location.href = 'index.html'; return; }

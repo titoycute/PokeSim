@@ -1014,7 +1014,7 @@
     import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, updateDoc, deleteDoc, writeBatch, increment, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
     const POWER_PRICE_MULTIPLIER = 35;
-    const SHINY_RATE = 1850;
+    const SHINY_RATE = 1875;
     const firebaseConfig = { apiKey: "AIzaSyDkCE0wBrsQ1s-7zplvTtWOSE28ISaCFfQ", authDomain: "pokesim-7f9b7.firebaseapp.com", projectId: "pokesim-7f9b7", storageBucket: "pokesim-7f9b7.firebasestorage.app", messagingSenderId: "1087100425430", appId: "1:1087100425430:web:9558a79ee5330d4a792577" };
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
@@ -1269,6 +1269,12 @@
         document.getElementById('trainer-name-display').innerText = displayName;
         document.getElementById('coin-amount').innerText = data?.coins?.toLocaleString() || '0';
         document.getElementById('trainer-level').innerText = data?.totalLevels || 0;
+
+         const merkadoLink = document.getElementById('merkado-link');
+    if (merkadoLink) {
+        merkadoLink.style.display = (data?.totalLevels || 0) >= 100 ? 'inline-block' : 'none';
+    }
+
         const lastChange = data?.lastNameChange ? data.lastNameChange.toDate() : null;
         const now = new Date();
         const canChange = !lastChange || (now - lastChange) > 7 * 24 * 60 * 60 * 1000;

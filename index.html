@@ -874,7 +874,7 @@
     </div>
 </div>
 
-<!-- Deactivated Account Overlay -->
+
 <!-- Deactivated Account Overlay -->
 <div id="deactivated-overlay" class="overlay hidden">
     <div class="modal">
@@ -883,7 +883,7 @@
              style="width: 250px; height: auto; margin-bottom: 20px; border-radius: 16px;">
         <h2>⏳ Account Pending Activation</h2>
         <p>Your account has been created but is not yet active.</p>
-        <p>Please contact the <a href="https://www.facebook.com/profile.php?id=61574391684893" target="_blank">PokeSim Facebook Page</a>  or <a href="https://www.facebook.com/tootzkiecute" target="_blank">Tootzkie Facebook Page</a> to activate your account.</p>
+        <p>Please contact the <a href="https://www.facebook.com/profile.php?id=61574391684893" target="_blank">PokeSim Facebook Page</a> and provide your trainer name to activate your account.</p>
         <button id="logout-deactivated" class="btn btn-primary">Log Out</button>
     </div>
 </div>
@@ -2975,10 +2975,14 @@
                 return;
             }
             if (data.active === false) {
-                console.log("5. Account deactivated, logging out");
-                await signOut(auth);
-                alert('Your account has been deactivated. Please contact the administrator.');
-                window.location.href = 'index.html';
+                console.log("5. Account deactivated, showing overlay");
+                // Show the deactivated overlay instead of logging out
+                document.getElementById('auth-screen').classList.add('hidden');
+                document.getElementById('deactivated-overlay').classList.remove('hidden');
+                document.getElementById('logout-deactivated').onclick = async () => {
+                    await signOut(auth);
+                    window.location.reload();
+                };
                 return;
             }
              const merkadoLink = document.getElementById('merkado-link');

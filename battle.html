@@ -300,6 +300,7 @@
         let isMoveDatabaseLoaded = false;
         let allPokemon = [];
         let playerTeamCache = [];
+        let currentTurnTimeout = null;
 
         // ---------- Helper functions (same as admin.html) ----------
         function getTypeColor(type) {
@@ -394,7 +395,7 @@
                     const move = listData.results[i];
                     try {
                         const detail = await fetch(move.url).then(r => r.json());
-                        if (detail.power && detail.accuracy && detail.power > 0 && detail.accuracy > 0) {
+                         if (detail.power && detail.power > 0 && (detail.accuracy === null || detail.accuracy > 0)) {
                             moveDetails.push({
                                 name: detail.name,
                                 type: detail.type.name,
@@ -554,11 +555,18 @@
         let selectedGymForBattle = null;
         async function openGymPreview(gym) {
             selectedGymForBattle = gym;
-            document.getElementById('preview-gym-name').innerText = gym.name;
+            const modal = document.getElementById('gym-preview-modal');
             const container = document.getElementById('preview-team-list');
+            document.getElementById('preview-gym-name').innerText = gym.name;
+            container.innerHTML = '<div style="text-align:center; padding:20px;">Loading team data...</div>';
+            modal.classList.remove('hidden');
+
+            // Load Pokémon data if needed (non‑blocking)
+           // if (!allPokemon.length) await loadAllPokemon();
+
+            // Build the team list
             container.innerHTML = '';
             for (const p of gym.team) {
-                if (!allPokemon.length) await loadAllPokemon();
                 const species = { name: p.name, types: p.types };
                 const div = document.createElement('div');
                 div.className = 'pokemon-select-item';
@@ -575,8 +583,8 @@
                 `;
                 container.appendChild(div);
             }
-            document.getElementById('gym-preview-modal').classList.remove('hidden');
         }
+
         window.closePreviewModal = () => document.getElementById('gym-preview-modal').classList.add('hidden');
         document.getElementById('confirm-gym-battle').onclick = () => {
             document.getElementById('gym-preview-modal').classList.add('hidden');
@@ -612,66 +620,105 @@
         function addBattleLog(msg) { const log=document.getElementById('battle-log'); log.innerHTML+=`<div>> ${msg}</div>`; log.scrollTop=log.scrollHeight; }
 
         async function runTurn(selectedMove) {
-            if(isProcessing) return;
-            isProcessing=true;
+            if (isProcessing) return;
+            isProcessing = true;
             toggleBattleUI(true);
+
+            // Clear any previously scheduled turn action
+            if (currentTurnTimeout) clearTimeout(currentTurnTimeout);
+
             addBattleLog("Trainer is concentrating...");
-            setTimeout(async () => {
-                if(!currentBattle) { isProcessing=false; toggleBattleUI(false); return; }
+
+            currentTurnTimeout = setTimeout(async () => {
+                if (!currentBattle) {
+                    isProcessing = false;
+                    toggleBattleUI(false);
+                    return;
+                }
+
                 const b = currentBattle;
                 const player = b.playerTeam[b.activePlayerIdx];
                 const opponent = b.opponentTeam[b.activeOpponentIdx];
                 const first = getFirstAttacker(player, opponent);
-                const getRandomMove = (p) => { const avail = p.moves.filter(m=>m.power>0); if(!avail.length) return { name:"Struggle", power:50, type:"normal" }; return avail[Math.floor(Math.random()*avail.length)]; };
-                if(first === 'player') {
+                const getRandomMove = (p) => {
+                    const avail = p.moves.filter(m => m.power > 0);
+                    if (!avail.length) return { name: "Struggle", power: 50, type: "normal" };
+                    return avail[Math.floor(Math.random() * avail.length)];
+                };
+
+                // --- Helper to stop turn and reset ---
+                const endTurn = () => {
+                    isProcessing = false;
+                    toggleBattleUI(false);
+                    currentTurnTimeout = null;
+                };
+
+                if (first === 'player') {
+                    // Player attacks first
                     const oppFainted = executeAttack(player, opponent, selectedMove, true);
                     renderBattleUI();
-                    if(oppFainted) {
+
+                    if (oppFainted) {
                         addBattleLog(`${opponent.name.toUpperCase()} fainted!`);
                         b.activeOpponentIdx++;
-                        if(b.activeOpponentIdx >= b.opponentTeam.length) {
+                        if (b.activeOpponentIdx >= b.opponentTeam.length) {
                             addBattleLog("You defeated the whole team! Victory!");
                             await resolveBattle(true);
+                            endTurn();
                             return;
                         } else {
                             const newOpp = b.opponentTeam[b.activeOpponentIdx];
                             addBattleLog(`Leader sends out ${newOpp.name.toUpperCase()}!`);
                             renderBattleUI();
-                            isProcessing=false;
-                            toggleBattleUI(false);
+                            endTurn();  // Turn ends, player selects new move
                             return;
                         }
                     }
+
+                    // Opponent counterattacks (only if player didn't faint)
                     setTimeout(() => {
-                        if(!currentBattle) return;
+                        if (!currentBattle) return;
                         const playerFainted = executeAttack(opponent, player, getRandomMove(opponent), false);
                         renderBattleUI();
-                        if(playerFainted) handlePlayerFaint();
-                        else { isProcessing=false; toggleBattleUI(false); }
+                        if (playerFainted) {
+                            handlePlayerFaint();   // This will reset the turn properly
+                        } else {
+                            endTurn();
+                        }
                     }, 1000);
                 } else {
+                    // Opponent attacks first
                     const playerFainted = executeAttack(opponent, player, getRandomMove(opponent), false);
                     renderBattleUI();
-                    if(playerFainted) { handlePlayerFaint(); return; }
+
+                    if (playerFainted) {
+                        await handlePlayerFaint();   // Wait for faint handling
+                        endTurn();                   // Turn ends – no leftover player attack
+                        return;
+                    }
+
+                    // Player attacks after opponent (only if player didn't faint)
                     setTimeout(() => {
-                        if(!currentBattle) return;
+                        if (!currentBattle) return;
                         const oppFainted = executeAttack(player, opponent, selectedMove, true);
                         renderBattleUI();
-                        if(oppFainted) {
+                        if (oppFainted) {
                             addBattleLog(`${opponent.name.toUpperCase()} fainted!`);
                             b.activeOpponentIdx++;
-                            if(b.activeOpponentIdx >= b.opponentTeam.length) {
+                            if (b.activeOpponentIdx >= b.opponentTeam.length) {
                                 addBattleLog("You defeated the whole team! Victory!");
                                 resolveBattle(true);
+                                endTurn();
                                 return;
                             } else {
                                 const newOpp = b.opponentTeam[b.activeOpponentIdx];
                                 addBattleLog(`Leader sends out ${newOpp.name.toUpperCase()}!`);
                                 renderBattleUI();
-                                isProcessing=false;
-                                toggleBattleUI(false);
+                                endTurn();
+                                return;
                             }
-                        } else { isProcessing=false; toggleBattleUI(false); }
+                        }
+                        endTurn();
                     }, 1000);
                 }
             }, 3000);
@@ -680,24 +727,33 @@
         async function handlePlayerFaint() {
             const b = currentBattle;
             const available = b.playerTeam.filter(p => p.currentHp > 0);
-            if(available.length === 0) {
+            if (available.length === 0) {
                 addBattleLog("All your Pokémon have fainted! You lost.");
                 await resolveBattle(false);
                 return;
             }
+
             addBattleLog(`${b.playerTeam[b.activePlayerIdx].name.toUpperCase()} fainted! Choose another.`);
             const selected = await showSwitchModal(available, b.playerTeam[b.activePlayerIdx].id);
-            if(!selected) { resolveBattle(false); return; }
+            if (!selected) {
+                resolveBattle(false);
+                return;
+            }
+
             const newIdx = b.playerTeam.findIndex(p => p.id === selected.id);
             b.activePlayerIdx = newIdx;
             b.playerTeam[newIdx].currentHp = b.playerTeam[newIdx].maxHp;
             renderBattleUI();
             addBattleLog(`Go! ${b.playerTeam[newIdx].name.toUpperCase()}!`);
+
+            // No automatic opponent attack – player must select a move for the new turn
             isProcessing = false;
             toggleBattleUI(false);
         }
 
+        
         async function resolveBattle(win) {
+            if (currentTurnTimeout) clearTimeout(currentTurnTimeout);
             let xpGain = 0, coinsGain = 0, leveledUp = false;
             if(win && currentBattle.type === 'gym') {
                 const userId = currentUser.uid;
@@ -931,6 +987,7 @@
             }, 1000);
         };
         document.getElementById('escape-btn').onclick = () => {
+            if (currentTurnTimeout) clearTimeout(currentTurnTimeout);
             if(isProcessing) return;
             addBattleLog("You ran away from the battle!");
             hideBattleScene();

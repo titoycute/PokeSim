@@ -1303,6 +1303,91 @@
         alert(`Name changed to "${newName}"!`);
     }
 
+    // ========== TEAM CACHE ==========
+    let cachedTeam = null;         // full team array (only Pokémon with inTeam = true)
+    let cachedAllPokemon = null;   // all owned Pokémon (for collection view)
+    let teamCacheTimestamp = 0;
+    let allPokemonCacheTimestamp = 0;
+    const TEAM_CACHE_TTL = 30000;  // 30 seconds max age (safety fallback)
+
+    function invalidateTeamCache() {
+        cachedTeam = null;
+        cachedAllPokemon = null;
+        teamCacheTimestamp = 0;
+        allPokemonCacheTimestamp = 0;
+    }
+
+    async function getPlayerTeam(forceRefresh = false) {
+        const user = auth.currentUser;
+        if (!user) return [];
+
+        const now = Date.now();
+        if (!forceRefresh && cachedTeam && (now - teamCacheTimestamp) < TEAM_CACHE_TTL) {
+            return cachedTeam;
+        }
+
+        const snap = await getDocs(collection(db, "users", user.uid, "pokemon"));
+        trackRead(snap.size);
+
+        const team = [];
+        snap.forEach(doc => {
+            const p = doc.data();
+            if (p.inTeam) {
+                team.push({
+                    id: doc.id,
+                    pokemonId: p.pokemonId,
+                    name: p.name,
+                    level: p.level,
+                    exp: p.exp,
+                    moves: p.moves,
+                    types: p.types,
+                    bonusStats: p.bonusStats || { atk: false, def: false, spd: false },
+                    maxHp: p.level * 25,
+                    currentHp: p.level * 25,
+                    isShiny: p.isShiny || false
+                });
+            }
+        });
+
+        cachedTeam = team;
+        teamCacheTimestamp = now;
+        return team;
+    }
+
+    async function getAllPokemon(forceRefresh = false) {
+        const user = auth.currentUser;
+        if (!user) return [];
+
+        const now = Date.now();
+        if (!forceRefresh && cachedAllPokemon && (now - allPokemonCacheTimestamp) < TEAM_CACHE_TTL) {
+            return cachedAllPokemon;
+        }
+
+        const snap = await getDocs(collection(db, "users", user.uid, "pokemon"));
+        trackRead(snap.size);
+
+        const all = [];
+        snap.forEach(doc => {
+            const p = doc.data();
+            all.push({
+                id: doc.id,
+                pokemonId: p.pokemonId,
+                name: p.name,
+                level: p.level,
+                exp: p.exp,
+                moves: p.moves,
+                types: p.types,
+                inTeam: p.inTeam || false,
+                bonusStats: p.bonusStats || { atk: false, def: false, spd: false },
+                isShiny: p.isShiny || false
+            });
+        });
+
+        cachedAllPokemon = all;
+        allPokemonCacheTimestamp = now;
+        return all;
+    }
+
     // ========== MOVE EDITOR ==========
     async function openMoveEditor(pokemonId, pokemonName, speciesId, currentMoves, pokemonLevel) {
         currentEditingPokemon = { id: pokemonId, name: pokemonName, speciesId, currentMoves, level: pokemonLevel };
@@ -1426,7 +1511,7 @@
                             <td style="padding: 8px; text-align: center;">
                                 <button class="move-toggle-btn" data-name="${move.name}" style="background: var(--primary); color: white; border: none; border-radius: 20px; padding: 4px 12px; cursor: pointer;">Add</button>
                             </td>
-                        </tr>
+                        <tr>
                     `).join('')}
                 </tbody>
             </table>
@@ -1567,6 +1652,7 @@
         trackWrite();
         document.getElementById('move-editor').classList.add('hidden');
         updateNavDisplay();
+        invalidateTeamCache();  // cache invalidated after move change
         refreshTeamView();
         if (currentBattle && currentBattle.player.id === currentEditingPokemon.id) { currentBattle.player.moves = finalMoves; renderBattleUI(); }
         if (cachedActivePokemon && cachedActivePokemon.id === currentEditingPokemon.id) cachedActivePokemon.moves = finalMoves;
@@ -1759,6 +1845,7 @@
                 const newPokemon = { pokemonId: b.wild.pokemonId, name: b.wild.name, level: b.wild.level, exp: 0, moves: b.wild.moves, types: b.wild.types, inTeam: false, capturedAt: new Date(), isShiny: b.wild.isShiny };
                 await addDoc(collection(db, "users", userId, "pokemon"), newPokemon);
                 await updateUserTotalLevels(userId, b.wild.level);
+                invalidateTeamCache();
                 showBattleSummary('catch');
                 return;
             }
@@ -1778,6 +1865,7 @@
             if (leveledUp) await updateUserTotalLevels(userId, (newLvl - b.player.level));
             await updateDoc(monRef, { exp: newExp, level: newLvl });
             await updateDoc(doc(db, "users", userId), { coins: increment(coins) });
+            invalidateTeamCache();
             showBattleSummary('win', { xp: gainXP, coins: coins, leveledUp: leveledUp });
             refreshTeamView();
             updateNavDisplay();
@@ -1799,6 +1887,7 @@
                 const bonusStats = existingData.bonusStats || { atk: false, def: false, spd: false };
                 await updateDoc(doc(db,"users",auth.currentUser.uid,"pokemon",id),{name:np.name,pokemonId:np.id,types:np.types.map(t=>t.type.name),moves:newMoves,bonusStats: bonusStats, isShiny: existingData.isShiny || false});
                 trackWrite();
+                invalidateTeamCache();
                 return true;
             }
         } catch(e) { console.error("Evo Error:",e); } return false;
@@ -1966,23 +2055,43 @@
         modal.querySelector('#cancel-map-btn').onclick = () => modal.remove();
     }
 
+    // ========== REFACTORED MOVEMENT (local only, save on encounter) ==========
+    async function savePlayerPositionToFirestore() {
+        if (!auth.currentUser) return;
+        const userRef = doc(db, "users", auth.currentUser.uid);
+        await updateDoc(userRef, {
+            lastMapX: playerPos.x,
+            lastMapY: playerPos.y,
+            lastMapId: currentMap?.id || "default_map"
+        }).catch(e => console.warn("Position save failed:", e));
+    }
+
     function movePlayer(dx, dy) {
         if (currentBattle) return;
         const n = Date.now();
         if (n - lastMoveTime < MOVE_DELAY) return;
         lastMoveTime = n;
-        const nx = playerPos.x + dx, ny = playerPos.y + dy;
-        if (nx >= 0 && nx < 50 && ny >= 0 && ny < 50) {
-            playerPos.x = nx;
-            playerPos.y = ny;
-            if (dx !== 0) document.getElementById('player').style.transform = dx < 0 ? 'scaleX(-1)' : 'scaleX(1)';
-            renderPlayer();
-            const firstTileClass = currentMap?.tileClasses?.[0] || 'dirt';
-            if (mapData[ny][nx] !== firstTileClass && Math.random() < 0.15) startBattle();
+
+        const nx = playerPos.x + dx;
+        const ny = playerPos.y + dy;
+        if (nx < 0 || nx >= 50 || ny < 0 || ny >= 50) return;
+
+        // Update local position (no Firestore write)
+        playerPos.x = nx;
+        playerPos.y = ny;
+        if (dx !== 0) {
+            document.getElementById('player').style.transform = dx < 0 ? 'scaleX(-1)' : 'scaleX(1)';
         }
-        if (!encounterCooldown && mapData[ny][nx] !== 'dirt' && Math.random() < 0.15) { startBattle(); }
+        renderPlayer();
+
+        // Encounter check – if triggered, save position FIRST then start battle
+        const firstTileClass = currentMap?.tileClasses?.[0] || 'dirt';
+        if (!encounterCooldown && mapData[ny] && mapData[ny][nx] !== firstTileClass && Math.random() < 0.15) {
+            savePlayerPositionToFirestore();
+            startBattle();
+        }
     }
-    window.movePlayer=movePlayer;
+    window.movePlayer = movePlayer;
 
     function renderPlayer() { document.getElementById('player').style.backgroundImage=`url(${TRAINER_GIF})`; document.getElementById('map-grid').style.transform=`translate(${275-playerPos.x*50}px,${175-playerPos.y*50}px)`; }
 
@@ -1992,27 +2101,7 @@
         if (!currentMap) { alert("No map loaded!"); return; }
         document.getElementById('loading-overlay').classList.remove('hidden');
         try {
-            const teamSnap = await getDocs(collection(db, "users", auth.currentUser.uid, "pokemon"));
-            trackRead();
-            const team = [];
-            teamSnap.forEach(doc => {
-                const p = doc.data();
-                if (p.inTeam) {
-                    team.push({
-                        id: doc.id,
-                        pokemonId: p.pokemonId,
-                        name: p.name,
-                        level: p.level,
-                        exp: p.exp,
-                        moves: p.moves,
-                        types: p.types,
-                        bonusStats: p.bonusStats || { atk: false, def: false, spd: false },
-                        maxHp: p.level * 25,
-                        currentHp: p.level * 25,
-                        isShiny: p.isShiny || false
-                    });
-                }
-            });
+            const team = await getPlayerTeam();  // uses cache
             if (team.length === 0) {
                 alert("You have no Pokémon in your team!");
                 document.getElementById('loading-overlay').classList.add('hidden');
@@ -2347,6 +2436,7 @@
                 await addDoc(collection(db, "users", auth.currentUser.uid, "pokemon"), newPokemon);
                 trackWrite();
                 await updateUserTotalLevels(auth.currentUser.uid, b.wild.level);
+                invalidateTeamCache();
                 showBattleSummary('catch');
                 refreshTeamView();
                 updateNavDisplay();
@@ -2476,7 +2566,7 @@
             return;
         }
         
-        const selected = await showSwitchModal(available, b.player.id, false); // false = not forced
+        const selected = await showSwitchModal(available, b.player.id);
         if (!selected) {
             // User cancelled the switch -> penalty: opponent gets a free attack
             addBattleLog("Switch cancelled! The wild Pokémon attacks!");
@@ -2684,10 +2774,7 @@
     async function refreshTeamView() {
         const user = auth.currentUser;
         if (!user) return;
-        const snap = await getDocs(collection(db, "users", user.uid, "pokemon"));
-        trackRead();
-        let allPokemon = [];
-        snap.forEach(d => { allPokemon.push({ id: d.id, ...d.data() }); });
+        const allPokemon = await getAllPokemon();
         let team = allPokemon.filter(p => p.inTeam);
         let collectionList = allPokemon.filter(p => !p.inTeam);
         const searchTerm = document.getElementById('coll-search').value.toLowerCase();
@@ -2770,6 +2857,7 @@
                 await updateDoc(doc(db, "users", auth.currentUser.uid, "pokemon", p.id), { inTeam: false });
                 if (activePokemonId === p.id) {}
                 trackWrite();
+                invalidateTeamCache();
                 refreshTeamView();
             };
         } else {
@@ -2777,6 +2865,7 @@
                 if (teamSize >= 6) { alert("Team is full!"); return; }
                 await updateDoc(doc(db, "users", auth.currentUser.uid, "pokemon", p.id), { inTeam: true });
                 trackWrite();
+                invalidateTeamCache();
                 refreshTeamView();
             };
         }
@@ -2791,6 +2880,7 @@
         if(teamCount===1&&activePokemonId===id) { alert("Cannot release last Pokémon!"); return; }
         await deleteDoc(doc(db,"users",auth.currentUser.uid,"pokemon",id)); trackDelete();
         if(activePokemonId===id) { let newActive=null; teamSnap.forEach(d=>{if(d.id!==id&&d.data().inTeam&&!newActive) newActive=d.id;}); if(newActive) { await updateDoc(doc(db,"users",auth.currentUser.uid),{activePokemonId:newActive}); trackWrite(); activePokemonId=newActive; await updateActiveCache(newActive); } else activePokemonId=null; }
+        invalidateTeamCache();
         refreshTeamView();
     }
 
@@ -3053,6 +3143,17 @@
             }
             isAdmin = (data?.role === 'admin');
             await loadDefaultMap();
+
+            // Restore saved position from Firestore
+            if (data?.lastMapX !== undefined && data?.lastMapId === currentMap?.id) {
+                playerPos.x = Math.min(49, Math.max(0, data.lastMapX));
+                playerPos.y = Math.min(49, Math.max(0, data.lastMapY));
+                renderPlayer();
+            } else {
+                playerPos = { x: 25, y: 25 };
+                renderPlayer();
+            }
+
             refreshTeamView();
             playMainMusic();
             updateNavDisplay();

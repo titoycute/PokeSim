@@ -1359,7 +1359,7 @@
                     isSpecial: codeDoc.isSpecial,
                     isShiny: codeDoc.isShiny || false
                 };
-                const actions = [{ label: 'Redeem', class: 'btn-primary', action: () => redeemCode(codeDoc.id, codeDoc.code) }];
+                const actions = [];
                 if (isAdmin) {
                     actions.push({ label: 'Edit', class: 'btn-outline', action: () => showEditRedeemCodeModal(codeDoc) });
                     actions.push({ label: 'Delete', class: 'btn-danger', action: () => deleteRedeemCode(codeDoc.id) });

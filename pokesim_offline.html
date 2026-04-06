@@ -1,0 +1,2722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PokéSim Offline | Kanto Adventure</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<style>
+/* ════════════════════════════════════════
+   POKÉSIM OFFLINE — index.html light theme
+   ════════════════════════════════════════ */
+:root {
+  --bg: #f0f2f5;
+  --card-bg: #ffffff;
+  --primary: #3b4cca;
+  --primary-dark: #00238f;
+  --accent: #ff4c4c;
+  --accent-dark: #00238f;
+  --text-dark: #2d3748;
+  --text-light: #5a6e8a;
+  --border: #e2e8f0;
+  --success: #48bb78;
+  --danger: #f56565;
+  --warning: #ed8936;
+  --grass: #78cd54;
+  --dirt: #c2b280;
+  --water: #6390f0;o
+  --fire: #ff421c;
+  /* Compatibility aliases for inline styles */
+  --muted: #5a6e8a;
+  --green: #48bb78;
+  --red: #f56565;
+  --yellow: #b45309;
+  --card: #ffffff;
+  --card2: #f8fafc;
+  --text: #2d3748;
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text-dark);font-family:'Segoe UI','Inter',system-ui,sans-serif;min-height:100vh;overflow-x:hidden;}
+.hidden{display:none!important;}
+
+/* ── TITLE SCREEN ── */
+#title-screen{
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,var(--primary-dark) 0%,#790000 100%);
+  position:relative;overflow:hidden;
+}
+#title-screen::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 50% 30%,rgba(59,76,202,.4) 0%,transparent 70%);
+  pointer-events:none;
+}
+.title-stars{position:absolute;inset:0;pointer-events:none;}
+.star{position:absolute;width:2px;height:2px;background:rgba(255,255,255,.6);border-radius:50%;animation:twinkle 3s infinite;}
+@keyframes twinkle{0%,100%{opacity:.2}50%{opacity:.9}}
+
+.game-logo{
+  font-family:'Segoe UI',system-ui,sans-serif;font-size:2.8rem;font-weight:900;
+  color:var(--accent);letter-spacing:-1px;text-align:center;
+  text-shadow:0 4px 20px rgba(0,0,0,.4),0 2px 0 rgba(0,0,0,.3);
+  position:relative;z-index:1;
+}
+.game-subtitle{
+  font-size:.78rem;color:rgba(255,255,255,.6);margin:6px 0 28px;
+  letter-spacing:5px;text-transform:uppercase;position:relative;z-index:1;
+}
+.pokeball-spin{
+  width:90px;height:90px;border-radius:50%;margin:12px auto 28px;
+  background:linear-gradient(to bottom,#cc0000 50%,white 50%);
+  border:5px solid #1a1a1a;position:relative;
+  animation:spinBall 6s linear infinite;
+  box-shadow:0 8px 32px rgba(0,0,0,.4);z-index:1;
+}
+.pokeball-spin::before{
+  content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:22px;height:22px;border-radius:50%;background:white;border:4px solid #1a1a1a;z-index:2;
+}
+.pokeball-spin::after{
+  content:'';position:absolute;top:50%;left:0;right:0;height:5px;
+  background:#1a1a1a;transform:translateY(-50%);
+}
+@keyframes spinBall{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+
+/* ── SAVE SLOTS ── */
+.save-slots-wrap{width:100%;max-width:420px;padding:0 16px;position:relative;z-index:1;}
+.save-slot{
+  background:var(--card-bg);border:1px solid rgba(255,255,255,.15);border-radius:20px;
+  padding:16px;margin-bottom:10px;cursor:pointer;transition:all .2s;
+  display:flex;align-items:center;gap:12px;position:relative;overflow:hidden;
+  box-shadow:0 4px 16px rgba(0,0,0,.2);
+}
+.save-slot:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,0,0,.3);border-color:var(--accent);}
+.save-slot.empty{background:rgba(255,255,255,.08);border:1px dashed rgba(255,255,255,.25);}
+.save-slot.empty:hover{background:rgba(255,255,255,.14);}
+.slot-icon{
+  width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:1.4rem;flex-shrink:0;background:#eef2ff;border:2px solid var(--border);
+}
+.slot-icon img{width:40px;height:40px;object-fit:contain;image-rendering:pixelated;}
+.slot-info{flex:1;min-width:0;}
+.slot-name{font-size:.95rem;font-weight:700;color:var(--text-dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.save-slot.empty .slot-name{color:rgba(255,255,255,.7);}
+.slot-details{font-size:.7rem;color:var(--text-light);margin-top:3px;}
+.save-slot.empty .slot-details{color:rgba(255,255,255,.4);}
+.slot-badge{
+  font-size:.6rem;padding:2px 8px;border-radius:20px;margin-top:5px;display:inline-block;
+  background:#eef2ff;color:var(--primary);border:1px solid #c3cff9;font-weight:600;
+}
+.slot-delete{
+  position:absolute;top:8px;right:8px;background:rgba(245,101,101,.1);border:none;
+  color:var(--danger);border-radius:8px;width:26px;height:26px;cursor:pointer;
+  font-size:.75rem;transition:.2s;display:flex;align-items:center;justify-content:center;
+}
+.slot-delete:hover{background:rgba(245,101,101,.25);}
+.new-game-slot{background:rgba(59,76,202,.12);border:1px dashed rgba(255,222,0,.5);}
+.new-game-slot:hover{background:rgba(59,76,202,.2);}
+
+/* ── OVERLAYS / MODALS ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:5000;}
+.modal-box{
+  background:var(--card-bg);border:1px solid var(--border);border-radius:28px;
+  padding:30px;width:90%;max-width:500px;max-height:90vh;overflow-y:auto;
+  box-shadow:0 25px 50px rgba(0,0,0,.25);
+}
+.modal-title{font-size:1.3rem;font-weight:800;margin-bottom:20px;color:var(--primary-dark);}
+.form-field{margin-bottom:16px;}
+.form-field label{display:block;font-size:.8rem;color:var(--text-light);margin-bottom:6px;font-weight:600;}
+.form-field input{
+  width:100%;background:var(--bg);border:1px solid var(--border);border-radius:14px;
+  padding:11px 16px;color:var(--text-dark);font-size:.95rem;transition:.2s;
+}
+.form-field input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(59,76,202,.1);}
+.starter-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:12px 0;}
+.starter-card{
+  background:#f8fafc;border:2px solid var(--border);border-radius:20px;
+  padding:12px 8px;text-align:center;cursor:pointer;transition:all .2s;
+}
+.starter-card:hover,.starter-card.selected{
+  border-color:var(--primary);background:#eef2ff;
+  transform:translateY(-3px);box-shadow:0 8px 20px rgba(59,76,202,.15);
+}
+.starter-card.selected{box-shadow:0 0 0 3px rgba(59,76,202,.25);}
+.starter-card img{width:68px;height:68px;object-fit:contain;image-rendering:pixelated;}
+.starter-card .s-name{font-size:.68rem;font-weight:700;margin-top:5px;color:var(--text-dark);text-transform:uppercase;}
+.starter-card .s-type{font-size:.6rem;padding:2px 8px;border-radius:20px;margin-top:4px;display:inline-block;color:white;font-weight:600;}
+
+/* ── BUTTONS ── */
+.btn{padding:10px 20px;border:none;border-radius:40px;cursor:pointer;font-weight:600;font-size:.9rem;transition:all .2s;}
+.btn-primary{background:var(--primary);color:white;}
+.btn-primary:hover{background:var(--primary-dark);transform:translateY(-1px);}
+.btn-accent{background:var(--accent);color:var(--text-dark);font-weight:700;}
+.btn-accent:hover{background:var(--accent-dark);transform:translateY(-1px);}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text-light);}
+.btn-outline:hover{border-color:var(--primary);color:var(--primary);}
+.btn-danger{background:var(--danger);color:white;}
+.btn-danger:hover{background:#e53e3e;transform:translateY(-1px);}
+.btn-success{background:var(--success);color:white;font-weight:700;}
+.btn-success:hover{background:#3aaa6a;}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none!important;}
+.btn-row{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;}
+
+/* ── NAV ── */
+#game-nav{
+  background:var(--card-bg);padding:10px 5%;display:flex;justify-content:space-between;
+  align-items:center;border-bottom:1px solid var(--border);position:sticky;top:0;
+  z-index:1000;flex-wrap:wrap;gap:8px;box-shadow:0 2px 10px rgba(0,0,0,.06);
+}
+.nav-logo{font-weight:900;font-size:1.4rem;color:var(--primary-dark);letter-spacing:-.5px;}
+.nav-info{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.nav-chip{padding:4px 12px;border-radius:40px;font-size:.75rem;font-weight:600;background:#f1f5f9;color:var(--text-light);}
+.nav-chip.coins{background:#fef9e3;color:#b45309;}
+.nav-chip.level{background:#f0fdf4;color:#276749;}
+.nav-chip.dex{background:#eef2ff;color:var(--primary);}
+.nav-chip.online{background:#f0fdf4;color:#276749;}
+.nav-actions{display:flex;gap:6px;align-items:center;}
+
+/* ── TABS ── */
+.container{max-width:900px;margin:0 auto;padding:20px 16px;}
+.section-tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;}
+.tab-btn{
+  padding:7px 16px;border-radius:40px;border:1px solid var(--border);
+  background:transparent;color:var(--text-light);cursor:pointer;font-size:.8rem;
+  font-weight:600;transition:.2s;
+}
+.tab-btn.active{background:var(--primary);border-color:var(--primary);color:white;}
+.tab-btn:hover:not(.active){background:#eef2ff;color:var(--primary);}
+.tab-btn.byahe-tab{border-color:#c3cff9;color:var(--primary);}
+.tab-btn.byahe-tab.active{background:var(--primary-dark);border-color:var(--primary-dark);color:white;}
+.section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;}
+.section-header h2{font-size:1.2rem;font-weight:800;color:var(--primary-dark);border-left:4px solid var(--primary);padding-left:12px;}
+
+/* ── MAP ── */
+.map-wrapper{display:flex;justify-content:center;overflow-x:auto;margin:16px 0 10px;}
+.map-viewport{
+  width:600px;height:380px;border:4px solid var(--primary);border-radius:20px;
+  overflow:hidden;position:relative;flex-shrink:0;
+  box-shadow:0 12px 28px rgba(59,76,202,.2);background:var(--dirt);
+}
+.map-viewport.byahe-vp{border-color:var(--primary-dark);box-shadow:0 12px 28px rgba(0,35,143,.25);}
+.map-grid-el{display:grid;grid-template-columns:repeat(50,40px);position:absolute;top:0;left:0;transition:transform .12s ease-out;}
+.tile{width:40px;height:40px;border:1px solid rgba(0,0,0,.04);}
+.player-sprite{position:absolute;width:40px;height:40px;z-index:999;background-size:contain;background-repeat:no-repeat;background-position:center;filter:drop-shadow(2px 2px 4px rgba(0,0,0,.3));pointer-events:none;}
+.map-controls{display:flex;flex-direction:column;align-items:center;gap:8px;margin:12px 0;}
+.map-row{display:flex;gap:12px;justify-content:center;}
+.arrow-btn{
+  width:52px;height:52px;border-radius:50%;background:var(--card-bg);
+  border:2px solid var(--border);color:var(--primary-dark);font-size:1.1rem;
+  cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 2px 8px rgba(0,0,0,.1);font-weight:700;
+}
+.arrow-btn:hover,.arrow-btn:active{background:var(--primary);border-color:var(--primary);color:white;box-shadow:0 4px 12px rgba(59,76,202,.3);}
+.map-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;}
+.map-card{
+  background:var(--card-bg);border:1px solid var(--border);border-radius:20px;
+  padding:20px;cursor:pointer;transition:all .2s;
+  box-shadow:0 2px 8px rgba(0,0,0,.05);
+}
+.map-card:hover:not(.locked){border-color:var(--primary);transform:translateY(-4px);box-shadow:0 12px 24px rgba(59,76,202,.12);}
+.map-card.byahe-card:hover:not(.locked){border-color:var(--primary-dark);box-shadow:0 12px 24px rgba(0,35,143,.12);}
+.map-card.locked{opacity:.5;cursor:not-allowed;}
+.map-card .map-icon{font-size:2.2rem;margin-bottom:10px;}
+.map-card .map-name{font-weight:800;font-size:.95rem;margin-bottom:4px;color:var(--primary-dark);}
+.map-card .map-desc{font-size:.75rem;color:var(--text-light);margin-bottom:8px;line-height:1.4;}
+.map-card .map-req{font-size:.68rem;color:var(--danger);margin-top:6px;font-weight:600;}
+.map-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:.65rem;font-weight:700;margin-top:4px;background:#f0fdf4;color:var(--success);border:1px solid #c6f6d5;}
+
+/* ── BATTLE ── */
+.battle-wrap{
+  max-width:700px;margin:20px auto;
+  background:linear-gradient(145deg,#87ceeb 0%,#c0e0ff 40%,var(--grass) 100%);
+  border-radius:24px;box-shadow:0 12px 32px rgba(0,0,0,.18);
+  border:1px solid rgba(255,255,255,.4);overflow:hidden;position:relative;
+}
+.battle-wrap::before{
+  content:'';position:absolute;top:0;left:0;width:100%;height:100%;
+  background:radial-gradient(circle at 20% 30%,rgba(255,255,200,.2) 0%,transparent 70%);
+  pointer-events:none;
+}
+.battle-wrap.byahe-battle{background:linear-gradient(145deg,#a0b4e8 0%,#c8d4f8 40%,#a0c88a 100%);}
+.battle-header{
+  background:var(--primary-dark);color:white;text-align:center;
+  padding:12px 18px;font-weight:700;font-size:.9rem;position:relative;z-index:2;
+}
+.battle-ui{padding:20px;display:flex;flex-direction:column;gap:16px;position:relative;z-index:2;}
+.b-side{display:flex;align-items:center;gap:12px;animation:slideIn .5s forwards;opacity:0;flex-wrap:wrap;}
+.b-enemy{justify-content:flex-end;transform:translateX(60px);animation-delay:.1s;}
+.b-side:not(.b-enemy){transform:translateX(-60px);animation-delay:.25s;}
+@keyframes slideIn{to{opacity:1;transform:none}}
+.btl-sprite{
+  width:100px;height:100px;object-fit:contain;image-rendering:pixelated;
+  filter:drop-shadow(0 4px 8px rgba(0,0,0,.2));cursor:pointer;transition:transform .2s;
+}
+.btl-sprite:hover{transform:scale(1.06);}
+.stat-box{
+  background:rgba(255,255,255,.92);backdrop-filter:blur(6px);
+  padding:12px 16px;border-radius:20px;width:210px;
+  border-left:4px solid var(--primary);box-shadow:0 2px 10px rgba(0,0,0,.1);flex-shrink:0;
+}
+.stat-box.player-box{border-left-color:var(--success);}
+.stat-box.byahe-box{border-left-color:var(--primary-dark);}
+.mon-name{font-weight:800;font-size:.85rem;color:var(--text-dark);}
+.mon-lvl{font-size:.68rem;color:var(--text-light);margin-top:2px;}
+.type-badges{display:flex;gap:3px;flex-wrap:wrap;margin-top:4px;}
+.type-badge{padding:2px 8px;border-radius:16px;font-size:.6rem;font-weight:700;color:white;text-shadow:0 1px 1px rgba(0,0,0,.2);}
+.hp-bar{background:#e2e8f0;height:8px;border-radius:10px;overflow:hidden;margin-top:8px;}
+.hp-fill{height:100%;background:var(--success);border-radius:10px;transition:width .3s;}
+.hp-fill.mid{background:var(--warning);}
+.hp-fill.low{background:var(--danger);}
+.xp-bar{background:#e2e8f0;height:5px;border-radius:10px;overflow:hidden;margin-top:5px;}
+.xp-fill{height:100%;background:var(--primary);border-radius:10px;transition:width .3s;}
+.battle-log{
+  background:rgba(0,0,0,.72);color:#e8f0fe;padding:10px 14px;
+  font-family:monospace;font-size:.78rem;height:80px;overflow-y:auto;
+  border-radius:16px;line-height:1.6;backdrop-filter:blur(4px);
+}
+.battle-moves{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.move-btn{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 14px;border:none;border-radius:40px;cursor:pointer;font-weight:600;
+  color:white;text-shadow:0 1px 1px rgba(0,0,0,.2);font-size:.82rem;transition:.2s;
+}
+.move-btn:hover{filter:brightness(.92);transform:translateY(-2px);}
+.move-btn:active{transform:translateY(0);}
+.move-btn:disabled{opacity:.45;cursor:not-allowed;transform:none!important;}
+.move-btn .move-icon{width:28px;height:28px;object-fit:contain;margin-right:4px;}
+.move-btn .move-name{flex:1;text-align:left;text-transform:uppercase;font-size:.75rem;}
+.move-btn .move-power{background:rgba(0,0,0,.25);padding:3px 8px;border-radius:20px;font-size:.68rem;font-weight:700;}
+.battle-btns{display:flex;gap:8px;flex-wrap:wrap;}
+.battle-btns .btn{padding:8px 16px;font-size:.82rem;}
+
+/* ── ENCOUNTER PREVIEW ── */
+#encounter-preview{
+  position:fixed;inset:0;background:rgba(0,0,0,.88);backdrop-filter:blur(10px);
+  display:flex;align-items:center;justify-content:center;z-index:6000;
+}
+.enc-card{
+  background:var(--card-bg);border-radius:32px;padding:32px;text-align:center;
+  animation:bounceIn .5s cubic-bezier(.68,-.55,.265,1.55);
+  border:1px solid var(--border);max-width:340px;width:90%;
+  box-shadow:0 20px 40px rgba(0,0,0,.3);
+}
+.enc-card.special{border-color:gold;box-shadow:0 0 30px rgba(255,215,0,.35),0 20px 40px rgba(0,0,0,.3);}
+@keyframes bounceIn{from{transform:scale(.3);opacity:0}60%{transform:scale(1.06)}to{transform:scale(1);opacity:1}}
+.enc-sprite{width:160px;height:160px;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 8px 14px rgba(0,0,0,.2));}
+.enc-name{font-size:1.5rem;font-weight:800;margin-top:14px;color:var(--primary-dark);}
+.enc-badges{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin:10px 0;}
+.special-badge-pill{padding:3px 10px;border-radius:20px;font-size:.65rem;font-weight:700;color:white;}
+
+/* ── TEAM / COLLECTION ── */
+.pokemon-list{display:flex;flex-direction:column;gap:8px;}
+.mon-item{
+  background:var(--card-bg);border:1px solid var(--border);border-radius:16px;
+  padding:12px 16px;display:flex;align-items:center;gap:12px;transition:.2s;
+  box-shadow:0 1px 4px rgba(0,0,0,.04);
+}
+.mon-item:hover{border-color:var(--primary);transform:translateX(4px);box-shadow:0 4px 12px rgba(59,76,202,.08);}
+.mon-item.in-team{border-left:4px solid var(--success);}
+.mon-item.is-shiny{border-left:4px solid #ecc94b;}
+.mon-item img{width:56px;height:56px;object-fit:contain;image-rendering:pixelated;}
+.mon-info{flex:1;}
+.mon-info .name{font-weight:700;font-size:.9rem;color:var(--text-dark);}
+.mon-info .stats{font-size:.72rem;color:var(--text-light);margin-top:2px;}
+.mon-actions{display:flex;gap:6px;flex-wrap:wrap;}
+.btn-small{padding:4px 12px;font-size:.68rem;border-radius:30px;}
+
+/* ── POKÉDEX ── */
+.dex-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px;}
+.dex-entry{
+  background:var(--card-bg);border:1px solid var(--border);border-radius:14px;
+  padding:8px;text-align:center;font-size:.65rem;transition:.2s;
+  box-shadow:0 1px 4px rgba(0,0,0,.04);
+}
+.dex-entry img{width:50px;height:50px;object-fit:contain;image-rendering:pixelated;}
+.dex-entry.seen{border-color:#bee3f8;background:#ebf8ff;}
+.dex-entry.caught{border-color:#c6f6d5;background:#f0fff4;}
+.dex-entry .dex-num{color:var(--text-light);font-size:.58rem;}
+
+/* ── SHOP ── */
+.shop-items{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px;}
+.shop-item{
+  background:var(--card-bg);border:1px solid var(--border);border-radius:20px;
+  padding:16px;text-align:center;transition:.2s;box-shadow:0 2px 8px rgba(0,0,0,.05);
+}
+.shop-item:hover{border-color:var(--primary);transform:translateY(-2px);box-shadow:0 8px 20px rgba(59,76,202,.1);}
+.shop-item .item-icon{font-size:2rem;margin-bottom:8px;}
+.shop-item .item-name{font-weight:700;font-size:.85rem;color:var(--text-dark);}
+.shop-item .item-desc{font-size:.7rem;color:var(--text-light);margin:4px 0 8px;line-height:1.4;}
+.shop-item .item-price{font-size:.8rem;color:#b45309;font-weight:700;background:#fef9e3;padding:3px 10px;border-radius:20px;display:inline-block;}
+
+/* ── BYAHE LOGIN ── */
+.byahe-login-card{
+  background:var(--card-bg);border:1px solid var(--border);border-radius:24px;
+  padding:32px;max-width:400px;margin:0 auto;text-align:center;
+  box-shadow:0 8px 24px rgba(0,0,0,.08);
+}
+.byahe-login-card .bl-icon{font-size:3rem;margin-bottom:12px;}
+.byahe-login-card h3{color:var(--primary-dark);margin-bottom:8px;font-size:1.2rem;font-weight:800;}
+.byahe-login-card p{font-size:.8rem;color:var(--text-light);margin-bottom:20px;line-height:1.6;}
+.byahe-login-card input{
+  width:100%;background:var(--bg);border:1px solid var(--border);border-radius:14px;
+  padding:11px 16px;color:var(--text-dark);font-size:.9rem;margin-bottom:10px;transition:.2s;
+}
+.byahe-login-card input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(59,76,202,.1);}
+.byahe-user-info{
+  background:#eef2ff;border:1px solid #c3cff9;border-radius:16px;
+  padding:14px;display:flex;align-items:center;gap:12px;margin-bottom:14px;
+}
+.byahe-user-info .bui-avatar{
+  width:44px;height:44px;border-radius:50%;background:var(--primary);
+  display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0;
+}
+.sync-bar{
+  background:#f0fdf4;border:1px solid #c6f6d5;border-radius:12px;
+  padding:10px 16px;font-size:.78rem;color:#276749;margin-bottom:14px;
+  display:flex;align-items:center;gap:8px;font-weight:600;
+}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:var(--success);flex-shrink:0;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── CACHE ── */
+.cache-section{
+  background:var(--card-bg);border:1px solid var(--border);border-radius:20px;
+  padding:20px;margin-top:16px;box-shadow:0 2px 8px rgba(0,0,0,.05);
+}
+.cache-section h3{font-size:1rem;font-weight:800;color:var(--primary-dark);margin-bottom:6px;}
+.cache-section p{font-size:.78rem;color:var(--text-light);margin-bottom:12px;line-height:1.5;}
+.cache-progress{background:#e2e8f0;height:10px;border-radius:10px;overflow:hidden;margin:8px 0;}
+.cache-fill{height:100%;background:var(--success);border-radius:10px;transition:width .3s;}
+.cache-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-top:12px;}
+.cache-item{background:#f8fafc;border:1px solid var(--border);border-radius:14px;padding:12px;text-align:center;font-size:.72rem;}
+.cache-item .ci-icon{font-size:1.5rem;margin-bottom:5px;}
+.cache-item .ci-status{font-size:.62rem;color:var(--text-light);margin-top:3px;}
+
+/* ── LOADING ── */
+#loading-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);
+  display:flex;align-items:center;justify-content:center;z-index:9000;flex-direction:column;gap:16px;
+}
+.loader{
+  width:48px;height:48px;border:4px solid rgba(255,255,255,.2);
+  border-top-color:var(--accent);border-radius:50%;animation:spin2 .8s linear infinite;
+}
+@keyframes spin2{to{transform:rotate(360deg)}}
+.load-text{font-size:.85rem;color:rgba(255,255,255,.8);font-weight:600;}
+
+/* ── TOAST ── */
+#toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:var(--primary-dark);color:white;border-radius:40px;
+  padding:10px 22px;font-size:.82rem;font-weight:600;z-index:9999;
+  opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;
+  box-shadow:0 8px 24px rgba(0,0,0,.25);
+}
+#toast.show{opacity:1;}
+
+/* ── BATTLE SUMMARY ── */
+#battle-summary-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);
+  display:flex;align-items:center;justify-content:center;z-index:7000;
+}
+.summary-box{
+  background:var(--card-bg);border:1px solid var(--border);border-radius:28px;
+  padding:28px;max-width:400px;width:90%;text-align:center;
+  box-shadow:0 20px 40px rgba(0,0,0,.2);
+}
+.summary-result{font-size:2.5rem;margin-bottom:8px;}
+.summary-title{font-size:1.3rem;font-weight:800;color:var(--primary-dark);margin-bottom:16px;}
+.summary-gains{
+  background:#f8fafc;border:1px solid var(--border);border-radius:14px;
+  padding:14px;text-align:left;margin:12px 0;font-size:.82rem;
+}
+.summary-gains p{margin:4px 0;color:var(--text-light);}
+.summary-gains strong{color:var(--text-dark);}
+
+/* TYPE COLORS (unchanged — these are game data) */
+.tc-normal{background:#a8a878} .tc-fire{background:#f08030} .tc-water{background:#6890f0}
+.tc-grass{background:#78c850} .tc-electric{background:#f8d030;color:#333!important}
+.tc-ice{background:#98d8d8;color:#333!important} .tc-fighting{background:#c03028}
+.tc-poison{background:#a040a0} .tc-ground{background:#e0c068;color:#333!important}
+.tc-flying{background:#a890f0} .tc-psychic{background:#f85888}
+.tc-bug{background:#a8b820} .tc-rock{background:#b8a038}
+.tc-ghost{background:#705898} .tc-dragon{background:#7038f8}
+.tc-dark{background:#705848} .tc-steel{background:#b8b8d0;color:#333!important}
+.tc-fairy{background:#ee99ac}
+
+/* ── RESPONSIVE ── */
+@media(max-width:768px){
+  #game-nav{flex-direction:column;align-items:stretch;text-align:center;}
+  .nav-info{justify-content:center;}
+  .nav-actions{justify-content:center;}
+}
+@media(max-width:640px){
+  .game-logo{font-size:2rem;}
+  .map-viewport{width:360px;height:230px;}
+  .map-grid-el{grid-template-columns:repeat(50,32px);}
+  .tile{width:32px;height:32px;}
+  .stat-box{width:160px;padding:8px 12px;}
+  .btl-sprite{width:80px;height:80px;}
+  .map-cards{grid-template-columns:1fr 1fr;}
+  .starter-grid{grid-template-columns:repeat(3,1fr);}
+  .battle-moves{gap:8px;}
+  .move-btn{padding:8px 10px;font-size:.72rem;}
+}
+@media(max-width:420px){
+  .map-viewport{width:100%;height:220px;}
+  .map-grid-el{grid-template-columns:repeat(50,28px);}
+  .tile{width:28px;height:28px;}
+  .stat-box{width:140px;font-size:.78rem;}
+  .btl-sprite{width:66px;height:66px;}
+}
+
+/* ── SHAKE (battle hit) ── */
+@keyframes shake{
+  0%{transform:translate(1px,1px) rotate(0)}
+  20%{transform:translate(-3px,0) rotate(1deg)}
+  40%{transform:translate(1px,-1px) rotate(1deg)}
+  60%{transform:translate(-3px,1px) rotate(0)}
+  80%{transform:translate(-1px,-1px) rotate(1deg)}
+  100%{transform:translate(1px,-2px) rotate(-1deg)}
+}
+.shake-effect{animation:shake .5s 1;}
+</style>
+</head>
+<body>
+
+<!-- TITLE SCREEN -->
+<div id="title-screen">
+  <div class="title-stars" id="star-field"></div>
+  <div class="pokeball-spin"></div>
+  <div class="game-logo"><img src="PokeSim Word.png" width="400px"></div>
+  <div class="game-subtitle">Offline</div>
+  <div class="save-slots-wrap" id="save-slots-wrap"></div>
+  <div style="margin-top: 20px; text-align: center;">
+  <button id="download-all-basic-btn" class="btn btn-accent" style="padding: 12px 24px; font-size: 1rem; font-weight: bold;">
+    ⬇️ Download All Basic Resources
+  </button>
+  <p style="font-size: 0.7rem; color: var(--muted); margin-top: 8px;">
+    (Normal front+back sprites for 1–1025 + all move data)
+  </p>
+</div>
+</div>
+
+<!-- NEW GAME MODAL -->
+<div id="new-game-modal" class="overlay hidden">
+  <div class="modal-box">
+    <div class="modal-title">🌟 New Adventure</div>
+    <div class="form-field"><label>Trainer Name</label><input type="text" id="trainer-name-input" placeholder="Enter name..." maxlength="12"></div>
+    <div class="form-field"><label>Choose Starter</label><div class="starter-grid" id="starter-grid"></div></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="confirm-new-game-btn" disabled>Begin!</button>
+      <button class="btn btn-outline" id="cancel-new-game-btn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE CONFIRM -->
+<div id="delete-confirm-modal" class="overlay hidden">
+  <div class="modal-box" style="text-align:center;">
+    <div style="font-size:2.5rem;margin-bottom:10px;">⚠️</div>
+    <div class="modal-title">Delete Save?</div>
+    <p style="color:var(--muted);font-size:.82rem;margin-bottom:18px;">This permanently deletes this save. Cannot be undone.</p>
+    <div class="btn-row" style="justify-content:center;">
+      <button class="btn btn-danger" id="confirm-delete-btn">Yes, Delete</button>
+      <button class="btn btn-outline" id="cancel-delete-btn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div id="loading-overlay" class="hidden">
+  <div class="loader"></div>
+  <div class="load-text" id="load-text">Loading...</div>
+</div>
+
+<!-- ENCOUNTER PREVIEW -->
+<div id="encounter-preview" class="hidden">
+  <div class="enc-card" id="encounter-card">
+    <img class="enc-sprite" id="enc-sprite" src="">
+    <div class="enc-name" id="enc-name"></div>
+    <div class="enc-badges" id="enc-badges"></div>
+    <p style="font-size:.7rem;color:var(--muted);margin-top:5px;" id="enc-extra"></p>
+    <div id="enc-weaknesses" style="margin-top:6px;font-size:.72rem;"></div>
+    <div style="font-size:.7rem;color:var(--muted);margin-top:8px;" id="enc-timer">Starting in 4...</div>
+  </div>
+</div>
+
+<!-- BATTLE SUMMARY -->
+<div id="battle-summary-overlay" class="hidden">
+  <div class="summary-box">
+    <div class="summary-result" id="sum-icon"></div>
+    <div class="summary-title" id="sum-title"></div>
+    <div class="summary-gains" id="sum-gains"></div>
+    <button class="btn btn-primary" id="close-summary-btn" style="width:100%;margin-top:8px;">Continue</button>
+  </div>
+</div>
+
+<!-- PRE-BATTLE SELECT -->
+<div id="pre-battle-modal" class="overlay hidden">
+  <div class="modal-box">
+    <div class="modal-title">Choose your Pokémon!</div>
+    <div id="pre-battle-list" class="pokemon-list"></div>
+    <div class="btn-row"><button class="btn btn-danger" id="cancel-pre-battle">🚪 Run Away</button></div>
+  </div>
+</div>
+
+<!-- SWITCH POKEMON MODAL -->
+<div id="switch-modal" class="overlay hidden">
+  <div class="modal-box">
+    <div class="modal-title">Switch Pokémon</div>
+    <div id="switch-list" class="pokemon-list"></div>
+    <div class="btn-row"><button class="btn btn-outline" id="cancel-switch">Cancel</button></div>
+  </div>
+</div>
+
+<!-- GAME SCREEN -->
+<div id="game-screen" style="display:none;">
+  <nav id="game-nav">
+    <div class="nav-logo" style="display:flex;align-items:center;gap:8px;">
+      <span style="font-size:1.5rem;">⚡</span> PokéSim<span style="font-size:.6rem;background:#eef2ff;color:var(--primary);padding:2px 8px;border-radius:20px;font-weight:700;letter-spacing:1px;">OFFLINE</span>
+    </div>
+    <div class="nav-info">
+      <span class="nav-chip" id="trainer-display">Trainer</span>
+      <span class="nav-chip coins" id="coin-display">💰 0</span>
+      <span class="nav-chip level" id="level-display">⚡ 0</span>
+      <span class="nav-chip dex" id="dex-display">📖 0</span>
+      <span class="nav-chip online hidden" id="online-chip">🟢 Online</span>
+    </div>
+    <div class="nav-actions">
+      <button class="btn btn-outline" id="save-btn" style="padding:5px 12px;font-size:.72rem;">💾 Save</button>
+      <button class="btn btn-outline" id="back-to-title-btn" style="padding:5px 12px;font-size:.72rem;">🏠</button>
+     <button id="install-btn" class="btn btn-primary" style="display:none; padding:5px 12px;font-size:.72rem;">📲 Install App</button>
+     <button id="update-check-btn" class="btn btn-outline" style="padding:5px 12px;font-size:.72rem;">🔄 Check Updates</button>
+     <a href="https://pokesim.ph.gamer.gd" target="_blank" rel="noopener noreferrer" class="btn btn-outline" style="padding:5px 12px;font-size:.72rem; text-decoration: none; display: inline-block;">🌐Go to PokeSim Online</a>
+    </div>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="section-tabs">
+      <button class="tab-btn active" data-tab="explore">🗺 Explore</button>
+      <button class="tab-btn byahe-tab" data-tab="byahe">🚌 Byahe</button>
+      <button class="tab-btn" data-tab="team">⚔️ Team</button>
+      <button class="tab-btn" data-tab="collection">📦 Collection</button>
+      <button class="tab-btn" data-tab="pokedex">📖 Pokédex</button>
+      <button class="tab-btn" data-tab="shop">🛒 Shop</button>
+      <button class="tab-btn" data-tab="cache">📥 Cache</button>
+    </div>
+
+    <!-- ══ EXPLORE TAB ══ -->
+    <div id="tab-explore">
+      <div id="explore-map-sel">
+        <div class="section-header"><h2>🗺 Choose Location</h2></div>
+        <div class="map-cards" id="explore-map-cards"></div>
+      </div>
+      <div id="explore-active" class="hidden">
+        <div class="section-header">
+          <h2 id="explore-map-name">Route</h2>
+          <button class="btn btn-outline" id="explore-back-btn" style="padding:5px 12px;font-size:.72rem;">← Maps</button>
+        </div>
+        <div class="map-section">
+          <div class="map-wrapper">
+            <div class="map-viewport" id="explore-viewport">
+              <div class="map-grid-el" id="explore-grid"></div>
+              <div class="player-sprite" id="explore-player" style="top:170px;left:280px;"></div>
+            </div>
+          </div>
+          <div class="map-controls">
+            <div><button class="arrow-btn" id="ex-up">▲</button></div>
+            <div class="map-row">
+              <button class="arrow-btn" id="ex-left">◀</button>
+              <button class="arrow-btn" id="ex-down">▼</button>
+              <button class="arrow-btn" id="ex-right">▶</button>
+            </div>
+          </div>
+        </div>
+        <!-- Explore battle -->
+        <div class="battle-wrap hidden" id="explore-battle">
+          <div class="battle-header">⚔️ Wild Encounter!</div>
+          <div class="battle-ui">
+            <div class="b-side b-enemy">
+              <div class="stat-box"><div class="mon-name" id="ex-e-name"></div><div class="mon-lvl" id="ex-e-lvl"></div><div class="type-badges" id="ex-e-types"></div><div class="hp-bar"><div class="hp-fill" id="ex-e-hp" style="width:100%"></div></div><div style="font-size:.62rem;color:var(--muted);margin-top:2px;" id="ex-e-hptxt"></div></div>
+              <img class="btl-sprite" id="ex-e-spr" src="">
+            </div>
+            <div class="battle-log" id="ex-log"></div>
+            <div class="b-side">
+              <img class="btl-sprite" id="ex-p-spr" src="">
+              <div class="stat-box player-box"><div class="mon-name" id="ex-p-name"></div><div class="mon-lvl" id="ex-p-lvl"></div><div class="type-badges" id="ex-p-types"></div><div class="hp-bar"><div class="hp-fill" id="ex-p-hp" style="width:100%"></div></div><div style="font-size:.62rem;color:var(--muted);margin-top:2px;" id="ex-p-hptxt"></div><div class="xp-bar"><div class="xp-fill" id="ex-p-xp" style="width:0%"></div></div></div>
+            </div>
+            <div class="battle-moves" id="ex-moves"></div>
+            <div class="battle-btns">
+              <button class="btn btn-accent" id="ex-catch">🔵 Throw Ball</button>
+              <button class="btn btn-outline" id="ex-switch">🔄 Switch</button>
+              <button class="btn btn-danger" id="ex-run">🚪 Run</button>
+            </div>
+            <div style="font-size:.7rem;color:var(--muted);" id="ex-catch-info"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ BYAHE TAB ══ -->
+    <div id="tab-byahe" class="hidden">
+      <!-- Not logged in -->
+      <div id="byahe-login-view">
+        <div class="byahe-login-card">
+          <div class="bl-icon">🚌</div>
+          <h3>Byahe — Live Server Maps</h3>
+          <p>Login with your PokéSim account to access live maps from the server. Your online team, collection and encounter records will also be synced.</p>
+          <input type="email" id="byahe-email" placeholder="Email">
+          <input type="password" id="byahe-password" placeholder="Password">
+          <div style="margin-bottom:10px;"><button class="btn btn-accent" id="byahe-login-btn" style="width:100%;">🔑 Login to PokeSim</button></div>
+          <p style="font-size:.68rem;color:var(--muted);">Uses the same account as <strong>pokesim.ph.gamer.gd</strong></p>
+          <div id="byahe-login-err" style="color:var(--danger);font-size:.78rem;margin-top:8px;display:none;background:#fff5f5;border:1px solid #fed7d7;border-radius:10px;padding:8px 12px;"></div>
+        </div>
+      </div>
+      <!-- Logged in -->
+      <div id="byahe-logged-view" class="hidden">
+        <!-- User header -->
+        <div class="byahe-user-info">
+          <div class="bui-avatar">🧑</div>
+          <div style="flex:1;">
+            <div style="font-weight:800;font-size:.9rem;" id="byahe-trainer-name">Trainer</div>
+            <div style="font-size:.7rem;color:var(--muted);" id="byahe-user-email"></div>
+          </div>
+          <button class="btn btn-outline btn-small" id="byahe-sync-btn">🔄 Sync</button>
+          <button class="btn btn-danger btn-small" id="byahe-logout-btn">Logout</button>
+        </div>
+        <div class="sync-bar" id="byahe-sync-bar">
+          <div class="sync-dot"></div>
+          <span id="byahe-sync-text">Connected to PokéSim server</span>
+        </div>
+        <!-- Map view or active -->
+        <div id="byahe-map-sel">
+          <div class="section-header">
+            <h2>🗺 Server Maps</h2>
+            <button class="btn btn-primary" id="byahe-reload-maps-btn" style="padding:5px 12px;font-size:.72rem;">🔄 Reload</button>
+          </div>
+          <div id="byahe-map-loading" style="text-align:center;padding:30px;color:var(--muted);font-size:.82rem;">Loading maps...</div>
+          <div class="map-cards hidden" id="byahe-map-cards"></div>
+        </div>
+        <div id="byahe-active" class="hidden">
+          <div class="section-header">
+            <h2 id="byahe-map-name">Map</h2>
+            <button class="btn btn-outline" id="byahe-back-btn" style="padding:5px 12px;font-size:.72rem;">← Maps</button>
+          </div>
+          <div id="byahe-map-info" style="background:#eef2ff;border:1px solid #c3cff9;border-radius:12px;padding:10px 14px;margin-bottom:12px;font-size:.72rem;color:var(--text-light);display:flex;flex-wrap:wrap;gap:8px;font-weight:600;"></div>
+          <div class="map-section">
+            <div class="map-wrapper">
+              <div class="map-viewport byahe-vp" id="byahe-viewport">
+                <div class="map-grid-el" id="byahe-grid"></div>
+                <div class="player-sprite" id="byahe-player" style="top:170px;left:280px;"></div>
+              </div>
+            </div>
+            <div class="map-controls">
+              <div><button class="arrow-btn" id="by-up">▲</button></div>
+              <div class="map-row">
+                <button class="arrow-btn" id="by-left">◀</button>
+                <button class="arrow-btn" id="by-down">▼</button>
+                <button class="arrow-btn" id="by-right">▶</button>
+              </div>
+            </div>
+          </div>
+          <!-- Byahe battle -->
+          <div class="battle-wrap byahe-battle hidden" id="byahe-battle">
+            <div class="battle-header" style="background:rgba(247,37,133,.25);">⚔️ Byahe Encounter!</div>
+            <div class="battle-ui">
+              <div class="b-side b-enemy">
+                <div class="stat-box"><div class="mon-name" id="by-e-name"></div><div class="mon-lvl" id="by-e-lvl"></div><div class="type-badges" id="by-e-types"></div><div class="hp-bar"><div class="hp-fill" id="by-e-hp" style="width:100%"></div></div><div style="font-size:.62rem;color:var(--muted);margin-top:2px;" id="by-e-hptxt"></div></div>
+                <img class="btl-sprite" id="by-e-spr" src="">
+              </div>
+              <div class="battle-log" id="by-log"></div>
+              <div class="b-side">
+                <img class="btl-sprite" id="by-p-spr" src="">
+                <div class="stat-box byahe-box"><div class="mon-name" id="by-p-name"></div><div class="mon-lvl" id="by-p-lvl"></div><div class="type-badges" id="by-p-types"></div><div class="hp-bar"><div class="hp-fill" id="by-p-hp" style="width:100%"></div></div><div style="font-size:.62rem;color:var(--muted);margin-top:2px;" id="by-p-hptxt"></div><div class="xp-bar"><div class="xp-fill" id="by-p-xp" style="width:0%"></div></div></div>
+              </div>
+              <div class="battle-moves" id="by-moves"></div>
+              <div class="battle-btns">
+                <button class="btn btn-accent" id="by-catch">🔵 Throw Ball</button>
+                <button class="btn btn-outline" id="by-switch">🔄 Switch</button>
+                <button class="btn btn-danger" id="by-run">🚪 Run</button>
+              </div>
+              <div style="font-size:.7rem;color:var(--muted);" id="by-catch-info"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ TEAM TAB ══ -->
+    <div id="tab-team" class="hidden">
+      <div class="section-header"><h2>⚔️ Your Team</h2><span style="font-size:.8rem;color:var(--muted);" id="team-count">0/6</span></div>
+      <div class="pokemon-list" id="team-list"></div>
+    </div>
+
+    <!-- ══ COLLECTION TAB ══ -->
+    <div id="tab-collection" class="hidden">
+      <div class="section-header"><h2>📦 PC Box</h2><span style="font-size:.8rem;color:var(--muted);" id="box-count">0</span></div>
+      <div class="pokemon-list" id="collection-list"></div>
+    </div>
+
+    <!-- ══ POKÉDEX TAB ══ -->
+    <div id="tab-pokedex" class="hidden">
+      <div class="section-header"><h2>📖 Pokédex</h2><span style="font-size:.8rem;color:var(--muted);" id="dex-count">0 seen, 0 caught</span></div>
+      <div class="dex-grid" id="dex-grid"></div>
+    </div>
+
+    <!-- ══ SHOP TAB ══ -->
+    <div id="tab-shop" class="hidden">
+      <div class="section-header"><h2>🛒 Poké Mart</h2><span class="nav-chip coins" id="shop-coins">💰 0</span></div>
+      <div class="shop-items" id="shop-items-grid"></div>
+    </div>
+
+    <!-- ══ CACHE TAB ══ -->
+    <div id="tab-cache" class="hidden">
+      <div class="section-header"><h2>📥 Offline Cache</h2></div>
+      <p style="font-size:.8rem;color:var(--muted);margin-bottom:14px;">Choose which sprite types to download for offline use. Each button caches <strong>front + back</strong> sprites for IDs 1–1025 and 10000–10325.</p>
+      <div class="cache-section">
+        <h3>💾 Sprite Cache</h3>
+        <p>Cached sprites: <strong id="cache-count">0</strong></p>
+        <div class="cache-progress"><div class="cache-fill" id="cache-fill" style="width:0%"></div></div>
+        <div id="cache-status-text" style="font-size:.72rem;color:var(--muted);margin-bottom:12px;"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+          <button class="btn btn-primary" id="cache-normal-btn">📷 Download Normal Sprites</button>
+          <button class="btn btn-primary" id="cache-shiny-btn">✨ Download Shiny Sprites</button>
+          <button class="btn btn-primary" id="cache-moving-btn">🎬 Download Normal Moving Sprites</button>
+          <button class="btn btn-primary" id="cache-shiny-moving-btn">✨🎬 Download Shiny Moving Sprites</button>
+          <button class="btn btn-primary" id="cache-moves-btn">📚 Cache Move Data</button>
+          <button class="btn btn-outline" id="cache-stop-btn" style="display:none;">⏹ Stop</button>
+        </div>
+        <div id="cache-log" style="background:#f8fafc;border:1px solid var(--border);border-radius:10px;padding:10px;font-size:.68rem;color:var(--text-light);height:120px;overflow-y:auto;font-family:monospace;"></div>
+      </div>
+      <div class="cache-section" style="margin-top:12px;">
+        <h3>📊 Cache Stats</h3>
+        <div class="cache-grid" id="cache-stats-grid"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- MOVE EDITOR MODAL -->
+<div id="edit-moves-modal" class="overlay hidden">
+  <div class="modal-box" style="max-width: 500px;">
+    <div class="modal-title">✏️ Edit Moves</div>
+    <div id="move-editor-pokemon-name" style="font-weight: bold; margin-bottom: 10px;"></div>
+    <div id="move-editor-current" style="background: #f8fafc; border-radius: 12px; padding: 12px; margin-bottom: 15px;">
+      <strong>Current moves:</strong>
+      <div id="current-moves-list" style="margin-top: 6px; display: flex; flex-wrap: wrap; gap: 6px;"></div>
+    </div>
+    <div>
+      <label style="font-weight: 600;">Select up to 4 moves:</label>
+      <div id="move-selector" style="max-height: 300px; overflow-y: auto; border: 1px solid var(--border); border-radius: 12px; padding: 8px; margin: 10px 0;"></div>
+    </div>
+    <div class="btn-row" style="justify-content: flex-end;">
+      <button id="save-moves-btn" class="btn btn-primary">Save Moves</button>
+      <button id="cancel-moves-btn" class="btn btn-outline">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+
+// ========== PWA INSTALLATION ==========
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const installBtn = document.getElementById('install-btn');
+  if (installBtn) installBtn.style.display = 'inline-block';
+});
+document.getElementById('install-btn')?.addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  console.log(`User ${outcome}`);
+  deferredPrompt = null;
+  document.getElementById('install-btn').style.display = 'none';
+});
+
+// Dynamically create a manifest and service worker
+if ('serviceWorker' in navigator) {
+  // Create a minimal manifest as a blob
+  const manifestObj = {
+    name: "PokéSim Offline",
+    short_name: "PokéSim",
+    start_url: ".",
+    display: "standalone",
+    theme_color: "#3b4cca",
+    background_color: "#f0f2f5",
+    icons: [
+      {
+        src: "https://pokesim.ph.gamer.gd/PokeSim_Icon.png",
+        sizes: "192x192",
+        type: "image/png"
+      },
+      {
+        src: "https://pokesim.ph.gamer.gd/PokeSim_Icon.png",
+        sizes: "512x512",
+        type: "image/png"
+      }
+    ]
+  };
+  const manifestBlob = new Blob([JSON.stringify(manifestObj)], {type: "application/manifest+json"});
+  const manifestURL = URL.createObjectURL(manifestBlob);
+  const manifestLink = document.createElement('link');
+  manifestLink.rel = 'manifest';
+  manifestLink.href = manifestURL;
+  document.head.appendChild(manifestLink);
+
+  // Create a simple service worker that caches the page
+   const APP_VERSION = '1.0.1'; // Increment this every time you change the page
+   const assets = ['PokeSim Word.png'];
+  const swCode = `
+    const CACHE_NAME = 'pokesim-pwa-v${APP_VERSION}';
+    const urlsToCache = ['./', 'poke.html'];
+    self.addEventListener('install', event => {
+      event.waitUntil(
+        caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
+      );
+      self.skipWaiting();
+    });
+    self.addEventListener('activate', event => {
+      event.waitUntil(
+        caches.keys().then(cacheNames => {
+          return Promise.all(
+            cacheNames.map(name => {
+              if (name !== CACHE_NAME) return caches.delete(name);
+            })
+          );
+        }).then(() => self.clients.claim())
+      );
+    });
+    self.addEventListener('fetch', event => {
+      event.respondWith(
+        caches.match(event.request).then(response => response || fetch(event.request))
+      );
+    });
+  `;
+  const swBlob = new Blob([swCode], {type: 'application/javascript'});
+  const swURL = URL.createObjectURL(swBlob);
+  navigator.serviceWorker.register(swURL).then(reg => {
+    console.log('Service Worker registered', reg);
+  }).catch(err => console.log('SW registration failed', err));
+}
+
+
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, collection, getDocs, updateDoc, addDoc, increment, setDoc, query, where, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+// ══════════════════════════════════════════════
+// FIREBASE CONFIG (from map.html)
+// ══════════════════════════════════════════════
+const FB_CONFIG = {
+  apiKey:"AIzaSyDkCE0wBrsQ1s-7zplvTtWOSE28ISaCFfQ",
+  authDomain:"pokesim-7f9b7.firebaseapp.com",
+  databaseURL:"https://pokesim-7f9b7-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:"pokesim-7f9b7",
+  storageBucket:"pokesim-7f9b7.firebasestorage.app",
+  messagingSenderId:"1087100425430",
+  appId:"1:1087100425430:web:873ce4073ec2db1e792577"
+};
+const fbApp  = initializeApp(FB_CONFIG);
+const fbAuth = getAuth(fbApp);
+const fbDb   = getFirestore(fbApp);
+
+// ══════════════════════════════════════════════
+// CONSTANTS
+// ══════════════════════════════════════════════
+const SAVE_KEY    = 'pokesim_saves_v2';
+const MAX_SLOTS   = 3;
+const TEAM_MAX    = 6;
+const SHINY_RATE  = 512;
+const MOVE_DELAY  = 180;
+const TRAINER_GIF = 'https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/078dadf7-4d9b-4bf4-9855-0112be351700/d54f6cb-230b552c-50d1-45ad-be7e-7eab211c1cf8.gif?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7InBhdGgiOiIvZi8wNzhkYWRmNy00ZDliLTRiZjQtOTg1NS0wMTEyYmUzNTE3MDAvZDU0ZjZjYi0yMzBiNTUyYy01MGQxLTQ1YWQtYmU3ZS03ZWFiMjExYzFjZjguZ2lmIn1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmZpbGUuZG93bmxvYWQiXX0.A8hNnEQQMDN-XZI-VOQkzR71AozVAvgQDF6FcAAqi6M';
+const CACHE_NAME  = 'pokesim-sprites-v2';
+
+const TYPE_COLORS = {
+  normal:'#a8a878',fire:'#f08030',water:'#6890f0',grass:'#78c850',electric:'#f8d030',
+  ice:'#98d8d8',fighting:'#c03028',poison:'#a040a0',ground:'#e0c068',flying:'#a890f0',
+  psychic:'#f85888',bug:'#a8b820',rock:'#b8a038',ghost:'#705898',dragon:'#7038f8',
+  dark:'#705848',steel:'#b8b8d0',fairy:'#ee99ac'
+};
+const TYPE_EFF = {
+  fire:{grass:2,ice:2,bug:2,steel:2,fire:.5,water:.5,rock:.5,dragon:.5},
+  water:{fire:2,ground:2,rock:2,water:.5,grass:.5,dragon:.5},
+  grass:{water:2,ground:2,rock:2,fire:.5,grass:.5,poison:.5,flying:.5,bug:.5,dragon:.5,steel:.5},
+  electric:{water:2,flying:2,electric:.5,grass:.5,dragon:.5,ground:0},
+  ice:{grass:2,ground:2,flying:2,dragon:2,fire:.5,water:.5,ice:.5,steel:.5},
+  fighting:{normal:2,ice:2,rock:2,dark:2,steel:2,poison:.5,flying:.5,psychic:.5,bug:.5,fairy:.5,ghost:0},
+  poison:{grass:2,fairy:2,poison:.5,ground:.5,rock:.5,ghost:.5,steel:0},
+  ground:{fire:2,electric:2,poison:2,rock:2,steel:2,grass:.5,bug:.5,flying:0},
+  flying:{grass:2,fighting:2,bug:2,electric:.5,rock:.5,steel:.5},
+  psychic:{fighting:2,poison:2,psychic:.5,steel:.5,dark:0},
+  bug:{grass:2,psychic:2,dark:2,fire:.5,fighting:.5,flying:.5,ghost:.5,steel:.5,fairy:.5},
+  rock:{fire:2,ice:2,flying:2,bug:2,fighting:.5,ground:.5,steel:.5},
+  ghost:{psychic:2,ghost:2,normal:0,fighting:0},
+  dragon:{dragon:2,steel:.5,fairy:0},
+  dark:{psychic:2,ghost:2,fighting:.5,dark:.5,fairy:.5},
+  steel:{ice:2,rock:2,fairy:2,fire:.5,water:.5,electric:.5,steel:.5},
+  fairy:{fighting:2,dragon:2,dark:2,fire:.5,poison:.5,steel:.5}
+};
+const STARTERS = [
+  {id:1,name:'Bulbasaur',type:'grass'},{id:4,name:'Charmander',type:'fire'},
+  {id:7,name:'Squirtle',type:'water'},{id:25,name:'Pikachu',type:'electric'},
+  {id:152,name:'Chikorita',type:'grass'},{id:155,name:'Cyndaquil',type:'fire'},
+  {id:158,name:'Totodile',type:'water'},{id:252,name:'Treecko',type:'grass'},
+  {id:255,name:'Torchic',type:'fire'},
+];
+const LOCAL_MAPS = [
+   { id:'route1', name:'Route 1', icon:'🌿', desc:'Beginner grassy route',
+    pokemonList: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20],  // IDs you want
+    min:1, max:20,  // keep fallback
+    req:0, enc:.14, tiles:['#6b4c1e','#2d6a2d'], tileClass:['dirt','grass'],
+    catchRate:45, reqXp:0, catchPenalty:10, specialLevel:{enabled:false}
+  },
+  {id:'forest',name:'Viridian Forest',icon:'🌲',desc:'Bug-types and rare finds',min:10,max:50,req:30,enc:.16,tiles:['#1a4a1a','#2d6a2d'],tileClass:['grass2','grass'],catchRate:40,reqXp:5,catchPenalty:10,specialLevelRange: { enabled: true, min: 5, max: 30 }},
+  {id:'cave',name:'Mt. Moon',icon:'🌙',desc:'Dark caves and fossils',min:30,max:80,req:80,enc:.18,tiles:['#333','#2a2a4a'],tileClass:['rock','grass'],catchRate:35,reqXp:10,catchPenalty:15, specialLevelRange: { enabled: true, min: 15, max: 30 }},
+  {id:'safari',name:'Safari Zone',icon:'🦁',desc:'Exotic wild Pokémon',min:40,max:100,req:150,enc:.20,tiles:['#c2a853','#6b4c1e'],tileClass:['grass','dirt'],catchRate:30,reqXp:15,catchPenalty:15, specialLevelRange: { enabled: true, min: 30, max: 50 }},
+  {id:'sea',name:'Cerulean Sea',icon:'🌊',desc:'Water-types galore',min:50,max:130,req:250,enc:.15,tiles:['#1a4a8a','#1e5aa0'],tileClass:['water','water2'],catchRate:35,reqXp:10,catchPenalty:10,specialLevelRange: { enabled: true, min: 40, max: 70 }},
+  {id:'victory',name:'Victory Road',icon:'⚡',desc:'Legendary Pokémon lurk here!',min:100,max:250,req:500,enc:.22,tiles:['#4a1a4a','#333'],tileClass:['rock','grass'],catchRate:20,reqXp:20,catchPenalty:20, specialLevelRange: { enabled: true, min: 50, max: 100 }},
+];
+const SHOP_ITEMS = [
+  {id:'heal',name:'Max Potion',icon:'💊',desc:'Fully heal your team',price:50,action:'heal'},
+  {id:'ball',name:'Great Ball',icon:'🔵',desc:'+20% catch rate',price:500,action:'great_ball'},
+  {id:'ultra',name:'Ultra Ball',icon:'🟡',desc:'+50% catch rate',price:1000,action:'ultra_ball'},
+  {id:'candy',name:'Rare Candy',icon:'🍬',desc:'Level up 1st team member',price:5000,action:'rare_candy'},
+  {id:'lucky',name:'Lucky Egg',icon:'🥚',desc:'2x XP for 5 battles',price:10000,action:'lucky_egg'},
+  {id:'revive',name:'Max Revive',icon:'✨',desc:'Revive all fainted',price:250,action:'revive'},
+];
+
+// ══════════════════════════════════════════════
+// OFFLINE MOVE REPOSITORY (IndexedDB)
+// ══════════════════════════════════════════════
+const DB_NAME = 'pokesim_move_db';
+const DB_VERSION = 1;
+let moveDb = null;
+
+function openMoveDB() {
+    return new Promise((resolve, reject) => {
+        if (moveDb) return resolve(moveDb);
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => {
+            moveDb = request.result;
+            resolve(moveDb);
+        };
+        request.onupgradeneeded = (event) => {
+            const db = event.target.result;
+            // Store for move details by move name
+            if (!db.objectStoreNames.contains('moves')) {
+                db.createObjectStore('moves', { keyPath: 'name' });
+            }
+            // Store for Pokémon learnsets: key = pokemonId, value = array of move names
+            if (!db.objectStoreNames.contains('learnsets')) {
+                db.createObjectStore('learnsets', { keyPath: 'id' });
+            }
+        };
+    });
+}
+
+async function cacheMove(moveName, moveData) {
+    const db = await openMoveDB();
+    const tx = db.transaction('moves', 'readwrite');
+    const store = tx.objectStore('moves');
+    store.put({ name: moveName, ...moveData });
+    return tx.complete;
+}
+
+async function getCachedMove(moveName) {
+    const db = await openMoveDB();
+    const tx = db.transaction('moves', 'readonly');
+    const store = tx.objectStore('moves');
+    return new Promise((resolve) => {
+        const req = store.get(moveName);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => resolve(null);
+    });
+}
+
+async function cacheLearnset(pokemonId, moveNames) {
+    const db = await openMoveDB();
+    const tx = db.transaction('learnsets', 'readwrite');
+    const store = tx.objectStore('learnsets');
+    store.put({ id: pokemonId, moves: moveNames });
+    return tx.complete;
+}
+
+async function getCachedLearnset(pokemonId) {
+    const db = await openMoveDB();
+    const tx = db.transaction('learnsets', 'readonly');
+    const store = tx.objectStore('learnsets');
+    return new Promise((resolve) => {
+        const req = store.get(pokemonId);
+        req.onsuccess = () => resolve(req.result ? req.result.moves : null);
+        req.onerror = () => resolve(null);
+    });
+}
+
+// ══════════════════════════════════════════════
+// GAME STATE
+// ══════════════════════════════════════════════
+let curSlot = null, gs = null;
+// Explore battle state
+let exBattle = null, exMap = null, exPos = {x:25,y:25}, exTiles = [], exLastMove = 0, exCooldown = false, exProcessing = false;
+// Byahe state
+let byBattle = null, byMap = null, byPos = {x:25,y:25}, byTiles = [], byLastMove = 0, byCooldown = false, byProcessing = false;
+let byMaps = [], byOnline = false, byFbUser = null, byTeam = [];
+// Shared
+let battleBallBonus = 1.0, luckyEggTurns = 0;
+
+
+// ══════════════════════════════════════════════
+// SAVE SYSTEM
+// ══════════════════════════════════════════════
+function getAllSaves(){ try{return JSON.parse(localStorage.getItem(SAVE_KEY))||{};}catch{return{};} }
+function writeSave(slot,data){ const s=getAllSaves(); s[slot]=data; localStorage.setItem(SAVE_KEY,JSON.stringify(s)); }
+function delSave(slot){ const s=getAllSaves(); delete s[slot]; localStorage.setItem(SAVE_KEY,JSON.stringify(s)); }
+function saveGame(){ if(!curSlot||!gs) return; gs.lastSaved=Date.now(); writeSave(curSlot,gs); showToast('💾 Saved!'); }
+function autoSave(){ if(curSlot&&gs){ gs.lastSaved=Date.now(); writeSave(curSlot,gs); } }
+
+// ══════════════════════════════════════════════
+// SPRITE URL HELPERS
+// ══════════════════════════════════════════════
+// ========== ENHANCED SPRITE URL HELPERS ==========
+function spriteUrl(id) { return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`; }
+function spriteBack(id) { return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/${id}.png`; }
+function spriteShiny(id) { return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/${id}.png`; }
+function spriteShinyBack(id) { return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/shiny/${id}.png`; }
+function spriteShowdownFront(id) { return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/${id}.gif`; }
+function spriteShowdownBack(id) { return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/back/${id}.gif`; }
+function spriteShowdownShinyFront(name) { return `https://play.pokemonshowdown.com/sprites/ani-shiny/${name.toLowerCase()}.gif`; }
+function spriteShowdownShinyBack(name) { return `https://play.pokemonshowdown.com/sprites/ani-back-shiny/${name.toLowerCase()}.gif`; }
+
+function getAllSpriteUrls(id, name = null) {
+  const urls = new Set();
+  urls.add(spriteUrl(id));
+  urls.add(spriteBack(id));
+  urls.add(spriteShiny(id));
+  urls.add(spriteShinyBack(id));
+  urls.add(spriteShowdownFront(id));
+  urls.add(spriteShowdownBack(id));
+  if (name) {
+    urls.add(spriteShowdownShinyFront(name));
+    urls.add(spriteShowdownShinyBack(name));
+  }
+  return Array.from(urls);
+}
+
+function getSpriteUrlsForLoad(id, name, shiny, back) {
+  if (shiny) {
+    if (back) {
+      return [spriteShowdownShinyBack(name), spriteShinyBack(id), spriteShiny(id), spriteUrl(id)];
+    } else {
+      return [spriteShowdownShinyFront(name), spriteShiny(id), spriteUrl(id)];
+    }
+  } else {
+    if (back) {
+      return [spriteShowdownBack(id), spriteBack(id), spriteUrl(id)];
+    } else {
+      return [spriteShowdownFront(id), spriteUrl(id)];
+    }
+  }
+}
+
+async function setImgWithFallback(imgEl, urls) {
+  if (!imgEl) return;
+  let i = 0;
+  async function tryNext() {
+    if (i >= urls.length) {
+      imgEl.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect width="100" height="100" fill="%23333"/%3E%3Ctext x="50" y="55" text-anchor="middle" fill="white" font-size="12"%3E?%3C/text%3E%3C/svg%3E';
+      return;
+    }
+    const url = urls[i];
+    if ('caches' in window) {
+      try {
+        const cache = await caches.open(CACHE_NAME);
+        const cached = await cache.match(url);
+        if (cached) {
+          imgEl.src = url;
+          imgEl.onerror = () => { i++; tryNext(); };
+          return;
+        }
+      } catch(e) {}
+    }
+    imgEl.src = url;
+    imgEl.onerror = () => { i++; tryNext(); };
+  }
+  tryNext();
+}
+
+// ══════════════════════════════════════════════
+async function cacheAllMoveData(concurrency = 10) {
+    if (!('indexedDB' in window)) {
+        showToast('IndexedDB not supported');
+        return;
+    }
+    showLoading('Caching move data (parallel)...');
+    cacheStopFlag = false;
+    document.getElementById('cache-stop-btn').style.display = 'inline-block';
+    const logEl = document.getElementById('cache-log');
+    
+    // 1. Get already cached moves to avoid refetching
+    const cachedMovesSet = new Set();
+    const db = await openMoveDB();
+    let allCachedMoves = await getAllCachedMoveNames(db); // need helper
+    if (allCachedMoves) allCachedMoves.forEach(name => cachedMovesSet.add(name));
+    
+    // 2. Prepare list of Pokémon IDs (1–1025)
+    const pokemonIds = Array.from({ length: 1025 }, (_, i) => i + 1);
+    let completed = 0;
+    const total = pokemonIds.length;
+    
+    // 3. Process in parallel with concurrency limit
+    const queue = [...pokemonIds];
+    const activePromises = new Set();
+    
+    const processPokemon = async (id) => {
+        if (cacheStopFlag) return;
+        try {
+            // Check if learnset already cached
+            const existingLearnset = await getCachedLearnset(id);
+            if (existingLearnset && existingLearnset.length) {
+                addCacheLog(logEl, `⏭ #${id} already cached`);
+                return;
+            }
+            
+            const pokeRes = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
+            if (!pokeRes.ok) throw new Error(`HTTP ${pokeRes.status}`);
+            const pokeData = await pokeRes.json();
+            const moveNames = [];
+            const moveFetchPromises = [];
+            
+            for (const m of pokeData.moves.slice(0, 50)) { // limit to 50 moves
+                const moveName = m.move.name;
+                moveNames.push(moveName);
+                if (!cachedMovesSet.has(moveName)) {
+                    // Fetch move details in parallel
+                    moveFetchPromises.push(
+                        fetch(m.move.url).then(res => res.ok ? res.json() : null)
+                            .then(moveData => {
+                                if (moveData) {
+                                    return cacheMove(moveName, {
+                                        power: moveData.power || 40,
+                                        type: moveData.type.name,
+                                        accuracy: moveData.accuracy || 100
+                                    }).then(() => {
+                                        cachedMovesSet.add(moveName);
+                                        addCacheLog(logEl, `✅ Move: ${moveName}`);
+                                    });
+                                }
+                            }).catch(() => {})
+                    );
+                }
+            }
+            // Wait for all move details to be cached
+            await Promise.all(moveFetchPromises);
+            await cacheLearnset(id, moveNames);
+            addCacheLog(logEl, `✅ #${id} (${pokeData.name}) – ${moveNames.length} moves`);
+        } catch (err) {
+            addCacheLog(logEl, `❌ #${id}: ${err.message}`);
+        }
+        completed++;
+        const pct = Math.round((completed / total) * 100);
+        document.getElementById('cache-fill').style.width = pct + '%';
+        document.getElementById('cache-status-text').textContent = `Caching moves... ${completed}/${total} (${pct}%)`;
+    };
+    
+    // Run with concurrency
+    while (queue.length > 0 && !cacheStopFlag) {
+        while (activePromises.size < concurrency && queue.length > 0 && !cacheStopFlag) {
+            const id = queue.shift();
+            const promise = processPokemon(id).finally(() => activePromises.delete(promise));
+            activePromises.add(promise);
+        }
+        if (activePromises.size > 0) {
+            await Promise.race(activePromises);
+        }
+    }
+    await Promise.all(activePromises);
+    
+    document.getElementById('cache-stop-btn').style.display = 'none';
+    hideLoading();
+    showToast('Move data caching complete!');
+}
+
+// Helper to get all cached move names
+async function getAllCachedMoveNames(db) {
+    const tx = db.transaction('moves', 'readonly');
+    const store = tx.objectStore('moves');
+    const keys = await new Promise((resolve) => {
+        const req = store.getAllKeys();
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => resolve([]);
+    });
+    return keys;
+}
+// ══════════════════════════════════════════════
+
+// ========== MOVE EDITOR (OFFLINE-FIRST) ==========
+let currentEditingPokemonId = null;
+
+async function openMoveEditor(pokemonId) {
+    const pokemon = gs.pokemon.find(p => p.id === pokemonId);
+    if (!pokemon) return;
+    currentEditingPokemonId = pokemonId;
+    
+    const modal = document.getElementById('edit-moves-modal');
+    const nameDiv = document.getElementById('move-editor-pokemon-name');
+    nameDiv.innerHTML = `${pokemon.name.toUpperCase()} (Lv.${pokemon.level})`;
+    
+    // Show current moves
+    const currentDiv = document.getElementById('current-moves-list');
+    currentDiv.innerHTML = pokemon.moves.map(m => 
+        `<span class="type-badge" style="background: ${TYPE_COLORS[m.type] || '#888'}">${m.name.toUpperCase()} (${m.power})</span>`
+    ).join('') || '<span style="color: gray;">No moves</span>';
+    
+    // Load learnable moves from offline cache (or fallback to online)
+    const learnableMoveNames = await getLearnableMovesOffline(pokemon.pokemonId);
+    
+    // Render move selector with checkboxes
+    const selector = document.getElementById('move-selector');
+    selector.innerHTML = '';
+    for (const moveName of learnableMoveNames) {
+        const moveData = await getCachedMove(moveName);
+        if (!moveData) continue; // skip if not cached (shouldn't happen if user cached first)
+        const isChecked = pokemon.moves.some(m => m.name === moveName);
+        const label = document.createElement('label');
+        label.style.display = 'block';
+        label.style.margin = '6px 0';
+        label.style.padding = '6px 8px';
+        label.style.background = isChecked ? '#eef2ff' : 'transparent';
+        label.style.borderRadius = '10px';
+        label.style.cursor = 'pointer';
+        label.innerHTML = `
+            <input type="checkbox" value="${moveName}" ${isChecked ? 'checked' : ''} style="margin-right: 10px;">
+            <strong>${moveName.toUpperCase()}</strong> (${moveData.type}) - Power: ${moveData.power} | Acc: ${moveData.accuracy}
+        `;
+        const chk = label.querySelector('input');
+        chk.addEventListener('change', () => {
+            const checked = document.querySelectorAll('#move-selector input:checked');
+            if (checked.length > 4 && chk.checked) {
+                chk.checked = false;
+                showToast('You can only have up to 4 moves!');
+            } else {
+                label.style.background = chk.checked ? '#eef2ff' : 'transparent';
+            }
+        });
+        selector.appendChild(label);
+    }
+    
+    modal.classList.remove('hidden');
+    
+    // Save button handler
+    const saveBtn = document.getElementById('save-moves-btn');
+    const cancelBtn = document.getElementById('cancel-moves-btn');
+    const newSaveBtn = saveBtn.cloneNode(true);
+    saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
+    newSaveBtn.onclick = async () => {
+        const selected = Array.from(document.querySelectorAll('#move-selector input:checked')).map(cb => cb.value);
+        if (selected.length === 0) {
+            showToast('You must select at least one move!');
+            return;
+        }
+        // Build move objects from cached data
+        const newMoves = [];
+        for (const name of selected) {
+            const moveData = await getCachedMove(name);
+            if (moveData) {
+                newMoves.push({ name, power: moveData.power, type: moveData.type, accuracy: moveData.accuracy });
+            } else {
+                // Fallback
+                newMoves.push({ name, power: 40, type: 'normal', accuracy: 100 });
+            }
+        }
+        const p = gs.pokemon.find(p => p.id === pokemonId);
+        if (p) {
+            p.moves = newMoves;
+            autoSave();
+            if (!document.getElementById('tab-team').classList.contains('hidden')) renderTeam();
+            if (!document.getElementById('tab-collection').classList.contains('hidden')) renderCollection();
+            showToast(`Moves updated for ${p.name.toUpperCase()}!`);
+        }
+        modal.classList.add('hidden');
+    };
+    
+    const newCancelBtn = cancelBtn.cloneNode(true);
+    cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+    newCancelBtn.onclick = () => {
+        modal.classList.add('hidden');
+    };
+}
+
+async function getLearnableMovesOffline(pokemonId) {
+    // First try cached learnset
+    let moveNames = await getCachedLearnset(pokemonId);
+    if (moveNames && moveNames.length) return moveNames;
+    
+    // If not cached, fetch online and cache it
+    showLoading(`Fetching moves for #${pokemonId}...`);
+    try {
+        const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${pokemonId}`);
+        const data = await res.json();
+        const moveNames = [];
+        for (const m of data.moves.slice(0, 50)) {
+            const moveName = m.move.name;
+            moveNames.push(moveName);
+            // Also cache move details if missing
+            const existing = await getCachedMove(moveName);
+            if (!existing) {
+                const moveRes = await fetch(m.move.url);
+                if (moveRes.ok) {
+                    const moveData = await moveRes.json();
+                    await cacheMove(moveName, {
+                        power: moveData.power || 40,
+                        type: moveData.type.name,
+                        accuracy: moveData.accuracy || 100
+                    });
+                }
+            }
+        }
+        await cacheLearnset(pokemonId, moveNames);
+        hideLoading();
+        return moveNames;
+    } catch (err) {
+        hideLoading();
+        console.error(err);
+        showToast('Failed to load moves offline. Please cache move data first.');
+        // Return a minimal fallback
+        return ['tackle', 'growl'];
+    }
+}
+
+
+
+//==========================
+// ========== UPDATE DETECTION ==========
+let updateToast = null;
+let newWorker = null;
+
+function showUpdateNotification() {
+  if (updateToast) return;
+  updateToast = document.createElement('div');
+  updateToast.style.cssText = `
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--primary-dark);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 40px;
+    z-index: 10000;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    font-weight: 600;
+  `;
+  updateToast.innerHTML = `
+    <span>🔄 New version available!</span>
+    <button id="reload-update-btn" class="btn btn-success" style="padding: 4px 12px; font-size: 0.8rem;">Reload Now</button>
+  `;
+  document.body.appendChild(updateToast);
+  document.getElementById('reload-update-btn').addEventListener('click', () => {
+    if (newWorker) {
+      newWorker.postMessage({ type: 'SKIP_WAITING' });
+      window.location.reload();
+    } else {
+      window.location.reload();
+    }
+  });
+}
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.ready.then(registration => {
+    registration.addEventListener('updatefound', () => {
+      newWorker = registration.installing;
+      newWorker.addEventListener('statechange', () => {
+        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          showUpdateNotification();
+        }
+      });
+    });
+  });
+
+  // Manual check for updates
+  document.getElementById('update-check-btn')?.addEventListener('click', async () => {
+    const registration = await navigator.serviceWorker.getRegistration();
+    if (!registration) {
+      showToast('No service worker registered.');
+      return;
+    }
+    await registration.update();
+    if (registration.waiting) {
+      newWorker = registration.waiting;
+      showUpdateNotification();
+    } else {
+      showToast('You are already on the latest version.');
+    }
+  });
+}
+
+
+// ══════════════════════════════════════════════
+// TITLE SCREEN
+// ══════════════════════════════════════════════
+(function initStars(){
+  const sf=document.getElementById('star-field');
+  for(let i=0;i<80;i++){
+    const s=document.createElement('div');s.className='star';
+    s.style.left=Math.random()*100+'%';s.style.top=Math.random()*100+'%';
+    s.style.animationDelay=Math.random()*3+'s';
+    s.style.width=s.style.height=(Math.random()*2+1)+'px';
+    sf.appendChild(s);
+  }
+})();
+
+// ========== DOWNLOAD ALL BASIC RESOURCES ==========
+async function downloadAllBasicResources() {
+  // Confirm with user because it may take a while
+  if (!confirm('This will download normal static sprites (front+back) for Pokémon 1–1025 and all move data.\n\nIt may take several minutes depending on your internet speed.\n\nDo you want to continue?')) {
+    return;
+  }
+
+  showLoading('Preparing to download basic resources...');
+
+  try {
+    // 1. Cache normal sprites for IDs 1–1025 (not the extra 10000–10325)
+    const normalSpriteIds = Array.from({ length: 1025 }, (_, i) => i + 1);
+    showLoading('Downloading normal sprites (1–1025)...');
+    await cacheSpritesByType(normalSpriteIds, 'normal', {});
+
+    // 2. Cache move data (already handles 1–1025)
+    showLoading('Downloading move data...');
+    await cacheAllMoveData(10); // concurrency 10
+
+    showToast('✅ All basic resources downloaded successfully!');
+  } catch (err) {
+    console.error(err);
+    showToast('❌ Download failed: ' + err.message);
+  } finally {
+    hideLoading();
+  }
+}
+
+// Attach event listener to the button
+document.getElementById('download-all-basic-btn')?.addEventListener('click', downloadAllBasicResources);
+
+function renderTitle(){
+  const saves=getAllSaves();
+  const wrap=document.getElementById('save-slots-wrap');
+  wrap.innerHTML='';
+  for(let sl=1;sl<=MAX_SLOTS;sl++){
+    const sv=saves[sl];
+    const el=document.createElement('div');
+    if(sv){
+      const totalLvl=sv.pokemon?sv.pokemon.reduce((s,p)=>s+p.level,0):0;
+      const caught=sv.pokedex?Object.values(sv.pokedex).filter(e=>e.caught).length:0;
+      const when=sv.lastSaved?new Date(sv.lastSaved).toLocaleDateString():'—';
+      el.className='save-slot';
+      el.innerHTML=`
+        <div class="slot-icon"><img src="${spriteUrl(sv.starterPokemonId||1)}" onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/1.png'"></div>
+        <div class="slot-info">
+          <div class="slot-name">🧑 ${sv.trainerName}</div>
+          <div class="slot-details">💰${sv.coins||0} • 📖${caught} caught • ⚡${totalLvl}</div>
+          <div class="slot-details">Saved ${when}</div>
+          <span class="slot-badge">Slot ${sl}</span>
+        </div>
+        <button class="slot-delete" data-slot="${sl}" title="Delete">✕</button>`;
+      el.addEventListener('click',(e)=>{if(e.target.classList.contains('slot-delete'))return;loadGame(sl);});
+      el.querySelector('.slot-delete').addEventListener('click',(e)=>{e.stopPropagation();openDeleteConfirm(sl);});
+    } else {
+      el.className='save-slot empty new-game-slot';
+      el.innerHTML=`<div class="slot-icon">➕</div><div class="slot-info"><div class="slot-name" style="color:var(--primary);">New Adventure</div><div class="slot-details">Slot ${sl} — Empty</div></div>`;
+      el.addEventListener('click',()=>openNewGame(sl));
+    }
+    wrap.appendChild(el);
+  }
+}
+
+// ── Delete confirm ──
+let delSlot=null;
+function openDeleteConfirm(sl){ delSlot=sl; document.getElementById('delete-confirm-modal').classList.remove('hidden'); }
+document.getElementById('confirm-delete-btn').addEventListener('click',()=>{ if(delSlot){delSave(delSlot);delSlot=null;} document.getElementById('delete-confirm-modal').classList.add('hidden'); renderTitle(); });
+document.getElementById('cancel-delete-btn').addEventListener('click',()=>{ document.getElementById('delete-confirm-modal').classList.add('hidden'); });
+
+// ── New Game ──
+let selectedStarter=null;
+function openNewGame(sl){
+  curSlot=sl; selectedStarter=null;
+  document.getElementById('trainer-name-input').value='';
+  document.getElementById('confirm-new-game-btn').disabled=true;
+  renderStarterGrid();
+  document.getElementById('new-game-modal').classList.remove('hidden');
+}
+function renderStarterGrid(){
+  const g=document.getElementById('starter-grid'); g.innerHTML='';
+  STARTERS.forEach(s=>{
+    const c=document.createElement('div'); c.className='starter-card';
+    c.innerHTML=`<img src="${spriteUrl(s.id)}" onerror="this.src='${spriteUrl(s.id)}'"><div class="s-name">${s.name}</div><span class="s-type" style="background:${TYPE_COLORS[s.type]||'#888'}">${s.type}</span>`;
+    c.addEventListener('click',()=>{ g.querySelectorAll('.starter-card').forEach(x=>x.classList.remove('selected')); c.classList.add('selected'); selectedStarter=s; checkNewGameReady(); });
+    g.appendChild(c);
+  });
+}
+document.getElementById('trainer-name-input').addEventListener('input',checkNewGameReady);
+function checkNewGameReady(){ const n=document.getElementById('trainer-name-input').value.trim(); document.getElementById('confirm-new-game-btn').disabled=!(n.length>=2&&selectedStarter); }
+document.getElementById('cancel-new-game-btn').addEventListener('click',()=>{ document.getElementById('new-game-modal').classList.add('hidden'); curSlot=null; });
+document.getElementById('confirm-new-game-btn').addEventListener('click', async()=>{
+  const name=document.getElementById('trainer-name-input').value.trim();
+  if(!name||!selectedStarter) return;
+  showLoading('Creating adventure...');
+  try{
+    const pd=await fetchPokemon(selectedStarter.id);
+    const moves=await getMoves(pd.moves.slice(0,4).map(m=>m.move.url));
+    const starter=makePokemon(selectedStarter.id,selectedStarter.name,5,pd.types.map(t=>t.type.name),moves,true);
+    starter.isStarter=true;
+    gs={ trainerName:name, starterPokemonId:selectedStarter.id, coins:1000,
+      pokemon:[starter], pokedex:{[selectedStarter.id]:{seen:true,caught:true,name:selectedStarter.name}},
+      totalEncounters:0, lastSaved:Date.now(), createdAt:Date.now() };
+    writeSave(curSlot,gs);
+    document.getElementById('new-game-modal').classList.add('hidden');
+    hideLoading(); startGame();
+  } catch(e){ hideLoading(); showToast('❌ Error: '+e.message); }
+});
+
+function loadGame(sl){ const sv=getAllSaves()[sl]; if(!sv) return; curSlot=sl; gs=sv; startGame(); }
+function startGame(){
+  document.getElementById('title-screen').classList.add('hidden');
+  document.getElementById('game-screen').style.display='block';
+  updateNav(); switchTab('explore'); renderExploreMapSel(); renderShop(); updateCacheStats();
+}
+function updateNav(){
+  if(!gs) return;
+  document.getElementById('trainer-display').textContent='🧑 '+gs.trainerName;
+  document.getElementById('coin-display').textContent='💰 '+(gs.coins||0);
+  const lv=gs.pokemon?gs.pokemon.reduce((s,p)=>s+p.level,0):0;
+  document.getElementById('level-display').textContent='⚡ '+lv;
+  const ct=gs.pokedex?Object.values(gs.pokedex).filter(e=>e.caught).length:0;
+  document.getElementById('dex-display').textContent='📖 '+ct;
+  document.getElementById('shop-coins').textContent='💰 '+(gs.coins||0);
+}
+document.getElementById('save-btn').addEventListener('click',saveGame);
+document.getElementById('back-to-title-btn').addEventListener('click',()=>{ autoSave(); location.reload(); });
+
+// ══════════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════════
+document.querySelectorAll('.tab-btn').forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.tab)));
+function switchTab(tab){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
+  ['explore','byahe','team','collection','pokedex','shop','cache'].forEach(t=>document.getElementById('tab-'+t).classList.toggle('hidden',t!==tab));
+  if(tab==='team') renderTeam();
+  if(tab==='collection') renderCollection();
+  if(tab==='pokedex') renderPokedex();
+  if(tab==='byahe' && byOnline) loadByaheMaps();
+  if(tab==='cache') updateCacheStats();
+}
+
+// ══════════════════════════════════════════════
+// POKÉMON HELPERS
+// ══════════════════════════════════════════════
+async function fetchPokemon(id){ const r=await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`); if(!r.ok) throw new Error('PokeAPI fail'); return r.json(); }
+async function fetchSpecies(id){ try{ const r=await fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}`); return r.ok?r.json():{is_legendary:false,is_mythical:false}; }catch{return{is_legendary:false,is_mythical:false};} }
+async function getMoves(urls){
+  const out=[];
+  for(const url of urls.slice(0,4)){
+    try{ const r=await fetch(url); const d=await r.json(); if(d.power&&d.power>0) out.push({name:d.name,power:d.power,type:d.type.name,accuracy:d.accuracy||100}); }
+    catch{}
+  }
+  if(!out.length) out.push({name:'tackle',power:40,type:'normal',accuracy:100});
+  return out;
+}
+function makePokemon(pid,name,level,types,moves,inTeam=false){
+  const maxHp=level*20+50;
+  return{ id:'p'+Date.now()+Math.random().toString(36).slice(2,5), pokemonId:pid, name, level, types, moves, exp:0, maxHp, currentHp:maxHp, inTeam, isShiny:false, caught:Date.now() };
+}
+function expNeeded(lvl){ return (lvl+1)*(lvl+1)*5-lvl*lvl*5; }
+function getTypeEff(atkType,defTypes){ let m=1; const t=TYPE_EFF[atkType]||{}; defTypes.forEach(dt=>m*=(t[dt]||1)); return m; }
+function typeBadgeHtml(types){ return types.map(t=>`<span class="type-badge" style="background:${TYPE_COLORS[t]||'#888'}">${t.toUpperCase()}</span>`).join(''); }
+
+function calcDmg(atk,def,move){
+  if(!move||!move.power) return {dmg:0,eff:1,miss:true};
+  const acc=move.accuracy||100;
+  if(Math.random()*100>acc) return {dmg:0,eff:1,miss:true};
+  const eff=getTypeEff(move.type,def.types);
+  let dmg=Math.floor((move.power/5)*(atk.level/2)*eff);
+  if(dmg<1&&eff>0) dmg=1;
+  if(atk.bonusStats?.atk) dmg=Math.floor(dmg*1.25);
+  if(def.bonusStats?.def) dmg=Math.floor(dmg*.8);
+  if(Math.random()<.1) dmg=Math.floor(dmg*1.5);
+  return {dmg:Math.max(1,dmg),eff,miss:false};
+}
+function genWildBonusStats(){
+  const r=Math.random()*100;
+  if(r<3) return {atk:true,def:true,spd:true};
+  if(r<13){ const keys=['atk','def','spd']; keys.sort(()=>Math.random()-.5); return {[keys[0]]:true,[keys[1]]:true,spd:false}; }
+  if(r<38){ const k=['atk','def','spd'][Math.floor(Math.random()*3)]; return {atk:false,def:false,spd:false,[k]:true}; }
+  return {atk:false,def:false,spd:false};
+}
+function bonusIcons(b){ return (b?.atk?'⚔️':'')+(b?.def?'🛡️':'')+(b?.spd?'🏃':''); }
+function PARADOX_IDS(){ return new Set([984,985,986,987,988,989,990,991,992,993,994,995,1005,1006,1009,1010,1020,1021,1022,1023]); }
+
+// ══════════════════════════════════════════════
+// MAP RENDERING SHARED
+// ══════════════════════════════════════════════
+function generateMapTiles(gridEl, tileColors, tileClasses){
+  gridEl.innerHTML='';
+  const tiles=[];
+  for(let y=0;y<50;y++){
+    tiles.push([]);
+    for(let x=0;x<50;x++){
+      const n=Math.sin(x*.3+y*.7)*.5+Math.cos(x*.7-y*.3)*.5;
+      const idx=Math.min(Math.floor(((n+1)/2)*tileClasses.length),tileClasses.length-1);
+      tiles[y].push(tileClasses[idx]);
+      const d=document.createElement('div');
+      d.className='tile';
+      d.style.backgroundColor=tileColors[idx]||'#888';
+      gridEl.appendChild(d);
+    }
+  }
+  return tiles;
+}
+function renderMapPos(gridEl, playerEl, pos, tileSize=40, vpW=600, vpH=380){
+  gridEl.style.transform=`translate(${vpW/2-pos.x*tileSize}px,${vpH/2-pos.y*tileSize}px)`;
+  const isMobile=window.innerWidth<640;
+  if(isMobile){ gridEl.style.transform=`translate(${180-pos.x*32}px,${115-pos.y*32}px)`; }
+}
+
+// ══════════════════════════════════════════════
+// EXPLORE MAP
+// ══════════════════════════════════════════════
+function renderExploreMapSel(){
+  const lv=gs.pokemon?gs.pokemon.reduce((s,p)=>s+p.level,0):0;
+  const g=document.getElementById('explore-map-cards'); g.innerHTML='';
+  LOCAL_MAPS.forEach(map=>{
+    const locked=lv<map.req;
+    const c=document.createElement('div'); c.className='map-card'+(locked?' locked':'');
+    c.innerHTML=`<div class="map-icon">${map.icon}</div><div class="map-name">${map.name}</div><div class="map-desc">${map.desc}</div>${locked?`<div class="map-req">🔒 Total Lv.${map.req} needed</div>`:'<span class="map-badge" style="background:rgba(6,214,160,.15);color:var(--green);">✓ Open</span>'}`;
+    if(!locked) c.addEventListener('click',()=>enterExploreMap(map));
+    g.appendChild(c);
+  });
+}
+function enterExploreMap(map){
+  exMap=map; exPos={x:25,y:25}; exBattle=null; exCooldown=false;
+  document.getElementById('explore-map-name').textContent=map.icon+' '+map.name;
+  document.getElementById('explore-map-sel').classList.add('hidden');
+  document.getElementById('explore-active').classList.remove('hidden');
+  document.getElementById('explore-battle').classList.add('hidden');
+  const grid=document.getElementById('explore-grid');
+  const tc=map.tiles||['#6b4c1e','#2d6a2d'];
+  const tclass=map.tileClass||['dirt','grass'];
+  exTiles=generateMapTiles(grid,tc,tclass);
+  updateExplorePlayer();
+}
+document.getElementById('explore-back-btn').addEventListener('click',()=>{
+  if(exBattle){ showToast('Finish battle first!'); return; }
+  exMap=null;
+  document.getElementById('explore-active').classList.add('hidden');
+  document.getElementById('explore-map-sel').classList.remove('hidden');
+  renderExploreMapSel();
+});
+function updateExplorePlayer(){
+  const p=document.getElementById('explore-player');
+  const team=gs.pokemon.filter(q=>q.inTeam&&q.currentHp>0);
+  if(team.length) p.style.backgroundImage=`url(${spriteUrl(team[0].pokemonId)})`;
+  else p.style.backgroundImage=`url(${TRAINER_GIF})`;
+  renderMapPos(document.getElementById('explore-grid'),p,exPos);
+}
+function exMove(dx,dy){
+  if(exBattle||!exMap) return;
+  const now=Date.now(); if(now-exLastMove<MOVE_DELAY) return; exLastMove=now;
+  const nx=exPos.x+dx,ny=exPos.y+dy;
+  if(nx<0||nx>=50||ny<0||ny>=50) return;
+  exPos.x=nx; exPos.y=ny;
+  const p=document.getElementById('explore-player');
+  if(dx!==0) p.style.transform=dx<0?'scaleX(-1)':'scaleX(1)';
+  updateExplorePlayer();
+  const tile=exTiles[ny]&&exTiles[ny][nx];
+  if(!exCooldown&&tile&&!tile.startsWith('dirt')&&!tile.startsWith('rock')&&Math.random()<(exMap.enc||.14)){
+    exCooldown=true; setTimeout(()=>exCooldown=false,3000);
+    startExBattle();
+  }
+}
+document.getElementById('ex-up').addEventListener('click',()=>exMove(0,-1));
+document.getElementById('ex-down').addEventListener('click',()=>exMove(0,1));
+document.getElementById('ex-left').addEventListener('click',()=>exMove(-1,0));
+document.getElementById('ex-right').addEventListener('click',()=>exMove(1,0));
+window.addEventListener('keydown',e=>{
+  const activeTab=document.querySelector('.tab-btn.active')?.dataset?.tab;
+  if(activeTab==='explore'){ if(e.key==='ArrowUp'||e.key==='w') exMove(0,-1); if(e.key==='ArrowDown'||e.key==='s') exMove(0,1); if(e.key==='ArrowLeft'||e.key==='a') exMove(-1,0); if(e.key==='ArrowRight'||e.key==='d') exMove(1,0); }
+  if(activeTab==='byahe'){ if(e.key==='ArrowUp'||e.key==='w') byMove(0,-1); if(e.key==='ArrowDown'||e.key==='s') byMove(0,1); if(e.key==='ArrowLeft'||e.key==='a') byMove(-1,0); if(e.key==='ArrowRight'||e.key==='d') byMove(1,0); }
+});
+
+// ══════════════════════════════════════════════
+// SHARED BATTLE ENGINE
+// ══════════════════════════════════════════════
+async function startBattleForContext(ctx){ // ctx: 'ex' or 'by'
+  const map=ctx==='ex'?exMap:byMap;
+  if(!map) return;
+  const teamSrc = ctx==='by' && byTeam.length ? byTeam : gs.pokemon.filter(p=>p.inTeam&&p.currentHp>0);
+  if(!teamSrc.length){ showToast('⚠️ No healthy Pokémon!'); return; }
+  showLoading('Wild Pokémon approaching...');
+  try{
+    // Pick wild id
+    const min=map.pokemonMin||map.min||1, max=map.pokemonMax||map.max||151;
+    const specialList=map.specialPokemonList||[];
+    let wildId;
+    if(specialList.length&&Math.random()<.5) wildId=specialList[Math.floor(Math.random()*specialList.length)];
+    else{
+      let valid=false,att=0;
+      while(!valid&&att<15){ wildId=Math.floor(Math.random()*(max-min+1))+min; if(!(wildId>1025&&wildId<10001)) valid=true; att++; }
+      if(!valid) wildId=min;
+    }
+    const [pd,sp]=await Promise.all([fetchPokemon(wildId),fetchSpecies(wildId)]);
+    const wildTypes=pd.types.map(t=>t.type.name);
+    const wildMoves=await getMoves(pd.moves.slice(0,4).map(m=>m.move.url));
+    const isShiny=Math.random()<1/SHINY_RATE;
+    const isLeg=sp.is_legendary||false;
+    const isMyth=sp.is_mythical||false;
+    const isParadox=PARADOX_IDS().has(wildId);
+    const isSpecial=isLeg||isMyth||isParadox;
+    let wildLvl;
+    if(map.specialLevelRange?.enabled){ wildLvl=Math.floor(Math.random()*(map.specialLevelRange.max-map.specialLevelRange.min+1))+map.specialLevelRange.min; }
+    else{ const avg=Math.floor(teamSrc.reduce((s,p)=>s+p.level,0)/teamSrc.length); wildLvl=Math.max(1,avg+Math.floor(Math.random()*21)-10); }
+    const wildHp=wildLvl*25;
+    const wildBonus=genWildBonusStats();
+    // Update dex seen
+    if(!gs.pokedex[wildId]) gs.pokedex[wildId]={seen:false,caught:false,name:pd.name};
+    gs.pokedex[wildId].seen=true;
+    gs.totalEncounters=(gs.totalEncounters||0)+1;
+    hideLoading();
+    // Weaknesses
+    const allTypes=['normal','fire','water','electric','grass','ice','fighting','poison','ground','flying','psychic','bug','rock','ghost','dragon','dark','steel','fairy'];
+    const weaknesses=allTypes.filter(t=>getTypeEff(t,wildTypes)>=2);
+    // Show encounter preview
+    await showEncounterPreview(pd,wildId,wildLvl,wildTypes,isShiny,isLeg,isMyth,isParadox,weaknesses,ctx);
+    // Pre-battle select
+    const sel=await showPreBattleSelect(teamSrc);
+    if(!sel){ return; }
+    const wildObj={ pokemonId:wildId,name:pd.name,level:wildLvl,maxHp:wildHp,currentHp:wildHp,types:wildTypes,moves:wildMoves,isShiny,isSpecial,isLeg,isMyth,bonusStats:wildBonus };
+    const playerObj={...sel,currentHp:sel.maxHp};
+    const battle={ playerTeam:[...teamSrc],player:playerObj,wild:wildObj,map,ctx,xpGained:0,coinsGained:0 };
+    if(ctx==='ex'){ exBattle=battle; renderBattleUI('ex'); document.getElementById('explore-battle').classList.remove('hidden'); document.getElementById('explore-battle').scrollIntoView({behavior:'smooth',block:'nearest'}); addLog('ex',`A wild ${pd.name.toUpperCase()} (Lv.${wildLvl}) appeared!`); updateCatchInfo('ex'); }
+    else{ byBattle=battle; renderBattleUI('by'); document.getElementById('byahe-battle').classList.remove('hidden'); document.getElementById('byahe-battle').scrollIntoView({behavior:'smooth',block:'nearest'}); addLog('by',`A wild ${pd.name.toUpperCase()} (Lv.${wildLvl}) appeared!`); updateCatchInfo('by'); }
+  } catch(e){ hideLoading(); showToast('❌ Encounter failed'); console.error(e); }
+}
+function startExBattle(){ startBattleForContext('ex'); }
+function startByBattle(){ startBattleForContext('by'); }
+
+function showEncounterPreview(pd,wildId,wildLvl,wildTypes,isShiny,isLeg,isMyth,isParadox,weaknesses,ctx){
+  return new Promise(resolve=>{
+    const card=document.getElementById('encounter-card');
+    const encUrls = getSpriteUrlsForLoad(wildId, pd.name, isShiny, false);
+    setImgWithFallback(document.getElementById('enc-sprite'), encUrls);
+    document.getElementById('enc-name').textContent=(isShiny?'✨ SHINY ':'')+pd.name.toUpperCase();
+    let badges=wildTypes.map(t=>`<span class="type-badge" style="background:${TYPE_COLORS[t]||'#888'}">${t.toUpperCase()}</span>`).join('');
+    if(isLeg) badges+=`<span class="special-badge-pill" style="background:gold;color:#333;">⭐ LEGENDARY</span>`;
+    if(isMyth) badges+=`<span class="special-badge-pill" style="background:#ff66cc;color:white;">✨ MYTHICAL</span>`;
+    if(isParadox) badges+=`<span class="special-badge-pill" style="background:#7038f8;color:white;">🌀 PARADOX</span>`;
+    document.getElementById('enc-badges').innerHTML=badges;
+    document.getElementById('enc-extra').textContent=`Level ${wildLvl} • #${wildId} ${ctx==='by'?'(Byahe)':''}`;
+    document.getElementById('enc-weaknesses').innerHTML=weaknesses.length?'<strong>Weak to:</strong> '+weaknesses.map(t=>`<span class="type-badge" style="background:${TYPE_COLORS[t]||'#888'}">${t.toUpperCase()}</span>`).join(' '):'';
+    if(isLeg||isMyth) card.classList.add('special'); else card.classList.remove('special');
+    document.getElementById('encounter-preview').classList.remove('hidden');
+    let t=4;
+    document.getElementById('enc-timer').textContent=`Starting in ${t}...`;
+    const iv=setInterval(()=>{ t--; document.getElementById('enc-timer').textContent=t>0?`Starting in ${t}...`:'GO!'; if(t<=0){clearInterval(iv);document.getElementById('encounter-preview').classList.add('hidden');resolve();}},1000);
+  });
+}
+function showPreBattleSelect(team){
+  return new Promise(resolve=>{
+    if(team.length===1){resolve(team[0]);return;}
+    const list=document.getElementById('pre-battle-list'); list.innerHTML='';
+    team.forEach(p=>{
+      const div=document.createElement('div'); div.className='mon-item'; div.style.cursor='pointer';
+      div.innerHTML=`<img src="${spriteUrl(p.pokemonId)}" style="image-rendering:pixelated;"><div class="mon-info"><div class="name">${p.name.toUpperCase()}${p.isShiny?' ✨':''}</div><div class="stats">Lv.${p.level} | HP: ${p.currentHp}/${p.maxHp}</div></div>`;
+      div.addEventListener('click',()=>{document.getElementById('pre-battle-modal').classList.add('hidden');resolve(p);});
+      list.appendChild(div);
+    });
+    document.getElementById('cancel-pre-battle').onclick=()=>{document.getElementById('pre-battle-modal').classList.add('hidden');resolve(null);};
+    document.getElementById('pre-battle-modal').classList.remove('hidden');
+  });
+}
+
+function getBattle(ctx){ return ctx==='ex'?exBattle:byBattle; }
+function setBattle(ctx,b){ if(ctx==='ex') exBattle=b; else byBattle=b; }
+
+function renderBattleUI(ctx){
+  const b=getBattle(ctx); if(!b) return;
+  const pfx=ctx==='ex'?'ex':'by';
+  const enemyUrls = getSpriteUrlsForLoad(b.wild.pokemonId, b.wild.name, b.wild.isShiny, false);
+    setImgWithFallback(document.getElementById(`${pfx}-e-spr`), enemyUrls);
+    const playerUrls = getSpriteUrlsForLoad(b.player.pokemonId, b.player.name, b.player.isShiny, true);
+    setImgWithFallback(document.getElementById(`${pfx}-p-spr`), playerUrls);
+  let eName=b.wild.name.toUpperCase();
+  if(b.wild.isShiny) eName='✨SHINY '+eName;
+  if(b.wild.isSpecial) eName='⭐'+eName;
+  document.getElementById(`${pfx}-e-name`).innerHTML=eName+' '+bonusIcons(b.wild.bonusStats);
+  document.getElementById(`${pfx}-e-lvl`).textContent='Lv.'+b.wild.level;
+  document.getElementById(`${pfx}-e-types`).innerHTML=typeBadgeHtml(b.wild.types);
+  const ePct=Math.round(b.wild.currentHp/b.wild.maxHp*100);
+  const epEl=document.getElementById(`${pfx}-e-hp`); epEl.style.width=ePct+'%'; epEl.className='hp-fill'+(ePct<25?' low':ePct<50?' mid':'');
+  document.getElementById(`${pfx}-e-hptxt`).textContent=`${b.wild.currentHp}/${b.wild.maxHp} HP`;
+  document.getElementById(`${pfx}-p-name`).innerHTML=b.player.name.toUpperCase()+(b.player.isShiny?' ✨':'')+' '+bonusIcons(b.player.bonusStats);
+  document.getElementById(`${pfx}-p-lvl`).textContent='Lv.'+b.player.level;
+  document.getElementById(`${pfx}-p-types`).innerHTML=typeBadgeHtml(b.player.types);
+  const ppEl=document.getElementById(`${pfx}-p-hp`); const pPct=Math.round(b.player.currentHp/b.player.maxHp*100);
+  ppEl.style.width=pPct+'%'; ppEl.className='hp-fill'+(pPct<25?' low':pPct<50?' mid':'');
+  document.getElementById(`${pfx}-p-hptxt`).textContent=`${b.player.currentHp}/${b.player.maxHp} HP`;
+  const xpPct=Math.min(100,Math.floor((b.player.exp||0)/expNeeded(b.player.level)*100));
+  document.getElementById(`${pfx}-p-xp`).style.width=xpPct+'%';
+  // Moves
+  const typeToIconId={normal:1,fighting:2,flying:3,poison:4,ground:5,rock:6,bug:7,ghost:8,steel:9,fire:10,water:11,grass:12,electric:13,psychic:14,ice:15,dragon:16,dark:17,fairy:18};
+  const md=document.getElementById(`${pfx}-moves`); md.innerHTML='';
+  (b.player.moves||[]).forEach(m=>{
+    const btn=document.createElement('button'); btn.className='move-btn'; btn.style.background=TYPE_COLORS[m.type]||'#888';
+    const tid=typeToIconId[m.type];
+    const iconUrl=tid?`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/types/generation-viii/sword-shield/small/${tid}.png`:null;
+    btn.innerHTML=`${iconUrl?`<img class="move-icon" src="${iconUrl}" onerror="this.style.display='none'">`:''}<span class="move-name">${m.name.toUpperCase()}</span><span class="move-power">${m.power}</span>`;
+    btn.addEventListener('click',()=>runTurn(ctx,m));
+    md.appendChild(btn);
+  });
+}
+function addLog(ctx,msg){
+  const el=document.getElementById(ctx==='ex'?'ex-log':'by-log');
+  const d=document.createElement('div'); d.textContent='> '+msg; el.appendChild(d); el.scrollTop=el.scrollHeight;
+}
+function updateCatchInfo(ctx){
+  const b=getBattle(ctx); const map=b?.map; if(!b||!map) return;
+  const hpPct=b.wild.currentHp/b.wild.maxHp;
+  const mapRate=(map.catchRate||45)/100;
+  let chance=Math.min(mapRate,(1-hpPct)*.8+.05)*battleBallBonus;
+  if(b.wild.isSpecial) chance*=.3;
+  document.getElementById(ctx==='ex'?'ex-catch-info':'by-catch-info').textContent=`Catch: ~${Math.round(chance*100)}%${battleBallBonus>1?' (Ball bonus!)':''}`;
+}
+function toggleBattleBtns(ctx,dis){
+  const pfx=ctx==='ex'?'ex':'by';
+  [`${pfx}-catch`,`${pfx}-switch`,`${pfx}-run`].forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=dis;});
+  document.querySelectorAll(`#${ctx==='ex'?'ex':'by'}-moves .move-btn`).forEach(b=>b.disabled=dis);
+}
+async function runTurn(ctx,move){
+  const b=getBattle(ctx); if(!b) return;
+  if(ctx==='ex'&&exProcessing) return; if(ctx==='by'&&byProcessing) return;
+  if(ctx==='ex') exProcessing=true; else byProcessing=true;
+  toggleBattleBtns(ctx,true);
+  await new Promise(r=>setTimeout(r,300));
+  // Player attacks
+  const {dmg:pdmg,eff,miss:pmiss}=calcDmg(b.player,b.wild,move);
+  if(pmiss) addLog(ctx,`${b.player.name.toUpperCase()} missed!`);
+  else{
+    b.wild.currentHp=Math.max(0,b.wild.currentHp-pdmg);
+    let et=eff>=2?' Super effective!':eff<1&&eff>0?' Not very effective...':eff===0?' No effect!':'';
+    addLog(ctx,`${b.player.name.toUpperCase()} used ${move.name.toUpperCase()}! ${pdmg} dmg.${et}`);
+  }
+  renderBattleUI(ctx); updateCatchInfo(ctx);
+  if(b.wild.currentHp<=0){ addLog(ctx,`Wild ${b.wild.name.toUpperCase()} fainted!`); await resolveBattle(ctx,true); return; }
+  await new Promise(r=>setTimeout(r,500));
+  // Wild attacks
+  const wm=b.wild.moves[Math.floor(Math.random()*b.wild.moves.length)]||{name:'tackle',power:40,type:'normal',accuracy:100};
+  const {dmg:wdmg,miss:wmiss}=calcDmg(b.wild,b.player,wm);
+  if(wmiss) addLog(ctx,`Wild ${b.wild.name.toUpperCase()} missed!`);
+  else{ b.player.currentHp=Math.max(0,b.player.currentHp-wdmg); addLog(ctx,`Wild ${b.wild.name.toUpperCase()} used ${wm.name.toUpperCase()}! ${wdmg} dmg.`); }
+  renderBattleUI(ctx);
+  if(b.player.currentHp<=0){
+    addLog(ctx,`${b.player.name.toUpperCase()} fainted!`);
+    const alive=b.playerTeam.filter(p=>p.id!==b.player.id&&p.currentHp>0);
+    if(!alive.length){ await resolveBattle(ctx,false); return; }
+    b.player={...alive[0],currentHp:alive[0].currentHp};
+    addLog(ctx,`Go! ${b.player.name.toUpperCase()}!`); renderBattleUI(ctx);
+  }
+  if(ctx==='ex') exProcessing=false; else byProcessing=false;
+  toggleBattleBtns(ctx,false);
+}
+async function resolveBattle(ctx,win){
+  if(ctx==='ex') exProcessing=true; else byProcessing=true;
+  toggleBattleBtns(ctx,true);
+  const b=getBattle(ctx);
+  let xp=0,coins=0;
+  if(win&&b){
+    xp=Math.floor(b.wild.level*15*(b.wild.isSpecial?2.5:1)*(luckyEggTurns>0?2:1));
+    coins=Math.floor(b.wild.level*5+(b.wild.isSpecial?50:0));
+    if(luckyEggTurns>0) luckyEggTurns--;
+    // Give XP to active pokemon in gs
+    const pIdx=gs.pokemon.findIndex(p=>p.id===b.player.id);
+    if(pIdx>=0){
+      const p=gs.pokemon[pIdx];
+      p.exp=(p.exp||0)+xp;
+      while(p.exp>=expNeeded(p.level)){ p.exp-=expNeeded(p.level); p.level++; p.maxHp=p.level*20+50; p.currentHp=p.maxHp; addLog(ctx,`${p.name.toUpperCase()} grew to Lv.${p.level}!`); }
+    }
+    gs.coins=(gs.coins||0)+coins;
+    // Sync HP
+    gs.pokemon.forEach(p=>{ const bp=b.playerTeam.find(q=>q.id===p.id); if(bp){ if(p.id===b.player.id) p.currentHp=b.player.currentHp; else p.currentHp=bp.currentHp; } });
+    // If byahe and online, push XP/level to firebase
+    if(ctx==='by'&&byOnline&&byFbUser){
+      try{
+        const uid=byFbUser.uid;
+        const monRef=doc(fbDb,'users',uid,'pokemon',b.player.id);
+        const pGS=gs.pokemon.find(p=>p.id===b.player.id);
+        if(pGS) await updateDoc(monRef,{exp:pGS.exp,level:pGS.level}).catch(()=>{});
+        await updateDoc(doc(fbDb,'users',uid),{coins:increment(coins),totalLevels:increment(0)}).catch(()=>{});
+      }catch{}
+    }
+  }
+  setBattle(ctx,null);
+  await new Promise(r=>setTimeout(r,400));
+  document.getElementById(ctx==='ex'?'explore-battle':'byahe-battle').classList.add('hidden');
+  autoSave(); updateNav();
+  showBattleSummary(win,xp,coins);
+  if(ctx==='ex'){ exProcessing=false; } else{ byProcessing=false; if(byTeam.length) await syncByahTeam(); }
+  battleBallBonus=1.0;
+}
+
+// Catch
+document.getElementById('ex-catch').addEventListener('click',()=>attemptCatch('ex'));
+document.getElementById('by-catch').addEventListener('click',()=>attemptCatch('by'));
+async function attemptCatch(ctx){
+  const b=getBattle(ctx); if(!b) return;
+  if(ctx==='ex'&&exProcessing) return; if(ctx==='by'&&byProcessing) return;
+  if(ctx==='ex') exProcessing=true; else byProcessing=true;
+  toggleBattleBtns(ctx,true);
+  addLog(ctx,'Throwing Poké Ball...');
+  await new Promise(r=>setTimeout(r,700));
+  const hpPct=b.wild.currentHp/b.wild.maxHp;
+  const mapRate=((b.map.catchRate||45)/100);
+  let chance=Math.min(mapRate,(1-hpPct)*.8+.05)*battleBallBonus;
+  if(b.wild.isSpecial) chance*=.3;
+  if(Math.random()<chance){
+    addLog(ctx,`You caught ${b.wild.name.toUpperCase()}!`);
+    const teamCnt=gs.pokemon.filter(p=>p.inTeam).length;
+    const caught=makePokemon(b.wild.pokemonId,b.wild.name,b.wild.level,b.wild.types,b.wild.moves,teamCnt<TEAM_MAX);
+    caught.isShiny=b.wild.isShiny;
+    gs.pokemon.push(caught);
+    if(!gs.pokedex[b.wild.pokemonId]) gs.pokedex[b.wild.pokemonId]={seen:true,caught:false,name:b.wild.name};
+    gs.pokedex[b.wild.pokemonId].caught=true;
+    const reward=Math.floor(b.wild.level*5+(b.wild.isSpecial?100:0));
+    gs.coins=(gs.coins||0)+reward;
+    showToast(`🎉 Caught ${b.wild.name.toUpperCase()}! +${reward}💰`);
+    // If byahe online, sync caught pokemon to Firebase
+    if(ctx==='by'&&byOnline&&byFbUser){
+      try{
+        const uid=byFbUser.uid;
+        await addDoc(collection(fbDb,'users',uid,'pokemon'),{pokemonId:b.wild.pokemonId,name:b.wild.name,level:b.wild.level,exp:0,moves:b.wild.moves,types:b.wild.types,inTeam:teamCnt<TEAM_MAX,bonusStats:b.wild.bonusStats,isShiny:b.wild.isShiny,capturedAt:new Date()}).catch(()=>{});
+        await updateDoc(doc(fbDb,'users',uid),{coins:increment(reward)}).catch(()=>{});
+      }catch(e){console.warn('Sync catch error',e);}
+    }
+    await resolveBattle(ctx,false);
+  } else {
+    addLog(ctx,`${b.wild.name.toUpperCase()} broke free!`);
+    const wm=b.wild.moves[Math.floor(Math.random()*b.wild.moves.length)]||{name:'tackle',power:40,type:'normal',accuracy:100};
+    const {dmg:wd}=calcDmg(b.wild,b.player,wm);
+    b.player.currentHp=Math.max(0,b.player.currentHp-wd);
+    addLog(ctx,`Wild ${b.wild.name.toUpperCase()} used ${wm.name.toUpperCase()}! ${wd} dmg.`);
+    renderBattleUI(ctx); updateCatchInfo(ctx);
+    if(b.player.currentHp<=0){ addLog(ctx,'Your Pokémon fainted!'); await resolveBattle(ctx,false); return; }
+    if(ctx==='ex') exProcessing=false; else byProcessing=false;
+    toggleBattleBtns(ctx,false);
+  }
+}
+// Switch
+document.getElementById('ex-switch').addEventListener('click',()=>attemptSwitch('ex'));
+document.getElementById('by-switch').addEventListener('click',()=>attemptSwitch('by'));
+async function attemptSwitch(ctx){
+  const b=getBattle(ctx); if(!b) return;
+  const avail=b.playerTeam.filter(p=>p.id!==b.player.id&&p.currentHp>0);
+  if(!avail.length){ showToast('No other Pokémon!'); return; }
+  const sel=await showSwitchModal(avail); if(!sel) return;
+  b.player={...sel,currentHp:sel.currentHp};
+  addLog(ctx,`Go! ${sel.name.toUpperCase()}!`); renderBattleUI(ctx);
+}
+function showSwitchModal(team){
+  return new Promise(resolve=>{
+    const list=document.getElementById('switch-list'); list.innerHTML='';
+    team.forEach(p=>{ const d=document.createElement('div'); d.className='mon-item'; d.style.cursor='pointer';
+      d.innerHTML=`<img src="${spriteUrl(p.pokemonId)}" style="image-rendering:pixelated;"><div class="mon-info"><div class="name">${p.name.toUpperCase()}</div><div class="stats">Lv.${p.level} HP:${p.currentHp}/${p.maxHp}</div></div>`;
+      d.addEventListener('click',()=>{document.getElementById('switch-modal').classList.add('hidden');resolve(p);});
+      list.appendChild(d);
+    });
+    document.getElementById('cancel-switch').onclick=()=>{document.getElementById('switch-modal').classList.add('hidden');resolve(null);};
+    document.getElementById('switch-modal').classList.remove('hidden');
+  });
+}
+// Run
+document.getElementById('ex-run').addEventListener('click',()=>attemptRun('ex'));
+document.getElementById('by-run').addEventListener('click',()=>attemptRun('by'));
+function attemptRun(ctx){
+  const b=getBattle(ctx); if(!b) return;
+  if(Math.random()<.7){
+    addLog(ctx,'Got away safely!'); setBattle(ctx,null);
+    document.getElementById(ctx==='ex'?'explore-battle':'byahe-battle').classList.add('hidden');
+    showToast('Escaped!'); battleBallBonus=1.0;
+  } else addLog(ctx,"Can't escape!");
+}
+
+// Battle summary
+function showBattleSummary(win,xp,coins){
+  document.getElementById('sum-icon').textContent=win?'🏆':'💔';
+  document.getElementById('sum-title').textContent=win?'Victory!':'Defeated!';
+  document.getElementById('sum-gains').innerHTML=win?`<p>+<strong>${xp}</strong> XP</p><p>+<strong>${coins}</strong> 💰</p>${luckyEggTurns>0?`<p>🥚 Lucky Egg: ${luckyEggTurns} left</p>`:''}`:
+    `<p style="color:var(--muted);">Your Pokémon fainted. Use Revive in Shop!</p>`;
+  document.getElementById('battle-summary-overlay').classList.remove('hidden');
+}
+document.getElementById('close-summary-btn').addEventListener('click',()=>document.getElementById('battle-summary-overlay').classList.add('hidden'));
+
+// ══════════════════════════════════════════════
+// BYAHE — FIREBASE AUTH + MAPS
+// ══════════════════════════════════════════════
+document.getElementById('byahe-login-btn').addEventListener('click', async()=>{
+  const email=document.getElementById('byahe-email').value.trim();
+  const pw=document.getElementById('byahe-password').value;
+  const errEl=document.getElementById('byahe-login-err');
+  errEl.style.display='none';
+  if(!email||!pw){ errEl.textContent='Enter email and password'; errEl.style.display='block'; return; }
+  document.getElementById('byahe-login-btn').disabled=true;
+  document.getElementById('byahe-login-btn').textContent='Logging in...';
+  try{
+    await signInWithEmailAndPassword(fbAuth,email,pw);
+  } catch(e){
+    errEl.textContent=e.message; errEl.style.display='block';
+    document.getElementById('byahe-login-btn').disabled=false;
+    document.getElementById('byahe-login-btn').textContent='🔑 Login to PokeSim';
+  }
+});
+document.getElementById('byahe-logout-btn').addEventListener('click',()=>signOut(fbAuth));
+document.getElementById('byahe-sync-btn').addEventListener('click',()=>syncByahTeam());
+document.getElementById('byahe-reload-maps-btn').addEventListener('click',()=>loadByaheMaps());
+document.getElementById('byahe-back-btn').addEventListener('click',()=>{
+  if(byBattle){ showToast('Finish battle first!'); return; }
+  byMap=null;
+  document.getElementById('byahe-active').classList.add('hidden');
+  document.getElementById('byahe-map-sel').classList.remove('hidden');
+});
+
+onAuthStateChanged(fbAuth, async(user)=>{
+  if(user){
+    byFbUser=user; byOnline=true;
+    document.getElementById('byahe-login-view').classList.add('hidden');
+    document.getElementById('byahe-logged-view').classList.remove('hidden');
+    document.getElementById('online-chip').classList.remove('hidden');
+    // Fetch user info
+    try{
+      const ud=await getDoc(doc(fbDb,'users',user.uid));
+      const data=ud.data()||{};
+      document.getElementById('byahe-trainer-name').textContent='🧑 '+(data.trainerName||user.email);
+      document.getElementById('byahe-user-email').textContent=user.email;
+    } catch(e){ document.getElementById('byahe-trainer-name').textContent='🧑 '+user.email; }
+    await loadByaheMaps();
+    await syncByahTeam();
+    document.getElementById('byahe-sync-text').textContent='Synced with PokéSim server ✓';
+  } else {
+    byFbUser=null; byOnline=false; byTeam=[];
+    document.getElementById('byahe-login-view').classList.remove('hidden');
+    document.getElementById('byahe-logged-view').classList.add('hidden');
+    document.getElementById('online-chip').classList.add('hidden');
+    document.getElementById('byahe-login-btn').disabled=false;
+    document.getElementById('byahe-login-btn').textContent='🔑 Login to PokeSim';
+  }
+});
+
+async function loadByaheMaps(){
+  document.getElementById('byahe-map-loading').style.display='block';
+  document.getElementById('byahe-map-cards').classList.add('hidden');
+  try{
+    const snap=await getDocs(collection(fbDb,'maps'));
+    byMaps=[];
+    snap.forEach(d=>byMaps.push({id:d.id,...d.data()}));
+    renderByaheMaps();
+  } catch(e){ document.getElementById('byahe-map-loading').textContent='Failed to load maps. Check connection.'; }
+}
+function renderByaheMaps(){
+  document.getElementById('byahe-map-loading').style.display='none';
+  const grid=document.getElementById('byahe-map-cards'); grid.innerHTML=''; grid.classList.remove('hidden');
+  if(!byMaps.length){ grid.innerHTML='<p style="color:var(--muted);padding:20px;text-align:center;">No maps found on server.</p>'; return; }
+  const totalLvl=gs.pokemon?gs.pokemon.reduce((s,p)=>s+p.level,0):0;
+  byMaps.forEach(map=>{
+    const locked=totalLvl<(map.requiredLevel||0);
+    const c=document.createElement('div'); c.className='map-card byahe-card'+(locked?' locked':'');
+    c.innerHTML=`
+      <div class="map-icon">${getMapIcon(map)}</div>
+      <div class="map-name">${map.name}</div>
+      <div style="font-size:.68rem;color:var(--accent);font-weight:700;margin-bottom:4px;">Gen ${map.generation||'?'}</div>
+      <div class="map-desc">${map.description||''}</div>
+      <div style="font-size:.68rem;color:var(--muted);margin:5px 0;line-height:1.5;">
+        🎯 Catch rate: ${map.catchRate||45}%<br>
+        📊 Need ${map.requiredExpPercent||0}% XP to catch<br>
+        ${map.specialLevelRange?.enabled?`📈 Lv. ${map.specialLevelRange.min}–${map.specialLevelRange.max}`:`📈 Scales to your team`}
+      </div>
+      ${locked?`<div class="map-req">🔒 Requires total Lv.${map.requiredLevel}</div>`:'<span class="map-badge" style="background:rgba(247,37,133,.15);color:var(--accent);">✓ Open</span>'}`;
+    if(!locked) c.addEventListener('click',()=>enterByaheMap(map));
+    grid.appendChild(c);
+  });
+}
+function getMapIcon(map){
+  const n=(map.name||'').toLowerCase();
+  if(n.includes('forest')||n.includes('viridian')) return '🌲';
+  if(n.includes('cave')||n.includes('moon')) return '🌙';
+  if(n.includes('sea')||n.includes('water')||n.includes('ocean')) return '🌊';
+  if(n.includes('safari')) return '🦁';
+  if(n.includes('victory')||n.includes('road')) return '⚡';
+  if(n.includes('mountain')||n.includes('mt')) return '⛰️';
+  if(n.includes('city')||n.includes('town')) return '🏙️';
+  return '🗺️';
+}
+function enterByaheMap(map){
+  byMap=map; byPos={x:25,y:25}; byBattle=null; byCooldown=false;
+  document.getElementById('byahe-map-name').textContent=getMapIcon(map)+' '+map.name;
+  document.getElementById('byahe-map-sel').classList.add('hidden');
+  document.getElementById('byahe-active').classList.remove('hidden');
+  document.getElementById('byahe-battle').classList.add('hidden');
+  // Map info banner
+  document.getElementById('byahe-map-info').innerHTML=`
+    <span>🎯 Catch: ${map.catchRate||45}%</span>
+    <span>📊 XP req: ${map.requiredExpPercent||0}%</span>
+    <span>💸 XP cost: ${map.catchXpPenaltyPercent||10}%</span>
+    <span>🎮 Gen ${map.generation||'?'}</span>
+    <span>🐾 #${map.pokemonMin||1}–${map.pokemonMax||151}</span>
+    ${map.specialPokemonList?.length?`<span>⭐ ${map.specialPokemonList.length} special</span>`:''}`;
+  const grid=document.getElementById('byahe-grid');
+  const tileColors=map.tileColors||['#c2b280','#78cd54'];
+  const tileClasses=map.tileClasses||['dirt','grass'];
+  byTiles=generateMapTiles(grid,tileColors,tileClasses);
+  updateByahePlayer();
+}
+function updateByahePlayer(){
+  const p=document.getElementById('byahe-player');
+  const src=byTeam.length?spriteUrl(byTeam[0].pokemonId):TRAINER_GIF;
+  p.style.backgroundImage=`url(${src})`;
+  renderMapPos(document.getElementById('byahe-grid'),p,byPos);
+}
+function byMove(dx,dy){
+  if(byBattle||!byMap) return;
+  const now=Date.now(); if(now-byLastMove<MOVE_DELAY) return; byLastMove=now;
+  const nx=byPos.x+dx,ny=byPos.y+dy;
+  if(nx<0||nx>=50||ny<0||ny>=50) return;
+  byPos.x=nx; byPos.y=ny;
+  const p=document.getElementById('byahe-player');
+  if(dx!==0) p.style.transform=dx<0?'scaleX(-1)':'scaleX(1)';
+  updateByahePlayer();
+  const tile=byTiles[ny]&&byTiles[ny][nx];
+  const enc=byMap.enc||(byMap.pokemonMin?0.15:0.14);
+  const firstClass=(byMap.tileClasses||['dirt'])[0];
+  if(!byCooldown&&tile&&tile!==firstClass&&Math.random()<enc){
+    byCooldown=true; setTimeout(()=>byCooldown=false,3000);
+    startByBattle();
+  }
+}
+document.getElementById('by-up').addEventListener('click',()=>byMove(0,-1));
+document.getElementById('by-down').addEventListener('click',()=>byMove(0,1));
+document.getElementById('by-left').addEventListener('click',()=>byMove(-1,0));
+document.getElementById('by-right').addEventListener('click',()=>byMove(1,0));
+
+// Sync team from Firebase → local game state
+async function syncByahTeam() {
+  if (!byFbUser) return;
+  document.getElementById('byahe-sync-text').textContent = 'Downloading data from server...';
+  try {
+    const uid = byFbUser.uid;
+    
+    // 1. Fetch user document (coins, trainer name, pokedex)
+    const userDoc = await getDoc(doc(fbDb, 'users', uid));
+    const userData = userDoc.data() || {};
+
+    // ----- SYNC POKÉDEX (download only) -----
+    if (userData.pokedex) {
+      let pokedexChanged = false;
+      for (const [pokemonId, serverEntry] of Object.entries(userData.pokedex)) {
+        const localEntry = gs.pokedex[pokemonId];
+        if (!localEntry) {
+          // New Pokémon – add it
+          gs.pokedex[pokemonId] = {
+            seen: serverEntry.seen || false,
+            caught: serverEntry.caught || false,
+            name: serverEntry.name || `#${pokemonId}`
+          };
+          pokedexChanged = true;
+        } else {
+          // Update only if server has more progress (seen/caught)
+          if (serverEntry.seen && !localEntry.seen) {
+            localEntry.seen = true;
+            pokedexChanged = true;
+          }
+          if (serverEntry.caught && !localEntry.caught) {
+            localEntry.caught = true;
+            pokedexChanged = true;
+          }
+          if (serverEntry.name && !localEntry.name) {
+            localEntry.name = serverEntry.name;
+            pokedexChanged = true;
+          }
+        }
+      }
+      if (pokedexChanged) {
+        autoSave();
+        renderPokedex();   // refresh Pokédex tab
+        updateNav();       // update navbar counter
+      }
+    }
+
+    // 2. Sync coins (only if server has more)
+    if (userData.coins && userData.coins > (gs.coins || 0)) {
+      gs.coins = userData.coins;
+      updateNav();
+      autoSave();
+    }
+
+    // 3. Fetch all Pokémon from subcollection
+    const snap = await getDocs(collection(fbDb, 'users', uid, 'pokemon'));
+    const serverPokemonMap = new Map();
+    snap.forEach(docSnap => {
+      const p = docSnap.data();
+      serverPokemonMap.set(docSnap.id, {
+        id: docSnap.id,
+        pokemonId: p.pokemonId,
+        name: p.name,
+        level: p.level,
+        exp: p.exp || 0,
+        moves: p.moves || [],
+        types: p.types || ['normal'],
+        bonusStats: p.bonusStats || { atk: false, def: false, spd: false },
+        maxHp: (p.level || 1) * 25,
+        currentHp: (p.level || 1) * 25,
+        isShiny: p.isShiny || false,
+        inTeam: p.inTeam === true,
+        capturedAt: p.capturedAt || new Date()
+      });
+    });
+
+    // 4. Merge server Pokémon into local gs.pokemon
+    let pokemonChanged = false;
+    for (const [serverId, serverMon] of serverPokemonMap) {
+      const existingIndex = gs.pokemon.findIndex(local => local.id === serverId);
+      if (existingIndex === -1) {
+        // New Pokémon – add it (team or box)
+        const newMon = makePokemon(
+          serverMon.pokemonId, serverMon.name, serverMon.level,
+          serverMon.types, serverMon.moves, serverMon.inTeam
+        );
+        newMon.id = serverId;
+        newMon.isShiny = serverMon.isShiny;
+        newMon.exp = serverMon.exp;
+        newMon.maxHp = serverMon.maxHp;
+        newMon.currentHp = serverMon.currentHp;
+        gs.pokemon.push(newMon);
+        pokemonChanged = true;
+      } else {
+        // Existing Pokémon – update level/exp/inTeam if server is ahead
+        const localMon = gs.pokemon[existingIndex];
+        if (serverMon.level > localMon.level) {
+          localMon.level = serverMon.level;
+          localMon.maxHp = serverMon.maxHp;
+          pokemonChanged = true;
+        }
+        if (serverMon.exp > localMon.exp) {
+          localMon.exp = serverMon.exp;
+          pokemonChanged = true;
+        }
+        // Sync team status (if server says it's in team, but never force out of team)
+        if (serverMon.inTeam && !localMon.inTeam) {
+          localMon.inTeam = true;
+          pokemonChanged = true;
+        }
+        // Do NOT overwrite currentHp – keep local battle state
+      }
+    }
+
+    // 5. Ensure team size does not exceed TEAM_MAX (trim if needed)
+    const teamMembers = gs.pokemon.filter(p => p.inTeam);
+    if (teamMembers.length > TEAM_MAX) {
+      // Move extra team members to box (keep first TEAM_MAX)
+      for (let i = TEAM_MAX; i < teamMembers.length; i++) {
+        teamMembers[i].inTeam = false;
+      }
+      pokemonChanged = true;
+    }
+
+    // Derive Pokédex from the list of owned Pokémon
+let pokedexChanged = false;
+for (const [serverId, serverMon] of serverPokemonMap) {
+  const pid = serverMon.pokemonId;
+  if (!gs.pokedex[pid]) {
+    gs.pokedex[pid] = { seen: true, caught: true, name: serverMon.name };
+    pokedexChanged = true;
+  } else {
+    if (!gs.pokedex[pid].caught) {
+      gs.pokedex[pid].caught = true;
+      pokedexChanged = true;
+    }
+    if (!gs.pokedex[pid].seen) {
+      gs.pokedex[pid].seen = true;
+      pokedexChanged = true;
+    }
+    if (!gs.pokedex[pid].name && serverMon.name) {
+      gs.pokedex[pid].name = serverMon.name;
+      pokedexChanged = true;
+    }
+  }
+}
+if (pokedexChanged) {
+  autoSave();
+  renderPokedex();
+  updateNav();
+}
+
+    if (pokemonChanged) {
+      autoSave();
+      renderTeam();
+      renderCollection();
+      updateNav();
+    }
+
+    // 6. Update byTeam array for live battles
+    byTeam = gs.pokemon.filter(p => p.inTeam && p.currentHp > 0);
+
+    document.getElementById('byahe-sync-text').innerHTML = `✅ Downloaded ${serverPokemonMap.size} Pokémon, Pokédex ${Object.keys(userData.pokedex || {}).length} entries`;
+    showToast(`📥 Synced ${serverPokemonMap.size} Pokémon + Pokédex from server`);
+  } catch (e) {
+    console.error(e);
+    document.getElementById('byahe-sync-text').textContent = '❌ Sync failed: ' + e.message;
+    showToast('Sync error – check console');
+  }
+}
+
+// ══════════════════════════════════════════════
+// TEAM / COLLECTION / POKÉDEX
+// ══════════════════════════════════════════════
+function renderTeam(){
+  const team=gs.pokemon.filter(p=>p.inTeam);
+  document.getElementById('team-count').textContent=`${team.length}/${TEAM_MAX}`;
+  const l=document.getElementById('team-list'); l.innerHTML='';
+  if(!team.length){l.innerHTML='<p style="color:var(--muted);text-align:center;padding:20px;">Team is empty!</p>';return;}
+  team.forEach(p=>l.appendChild(makePokemonCard(p,'team')));
+}
+function renderCollection(){
+  const box=gs.pokemon.filter(p=>!p.inTeam);
+  document.getElementById('box-count').textContent=box.length+' stored';
+  const l=document.getElementById('collection-list'); l.innerHTML='';
+  if(!box.length){l.innerHTML='<p style="color:var(--muted);text-align:center;padding:20px;">PC Box is empty.</p>';return;}
+  box.forEach(p=>l.appendChild(makePokemonCard(p,'box')));
+}
+function makePokemonCard(p,where){
+  const d=document.createElement('div');
+  const hp=Math.round(p.currentHp/p.maxHp*100), xp=Math.min(100,Math.floor((p.exp||0)/expNeeded(p.level)*100));
+  d.className='mon-item'+(p.inTeam?' in-team':'')+(p.isShiny?' is-shiny':'');
+  d.innerHTML=`<img src="${spriteUrl(p.pokemonId)}" onerror="this.src='${spriteUrl(1)}'"><div class="mon-info"><div class="name">${p.name.toUpperCase()}${p.isShiny?' ✨':''}</div><div style="display:flex;gap:3px;margin:2px 0;">${typeBadgeHtml(p.types)}</div><div class="stats">Lv.${p.level} | HP:${p.currentHp}/${p.maxHp} (${hp}%)</div><div class="xp-bar"><div class="xp-fill" style="width:${xp}%"></div></div><div style="font-size:.6rem;color:var(--muted);">XP:${p.exp||0}/${expNeeded(p.level)}</div></div><div class="mon-actions"></div>`;
+  const acts=d.querySelector('.mon-actions');
+  if(where==='team'){
+    const moveBtn = document.createElement('button');
+moveBtn.className = 'btn btn-outline btn-small';
+moveBtn.textContent = '✏️ Moves';
+moveBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openMoveEditor(p.id);
+});
+acts.appendChild(moveBtn);
+    const bb=document.createElement('button'); bb.className='btn btn-outline btn-small'; bb.textContent='📦 Box';
+    bb.addEventListener('click',()=>movePokemon(p.id,'box')); acts.appendChild(bb);
+  } else {
+    const moveBtn = document.createElement('button');
+moveBtn.className = 'btn btn-outline btn-small';
+moveBtn.textContent = '✏️ Moves';
+moveBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openMoveEditor(p.id);
+});
+acts.appendChild(moveBtn);
+    const tb=document.createElement('button'); tb.className='btn btn-primary btn-small'; tb.textContent='⚔️ Team';
+    if(gs.pokemon.filter(q=>q.inTeam).length>=TEAM_MAX) tb.disabled=true;
+    tb.addEventListener('click',()=>movePokemon(p.id,'team')); acts.appendChild(tb);
+    const rb=document.createElement('button'); rb.className='btn btn-danger btn-small'; rb.textContent='Release';
+    rb.addEventListener('click',()=>releasePokemon(p.id)); acts.appendChild(rb);
+  }
+  return d;
+}
+function movePokemon(id,to){
+  const i=gs.pokemon.findIndex(p=>p.id===id); if(i<0) return;
+  if(to==='team'&&gs.pokemon.filter(p=>p.inTeam).length>=TEAM_MAX){showToast('Team full!');return;}
+  if(to==='box'&&gs.pokemon.filter(p=>p.inTeam).length<=1){showToast("Can't remove last member!");return;}
+  gs.pokemon[i].inTeam=to==='team'; autoSave(); renderTeam(); renderCollection(); updateNav();
+}
+function releasePokemon(id){
+  const p=gs.pokemon.find(q=>q.id===id); if(!p) return;
+  if(p.isStarter){showToast("Can't release your starter!");return;}
+  if(!confirm(`Release ${p.name.toUpperCase()}?`)) return;
+  gs.pokemon=gs.pokemon.filter(q=>q.id!==id); autoSave(); renderCollection();
+}
+function renderPokedex(){
+  const grid=document.getElementById('dex-grid'); grid.innerHTML='';
+  const seen=Object.values(gs.pokedex||{}).filter(e=>e.seen).length;
+  const caught=Object.values(gs.pokedex||{}).filter(e=>e.caught).length;
+  document.getElementById('dex-count').textContent=`${seen} seen, ${caught} caught`;
+  Object.entries(gs.pokedex||{}).forEach(([id,e])=>{
+    const d=document.createElement('div'); d.className='dex-entry'+(e.caught?' caught':e.seen?' seen':'');
+    d.innerHTML=`<div class="dex-num">#${String(id).padStart(3,'0')}</div><img src="${spriteUrl(id)}" style="${e.caught?'':'filter:brightness(0)'}" onerror="this.style.display='none'"><div>${e.caught?(e.name.charAt(0).toUpperCase()+e.name.slice(1)):'???'}</div><div style="font-size:.55rem;color:${e.caught?'var(--green)':'var(--muted)'};">${e.caught?'✅ Caught':e.seen?'👁 Seen':''}</div>`;
+    grid.appendChild(d);
+  });
+}
+
+// ══════════════════════════════════════════════
+// SHOP
+// ══════════════════════════════════════════════
+function renderShop(){
+  const g=document.getElementById('shop-items-grid'); g.innerHTML='';
+  SHOP_ITEMS.forEach(item=>{
+    const d=document.createElement('div'); d.className='shop-item';
+    d.innerHTML=`<div class="item-icon">${item.icon}</div><div class="item-name">${item.name}</div><div class="item-desc">${item.desc}</div><div class="item-price">💰 ${item.price}</div><button class="btn btn-primary" style="width:100%;margin-top:8px;padding:7px;font-size:.75rem;">Buy</button>`;
+    d.querySelector('button').addEventListener('click',()=>buyItem(item));
+    g.appendChild(d);
+  });
+}
+function buyItem(item){
+  if(!gs) return;
+  if((gs.coins||0)<item.price){ showToast('Not enough coins!'); return; }
+  gs.coins-=item.price;
+  switch(item.action){
+    case 'heal': gs.pokemon.forEach(p=>{p.currentHp=p.maxHp;}); showToast('💊 All Pokémon healed!'); break;
+    case 'great_ball': battleBallBonus=1.2; showToast('🔵 Great Ball ready!'); break;
+    case 'ultra_ball': battleBallBonus=1.5; showToast('🟡 Ultra Ball ready!'); break;
+    case 'rare_candy':{ const t=gs.pokemon.filter(p=>p.inTeam); if(!t.length){gs.coins+=item.price;showToast('No team!');return;} t[0].level++; t[0].maxHp=t[0].level*20+50; t[0].currentHp=t[0].maxHp; showToast(`🍬 ${t[0].name.toUpperCase()} → Lv.${t[0].level}!`); break; }
+    case 'lucky_egg': luckyEggTurns=5; showToast('🥚 Lucky Egg! 2x XP for 5 battles.'); break;
+    case 'revive': gs.pokemon.forEach(p=>{if(p.currentHp<=0) p.currentHp=Math.floor(p.maxHp*.5);}); showToast('✨ All Pokémon revived!'); break;
+  }
+  autoSave(); updateNav(); document.getElementById('shop-coins').textContent='💰 '+gs.coins;
+}
+
+
+// ══════════════════════════════════════════════
+// CACHE / OFFLINE SPRITES (ENHANCED)
+// ══════════════════════════════════════════════
+let cacheCount = 0;
+let cacheStopFlag = false; 
+
+// ID ranges: 1–1025 and 10000–10325
+const ID_RANGE_1 = Array.from({ length: 1025 }, (_, i) => i + 1);
+const ID_RANGE_2 = Array.from({ length: 326 }, (_, i) => 10000 + i);
+const ALL_IDS = [...ID_RANGE_1, ...ID_RANGE_2];
+
+/**
+ * Get sprite URLs for a specific type (normal, shiny, moving, shiny-moving)
+ */
+function getUrlsByType(id, name, type) {
+  const urls = [];
+  if (type === 'normal') {
+    urls.push(spriteUrl(id));
+    urls.push(spriteBack(id));
+  } else if (type === 'shiny') {
+    urls.push(spriteShiny(id));
+    urls.push(spriteShinyBack(id));
+  } else if (type === 'moving') {
+    urls.push(spriteShowdownFront(id));
+    urls.push(spriteShowdownBack(id));
+  } else if (type === 'shiny-moving') {
+    if (name) {
+      urls.push(spriteShowdownShinyFront(name));
+      urls.push(spriteShowdownShinyBack(name));
+    } else {
+      // fallback to static shiny if name missing
+      urls.push(spriteShiny(id));
+      urls.push(spriteShinyBack(id));
+    }
+  }
+  return urls;
+}
+
+/**
+ * Cache sprites for a list of IDs and a specific type, with parallel downloads.
+ * @param {number[]} idList - Array of Pokémon IDs
+ * @param {string} type - 'normal', 'shiny', 'moving', 'shiny-moving'
+ * @param {Object} nameMap - Mapping of id -> pokemon name (for shiny-moving)
+ * @param {number} concurrency - Number of parallel downloads (default 10)
+ */
+async function cacheSpritesByType(idList, type, nameMap = {}, concurrency = 10) {
+  if (!('caches' in window)) { showToast('Cache API not available'); return; }
+  
+  // Reduce concurrency for shiny-moving to avoid rate limiting
+  if (type === 'shiny-moving') concurrency = 5;
+  
+  cacheStopFlag = false;
+  document.getElementById('cache-stop-btn').style.display = 'inline-block';
+  const cache = await caches.open(CACHE_NAME);
+  const logEl = document.getElementById('cache-log');
+  logEl.innerHTML = '';
+
+  // Build task list
+  const tasks = [];
+  for (const id of idList) {
+    if (cacheStopFlag) break;
+    const name = nameMap[id] || null;
+    const urls = getUrlsByType(id, name, type);
+    for (const url of urls) {
+      tasks.push({ id, url });
+    }
+  }
+
+  const total = tasks.length;
+  let completed = 0;
+  let skipped404 = 0;
+
+  const updateProgress = () => {
+    const pct = Math.round((completed / total) * 100);
+    document.getElementById('cache-fill').style.width = pct + '%';
+    document.getElementById('cache-status-text').textContent = `Caching ${type}... ${completed}/${total} (${pct}%)`;
+  };
+
+  const fetchWithRetry = async (url, retries = 1) => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+    try {
+      const response = await fetch(url, {
+        cache: 'force-cache',
+        headers: { 'User-Agent': 'PokéSim/1.0 (https://pokesim.ph.gamer.gd)' },
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      return response;
+    } catch (err) {
+      clearTimeout(timeoutId);
+      if (retries > 0 && err.name !== 'AbortError') {
+        await new Promise(r => setTimeout(r, 500));
+        return fetchWithRetry(url, retries - 1);
+      }
+      throw err;
+    }
+  };
+
+  const processTask = async (task) => {
+    if (cacheStopFlag) return;
+    const { id, url } = task;
+    try {
+      const existing = await cache.match(url);
+      if (!existing) {
+        const resp = await fetchWithRetry(url);
+        if (resp.ok) {
+          await cache.put(url, resp);
+          addCacheLog(logEl, `✅ ${url.split('/').pop()} (ID ${id})`);
+        } else if (resp.status === 404 && type === 'shiny-moving') {
+          // Missing animated sprite is normal for some Pokémon (e.g., certain forms)
+          skipped404++;
+          // Don't log to avoid clutter
+        } else {
+          addCacheLog(logEl, `⚠️ ${url.split('/').pop()} (ID ${id}) - HTTP ${resp.status}`);
+        }
+      } else {
+        addCacheLog(logEl, `⏭ Already cached: ${url.split('/').pop()}`);
+      }
+    } catch (err) {
+      addCacheLog(logEl, `❌ Failed: ${url.split('/').pop()} (ID ${id}) - ${err.message}`);
+    }
+    completed++;
+    updateProgress();
+  };
+
+  // Process with concurrency limit
+  const queue = [...tasks];
+  const activePromises = new Set();
+
+  while (queue.length > 0 && !cacheStopFlag) {
+    while (activePromises.size < concurrency && queue.length > 0 && !cacheStopFlag) {
+      const task = queue.shift();
+      const promise = processTask(task).finally(() => {
+        activePromises.delete(promise);
+      });
+      activePromises.add(promise);
+    }
+    if (activePromises.size > 0) {
+      await Promise.race(activePromises);
+    }
+  }
+
+  await Promise.all(activePromises);
+
+  document.getElementById('cache-stop-btn').style.display = 'none';
+  await updateCacheStats();
+  if (skipped404 > 0) {
+    addCacheLog(logEl, `ℹ️ Skipped ${skipped404} missing animated sprites (fallback to static)`);
+  }
+  showToast(`✅ ${type} caching complete! ${completed} sprites stored.`);
+}
+function addCacheLog(el, msg) {
+  const d = document.createElement('div');
+  d.textContent = msg;
+  el.appendChild(d);
+  el.scrollTop = el.scrollHeight;
+}
+
+// Fetch names for shiny moving sprites (required for Showdown URLs)
+async function fetchNamesForIds(ids) {
+  const nameMap = {};
+  for (const id of ids) {
+    try {
+      const res = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}`);
+      const data = await res.json();
+      nameMap[id] = data.name;
+    } catch (e) {
+      nameMap[id] = `pokemon-${id}`;
+    }
+    if (id % 50 === 0) await new Promise(r => setTimeout(r, 10));
+  }
+  return nameMap;
+}
+
+// Button handlers
+document.getElementById('cache-normal-btn').addEventListener('click', async () => {
+  showToast('Caching normal sprites (front+back) for 1–1025 & 10000–10325...');
+  await cacheSpritesByType(ALL_IDS, 'normal', {});
+});
+document.getElementById('cache-shiny-btn').addEventListener('click', async () => {
+  showToast('Caching shiny sprites (front+back)...');
+  await cacheSpritesByType(ALL_IDS, 'shiny', {});
+});
+document.getElementById('cache-moving-btn').addEventListener('click', async () => {
+  showToast('Caching normal moving sprites (front+back Showdown)...');
+  await cacheSpritesByType(ALL_IDS, 'moving', {});
+});
+document.getElementById('cache-shiny-moving-btn').addEventListener('click', async () => {
+  showToast('Fetching Pokémon names for shiny moving sprites...');
+  const nameMap = await fetchNamesForIds(ALL_IDS);
+  showToast('Caching shiny moving sprites (front+back Showdown)...');
+  await cacheSpritesByType(ALL_IDS, 'shiny-moving', nameMap);
+});
+document.getElementById('cache-stop-btn').addEventListener('click', () => { cacheStopFlag = true; });
+document.getElementById('cache-moves-btn').addEventListener('click', async () => {
+    await cacheAllMoveData();
+});
+
+async function updateCacheStats() {
+  if (!('caches' in window)) return;
+  const cache = await caches.open(CACHE_NAME);
+  const keys = await cache.keys();
+  const count = keys.length;
+  document.getElementById('cache-count').textContent = count;
+  const pct = Math.min(100, Math.round(count / (ALL_IDS.length * 2) * 100));
+  document.getElementById('cache-fill').style.width = pct + '%';
+  document.getElementById('cache-status-text').textContent = `${count} sprite variants cached (approx ${(count * 0.012).toFixed(1)} MB)`;
+  const grid = document.getElementById('cache-stats-grid');
+  if (grid) {
+    grid.innerHTML = `
+      <div class="cache-item"><div class="ci-icon">🖼️</div><div>Total cached</div><div class="ci-status">${count}</div></div>
+      <div class="cache-item"><div class="ci-icon">💾</div><div>Est. size</div><div class="ci-status">${(count * 0.012).toFixed(1)} MB</div></div>
+      <div class="cache-item"><div class="ci-icon">📡</div><div>Online</div><div class="ci-status">${navigator.onLine ? 'Yes' : 'No'}</div></div>
+      <div class="cache-item"><div class="ci-icon">🗄️</div><div>Cache API</div><div class="ci-status">Supported</div></div>
+    `;
+  }
+}
+
+
+// ══════════════════════════════════════════════
+// UI UTILITIES
+// ══════════════════════════════════════════════
+function showLoading(msg='Loading...'){ document.getElementById('load-text').textContent=msg; document.getElementById('loading-overlay').classList.remove('hidden'); }
+function hideLoading(){ document.getElementById('loading-overlay').classList.add('hidden'); }
+let toastTimer;
+function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2800); }
+
+// ── INIT ──
+renderTitle();
+</script>
+</body>
+</html>

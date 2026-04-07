@@ -3072,7 +3072,7 @@
             const added = await addDoc(collection(db, "users", user.uid, "pokemon"), mon);
             trackWrite();
             await new Promise(resolve => setTimeout(resolve, 500));
-            await setDoc(doc(db, "users", user.uid), { hasStarter: true, activePokemonId: added.id, trainerName: trainerName, birthdate: birthdate, coins: 0, lastNameChange: null, totalLevels: 10, totalEncounters: 0, active: false }, { merge: true });
+            await setDoc(doc(db, "users", user.uid), { hasStarter: true, activePokemonId: added.id, trainerName: trainerName, birthdate: birthdate, coins: 0, lastNameChange: null, totalLevels: 10, totalEncounters: 0, active: false, email: user.email  }, { merge: true });
             trackWrite();
             document.getElementById('trainer-starter-modal').classList.add('hidden');
             pendingUser = null;

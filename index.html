@@ -1146,8 +1146,8 @@
     function generateWildBonusStats() {
         const r = Math.random() * 100;
         let stats = { atk: false, def: false, spd: false };
-        if (r < 3) stats = { atk: true, def: true, spd: true };
-        else if (r < 13) {
+        if (r < 1) stats = { atk: true, def: true, spd: true };
+        else if (r < 11) {
             const all = ['atk', 'def', 'spd'];
             for (let i = all.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -1155,7 +1155,7 @@
             }
             stats[all[0]] = true;
             stats[all[1]] = true;
-        } else if (r < 38) {
+        } else if (r < 30) {
             const one = ['atk', 'def', 'spd'][Math.floor(Math.random() * 3)];
             stats[one] = true;
         }

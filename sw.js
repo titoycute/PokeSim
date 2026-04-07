@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pokesim-v1.6.1.6'   // ← change this version number on every deploy
+const CACHE_NAME = 'pokesim-v1.6.1.7'   // ← change this version number on every deploy
 const assets = [
   'index.html',
   'manifest.json',

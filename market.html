@@ -1526,65 +1526,104 @@ async function openBidModal(auction){
     </div>`;
 
   // Slot click → open picker
-  body.querySelectorAll('.bid-slot.add-slot').forEach(s=>{
-    s.onclick=()=>openPokePicker(async(poke)=>{
-      if(bidSelectedPokemon.length>=(auction.maxPokemon||5)){toast('Max Pokémon reached.','error');return;}
-      bidSelectedPokemon.push(poke);
-      renderBidSlots(body,auction);
-    });
-  });
+  body.querySelectorAll('.bid-slot.add-slot').forEach(s => {
+  s.onclick = () => openPokePicker((poke) => {
+    if (bidSelectedPokemon.length >= (auction.maxPokemon || 5)) {
+      toast('Max Pokémon reached.', 'error');
+      return;
+    }
+    bidSelectedPokemon.push(poke);
+    renderBidSlots(body, auction);
+  }, bidSelectedPokemon.map(p => p.id)); // <-- Add this here too
+});
 
   document.getElementById('auction-bid-modal').classList.remove('hidden');
   document.getElementById('auction-bid-confirm').onclick=async()=>submitBid(auction);
 }
 
-function renderBidSlots(body,auction){
-  const container=body.querySelector('#bid-pokemon-slots');
-  const max=auction.maxPokemon||5;
-  container.innerHTML='';
-  for(let i=0;i<max;i++){
-    const slot=document.createElement('div');
-    if(i<bidSelectedPokemon.length){
-      const p=bidSelectedPokemon[i];
-      slot.className='bid-slot filled';
-      slot.innerHTML=`<img src="${spriteUrl(p.pokemonId,p.isShiny)}" onerror="this.src='${spriteStatic(p.pokemonId)}'" alt="${p.name}"><div class="slot-name">${p.name.substr(0,8).toUpperCase()}</div><button class="remove-slot" data-idx="${i}">✕</button>`;
-      slot.querySelector('.remove-slot').onclick=(e)=>{e.stopPropagation();bidSelectedPokemon.splice(parseInt(e.target.dataset.idx),1);renderBidSlots(body,auction);};
+function renderBidSlots(body, auction) {
+  const container = body.querySelector('#bid-pokemon-slots');
+  const max = auction.maxPokemon || 5;
+  container.innerHTML = '';
+
+  // Get IDs of Pokémon already in slots to prevent duplicates
+  const selectedIds = bidSelectedPokemon.map(p => p.id);
+
+  for (let i = 0; i < max; i++) {
+    const slot = document.createElement('div');
+    if (i < bidSelectedPokemon.length) {
+      // FILLED SLOT
+      const p = bidSelectedPokemon[i];
+      slot.className = 'bid-slot filled';
+      slot.innerHTML = `
+        <img src="${spriteUrl(p.pokemonId, p.isShiny)}" onerror="this.src='${spriteStatic(p.pokemonId)}'" alt="${p.name}">
+        <div class="slot-name">${p.name.substr(0, 8).toUpperCase()}</div>
+        <button class="remove-slot" data-idx="${i}">✕</button>
+      `;
+      slot.querySelector('.remove-slot').onclick = (e) => {
+        e.stopPropagation();
+        bidSelectedPokemon.splice(parseInt(e.target.dataset.idx), 1);
+        renderBidSlots(body, auction); // Re-render to update the list of available IDs
+      };
     } else {
-      slot.className='bid-slot add-slot';
-      slot.innerHTML=`<i class="fas fa-plus"></i><div style="font-size:.65rem;margin-top:3px;">Add</div>`;
-      slot.onclick=()=>openPokePicker(async(poke)=>{
-        if(bidSelectedPokemon.length>=max){toast('Max Pokémon reached.','error');return;}
-        bidSelectedPokemon.push(poke);renderBidSlots(body,auction);
-      });
+      // EMPTY SLOT
+      slot.className = 'bid-slot add-slot';
+      slot.innerHTML = `<i class="fas fa-plus"></i><div style="font-size:.65rem;margin-top:3px;">Add</div>`;
+      slot.onclick = () => {
+        // Pass the current selectedIds to the picker to hide them
+        openPokePicker((poke) => {
+          if (bidSelectedPokemon.length >= max) {
+            toast('Max Pokémon reached.', 'error');
+            return;
+          }
+          bidSelectedPokemon.push(poke);
+          renderBidSlots(body, auction);
+        }, bidSelectedPokemon.map(p => p.id)); 
+      };
     }
     container.appendChild(slot);
   }
 }
 
-async function openPokePicker(callback){
-  _pokePickerCallback=callback;
-  const owned=await getUserPokemon();
-  const body=document.getElementById('poke-picker-body');
-  if(!owned.length){body.innerHTML='<div class="empty-state"><i class="fas fa-question-circle"></i><p>No Pokémon.</p></div>';document.getElementById('poke-picker-modal').classList.remove('hidden');return;}
-  body.innerHTML=`<div style="display:flex;flex-direction:column;gap:8px;">${owned.map(p=>`
+
+async function openPokePicker(callback, excludeIds = []) {
+  _pokePickerCallback = callback;
+  const owned = await getUserPokemon();
+  const body = document.getElementById('poke-picker-body');
+  
+  // FILTER: Only show Pokémon NOT in the exclude list
+  const available = owned.filter(p => !excludeIds.includes(p.id));
+
+  if (!available.length) {
+    body.innerHTML = `<div class="empty-state">
+      <i class="fas fa-question-circle"></i>
+      <p>${owned.length > 0 ? 'All your Pokémon are already in slots.' : 'No Pokémon available.'}</p>
+    </div>`;
+    document.getElementById('poke-picker-modal').classList.remove('hidden');
+    return;
+  }
+
+  body.innerHTML = `<div style="display:flex;flex-direction:column;gap:8px;">
+    ${available.map(p => `
     <div class="mon-item-pick" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#f8fafc;border:1px solid var(--border);border-radius:12px;cursor:pointer;transition:.15s;" data-id="${p.id}">
-      <img src="${spriteUrl(p.pokemonId,p.isShiny)}" onerror="this.src='${spriteStatic(p.pokemonId)}'" style="width:48px;height:48px;object-fit:contain;image-rendering:pixelated;">
+      <img src="${spriteUrl(p.pokemonId, p.isShiny)}" onerror="this.src='${spriteStatic(p.pokemonId)}'" style="width:48px;height:48px;object-fit:contain;image-rendering:pixelated;">
       <div>
-        <div style="font-weight:700;font-size:.85rem;">${p.name.toUpperCase()} ${p.isShiny?'✨':''} ${bonusIcons(p.bonusStats)}</div>
-        <div style="font-size:.72rem;color:var(--text-light);">Lv.${p.level} · ${(p.types||[]).join('/')}</div>
+        <div style="font-weight:700;font-size:.85rem;">${p.name.toUpperCase()} ${p.isShiny ? '✨' : ''} ${bonusIcons(p.bonusStats)}</div>
+        <div style="font-size:.72rem;color:var(--text-light);">Lv.${p.level} · ${(p.types || []).join('/')}</div>
       </div>
-    </div>`).join('')}`;
-  body.querySelectorAll('.mon-item-pick').forEach(el=>{
-    el.addEventListener('mouseenter',()=>el.style.borderColor='var(--primary)');
-    el.addEventListener('mouseleave',()=>el.style.borderColor='var(--border)');
-    el.onclick=()=>{
-      const p=owned.find(x=>x.id===el.dataset.id);
-      if(p&&_pokePickerCallback){_pokePickerCallback(p);}
+    </div>`).join('')}
+  </div>`;
+
+  body.querySelectorAll('.mon-item-pick').forEach(el => {
+    el.onclick = () => {
+      const p = available.find(x => x.id === el.dataset.id);
+      if (p && _pokePickerCallback) { _pokePickerCallback(p); }
       closeModal('poke-picker-modal');
     };
   });
   document.getElementById('poke-picker-modal').classList.remove('hidden');
 }
+
 
 async function submitBid(auction) {
   const coins = parseInt(document.getElementById('bid-coins').value) || 0;

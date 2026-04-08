@@ -1261,7 +1261,7 @@ async function buildAuctionCard(a, now){
         <div style="font-size:.7rem;color:var(--text-light);">${b.coins?`💰 ${b.coins.toLocaleString()} coins`:''} ${b.pokemon?.length?`+ ${b.pokemon.length} Pokémon`:''}</div>
         ${b.pokemon?.length?`<div class="bidder-pokemon-pills">${b.pokemon.map(p=>`<img class="bidder-poke-thumb" src="${spriteUrl(p.pokemonId)}" onerror="this.src='${spriteStatic(p.pokemonId)}'" title="${p.name.toUpperCase()}">`).join('')}</div>`:''}
       </div>
-      ${isAdmin?`<button class="btn btn-success btn-sm accept-bid-btn" data-bid='${JSON.stringify(b)}' data-auctionid="${a.id}"><i class="fas fa-check"></i> Accept</button>`:''}
+     ${(isAdmin || isOwn) ? `<button class="btn btn-success btn-sm accept-bid-btn" data-bid='${JSON.stringify(b)}' data-auctionid="${a.id}"><i class="fas fa-check"></i> Accept</button>` : ''}
     </div>`).join(''):'<div style="font-size:.78rem;color:var(--text-light);text-align:center;padding:8px;">No bids yet. Be the first!</div>';
 
   card.innerHTML=`
@@ -1285,8 +1285,11 @@ async function buildAuctionCard(a, now){
       </div>
     </div>
     <div class="card-footer">
-      ${!isAdmin?`<button class="btn btn-gold btn-sm bid-btn"><i class="fas fa-hand-paper"></i> Place Bid</button>`:''}
-      ${isAdmin?`<button class="btn btn-outline btn-sm edit-auction-btn"><i class="fas fa-edit"></i> Edit</button><button class="btn btn-danger btn-sm close-auction-btn"><i class="fas fa-times"></i> Close</button>`:''}
+      ${!isOwn ? `<button class="btn btn-gold btn-sm bid-btn"><i class="fas fa-hand-paper"></i> Place Bid</button>` : ''}
+      ${(isAdmin || isOwn) ? `
+        <button class="btn btn-outline btn-sm edit-auction-btn"><i class="fas fa-edit"></i> Edit</button>
+        <button class="btn btn-danger btn-sm close-auction-btn"><i class="fas fa-times"></i> Close</button>
+      ` : ''}
     </div>`;
 
   // Timer
@@ -1325,70 +1328,148 @@ function getTimeLeft(end){
 }
 
 // Admin post auction
-async function openAuctionPostModal(existing=null){
-  const isEdit=!!existing;
-  document.getElementById('auction-modal-title').textContent=isEdit?'Edit Auction':'Post New Auction';
-  const body=document.getElementById('auction-post-body');
-  const endVal=existing?.endTime?new Date(existing.endTime.toDate()).toISOString().slice(0,16):'';
-  body.innerHTML=`
-    <div style="background:var(--auction-bg);border:1px solid var(--auction-border);border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:.82rem;color:#b7791f;"><i class="fas fa-info-circle"></i> Admin auctions don't require you to offer a Pokémon from your collection. You're adding a new Pokémon as a prize.</div>
+async function openAuctionPostModal(existing = null) {
+  const isEdit = !!existing;
+  const owned = await getUserPokemon();
+  
+  // Validation for non-admins
+  if (!isAdmin && !isEdit) {
+    if (userData.totalLevels < (auctionSettings.minLevel || 0)) {
+      toast(`Min level ${auctionSettings.minLevel} required to host auctions.`, 'error');
+      return;
+    }
+    if (userData.coins < (auctionSettings.transactionFee || 0)) {
+      toast(`You need ${auctionSettings.transactionFee} coins for the listing fee.`, 'error');
+      return;
+    }
+  }
+
+  document.getElementById('auction-modal-title').textContent = isEdit ? 'Edit Auction' : 'Post New Auction';
+  const body = document.getElementById('auction-post-body');
+  const endVal = existing?.endTime ? new Date(existing.endTime.toDate()).toISOString().slice(0, 16) : '';
+
+  // Logic: Admin types ID, Player selects from inventory
+  const pokemonSelectorHTML = isAdmin ? `
+    <div class="form-group"><label>Pokémon ID</label><input type="number" id="auc-pid" value="${existing?.pokemonId || ''}" placeholder="e.g. 149"></div>
+  ` : `
+    <div class="form-group"><label>Select Your Pokémon</label>
+      <select id="auc-inventory-select">
+        ${owned.map(p => `<option value="${p.id}" data-pid="${p.pokemonId}" data-shiny="${p.isShiny}">${p.name.toUpperCase()} (Lv.${p.level}) ${p.isShiny ? '✨' : ''}</option>`).join('')}
+      </select>
+    </div>
+  `;
+
+  body.innerHTML = `
+    ${!isAdmin ? `<div style="background:#fff5f5; border:1px solid #fed7d7; padding:10px; border-radius:10px; margin-bottom:10px; font-size:.8rem; color:var(--danger);">
+      Listing Fee: <b>${auctionSettings.transactionFee} coins</b> (Deducted on post)
+    </div>` : ''}
     <div class="form-row">
-      <div class="form-group"><label>Pokémon ID</label><input type="number" id="auc-pid" value="${existing?.pokemonId||''}" min="1" placeholder="e.g. 149"></div>
-      <div class="form-group"><label>Level</label><input type="number" id="auc-level" value="${existing?.level||50}" min="1" max="200"></div>
+      ${pokemonSelectorHTML}
+      <div class="form-group"><label>Level</label><input type="number" id="auc-level" value="${existing?.level || 50}" min="1" max="200" ${!isAdmin ? 'disabled' : ''}></div>
     </div>
     <div id="auc-preview"></div>
     <div class="form-row">
-      <div class="form-group"><label>Starting Bid (coins)</label><input type="number" id="auc-start-bid" value="${existing?.startingBid||500}" min="0"></div>
-      <div class="form-group"><label>Max Pokémon per Bid</label><input type="number" id="auc-max-poke" value="${existing?.maxPokemon||3}" min="1" max="5"></div>
+      <div class="form-group"><label>Starting Bid (coins)</label><input type="number" id="auc-start-bid" value="${existing?.startingBid || 500}" min="0"></div>
+      <div class="form-group"><label>Max Pokémon per Bid</label><input type="number" id="auc-max-poke" value="${existing?.maxPokemon || 3}" min="1" max="5"></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>End Time (optional)</label><input type="datetime-local" id="auc-end" value="${endVal}"></div>
-      <div class="form-group"><label>Description (optional)</label><input type="text" id="auc-desc" value="${existing?.description||''}" placeholder="e.g. Rare shiny!"></div>
+      <div class="form-group"><label>End Time</label><input type="datetime-local" id="auc-end" value="${endVal}"></div>
+      <div class="form-group"><label>Description</label><input type="text" id="auc-desc" value="${existing?.description || ''}" placeholder="Notes..."></div>
     </div>
     <div class="form-group"><label>Bonus Stats</label>
       <div class="checkbox-group">
-        <label class="chk-label"><input type="checkbox" id="auc-atk" ${existing?.bonusStats?.atk?'checked':''}> ⚔️ +ATK</label>
-        <label class="chk-label"><input type="checkbox" id="auc-def" ${existing?.bonusStats?.def?'checked':''}> 🛡️ +DEF</label>
-        <label class="chk-label"><input type="checkbox" id="auc-spd" ${existing?.bonusStats?.spd?'checked':''}> 🏃 +SPD</label>
-        <label class="chk-label"><input type="checkbox" id="auc-shiny" ${existing?.isShiny?'checked':''}> ✨ Shiny</label>
+        <label class="chk-label"><input type="checkbox" id="auc-atk" ${existing?.bonusStats?.atk ? 'checked' : ''} ${!isAdmin ? 'disabled' : ''}> ATK</label>
+        <label class="chk-label"><input type="checkbox" id="auc-def" ${existing?.bonusStats?.def ? 'checked' : ''} ${!isAdmin ? 'disabled' : ''}> DEF</label>
+        <label class="chk-label"><input type="checkbox" id="auc-spd" ${existing?.bonusStats?.spd ? 'checked' : ''} ${!isAdmin ? 'disabled' : ''}> SPD</label>
+        <label class="chk-label"><input type="checkbox" id="auc-shiny" ${existing?.isShiny ? 'checked' : ''} ${!isAdmin ? 'disabled' : ''}> Shiny</label>
       </div>
     </div>
-    <div class="form-group"><label>Moves (up to 4)</label><div id="auc-moves"></div></div>`;
+    <div class="form-group" id="auc-moves-container"><label>Moves</label><div id="auc-moves"></div></div>`;
 
-  const pidEl=body.querySelector('#auc-pid');
-  const shinyEl=body.querySelector('#auc-shiny');
-  const updPrev=()=>renderPokePreview('auc-preview',parseInt(pidEl.value),shinyEl.checked);
-  pidEl.addEventListener('input',updPrev); shinyEl.addEventListener('change',updPrev);
-  if(existing)renderPokePreview('auc-preview',existing.pokemonId,existing.isShiny);
+  // Move Selector Logic
+  let selMoves = existing?.moves || [];
+  if (!isAdmin && !isEdit && owned.length > 0) {
+    // If player, lock moves to current pokemon moves
+    document.getElementById('auc-moves-container').style.display = 'none';
+  } else {
+    renderMoveSelector('auc-moves', selMoves, m => selMoves = m);
+  }
 
-  let selMoves=existing?.moves||[];
-  renderMoveSelector('auc-moves',selMoves,m=>selMoves=m);
+  // Preview Logic
+  const updatePlayerPreview = () => {
+    if (isAdmin) {
+      const pid = parseInt(body.querySelector('#auc-pid').value);
+      renderPokePreview('auc-preview', pid, body.querySelector('#auc-shiny').checked);
+    } else {
+      const sel = body.querySelector('#auc-inventory-select');
+      const opt = sel.options[sel.selectedIndex];
+      renderPokePreview('auc-preview', parseInt(opt.dataset.pid), opt.dataset.shiny === 'true');
+    }
+  };
+
+  if (isAdmin) body.querySelector('#auc-pid').oninput = updatePlayerPreview;
+  else body.querySelector('#auc-inventory-select').onchange = updatePlayerPreview;
+  updatePlayerPreview();
+
   document.getElementById('auction-post-modal').classList.remove('hidden');
 
-  document.getElementById('auction-post-save').onclick=async()=>{
-    const pid=parseInt(pidEl.value);
-    const level=parseInt(body.querySelector('#auc-level').value)||50;
-    const startBid=parseInt(body.querySelector('#auc-start-bid').value)||0;
-    const maxPoke=parseInt(body.querySelector('#auc-max-poke').value)||3;
-    const endStr=body.querySelector('#auc-end').value;
-    if(!pid||isNaN(pid)){toast('Enter valid Pokémon ID.','error');return;}
-    const btn=document.getElementById('auction-post-save');
-    btn.disabled=true; btn.innerHTML='Saving...';
-    try{
-      const p=await fetchPokemon(pid);
-      const sp=await fetchSpecies(pid).catch(()=>({is_legendary:false,is_mythical:false}));
-      let moves=[...selMoves];
-      while(moves.length<4)moves.push({name:'tackle',type:'normal',power:40,accuracy:100,effect:'-',effectAccuracy:'-',icon:'🔘'});
-      const data={pokemonId:pid,name:p.name,types:p.types.map(t=>t.type.name),level,moves:moves.slice(0,4),startingBid:startBid,maxPokemon:maxPoke,bonusStats:{atk:body.querySelector('#auc-atk').checked,def:body.querySelector('#auc-def').checked,spd:body.querySelector('#auc-spd').checked},isShiny:body.querySelector('#auc-shiny').checked,isSpecial:sp.is_legendary||sp.is_mythical,description:body.querySelector('#auc-desc').value||'',endTime:endStr?new Date(endStr):null,status:'open',bids:[],createdBy:currentUser.uid,createdAt:new Date()};
-      if(isEdit){
-        const upd={...data}; delete upd.bids; delete upd.createdBy; delete upd.createdAt;
-        await updateDoc(doc(db,'auctions',existing.id),upd);
+  // SAVE LOGIC
+  document.getElementById('auction-post-save').onclick = async () => {
+    const btn = document.getElementById('auction-post-save');
+    btn.disabled = true;
+
+    try {
+      let finalData;
+      if (isAdmin) {
+        // Admin creates new pokemon
+        const pid = parseInt(body.querySelector('#auc-pid').value);
+        const p = await fetchPokemon(pid);
+        const sp = await fetchSpecies(pid);
+        finalData = {
+          pokemonId: pid, name: p.name, types: p.types.map(t => t.type.name),
+          level: parseInt(body.querySelector('#auc-level').value),
+          moves: selMoves, isShiny: body.querySelector('#auc-shiny').checked,
+          bonusStats: { atk: body.querySelector('#auc-atk').checked, def: body.querySelector('#auc-def').checked, spd: body.querySelector('#auc-spd').checked },
+          isSpecial: sp.is_legendary || sp.is_mythical
+        };
       } else {
-        await addDoc(collection(db,'auctions'),data);
+        // Player uses existing pokemon
+        const invId = body.querySelector('#auc-inventory-select').value;
+        const pSnap = await getDoc(doc(db, 'users', currentUser.uid, 'pokemon', invId));
+        const pd = pSnap.data();
+        finalData = { ...pd, originalId: invId };
       }
-      closeModal('auction-post-modal'); loadAuctions(); toast(isEdit?'Auction updated!':'Auction posted!','success');
-    }catch(e){toast(e.message,'error');}
-    btn.disabled=false; btn.innerHTML='Post Auction';
+
+      await runTransaction(db, async (tx) => {
+        if (!isAdmin) {
+          // Deduct Listing Fee
+          tx.update(doc(db, 'users', currentUser.uid), { coins: increment(-(auctionSettings.transactionFee || 0)) });
+          // Remove from Player Inventory
+          tx.delete(doc(db, 'users', currentUser.uid, 'pokemon', finalData.originalId));
+        }
+
+        const auctionObj = {
+          ...finalData,
+          startingBid: parseInt(body.querySelector('#auc-start-bid').value),
+          maxPokemon: parseInt(body.querySelector('#auc-max-poke').value),
+          endTime: body.querySelector('#auc-end').value ? new Date(body.querySelector('#auc-end').value) : null,
+          description: body.querySelector('#auc-desc').value,
+          status: 'open', bids: [], createdBy: currentUser.uid,
+          sellerName: userData.trainerName, createdAt: serverTimestamp()
+        };
+        delete auctionObj.originalId;
+
+        tx.set(doc(collection(db, 'auctions')), auctionObj);
+      });
+
+      toast('Auction posted!', 'success');
+      closeModal('auction-post-modal');
+      loadAuctions();
+      updateNav();
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+    btn.disabled = false;
   };
 }
 
@@ -1652,17 +1733,20 @@ onAuthStateChanged(auth, async(user)=>{
   userData=ud; isAdmin=ud?.role==='admin';
   await updateNav();
   if(isAdmin){
-    document.getElementById('admin-add-listing').classList.remove('hidden');
+     document.getElementById('admin-add-listing').classList.remove('hidden');
     document.getElementById('admin-add-code').classList.remove('hidden');
-    document.getElementById('admin-add-auction').classList.remove('hidden');
+    
     // Add settings gear for admin in auction
-    const aHead=document.querySelector('#auction-tab .section-top');
-    const gearBtn=document.createElement('button');
-    gearBtn.className='btn btn-outline btn-sm';
-    gearBtn.innerHTML='<i class="fas fa-cog"></i> Settings';
-    gearBtn.onclick=openAuctionSettings;
+    const aHead = document.querySelector('#auction-tab .section-top');
+    const gearBtn = document.createElement('button');
+    gearBtn.className = 'btn btn-outline btn-sm';
+    gearBtn.innerHTML = '<i class="fas fa-cog"></i> Admin Settings';
+    gearBtn.onclick = openAuctionSettings;
     aHead.appendChild(gearBtn);
   }
+
+   document.getElementById('admin-add-auction').classList.remove('hidden');
+  document.getElementById('admin-add-auction').innerHTML = '<i class="fas fa-plus"></i> List My Auction';
   document.getElementById('admin-add-listing').onclick=()=>openShopModal();
   document.getElementById('create-sell-listing').onclick=openSellModal;
   document.getElementById('create-trade-offer').onclick=openTradeModal;

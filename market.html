@@ -1252,17 +1252,16 @@ async function buildAuctionCard(a, now){
   const fb=spriteStatic(a.pokemonId);
 
   // Build bidders list
-  const bids=a.bids||[];
-  const biddersHtml=bids.length?bids.slice(-5).reverse().map(b=>`
-    <div class="bidder-item">
-      <div class="bidder-avatar">${(b.trainerName||'?').charAt(0).toUpperCase()}</div>
+   const bids = a.bids || [];
+  const biddersHtml = bids.length ? bids.slice(-5).reverse().map(b => `
+    <div class="bidder-item view-bid-btn" style="cursor:pointer;" data-bidid="${b.bidId}" data-auctionid="${a.id}">
+      <div class="bidder-avatar">${(b.trainerName || '?').charAt(0).toUpperCase()}</div>
       <div style="flex:1;">
-        <div style="font-weight:700">${esc(b.trainerName||'Unknown')}</div>
-        <div style="font-size:.7rem;color:var(--text-light);">${b.coins?`💰 ${b.coins.toLocaleString()} coins`:''} ${b.pokemon?.length?`+ ${b.pokemon.length} Pokémon`:''}</div>
-        ${b.pokemon?.length?`<div class="bidder-pokemon-pills">${b.pokemon.map(p=>`<img class="bidder-poke-thumb" src="${spriteUrl(p.pokemonId)}" onerror="this.src='${spriteStatic(p.pokemonId)}'" title="${p.name.toUpperCase()}">`).join('')}</div>`:''}
+        <div style="font-weight:700">${esc(b.trainerName || 'Unknown')} ${b.userId === currentUser.uid ? '<small style="color:var(--primary)">(You)</small>' : ''}</div>
+        <div style="font-size:.7rem;color:var(--text-light);">${b.coins ? `💰 ${b.coins.toLocaleString()}` : ''} ${b.pokemon?.length ? `+ ${b.pokemon.length} Pokémon` : ''}</div>
       </div>
-     ${(isAdmin || isOwn) ? `<button class="btn btn-success btn-sm accept-bid-btn" data-bid='${JSON.stringify(b)}' data-auctionid="${a.id}"><i class="fas fa-check"></i> Accept</button>` : ''}
-    </div>`).join(''):'<div style="font-size:.78rem;color:var(--text-light);text-align:center;padding:8px;">No bids yet. Be the first!</div>';
+      <i class="fas fa-chevron-right" style="font-size:.7rem; color:var(--border);"></i>
+    </div>`).join('') : '<div style="font-size:.78rem;color:var(--text-light);text-align:center;padding:8px;">No bids yet.</div>';
 
   card.innerHTML=`
     <div class="auction-timer"><i class="fas fa-clock"></i> <span class="auction-time-left" data-end="${endDate?.toISOString()||''}">${timeLeftStr}</span></div>
@@ -1285,10 +1284,10 @@ async function buildAuctionCard(a, now){
       </div>
     </div>
     <div class="card-footer">
-      ${!isOwn ? `<button class="btn btn-gold btn-sm bid-btn"><i class="fas fa-hand-paper"></i> Place Bid</button>` : ''}
+      ${!isOwn && !isAdmin ? `<button class="btn btn-gold btn-sm bid-btn"><i class="fas fa-hand-paper"></i> Place Bid</button>` : ''}
       ${(isAdmin || isOwn) ? `
-        <button class="btn btn-outline btn-sm edit-auction-btn"><i class="fas fa-edit"></i> Edit</button>
-        <button class="btn btn-danger btn-sm close-auction-btn"><i class="fas fa-times"></i> Close</button>
+        <button class="btn btn-outline btn-sm edit-auction-btn"><i class="fas fa-edit"></i> Edit Auction</button>
+        <button class="btn btn-danger btn-sm close-auction-btn"><i class="fas fa-times"></i> Close Auction</button>
       ` : ''}
     </div>`;
 
@@ -1302,6 +1301,14 @@ async function buildAuctionCard(a, now){
   // Bid button
   const bidBtn=card.querySelector('.bid-btn');
   if(bidBtn)bidBtn.onclick=()=>openBidModal(a);
+
+  // View bid details listener
+  card.querySelectorAll('.view-bid-btn').forEach(btn => {
+    btn.onclick = () => {
+      const bid = a.bids.find(b => b.bidId === btn.dataset.bidid);
+      showBidDetailsModal(bid, a);
+    };
+  });
 
   // Admin accept buttons
   card.querySelectorAll('.accept-bid-btn').forEach(btn=>{
@@ -1490,10 +1497,113 @@ async function openAuctionPostModal(existing = null) {
     btn.disabled = false;
   };
 }
+
+function showBidDetailsModal(bid, auction) {
+  const isMyBid = bid.userId === currentUser.uid;
+  const bodyHtml = `
+
+    <div style="text-align:center; margin-bottom:20px;">
+      <div class="bidder-avatar" style="width:60px; height:60px; font-size:1.5rem; margin:0 auto 10px;">${bid.trainerName.charAt(0).toUpperCase()}</div>
+      <h4 style="margin:0;">${esc(bid.trainerName)}</h4>
+      <div class="price-tag" style="margin-top:5px;">💰 ${bid.coins.toLocaleString()} Coins</div>
+    </div>
+    
+    <div style="font-weight:700; font-size:.85rem; margin-bottom:10px; color:var(--text-light); border-bottom:1px solid var(--border); padding-bottom:5px;">POKÉMON OFFERED (${bid.pokemon?.length || 0})</div>
+    
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+      ${(bid.pokemon || []).map(p => `
+        <div style="background:#f8fafc; border:1px solid var(--border); border-radius:12px; padding:8px; display:flex; align-items:center; gap:10px;">
+          <img src="${spriteUrl(p.pokemonId, p.isShiny)}" style="width:40px; height:40px; image-rendering:pixelated;">
+          <div>
+            <div style="font-weight:800; font-size:.75rem;">${p.name.toUpperCase()} ${p.isShiny ? '✨' : ''}</div>
+            <div style="font-size:.65rem; color:var(--text-light);">Lv.${p.level} · ${bonusIcons(p.bonusStats)}</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+    
+    ${isMyBid ? `
+      <div style="margin-top:20px; padding-top:15px; border-top:1px solid var(--border); display:flex; gap:10px;">
+        <button class="btn btn-primary" style="flex:1;" id="edit-my-bid-btn"><i class="fas fa-edit"></i> Edit</button>
+        <button class="btn btn-danger" style="flex:1;" id="cancel-my-bid-btn"><i class="fas fa-trash-alt"></i> Cancel Bid</button>
+      </div>
+      <p style="font-size:.7rem; color:var(--text-light); text-align:center; margin-top:8px;">Everything you bidded will be returned to your collection.</p>
+    ` : ''}
+  `;
+
+  // Use the shop-modal or similar overlay to show this
+  const modal = document.getElementById('shop-modal'); 
+  document.getElementById('shop-modal-title').innerHTML = "Bid Details";
+  document.getElementById('shop-modal-body').innerHTML = bodyHtml;
+  document.getElementById('shop-modal-save').classList.add('hidden'); // Hide the default save button
+  modal.classList.remove('hidden');
+
+  if (isMyBid) {
+    document.getElementById('edit-my-bid-btn').onclick = () => {
+      closeModal('shop-modal');
+      openBidModal(auction, bid);
+    };
+    
+    // NEW CANCEL LISTENER
+    document.getElementById('cancel-my-bid-btn').onclick = () => {
+      if(confirm("Are you sure you want to cancel your bid? All coins and Pokémon will be returned.")) {
+        cancelMyBid(auction, bid);
+      }
+    };
+  }
+}
+
+async function cancelMyBid(auction, bid) {
+  const toastMsg = toast('Cancelling bid...', '');
+  try {
+    await runTransaction(db, async (tx) => {
+      const uRef = doc(db, 'users', currentUser.uid);
+      const aRef = doc(db, 'auctions', auction.id);
+      
+      const uSnap = await tx.get(uRef);
+      const aSnap = await tx.get(aRef);
+      
+      if (!aSnap.exists()) throw new Error("Auction no longer exists.");
+      const aData = aSnap.data();
+      
+      // 1. Calculate Refund (Coins + Fee if applicable)
+      const fee = auctionSettings.transactionFee || 0;
+      const refundAmount = bid.coins + (bid.pokemon?.length > 0 ? fee : 1000);
+      
+      // 2. Refund Coins
+      tx.update(uRef, { coins: increment(refundAmount) });
+      
+      // 3. Restore Pokémon to User's Collection
+      for (const p of (bid.pokemon || [])) {
+        const restoreRef = doc(collection(db, 'users', currentUser.uid, 'pokemon'));
+        tx.set(restoreRef, {
+          ...p,
+          inTeam: false,
+          capturedAt: new Date(),
+          exp: 0 // Reset XP to 0 or preserve if saved in bid
+        });
+      }
+      
+      // 4. Remove this specific bid from the auction's bids array
+      const updatedBids = (aData.bids || []).filter(b => b.bidId !== bid.bidId);
+      tx.update(aRef, { bids: updatedBids });
+    });
+
+    closeModal('shop-modal');
+    loadAuctions();
+    updateNav();
+    toast('Bid cancelled and items returned!', 'success');
+  } catch (e) {
+    console.error(e);
+    toast(e.message, 'error');
+  }
+}
+
 // Player places bid
 let bidAuction=null, bidSelectedPokemon=[];
-async function openBidModal(auction){
-  bidAuction=auction; bidSelectedPokemon=[];
+async function openBidModal(auction, existingBid = null) { 
+  bidAuction=auction;
+  bidSelectedPokemon = existingBid ? [...existingBid.pokemon.map(p => ({...p, id: p.originalId}))] : [];
   const coins=(await getDoc(doc(db,'users',currentUser.uid))).data()?.coins||0;
   const totalLvl=userData?.totalLevels||0;
 
@@ -1518,6 +1628,7 @@ async function openBidModal(auction){
       <label>Coins to bid (You have: 💰${coins.toLocaleString()})</label>
       <input type="number" id="bid-coins" value="${auction.startingBid||0}" min="0">
     </div>
+    
     <div class="form-group">
       <label>Add Pokémon to bid (max ${auction.maxPokemon||5})</label>
       <div id="bid-pokemon-slots" class="bid-pokemon-slots">
@@ -1538,7 +1649,8 @@ async function openBidModal(auction){
 });
 
   document.getElementById('auction-bid-modal').classList.remove('hidden');
-  document.getElementById('auction-bid-confirm').onclick=async()=>submitBid(auction);
+  document.getElementById('bid-coins').value = existingBid ? existingBid.coins : auction.startingBid;
+  document.getElementById('auction-bid-confirm').onclick = async () => submitBid(auction, existingBid);
 }
 
 function renderBidSlots(body, auction) {
@@ -1625,7 +1737,7 @@ async function openPokePicker(callback, excludeIds = []) {
 }
 
 
-async function submitBid(auction) {
+async function submitBid(auction, existingBid = null) {
   const coins = parseInt(document.getElementById('bid-coins').value) || 0;
   if (coins < (auction.startingBid || 0)) {
     toast(`Minimum bid is ${auction.startingBid} coins.`, 'error');
@@ -1634,81 +1746,80 @@ async function submitBid(auction) {
 
   const fee = auctionSettings.transactionFee || 0;
   const totalDeduct = coins + (bidSelectedPokemon.length > 0 ? fee : 0);
-  
   const btn = document.getElementById('auction-bid-confirm');
+  
   btn.disabled = true; 
-  btn.innerHTML = 'Placing bid...';
+  btn.innerHTML = 'Processing Bid...';
 
   try {
     await runTransaction(db, async (tx) => {
-      // 1. ALL READS AT THE TOP
       const uRef = doc(db, 'users', currentUser.uid);
       const aRef = doc(db, 'auctions', auction.id);
+      const uSnap = await tx.get(uRef);
+      const aSnap = await tx.get(aRef);
 
-      const uSnap = await tx.get(uRef); // Read 1
-      const aSnap = await tx.get(aRef); // Read 2 (Moved from bottom to top)
-
-      // 2. VALIDATIONS
-      if (!uSnap.exists()) throw new Error('User not found.');
-      if (!aSnap.exists()) throw new Error('Auction no longer exists.');
-      
       const uData = uSnap.data();
-      const currentAuctionData = aSnap.data();
+      const aData = aSnap.data();
 
-      if ((uData.coins || 0) < totalDeduct) {
-        throw new Error('Insufficient coins.');
-      }
-      
-      if (currentAuctionData.status !== 'open') {
-        throw new Error('This auction is already closed.');
+      // 1. If EDITING: Refund the old bid first
+      if (existingBid) {
+        // Return old coins
+        const oldTotal = existingBid.coins + (existingBid.pokemon.length > 0 ? fee : 0);
+        tx.update(uRef, { coins: increment(oldTotal) });
+        
+        // Return old Pokémon to user's collection
+        for (const p of existingBid.pokemon) {
+          const restoreRef = doc(collection(db, 'users', currentUser.uid, 'pokemon'));
+          tx.set(restoreRef, { ...p, inTeam: false, capturedAt: new Date() });
+        }
       }
 
-      // 3. ALL WRITES AT THE BOTTOM
-      
-      // Update User Coins
+      // 2. Perform validation AFTER refunding (so user has their coins/pokes back)
+      // Check coins again with updated balance
+      const currentCoins = (uData.coins || 0) + (existingBid ? (existingBid.coins + (existingBid.pokemon.length > 0 ? fee : 0)) : 0);
+      if (currentCoins < totalDeduct) throw new Error('Insufficient coins for this bid.');
+
+      // 3. Deduct NEW bid items
       tx.update(uRef, { coins: increment(-totalDeduct) });
-
-      // Delete the bidded Pokémon from User's collection
       for (const p of bidSelectedPokemon) {
-        const pRef = doc(db, 'users', currentUser.uid, 'pokemon', p.id);
-        tx.delete(pRef);
+        tx.delete(doc(db, 'users', currentUser.uid, 'pokemon', p.id));
       }
 
-      // Prepare the new bid object
-      const newBid = {
-        bidId: Date.now().toString(),
+      // 4. Update the auction bids array
+      let newBids = aData.bids || [];
+      const newBidObj = {
+        bidId: existingBid ? existingBid.bidId : Date.now().toString(),
         userId: currentUser.uid,
         trainerName: userData?.trainerName || currentUser.email,
         coins: coins,
         pokemon: bidSelectedPokemon.map(p => ({
-          pokemonId: p.pokemonId,
-          name: p.name,
-          level: p.level,
-          types: p.types || [],
-          moves: p.moves || [],
-          bonusStats: p.bonusStats || {},
-          isShiny: p.isShiny || false,
-          originalId: p.id
+          pokemonId: p.pokemonId, name: p.name, level: p.level,
+          types: p.types, moves: p.moves, bonusStats: p.bonusStats,
+          isShiny: p.isShiny || false, originalId: p.id
         })),
         timestamp: new Date()
       };
 
-      // Update Auction Bids Array
-      const updatedBids = [...(currentAuctionData.bids || []), newBid];
-      tx.update(aRef, { bids: updatedBids });
+      if (existingBid) {
+        // Replace old bid index
+        const idx = newBids.findIndex(b => b.bidId === existingBid.bidId);
+        newBids[idx] = newBidObj;
+      } else {
+        newBids.push(newBidObj);
+      }
+
+      tx.update(aRef, { bids: newBids });
     });
 
     closeModal('auction-bid-modal');
     loadAuctions();
     updateNav();
-    toast('Bid placed successfully!', 'success');
+    toast(existingBid ? 'Bid updated!' : 'Bid placed!', 'success');
   } catch (e) {
-    console.error(e);
     toast(e.message, 'error');
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = 'Submit Bid';
   }
+  btn.disabled = false;
+  btn.innerHTML = 'Submit Bid';
 }
 
 async function acceptBid(auction,bid){

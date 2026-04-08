@@ -1639,7 +1639,7 @@ function makePokemon(pid,name,level,types,moves,inTeam=false){
   const maxHp=level*20+50;
   return{ id:'p'+Date.now()+Math.random().toString(36).slice(2,5), pokemonId:pid, name, level, types, moves, exp:0, maxHp, currentHp:maxHp, inTeam, isShiny:false, caught:Date.now() };
 }
-function expNeeded(lvl){ return (lvl+1)*(lvl+1)*5-lvl*lvl*5; }
+function expNeeded(lvl){ return lvl * 300; }
 function getTypeEff(atkType,defTypes){ let m=1; const t=TYPE_EFF[atkType]||{}; defTypes.forEach(dt=>m*=(t[dt]||1)); return m; }
 function typeBadgeHtml(types){ return types.map(t=>`<span class="type-badge" style="background:${TYPE_COLORS[t]||'#888'}">${t.toUpperCase()}</span>`).join(''); }
 

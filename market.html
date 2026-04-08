@@ -1332,13 +1332,13 @@ async function openAuctionPostModal(existing = null) {
   const isEdit = !!existing;
   const owned = await getUserPokemon();
   
-  // Validation for non-admins
+  // Validation for non-admins on new posts
   if (!isAdmin && !isEdit) {
-    if (userData.totalLevels < (auctionSettings.minLevel || 0)) {
+    if ((userData.totalLevels || 0) < (auctionSettings.minLevel || 0)) {
       toast(`Min level ${auctionSettings.minLevel} required to host auctions.`, 'error');
       return;
     }
-    if (userData.coins < (auctionSettings.transactionFee || 0)) {
+    if ((userData.coins || 0) < (auctionSettings.transactionFee || 0)) {
       toast(`You need ${auctionSettings.transactionFee} coins for the listing fee.`, 'error');
       return;
     }
@@ -1348,19 +1348,24 @@ async function openAuctionPostModal(existing = null) {
   const body = document.getElementById('auction-post-body');
   const endVal = existing?.endTime ? new Date(existing.endTime.toDate()).toISOString().slice(0, 16) : '';
 
-  // Logic: Admin types ID, Player selects from inventory
-  const pokemonSelectorHTML = isAdmin ? `
-    <div class="form-group"><label>Pokémon ID</label><input type="number" id="auc-pid" value="${existing?.pokemonId || ''}" placeholder="e.g. 149"></div>
-  ` : `
-    <div class="form-group"><label>Select Your Pokémon</label>
-      <select id="auc-inventory-select">
-        ${owned.map(p => `<option value="${p.id}" data-pid="${p.pokemonId}" data-shiny="${p.isShiny}">${p.name.toUpperCase()} (Lv.${p.level}) ${p.isShiny ? '✨' : ''}</option>`).join('')}
-      </select>
-    </div>
-  `;
+  // Selector Logic: Admin types ID, Player selects from inventory (hidden on Edit)
+  let pokemonSelectorHTML = '';
+  if (isAdmin) {
+    pokemonSelectorHTML = `<div class="form-group"><label>Pokémon ID</label><input type="number" id="auc-pid" value="${existing?.pokemonId || ''}" placeholder="e.g. 149"></div>`;
+  } else if (!isEdit) {
+    pokemonSelectorHTML = `
+      <div class="form-group"><label>Select Your Pokémon</label>
+        <select id="auc-inventory-select">
+          ${owned.map(p => `<option value="${p.id}" data-pid="${p.pokemonId}" data-shiny="${p.isShiny}">${p.name.toUpperCase()} (Lv.${p.level}) ${p.isShiny ? '✨' : ''}</option>`).join('')}
+        </select>
+      </div>`;
+  } else {
+    // Player is editing: Just show the name of the Pokémon already listed
+    pokemonSelectorHTML = `<div class="form-group"><label>Pokémon</label><input type="text" value="${existing.name.toUpperCase()}" disabled></div>`;
+  }
 
   body.innerHTML = `
-    ${!isAdmin ? `<div style="background:#fff5f5; border:1px solid #fed7d7; padding:10px; border-radius:10px; margin-bottom:10px; font-size:.8rem; color:var(--danger);">
+    ${(!isAdmin && !isEdit) ? `<div style="background:#fff5f5; border:1px solid #fed7d7; padding:10px; border-radius:10px; margin-bottom:10px; font-size:.8rem; color:var(--danger);">
       Listing Fee: <b>${auctionSettings.transactionFee} coins</b> (Deducted on post)
     </div>` : ''}
     <div class="form-row">
@@ -1376,22 +1381,22 @@ async function openAuctionPostModal(existing = null) {
       <div class="form-group"><label>End Time</label><input type="datetime-local" id="auc-end" value="${endVal}"></div>
       <div class="form-group"><label>Description</label><input type="text" id="auc-desc" value="${existing?.description || ''}" placeholder="Notes..."></div>
     </div>
-    <div class="form-group"><label>Bonus Stats</label>
+    <div class="form-group"><label>Bonus Stats & Rarity</label>
       <div class="checkbox-group">
-        <label class="chk-label"><input type="checkbox" id="auc-atk" ${existing?.bonusStats?.atk ? 'checked' : ''} ${!isAdmin ? 'disabled' : ''}> ATK</label>
-        <label class="chk-label"><input type="checkbox" id="auc-def" ${existing?.bonusStats?.def ? 'checked' : ''} ${!isAdmin ? 'disabled' : ''}> DEF</label>
-        <label class="chk-label"><input type="checkbox" id="auc-spd" ${existing?.bonusStats?.spd ? 'checked' : ''} ${!isAdmin ? 'disabled' : ''}> SPD</label>
-        <label class="chk-label"><input type="checkbox" id="auc-shiny" ${existing?.isShiny ? 'checked' : ''} ${!isAdmin ? 'disabled' : ''}> Shiny</label>
+        <label class="chk-label"><input type="checkbox" id="auc-atk" ${existing?.bonusStats?.atk ? 'checked' : ''} ${!isAdmin ? 'disabled' : ''}> ⚔️ ATK</label>
+        <label class="chk-label"><input type="checkbox" id="auc-def" ${existing?.bonusStats?.def ? 'checked' : ''} ${!isAdmin ? 'disabled' : ''}> 🛡️ DEF</label>
+        <label class="chk-label"><input type="checkbox" id="auc-spd" ${existing?.bonusStats?.spd ? 'checked' : ''} ${!isAdmin ? 'disabled' : ''}> 🏃 SPD</label>
+        <label class="chk-label"><input type="checkbox" id="auc-shiny" ${existing?.isShiny ? 'checked' : ''} ${!isAdmin ? 'disabled' : ''}> ✨ Shiny</label>
       </div>
     </div>
-    <div class="form-group" id="auc-moves-container"><label>Moves</label><div id="auc-moves"></div></div>`;
+    <div class="form-group" id="auc-moves-container" style="${!isAdmin ? 'display:none' : ''}">
+      <label>Moves (Admin Only)</label>
+      <div id="auc-moves"></div>
+    </div>`;
 
-  // Move Selector Logic
+  // Move Selector Logic (Only for Admin)
   let selMoves = existing?.moves || [];
-  if (!isAdmin && !isEdit && owned.length > 0) {
-    // If player, lock moves to current pokemon moves
-    document.getElementById('auc-moves-container').style.display = 'none';
-  } else {
+  if (isAdmin) {
     renderMoveSelector('auc-moves', selMoves, m => selMoves = m);
   }
 
@@ -1399,16 +1404,18 @@ async function openAuctionPostModal(existing = null) {
   const updatePlayerPreview = () => {
     if (isAdmin) {
       const pid = parseInt(body.querySelector('#auc-pid').value);
-      renderPokePreview('auc-preview', pid, body.querySelector('#auc-shiny').checked);
-    } else {
+      if(pid) renderPokePreview('auc-preview', pid, body.querySelector('#auc-shiny').checked);
+    } else if (!isEdit) {
       const sel = body.querySelector('#auc-inventory-select');
       const opt = sel.options[sel.selectedIndex];
       renderPokePreview('auc-preview', parseInt(opt.dataset.pid), opt.dataset.shiny === 'true');
+    } else {
+      renderPokePreview('auc-preview', existing.pokemonId, existing.isShiny);
     }
   };
 
   if (isAdmin) body.querySelector('#auc-pid').oninput = updatePlayerPreview;
-  else body.querySelector('#auc-inventory-select').onchange = updatePlayerPreview;
+  else if (!isEdit) body.querySelector('#auc-inventory-select').onchange = updatePlayerPreview;
   updatePlayerPreview();
 
   document.getElementById('auction-post-modal').classList.remove('hidden');
@@ -1421,8 +1428,8 @@ async function openAuctionPostModal(existing = null) {
     try {
       let finalData;
       if (isAdmin) {
-        // Admin creates new pokemon
         const pid = parseInt(body.querySelector('#auc-pid').value);
+        if(!pid) throw new Error("Please enter a Pokemon ID.");
         const p = await fetchPokemon(pid);
         const sp = await fetchSpecies(pid);
         finalData = {
@@ -1432,17 +1439,20 @@ async function openAuctionPostModal(existing = null) {
           bonusStats: { atk: body.querySelector('#auc-atk').checked, def: body.querySelector('#auc-def').checked, spd: body.querySelector('#auc-spd').checked },
           isSpecial: sp.is_legendary || sp.is_mythical
         };
-      } else {
-        // Player uses existing pokemon
+      } else if (!isEdit) {
+        // New Player Auction
         const invId = body.querySelector('#auc-inventory-select').value;
         const pSnap = await getDoc(doc(db, 'users', currentUser.uid, 'pokemon', invId));
         const pd = pSnap.data();
         finalData = { ...pd, originalId: invId };
+      } else {
+        // Player Edit: Preserve existing pokemon data
+        finalData = { ...existing };
       }
 
       await runTransaction(db, async (tx) => {
-        if (!isAdmin) {
-          // Deduct Listing Fee
+        if (!isAdmin && !isEdit) {
+          // Deduct Listing Fee only on new posts
           tx.update(doc(db, 'users', currentUser.uid), { coins: increment(-(auctionSettings.transactionFee || 0)) });
           // Remove from Player Inventory
           tx.delete(doc(db, 'users', currentUser.uid, 'pokemon', finalData.originalId));
@@ -1452,27 +1462,34 @@ async function openAuctionPostModal(existing = null) {
           ...finalData,
           startingBid: parseInt(body.querySelector('#auc-start-bid').value),
           maxPokemon: parseInt(body.querySelector('#auc-max-poke').value),
-          endTime: body.querySelector('#auc-end').value ? new Date(body.querySelector('#auc-end').value) : null,
+          endTime: body.querySelector('#auc-end').value ? new Date(body.querySelector('#auc-end').value) : (existing?.endTime || null),
           description: body.querySelector('#auc-desc').value,
-          status: 'open', bids: [], createdBy: currentUser.uid,
-          sellerName: userData.trainerName, createdAt: serverTimestamp()
+          status: 'open',
+          createdBy: isEdit ? existing.createdBy : currentUser.uid,
+          sellerName: isEdit ? existing.sellerName : userData.trainerName,
+          createdAt: isEdit ? existing.createdAt : serverTimestamp(),
+          bids: existing?.bids || []
         };
-        delete auctionObj.originalId;
+        
+        // Clean up internal ID before saving to auctions collection
+        delete auctionObj.originalId; 
+        if(isEdit) delete auctionObj.id;
 
-        tx.set(doc(collection(db, 'auctions')), auctionObj);
+        const aucRef = isEdit ? doc(db, 'auctions', existing.id) : doc(collection(db, 'auctions'));
+        tx.set(aucRef, auctionObj);
       });
 
-      toast('Auction posted!', 'success');
+      toast(isEdit ? 'Auction updated!' : 'Auction posted!', 'success');
       closeModal('auction-post-modal');
       loadAuctions();
       updateNav();
     } catch (e) {
+      console.error(e);
       toast(e.message, 'error');
     }
     btn.disabled = false;
   };
 }
-
 // Player places bid
 let bidAuction=null, bidSelectedPokemon=[];
 async function openBidModal(auction){

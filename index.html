@@ -123,6 +123,32 @@
         }
         .hidden { display: none !important; }
 
+        /* Dark theme class – applied to body */
+body.dark-theme {
+  --bg: #1a1e2c;
+  --card-bg: #2d2f3e;
+  --primary: #6c5ce7;
+  --primary-dark: #5a4ad1;
+  --accent: #ff7675;
+  --text-dark: #e2e8f0;
+  --text-light: #a0aec0;
+  --border: #3d4050;
+  --success: #4cd964;
+  --danger: #ff5e5e;
+  --grass: #2d6a4f;
+  --dirt: #7b5e3b;
+  --water: #3b82f6;
+  --fire: #f97316;
+}
+
+#theme-toggle {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 40px;
+  padding: 4px 12px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
         /* Shake Animation */
 @keyframes shake {
   0% { transform: translate(1px, 1px) rotate(0deg); }
@@ -789,7 +815,7 @@
             <!-- Selection View -->
         <div id="starter-selection-view">
     <div style="display: flex; align-items: center; gap: 20px; margin: 20px 0;">
-        <div id="trainer-sprite-preview" style="width: 80px; height: 80px; ..."></div>
+        <div id="trainer-sprite-preview" style="width: 80px; height: 80px; "></div>
         <input type="text" id="trainer-name-input" placeholder="Enter your trainer name" style="flex: 1;">
     </div>
     <div style="margin: 10px 0;">
@@ -911,6 +937,7 @@
                 <div id="coin-display">💰 <span id="coin-amount">0</span></div>
                 <button class="btn btn-outline" id="logout-btn">Logout</button>
                 <button id="volume-toggle" class="volume-btn" title="Mute/Unmute">🔊</button>
+                <button id="theme-toggle" class="volume-btn" title="Dark/Light mode">🌙</button>
             </div>
         </nav>
 
@@ -3192,6 +3219,33 @@
     window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; installContainers.forEach(container => container.classList.remove('hidden')); console.log('beforeinstallprompt fired: App is installable'); });
     installBtns.forEach(btn => { btn.addEventListener('click', async () => { if (!deferredPrompt) { alert("Installation prompt not ready. If you're on iOS, use the Share menu."); return; } deferredPrompt.prompt(); const { outcome } = await deferredPrompt.userChoice; if (outcome === 'accepted') console.log('User accepted the install prompt'); deferredPrompt = null; installContainers.forEach(container => container.classList.add('hidden')); }); });
     window.addEventListener('appinstalled', () => { installContainers.forEach(container => container.classList.add('hidden')); deferredPrompt = null; console.log('PWA was installed'); });
+// ========== DARK MODE TOGGLE ==========
+const themeToggle = document.getElementById('theme-toggle');
+const DARK_KEY = 'pokesim_dark_theme';
+
+// Load saved preference
+if (localStorage.getItem(DARK_KEY) === 'true') {
+  document.body.classList.add('dark-theme');
+  if (themeToggle) themeToggle.textContent = '☀️';
+}
+
+// Toggle function
+function toggleDarkTheme() {
+  if (document.body.classList.contains('dark-theme')) {
+    document.body.classList.remove('dark-theme');
+    localStorage.setItem(DARK_KEY, 'false');
+    if (themeToggle) themeToggle.textContent = '🌙';
+  } else {
+    document.body.classList.add('dark-theme');
+    localStorage.setItem(DARK_KEY, 'true');
+    if (themeToggle) themeToggle.textContent = '☀️';
+  }
+}
+
+if (themeToggle) {
+  themeToggle.addEventListener('click', toggleDarkTheme);
+}
+
 </script>
 </body>
 </html>

@@ -976,7 +976,7 @@ const LOCAL_MAPS = [
     pokemonList: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20],  // IDs you want
     min:1, max:20,  // keep fallback
     req:0, enc:.14, tiles:['#6b4c1e','#2d6a2d'], tileClass:['dirt','grass'],
-    catchRate:45, reqXp:0, catchPenalty:10, specialLevel:{enabled:false}
+    catchRate:45, reqXp:0, catchPenalty:10, specialLevelRange: { enabled: true, min: 5, max: 20 }
   },
   {id:'forest',name:'Viridian Forest',icon:'🌲',desc:'Bug-types and rare finds',min:10,max:50,req:30,enc:.16,tiles:['#1a4a1a','#2d6a2d'],tileClass:['grass2','grass'],catchRate:40,reqXp:5,catchPenalty:10,specialLevelRange: { enabled: true, min: 5, max: 30 }},
   {id:'cave',name:'Mt. Moon',icon:'🌙',desc:'Dark caves and fossils',min:30,max:80,req:80,enc:.18,tiles:['#333','#2a2a4a'],tileClass:['rock','grass'],catchRate:35,reqXp:10,catchPenalty:15, specialLevelRange: { enabled: true, min: 15, max: 30 }},
@@ -1635,9 +1635,15 @@ async function getMoves(urls){
   if(!out.length) out.push({name:'tackle',power:40,type:'normal',accuracy:100});
   return out;
 }
-function makePokemon(pid,name,level,types,moves,inTeam=false){
-  const maxHp=level*20+50;
-  return{ id:'p'+Date.now()+Math.random().toString(36).slice(2,5), pokemonId:pid, name, level, types, moves, exp:0, maxHp, currentHp:maxHp, inTeam, isShiny:false, caught:Date.now() };
+function makePokemon(pid, name, level, types, moves, inTeam = false) {
+  const maxHp = level * 20 + 50;
+  return {
+    id: 'p' + Date.now() + Math.random().toString(36).slice(2, 5),
+    pokemonId: pid, name, level, types, moves, exp: 0,
+    maxHp, currentHp: maxHp, inTeam, isShiny: false,
+    fainted: false,  // <-- add this line
+    caught: Date.now()
+  };
 }
 function expNeeded(lvl){ return lvl * 300; }
 function getTypeEff(atkType,defTypes){ let m=1; const t=TYPE_EFF[atkType]||{}; defTypes.forEach(dt=>m*=(t[dt]||1)); return m; }
@@ -1762,7 +1768,7 @@ window.addEventListener('keydown',e=>{
 async function startBattleForContext(ctx){ // ctx: 'ex' or 'by'
   const map=ctx==='ex'?exMap:byMap;
   if(!map) return;
-  const teamSrc = ctx==='by' && byTeam.length ? byTeam : gs.pokemon.filter(p=>p.inTeam&&p.currentHp>0);
+ const teamSrc = ctx==='by' && byTeam.length ? byTeam : gs.pokemon.filter(p => p.inTeam && p.currentHp > 0 && !p.fainted);
   if(!teamSrc.length){ showToast('⚠️ No healthy Pokémon!'); return; }
   showLoading('Wild Pokémon approaching...');
   try{
@@ -1803,7 +1809,8 @@ async function startBattleForContext(ctx){ // ctx: 'ex' or 'by'
     const sel=await showPreBattleSelect(teamSrc);
     if(!sel){ return; }
     const wildObj={ pokemonId:wildId,name:pd.name,level:wildLvl,maxHp:wildHp,currentHp:wildHp,types:wildTypes,moves:wildMoves,isShiny,isSpecial,isLeg,isMyth,bonusStats:wildBonus };
-    const playerObj={...sel,currentHp:sel.maxHp};
+    const playerObj = sel;
+    playerObj.currentHp = sel.maxHp; 
     const battle={ playerTeam:[...teamSrc],player:playerObj,wild:wildObj,map,ctx,xpGained:0,coinsGained:0 };
     if(ctx==='ex'){ exBattle=battle; renderBattleUI('ex'); document.getElementById('explore-battle').classList.remove('hidden'); document.getElementById('explore-battle').scrollIntoView({behavior:'smooth',block:'nearest'}); addLog('ex',`A wild ${pd.name.toUpperCase()} (Lv.${wildLvl}) appeared!`); updateCatchInfo('ex'); }
     else{ byBattle=battle; renderBattleUI('by'); document.getElementById('byahe-battle').classList.remove('hidden'); document.getElementById('byahe-battle').scrollIntoView({behavior:'smooth',block:'nearest'}); addLog('by',`A wild ${pd.name.toUpperCase()} (Lv.${wildLvl}) appeared!`); updateCatchInfo('by'); }
@@ -1903,69 +1910,120 @@ function toggleBattleBtns(ctx,dis){
   [`${pfx}-catch`,`${pfx}-switch`,`${pfx}-run`].forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=dis;});
   document.querySelectorAll(`#${ctx==='ex'?'ex':'by'}-moves .move-btn`).forEach(b=>b.disabled=dis);
 }
-async function runTurn(ctx,move){
-  const b=getBattle(ctx); if(!b) return;
-  if(ctx==='ex'&&exProcessing) return; if(ctx==='by'&&byProcessing) return;
-  if(ctx==='ex') exProcessing=true; else byProcessing=true;
-  toggleBattleBtns(ctx,true);
+async function runTurn(ctx, move) {
+  const b = getBattle(ctx); 
+  if (!b) return;
+  if (ctx==='ex' && exProcessing) return; 
+  if (ctx==='by' && byProcessing) return;
+  if (ctx==='ex') exProcessing=true; else byProcessing=true;
+  toggleBattleBtns(ctx, true);
   await new Promise(r=>setTimeout(r,300));
+
   // Player attacks
-  const {dmg:pdmg,eff,miss:pmiss}=calcDmg(b.player,b.wild,move);
-  if(pmiss) addLog(ctx,`${b.player.name.toUpperCase()} missed!`);
-  else{
-    b.wild.currentHp=Math.max(0,b.wild.currentHp-pdmg);
-    let et=eff>=2?' Super effective!':eff<1&&eff>0?' Not very effective...':eff===0?' No effect!':'';
-    addLog(ctx,`${b.player.name.toUpperCase()} used ${move.name.toUpperCase()}! ${pdmg} dmg.${et}`);
+  const {dmg:pdmg,eff,miss:pmiss} = calcDmg(b.player, b.wild, move);
+  if (pmiss) {
+    addLog(ctx, `${b.player.name.toUpperCase()} missed!`);
+  } else {
+    b.wild.currentHp = Math.max(0, b.wild.currentHp - pdmg);
+    let et = eff >= 2 ? ' Super effective!' : eff < 1 && eff > 0 ? ' Not very effective...' : eff === 0 ? ' No effect!' : '';
+    addLog(ctx, `${b.player.name.toUpperCase()} used ${move.name.toUpperCase()}! ${pdmg} dmg.${et}`);
   }
-  renderBattleUI(ctx); updateCatchInfo(ctx);
-  if(b.wild.currentHp<=0){ addLog(ctx,`Wild ${b.wild.name.toUpperCase()} fainted!`); await resolveBattle(ctx,true); return; }
+  renderBattleUI(ctx); 
+  updateCatchInfo(ctx);
+
+  // Check if wild Pokémon fainted
+  if (b.wild.currentHp <= 0) {
+    addLog(ctx, `Wild ${b.wild.name.toUpperCase()} fainted!`);
+    b.wild.fainted = true; // mark as fainted
+    await resolveBattle(ctx, true);
+    // Switch to next available Pokémon if battle continues
+    loadNextAvailablePokemon();
+    return;
+  }
+
   await new Promise(r=>setTimeout(r,500));
+
   // Wild attacks
-  const wm=b.wild.moves[Math.floor(Math.random()*b.wild.moves.length)]||{name:'tackle',power:40,type:'normal',accuracy:100};
-  const {dmg:wdmg,miss:wmiss}=calcDmg(b.wild,b.player,wm);
-  if(wmiss) addLog(ctx,`Wild ${b.wild.name.toUpperCase()} missed!`);
-  else{ b.player.currentHp=Math.max(0,b.player.currentHp-wdmg); addLog(ctx,`Wild ${b.wild.name.toUpperCase()} used ${wm.name.toUpperCase()}! ${wdmg} dmg.`); }
-  renderBattleUI(ctx);
-  if(b.player.currentHp<=0){
-    addLog(ctx,`${b.player.name.toUpperCase()} fainted!`);
-    const alive=b.playerTeam.filter(p=>p.id!==b.player.id&&p.currentHp>0);
-    if(!alive.length){ await resolveBattle(ctx,false); return; }
-    b.player={...alive[0],currentHp:alive[0].currentHp};
-    addLog(ctx,`Go! ${b.player.name.toUpperCase()}!`); renderBattleUI(ctx);
+  const wm = b.wild.moves[Math.floor(Math.random() * b.wild.moves.length)] || {name:'tackle', power:40, type:'normal', accuracy:100};
+  const {dmg:wdmg,miss:wmiss} = calcDmg(b.wild, b.player, wm);
+  if (wmiss) {
+    addLog(ctx, `Wild ${b.wild.name.toUpperCase()} missed!`);
+  } else {
+    b.player.currentHp = Math.max(0, b.player.currentHp - wdmg);
+    addLog(ctx, `Wild ${b.wild.name.toUpperCase()} used ${wm.name.toUpperCase()}! ${wdmg} dmg.`);
   }
-  if(ctx==='ex') exProcessing=false; else byProcessing=false;
-  toggleBattleBtns(ctx,false);
+  renderBattleUI(ctx);
+  
+  // Check if player's Pokémon fainted
+ if (b.player.currentHp <= 0) {
+  // Mark fainted in original object
+  const original = gs.pokemon.find(p => p.id === b.player.id);
+  if (original) {
+    original.currentHp = 0;
+    original.fainted = true;
+  }
+  
+  addLog(ctx, `${b.player.name.toUpperCase()} fainted!`);
+  
+  // Get new active Pokémon (original object)
+  const newActive = await loadNextAvailablePokemon(ctx, b);
+  if (!newActive) {
+    await resolveBattle(ctx, false);
+    return;
+  }
+  
+  // Replace battle's active Pokémon with original object
+  b.player = newActive;
+  renderBattleUI(ctx);
+  addLog(ctx, `Go! ${newActive.name.toUpperCase()}!!`);
+  
+  // Wild does NOT attack after switch
+  toggleBattleBtns(ctx, false);
+  if (ctx === 'ex') exProcessing = false;
+  else byProcessing = false;
+  return; // skip wild's turn
 }
+
+  if (ctx==='ex') exProcessing=false; else byProcessing=false;
+  toggleBattleBtns(ctx, false);
+}
+
+async function loadNextAvailablePokemon(ctx, battle) {
+  const available = gs.pokemon.filter(p => p.inTeam && p.currentHp > 0 && !p.fainted && p.id !== battle.player.id);
+  if (available.length === 0) return null;
+  
+  const selected = await showSwitchModal(available);
+  if (!selected) return null;
+  
+  // Return the original object (not a copy)
+  return selected;
+}
+
 async function resolveBattle(ctx,win){
   if(ctx==='ex') exProcessing=true; else byProcessing=true;
   toggleBattleBtns(ctx,true);
   const b=getBattle(ctx);
-  let xp=0,coins=0;
-  if(win&&b){
-    xp=Math.floor(b.wild.level*15*(b.wild.isSpecial?2.5:1)*(luckyEggTurns>0?2:1));
-    coins=Math.floor(b.wild.level*5+(b.wild.isSpecial?50:0));
-    if(luckyEggTurns>0) luckyEggTurns--;
-    // Give XP to active pokemon in gs
-    const pIdx=gs.pokemon.findIndex(p=>p.id===b.player.id);
-    if(pIdx>=0){
-      const p=gs.pokemon[pIdx];
-      p.exp=(p.exp||0)+xp;
-      while(p.exp>=expNeeded(p.level)){ p.exp-=expNeeded(p.level); p.level++; p.maxHp=p.level*20+50; p.currentHp=p.maxHp; addLog(ctx,`${p.name.toUpperCase()} grew to Lv.${p.level}!`); }
-    }
-    gs.coins=(gs.coins||0)+coins;
-    // Sync HP
-    gs.pokemon.forEach(p=>{ const bp=b.playerTeam.find(q=>q.id===p.id); if(bp){ if(p.id===b.player.id) p.currentHp=b.player.currentHp; else p.currentHp=bp.currentHp; } });
-    // If byahe and online, push XP/level to firebase
-    if(ctx==='by'&&byOnline&&byFbUser){
-      try{
-        const uid=byFbUser.uid;
-        const monRef=doc(fbDb,'users',uid,'pokemon',b.player.id);
-        const pGS=gs.pokemon.find(p=>p.id===b.player.id);
-        if(pGS) await updateDoc(monRef,{exp:pGS.exp,level:pGS.level}).catch(()=>{});
-        await updateDoc(doc(fbDb,'users',uid),{coins:increment(coins),totalLevels:increment(0)}).catch(()=>{});
-      }catch{}
-    }
+ let xp = 0, coins = 0;
+if (win && b) {
+  const activeOriginal = gs.pokemon.find(p => p.id === b.player.id);
+  if (activeOriginal) {
+    xp = Math.floor(b.wild.level * 15 * (b.wild.isSpecial ? 2.5 : 1) * (luckyEggTurns > 0 ? 2 : 1));
+    activeOriginal.exp = (activeOriginal.exp || 0) + xp;
+    while (activeOriginal.exp >= expNeeded(activeOriginal.level)) {
+  activeOriginal.exp -= expNeeded(activeOriginal.level);
+  activeOriginal.level++;
+  activeOriginal.maxHp = activeOriginal.level * 20 + 50;
+  activeOriginal.currentHp = activeOriginal.maxHp;
+  activeOriginal.fainted = false;   // <-- add this line
+  addLog(ctx, `${activeOriginal.name.toUpperCase()} grew to Lv.${activeOriginal.level}!`);
   }
+  }
+  
+  coins = Math.floor(b.wild.level * 5 + (b.wild.isSpecial ? 50 : 0));
+  gs.coins = (gs.coins || 0) + coins;
+  if (luckyEggTurns > 0) luckyEggTurns--;
+  autoSave();
+}
   setBattle(ctx,null);
   await new Promise(r=>setTimeout(r,400));
   document.getElementById(ctx==='ex'?'explore-battle':'byahe-battle').classList.add('hidden');
@@ -1974,6 +2032,7 @@ async function resolveBattle(ctx,win){
   if(ctx==='ex'){ exProcessing=false; } else{ byProcessing=false; if(byTeam.length) await syncByahTeam(); }
   battleBallBonus=1.0;
 }
+
 
 // Catch
 document.getElementById('ex-catch').addEventListener('click',()=>attemptCatch('ex'));
@@ -2024,24 +2083,48 @@ async function attemptCatch(ctx){
 // Switch
 document.getElementById('ex-switch').addEventListener('click',()=>attemptSwitch('ex'));
 document.getElementById('by-switch').addEventListener('click',()=>attemptSwitch('by'));
-async function attemptSwitch(ctx){
-  const b=getBattle(ctx); if(!b) return;
-  const avail=b.playerTeam.filter(p=>p.id!==b.player.id&&p.currentHp>0);
-  if(!avail.length){ showToast('No other Pokémon!'); return; }
-  const sel=await showSwitchModal(avail); if(!sel) return;
-  b.player={...sel,currentHp:sel.currentHp};
-  addLog(ctx,`Go! ${sel.name.toUpperCase()}!`); renderBattleUI(ctx);
+
+async function attemptSwitch(ctx) {
+  const b = getBattle(ctx);
+  if (!b) return;
+  
+  const available = gs.pokemon.filter(p => p.id !== b.player.id && p.currentHp > 0 && !p.fainted);
+  if (!available.length) {
+    showToast('No other Pokémon!');
+    return;
+  }
+  
+  const selected = await showSwitchModal(available);
+  if (!selected) return;
+  
+  // Switch: update battle's active Pokémon to original object
+  b.player = selected;
+  renderBattleUI(ctx);
+  addLog(ctx, `Switched to ${selected.name.toUpperCase()}!`);
 }
+
+
 function showSwitchModal(team){
-  return new Promise(resolve=>{
+  return new Promise(resolve => {
+    const modal = document.getElementById('switch-modal');
     const list=document.getElementById('switch-list'); list.innerHTML='';
-    team.forEach(p=>{ const d=document.createElement('div'); d.className='mon-item'; d.style.cursor='pointer';
+    team.forEach(p => {
+      const d = document.createElement('div');
+      d.className='mon-item';
+      d.style.cursor='pointer';
       d.innerHTML=`<img src="${spriteUrl(p.pokemonId)}" style="image-rendering:pixelated;"><div class="mon-info"><div class="name">${p.name.toUpperCase()}</div><div class="stats">Lv.${p.level} HP:${p.currentHp}/${p.maxHp}</div></div>`;
-      d.addEventListener('click',()=>{document.getElementById('switch-modal').classList.add('hidden');resolve(p);});
+      d.addEventListener('click', () => {
+        resolve(p);
+        modal.classList.add('hidden');
+      });
       list.appendChild(d);
     });
-    document.getElementById('cancel-switch').onclick=()=>{document.getElementById('switch-modal').classList.add('hidden');resolve(null);};
-    document.getElementById('switch-modal').classList.remove('hidden');
+    // Handle cancel
+    document.getElementById('cancel-switch').onclick = () => {
+      resolve(null);
+      modal.classList.add('hidden');
+    };
+    modal.classList.remove('hidden');
   });
 }
 // Run
@@ -2384,15 +2467,20 @@ if (pokedexChanged) {
   }
 }
 
+
 // ══════════════════════════════════════════════
 // TEAM / COLLECTION / POKÉDEX
 // ══════════════════════════════════════════════
-function renderTeam(){
-  const team=gs.pokemon.filter(p=>p.inTeam);
-  document.getElementById('team-count').textContent=`${team.length}/${TEAM_MAX}`;
-  const l=document.getElementById('team-list'); l.innerHTML='';
-  if(!team.length){l.innerHTML='<p style="color:var(--muted);text-align:center;padding:20px;">Team is empty!</p>';return;}
-  team.forEach(p=>l.appendChild(makePokemonCard(p,'team')));
+function renderTeam() {
+  const team = gs.pokemon.filter(p => p.inTeam && p.currentHp > 0);
+  document.getElementById('team-count').textContent = `${team.length}/${TEAM_MAX}`;
+  const listEl = document.getElementById('team-list');
+  listEl.innerHTML = '';
+  if (!team.length) {
+    listEl.innerHTML = '<p style="color:var(--muted);text-align:center;padding:20px;">Team is empty!</p>';
+    return;
+  }
+  team.forEach(p => listEl.appendChild(makePokemonCard(p, 'team')));
 }
 function renderCollection(){
   const box=gs.pokemon.filter(p=>!p.inTeam);
@@ -2476,12 +2564,39 @@ function buyItem(item){
   if((gs.coins||0)<item.price){ showToast('Not enough coins!'); return; }
   gs.coins-=item.price;
   switch(item.action){
-    case 'heal': gs.pokemon.forEach(p=>{p.currentHp=p.maxHp;}); showToast('💊 All Pokémon healed!'); break;
+    case 'heal':
+  gs.pokemon.forEach(p => {
+    p.currentHp = p.maxHp;
+    p.fainted = false;          // <-- clear fainted flag
+  });
+  showToast('💊 All Pokémon healed!');
+  break;
     case 'great_ball': battleBallBonus=1.2; showToast('🔵 Great Ball ready!'); break;
     case 'ultra_ball': battleBallBonus=1.5; showToast('🟡 Ultra Ball ready!'); break;
-    case 'rare_candy':{ const t=gs.pokemon.filter(p=>p.inTeam); if(!t.length){gs.coins+=item.price;showToast('No team!');return;} t[0].level++; t[0].maxHp=t[0].level*20+50; t[0].currentHp=t[0].maxHp; showToast(`🍬 ${t[0].name.toUpperCase()} → Lv.${t[0].level}!`); break; }
+    case 'rare_candy': {
+  const t = gs.pokemon.filter(p => p.inTeam);
+  if (!t.length) {
+    gs.coins += item.price;
+    showToast('No team!');
+    return;
+  }
+  t[0].level++;
+  t[0].maxHp = t[0].level * 20 + 50;
+  t[0].currentHp = t[0].maxHp;
+  t[0].fainted = false;         // <-- clear fainted flag
+  showToast(`🍬 ${t[0].name.toUpperCase()} → Lv.${t[0].level}!`);
+  break;
+}
     case 'lucky_egg': luckyEggTurns=5; showToast('🥚 Lucky Egg! 2x XP for 5 battles.'); break;
-    case 'revive': gs.pokemon.forEach(p=>{if(p.currentHp<=0) p.currentHp=Math.floor(p.maxHp*.5);}); showToast('✨ All Pokémon revived!'); break;
+    case 'revive':
+  gs.pokemon.forEach(p => {
+    if (p.currentHp <= 0) {
+      p.currentHp = Math.floor(p.maxHp * 0.5);
+      p.fainted = false;        // <-- clear fainted flag
+    }
+  });
+  showToast('✨ All Pokémon revived!');
+  break;
   }
   autoSave(); updateNav(); document.getElementById('shop-coins').textContent='💰 '+gs.coins;
 }

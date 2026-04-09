@@ -24,7 +24,7 @@
   --warning: #ed8936;
   --grass: #78cd54;
   --dirt: #c2b280;
-  --water: #6390f0;o
+  --water: #6390f0;
   --fire: #ff421c;
   /* Compatibility aliases for inline styles */
   --muted: #5a6e8a;
@@ -34,6 +34,32 @@
   --card: #ffffff;
   --card2: #f8fafc;
   --text: #2d3748;
+}
+
+/* Dark theme (applied to body.dark-theme) */
+body.dark-theme {
+  --bg: #1a1e2c;
+  --card-bg: #2d2f3e;
+  --primary: #6c5ce7;
+  --primary-dark: #5a4ad1;
+  --accent: #ff7675;
+  --text-dark: #e2e8f0;
+  --text-light: #a0aec0;
+  --border: #3d4050;
+  --success: #4cd964;
+  --danger: #ff5e5e;
+  --warning: #ff9f43;
+  --card: #2d2f3e;
+  --card2: #232536;
+  --text: #e2e8f0;
+  --muted: #a0aec0;
+  --green: #4cd964;
+  --red: #ff5e5e;
+  --yellow: #ff9f43;
+  --grass: #2d6a4f;
+  --dirt: #7b5e3b;
+  --water: #3b82f6;
+  --fire: #f97316;
 }
 
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -589,9 +615,11 @@ body{background:var(--bg);color:var(--text-dark);font-family:'Segoe UI','Inter',
     <div class="nav-actions">
       <button class="btn btn-outline" id="save-btn" style="padding:5px 12px;font-size:.72rem;">💾 Save</button>
       <button class="btn btn-outline" id="back-to-title-btn" style="padding:5px 12px;font-size:.72rem;">🏠</button>
-     <button id="install-btn" class="btn btn-primary" style="display:none; padding:5px 12px;font-size:.72rem;">📲 Install App</button>
-     <button id="update-check-btn" class="btn btn-outline" style="padding:5px 12px;font-size:.72rem;">🔄 Check Updates</button>
-     <a href="https://pokesim.ph.gamer.gd" target="_blank" rel="noopener noreferrer" class="btn btn-outline" style="padding:5px 12px;font-size:.72rem; text-decoration: none; display: inline-block;">🌐Go to PokeSim Online</a>
+      <button id="install-btn" class="btn btn-primary" style="display:none; padding:5px 12px;font-size:.72rem;">📲 Install App</button>
+      <button id="update-check-btn" class="btn btn-outline" style="padding:5px 12px;font-size:.72rem;">🔄 Check Updates</button>
+      <!-- 🌙 Dark mode toggle -->
+      <button id="theme-toggle-btn" class="btn btn-outline" style="padding:5px 12px;font-size:.72rem;">🌙 Dark</button>
+      <a href="https://pokesim.ph.gamer.gd" target="_blank" rel="noopener noreferrer" class="btn btn-outline" style="padding:5px 12px;font-size:.72rem; text-decoration: none; display: inline-block;">🌐Go to PokeSim Online</a>
     </div>
     </div>
   </nav>
@@ -1541,6 +1569,38 @@ function renderTitle(){
     }
     wrap.appendChild(el);
   }
+}
+
+
+// ========== DARK MODE TOGGLE ==========
+const themeToggleBtn = document.getElementById('theme-toggle-btn');
+const DARK_THEME_KEY = 'pokesim_theme';
+
+// Apply saved theme on load
+const savedTheme = localStorage.getItem(DARK_THEME_KEY);
+if (savedTheme === 'dark') {
+  document.body.classList.add('dark-theme');
+  if (themeToggleBtn) themeToggleBtn.innerHTML = '☀️ Light';
+} else {
+  document.body.classList.remove('dark-theme');
+  if (themeToggleBtn) themeToggleBtn.innerHTML = '🌙 Dark';
+}
+
+// Toggle function
+function toggleTheme() {
+  if (document.body.classList.contains('dark-theme')) {
+    document.body.classList.remove('dark-theme');
+    localStorage.setItem(DARK_THEME_KEY, 'light');
+    if (themeToggleBtn) themeToggleBtn.innerHTML = '🌙 Dark';
+  } else {
+    document.body.classList.add('dark-theme');
+    localStorage.setItem(DARK_THEME_KEY, 'dark');
+    if (themeToggleBtn) themeToggleBtn.innerHTML = '☀️ Light';
+  }
+}
+
+if (themeToggleBtn) {
+  themeToggleBtn.addEventListener('click', toggleTheme);
 }
 
 // ── Delete confirm ──

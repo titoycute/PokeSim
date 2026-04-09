@@ -29,6 +29,24 @@
             --water: #6390f0;
             --fire: #ff421c;
         }
+
+        /* Dark theme class – applied to body */
+body.dark-theme {
+  --bg: #1a1e2c;
+  --card-bg: #2d2f3e;
+  --primary: #6c5ce7;
+  --primary-dark: #5a4ad1;
+  --accent: #ff7675;
+  --text-dark: #e2e8f0;
+  --text-light: #a0aec0;
+  --border: #3d4050;
+  --success: #4cd964;
+  --danger: #ff5e5e;
+  --grass: #2d6a4f;
+  --dirt: #7b5e3b;
+  --water: #3b82f6;
+  --fire: #f97316;
+}
 /* Player side: ensure stat box appears above the sprite */
 #level-display {
     background: #fef9e3;
@@ -757,9 +775,12 @@ footer a:hover {
     <!-- Map Selection Container -->
    <div id="map-selection-container" class="container">
     <a href="index.html" class="back-link"><i class="fas fa-arrow-left"></i> Back to Main Game</a>
-    <div class="flex-between" style="margin-bottom: 20px;">
-        <h1><i class="fas fa-map-marked-alt"></i> Perlas ng Silanganan</h1>
+   <div class="flex-between" style="margin-bottom: 20px;">
+    <h1><i class="fas fa-map-marked-alt"></i> Perlas ng Silanganan</h1>
+    <div style="display: flex; gap: 10px;">
+        <button id="theme-toggle" class="btn btn-outline" style="padding: 6px 12px;"><i class="fas fa-moon"></i> Dark</button>
         <button id="add-map-btn" class="add-map-btn hidden"><i class="fas fa-plus"></i> Add New Map</button>
+    </div>
     </div>
     <!-- New landscape image -->
     <img src="Map_0.jpg" alt="Region overview" class="map-landscape">
@@ -2481,6 +2502,33 @@ footer a:hover {
             })
             .catch(err => console.log('Service Worker registration failed:', err));
     }
+
+      // ========== DARK MODE TOGGLE ==========
+const themeToggle = document.getElementById('theme-toggle');
+const DARK_KEY = 'pokesim_maps_dark_theme';
+
+// Load saved preference
+if (localStorage.getItem(DARK_KEY) === 'true') {
+    document.body.classList.add('dark-theme');
+    if (themeToggle) themeToggle.innerHTML = '<i class="fas fa-sun"></i> Light';
+}
+
+// Toggle function
+function toggleDarkTheme() {
+    if (document.body.classList.contains('dark-theme')) {
+        document.body.classList.remove('dark-theme');
+        localStorage.setItem(DARK_KEY, 'false');
+        if (themeToggle) themeToggle.innerHTML = '<i class="fas fa-moon"></i> Dark';
+    } else {
+        document.body.classList.add('dark-theme');
+        localStorage.setItem(DARK_KEY, 'true');
+        if (themeToggle) themeToggle.innerHTML = '<i class="fas fa-sun"></i> Light';
+    }
+}
+
+if (themeToggle) {
+    themeToggle.addEventListener('click', toggleDarkTheme);
+}
 </script>
 </body>
 </html>

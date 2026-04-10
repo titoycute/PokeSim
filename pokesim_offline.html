@@ -62,6 +62,172 @@ body.dark-theme {
   --fire: #f97316;
 }
 
+/* === DARK MODE BATTLE FIELD === */
+
+/* Battle area background */
+body.dark-theme #battle-area {
+    background: linear-gradient(145deg, #1e2434 0%, #2a2f3e 40%, #1b3a2a 100%);
+    border-color: #3d4050;
+}
+
+/* Battle header */
+body.dark-theme .battle-header {
+    background: #5a4ad1;
+    color: #e2e8f0;
+}
+
+/* Stat boxes for both wild and player */
+body.dark-theme .stat-box {
+    background: rgba(30, 35, 50, 0.95);
+    color: #e2e8f0;
+    border-left-color: #6c5ce7;
+}
+
+/* Player box (might have extra class) */
+body.dark-theme .stat-box.player-box {
+    border-left-color: #4cd964;
+}
+
+/* Pokémon name and level inside stat box */
+body.dark-theme .stat-box .mon-name,
+body.dark-theme .stat-box .mon-lvl,
+body.dark-theme .stat-box strong,
+body.dark-theme .stat-box small {
+    color: #e2e8f0;
+}
+
+/* HP bar background */
+body.dark-theme .hp-bar {
+    background: #3d4050;
+}
+
+/* HP fill colors */
+body.dark-theme .hp-fill {
+    background: #4cd964;
+}
+body.dark-theme .hp-fill.mid {
+    background: #ff9f43;
+}
+body.dark-theme .hp-fill.low {
+    background: #ff5e5e;
+}
+
+/* Battle log */
+body.dark-theme #battle-log {
+    background: rgba(0, 0, 0, 0.85);
+    color: #cbd5e0;
+}
+
+/* Catch chance display */
+body.dark-theme .catch-chance {
+    background: rgba(30, 35, 50, 0.9);
+    color: #e2e8f0;
+}
+
+/* Move buttons (they already have dynamic colors from type, but ensure text is readable) */
+body.dark-theme .move-btn {
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+/* Switch, Run, Catch buttons (if they use .catch-btn class) */
+body.dark-theme .catch-btn {
+    filter: brightness(0.9);
+}
+
+/* === DARK MODE BATTLE FIELD BACKGROUND === */
+
+/* The main battle area background (grass/field) */
+/* Dark mode for Explore battle background */
+body.dark-theme .battle-wrap {
+    background: linear-gradient(145deg, #1a2a3a 0%, #2d3e4a 40%, #1a3a2a 100%);
+    border-color: #3d4050;
+}
+
+/* Also for Byahe battle background if needed */
+body.dark-theme .battle-wrap.byahe-battle {
+    background: linear-gradient(145deg, #1a2a3a 0%, #2d3e4a 40%, #1a3a2a 100%);
+}
+
+/* Encounter preview card (before battle starts) */
+body.dark-theme .enc-card {
+    background: #2d2f3e;
+    color: #e2e8f0;
+    border-color: #3d4050;
+}
+body.dark-theme .enc-card.special {
+    border-color: gold;
+}
+body.dark-theme .enc-name {
+    color: #e2e8f0;
+}
+body.dark-theme #enc-extra,
+body.dark-theme #enc-weaknesses,
+body.dark-theme #enc-timer {
+    color: #a0aec0;
+}
+
+/* XP bar background (was #e2e8f0) */
+body.dark-theme .xp-bar {
+    background: #3d4050;
+}
+
+/* XP fill color */
+body.dark-theme .xp-fill {
+    background: #6c5ce7;
+}
+
+/* Coin display in navigation (was #fef9e3) */
+body.dark-theme .nav-chip.coins {
+    background: #2d2f3e;
+    color: #ffcc00;
+    border: 1px solid #ffcc00;
+}
+
+/* Level display (if it has a light background) */
+body.dark-theme .nav-chip.level {
+    background: #2d2f3e;
+    color: #4cd964;
+    border: 1px solid #4cd964;
+}
+
+/* Pokédex count display */
+body.dark-theme .nav-chip.dex {
+    background: #2d2f3e;
+    color: #6c5ce7;
+    border: 1px solid #6c5ce7;
+}
+
+/* Battle Summary Modal Dark Mode */
+body.dark-theme .summary-box {
+    background: #2d2f3e;
+    border-color: #3d4050;
+}
+
+body.dark-theme .summary-title {
+    color: #e2e8f0;
+}
+
+body.dark-theme .summary-gains {
+    background: #1e2230;
+    border-color: #3d4050;
+}
+
+body.dark-theme .summary-gains p {
+    color: #a0aec0;
+}
+
+body.dark-theme .summary-gains strong {
+    color: #e2e8f0;
+}
+
+body.dark-theme #close-summary-btn {
+    background: #6c5ce7;
+}
+
+body.dark-theme #close-summary-btn:hover {
+    background: #5a4ad1;
+}
+
 *{margin:0;padding:0;box-sizing:border-box;}
 body{background:var(--bg);color:var(--text-dark);font-family:'Segoe UI','Inter',system-ui,sans-serif;min-height:100vh;overflow-x:hidden;}
 .hidden{display:none!important;}
@@ -1637,7 +1803,11 @@ document.getElementById('confirm-new-game-btn').addEventListener('click', async(
   try{
     const pd=await fetchPokemon(selectedStarter.id);
     const moves=await getMoves(pd.moves.slice(0,4).map(m=>m.move.url));
-    const starter=makePokemon(selectedStarter.id,selectedStarter.name,5,pd.types.map(t=>t.type.name),moves,true);
+    const starter = makePokemon(
+  selectedStarter.id, selectedStarter.name, 5,
+  pd.types.map(t => t.type.name), moves, true,
+  { atk: false, def: false, spd: false }
+);
     starter.isStarter=true;
     gs={ trainerName:name, starterPokemonId:selectedStarter.id, coins:1000,
       pokemon:[starter], pokedex:{[selectedStarter.id]:{seen:true,caught:true,name:selectedStarter.name}},
@@ -1695,13 +1865,14 @@ async function getMoves(urls){
   if(!out.length) out.push({name:'tackle',power:40,type:'normal',accuracy:100});
   return out;
 }
-function makePokemon(pid, name, level, types, moves, inTeam = false) {
+function makePokemon(pid, name, level, types, moves, inTeam = false, bonusStats = { atk: false, def: false, spd: false }) {
   const maxHp = level * 20 + 50;
   return {
     id: 'p' + Date.now() + Math.random().toString(36).slice(2, 5),
     pokemonId: pid, name, level, types, moves, exp: 0,
     maxHp, currentHp: maxHp, inTeam, isShiny: false,
-    fainted: false,  // <-- add this line
+    fainted: false,
+    bonusStats: bonusStats,   // <-- added
     caught: Date.now()
   };
 }
@@ -1828,7 +1999,7 @@ window.addEventListener('keydown',e=>{
 async function startBattleForContext(ctx){ // ctx: 'ex' or 'by'
   const map=ctx==='ex'?exMap:byMap;
   if(!map) return;
- const teamSrc = ctx==='by' && byTeam.length ? byTeam : gs.pokemon.filter(p => p.inTeam && p.currentHp > 0 && !p.fainted);
+  const teamSrc = ctx==='by' && byTeam.length ? byTeam : gs.pokemon.filter(p => p.inTeam && p.currentHp > 0 && !p.fainted);
   if(!teamSrc.length){ showToast('⚠️ No healthy Pokémon!'); return; }
   showLoading('Wild Pokémon approaching...');
   try{
@@ -1872,10 +2043,62 @@ async function startBattleForContext(ctx){ // ctx: 'ex' or 'by'
     const playerObj = sel;
     playerObj.currentHp = sel.maxHp; 
     const battle={ playerTeam:[...teamSrc],player:playerObj,wild:wildObj,map,ctx,xpGained:0,coinsGained:0 };
-    if(ctx==='ex'){ exBattle=battle; renderBattleUI('ex'); document.getElementById('explore-battle').classList.remove('hidden'); document.getElementById('explore-battle').scrollIntoView({behavior:'smooth',block:'nearest'}); addLog('ex',`A wild ${pd.name.toUpperCase()} (Lv.${wildLvl}) appeared!`); updateCatchInfo('ex'); }
-    else{ byBattle=battle; renderBattleUI('by'); document.getElementById('byahe-battle').classList.remove('hidden'); document.getElementById('byahe-battle').scrollIntoView({behavior:'smooth',block:'nearest'}); addLog('by',`A wild ${pd.name.toUpperCase()} (Lv.${wildLvl}) appeared!`); updateCatchInfo('by'); }
+    if(ctx==='ex'){ 
+      exBattle=battle; 
+      renderBattleUI('ex'); 
+      document.getElementById('explore-battle').classList.remove('hidden'); 
+      document.getElementById('explore-battle').scrollIntoView({behavior:'smooth',block:'nearest'}); 
+      addLog('ex',`A wild ${pd.name.toUpperCase()} (Lv.${wildLvl}) appeared!`); 
+      updateCatchInfo('ex');
+      disableNavigationDuringBattle(true);
+    } else { 
+      byBattle=battle; 
+      renderBattleUI('by'); 
+      document.getElementById('byahe-battle').classList.remove('hidden'); 
+      document.getElementById('byahe-battle').scrollIntoView({behavior:'smooth',block:'nearest'}); 
+      addLog('by',`A wild ${pd.name.toUpperCase()} (Lv.${wildLvl}) appeared!`); 
+      updateCatchInfo('by');
+       disableNavigationDuringBattle(true);
+    }
   } catch(e){ hideLoading(); showToast('❌ Encounter failed'); console.error(e); }
 }
+
+
+// Disable only navigation elements during battle (tabs, back buttons, nav buttons)
+// Does NOT affect battle action buttons (moves, catch, switch, run)
+function disableNavigationDuringBattle(dis) {
+    // Disable ALL tab buttons (Explore, Byahe, Team, Collection, Pokédex, Shop, Cache)
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.disabled = dis;
+    });
+    
+    // Disable map back buttons
+    const backBtns = ['explore-back-btn', 'byahe-back-btn'];
+    backBtns.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.disabled = dis;
+    });
+    
+    // Disable "Change Map" button (if present)
+    const changeMapBtn = document.getElementById('back-to-maps-btn');
+    if (changeMapBtn) changeMapBtn.disabled = dis;
+    
+    // Disable top navigation buttons
+    const navBtns = ['save-btn', 'back-to-title-btn', 'install-btn', 'update-check-btn', 'theme-toggle-btn'];
+    navBtns.forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) btn.disabled = dis;
+    });
+    
+    // Disable the "Go to PokeSim Online" link
+    const onlineLink = document.querySelector('a[href="https://pokesim.ph.gamer.gd"]');
+    if (onlineLink) {
+        onlineLink.style.pointerEvents = dis ? 'none' : 'auto';
+        onlineLink.style.opacity = dis ? '0.5' : '1';
+    }
+}
+
+// These two lines MUST be outside the function
 function startExBattle(){ startBattleForContext('ex'); }
 function startByBattle(){ startBattleForContext('by'); }
 
@@ -1965,10 +2188,17 @@ function updateCatchInfo(ctx){
   if(b.wild.isSpecial) chance*=.3;
   document.getElementById(ctx==='ex'?'ex-catch-info':'by-catch-info').textContent=`Catch: ~${Math.round(chance*100)}%${battleBallBonus>1?' (Ball bonus!)':''}`;
 }
-function toggleBattleBtns(ctx,dis){
-  const pfx=ctx==='ex'?'ex':'by';
-  [`${pfx}-catch`,`${pfx}-switch`,`${pfx}-run`].forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=dis;});
-  document.querySelectorAll(`#${ctx==='ex'?'ex':'by'}-moves .move-btn`).forEach(b=>b.disabled=dis);
+
+
+function toggleBattleBtns(ctx, dis) {
+    const pfx = ctx === 'ex' ? 'ex' : 'by';
+    
+    // Battle action buttons only
+    [`${pfx}-catch`, `${pfx}-switch`, `${pfx}-run`].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.disabled = dis;
+    });
+    document.querySelectorAll(`#${ctx === 'ex' ? 'ex' : 'by'}-moves .move-btn`).forEach(b => b.disabled = dis);
 }
 async function runTurn(ctx, move) {
   const b = getBattle(ctx); 
@@ -2091,6 +2321,7 @@ if (win && b) {
   showBattleSummary(win,xp,coins);
   if(ctx==='ex'){ exProcessing=false; } else{ byProcessing=false; if(byTeam.length) await syncByahTeam(); }
   battleBallBonus=1.0;
+ disableNavigationDuringBattle(false);
 }
 
 
@@ -2111,7 +2342,7 @@ async function attemptCatch(ctx){
   if(Math.random()<chance){
     addLog(ctx,`You caught ${b.wild.name.toUpperCase()}!`);
     const teamCnt=gs.pokemon.filter(p=>p.inTeam).length;
-    const caught=makePokemon(b.wild.pokemonId,b.wild.name,b.wild.level,b.wild.types,b.wild.moves,teamCnt<TEAM_MAX);
+    const caught=makePokemon(b.wild.pokemonId,b.wild.name,b.wild.level,b.wild.types,b.wild.moves,teamCnt<TEAM_MAX, b.wild.bonusStats );
     caught.isShiny=b.wild.isShiny;
     gs.pokemon.push(caught);
     if(!gs.pokedex[b.wild.pokemonId]) gs.pokedex[b.wild.pokemonId]={seen:true,caught:false,name:b.wild.name};
@@ -2195,6 +2426,8 @@ function attemptRun(ctx){
   if(Math.random()<.7){
     addLog(ctx,'Got away safely!'); setBattle(ctx,null);
     document.getElementById(ctx==='ex'?'explore-battle':'byahe-battle').classList.add('hidden');
+    toggleBattleBtns(ctx, false);
+    disableNavigationDuringBattle(false); 
     showToast('Escaped!'); battleBallBonus=1.0;
   } else addLog(ctx,"Can't escape!");
 }
@@ -2264,15 +2497,52 @@ onAuthStateChanged(fbAuth, async(user)=>{
   }
 });
 
-async function loadByaheMaps(){
-  document.getElementById('byahe-map-loading').style.display='block';
-  document.getElementById('byahe-map-cards').classList.add('hidden');
-  try{
-    const snap=await getDocs(collection(fbDb,'maps'));
-    byMaps=[];
-    snap.forEach(d=>byMaps.push({id:d.id,...d.data()}));
+async function loadByaheMaps() {
+    document.getElementById('byahe-map-loading').style.display = 'block';
+    document.getElementById('byahe-map-cards').classList.add('hidden');
+    
+    // Try online first
+    if (navigator.onLine) {
+        try {
+            const snap = await getDocs(collection(fbDb, 'maps'));
+            byMaps = [];
+            snap.forEach(d => byMaps.push({ id: d.id, ...d.data() }));
+            // Cache the maps in localStorage
+            localStorage.setItem('cached_byahe_maps', JSON.stringify(byMaps));
+            renderByaheMaps();
+            return;
+        } catch(e) {
+            console.warn("Firebase fetch failed, using cache");
+        }
+    }
+    
+    // Offline: try localStorage cache
+    const cached = localStorage.getItem('cached_byahe_maps');
+    if (cached) {
+        byMaps = JSON.parse(cached);
+        renderByaheMaps();
+        return;
+    }
+    
+    // Fallback to LOCAL_MAPS (convert to expected format)
+    byMaps = LOCAL_MAPS.map(map => ({
+        id: map.id,
+        name: map.name,
+        generation: 'I-IX',
+        description: map.desc,
+        requiredLevel: map.req,
+        catchRate: map.catchRate,
+        requiredExpPercent: map.reqXp,
+        catchXpPenaltyPercent: map.catchPenalty,
+        pokemonMin: map.min,
+        pokemonMax: map.max,
+        imageUrl: 'map1.png',
+        tileColors: map.tiles,
+        tileClasses: map.tileClass,
+        specialLevelRange: map.specialLevelRange,
+        specialPokemonList: map.specialPokemonList || []
+    }));
     renderByaheMaps();
-  } catch(e){ document.getElementById('byahe-map-loading').textContent='Failed to load maps. Check connection.'; }
 }
 function renderByaheMaps(){
   document.getElementById('byahe-map-loading').style.display='none';
@@ -2440,7 +2710,7 @@ async function syncByahTeam() {
         // New Pokémon – add it (team or box)
         const newMon = makePokemon(
           serverMon.pokemonId, serverMon.name, serverMon.level,
-          serverMon.types, serverMon.moves, serverMon.inTeam
+          serverMon.types, serverMon.moves, serverMon.inTeam, serverMon.bonusStats
         );
         newMon.id = serverId;
         newMon.isShiny = serverMon.isShiny;
@@ -2553,12 +2823,27 @@ function makePokemonCard(p,where){
   const d=document.createElement('div');
   const hp=Math.round(p.currentHp/p.maxHp*100), xp=Math.min(100,Math.floor((p.exp||0)/expNeeded(p.level)*100));
   d.className='mon-item'+(p.inTeam?' in-team':'')+(p.isShiny?' is-shiny':'');
-  d.innerHTML=`<img src="${spriteUrl(p.pokemonId)}" onerror="this.src='${spriteUrl(1)}'"><div class="mon-info"><div class="name">${p.name.toUpperCase()}${p.isShiny?' ✨':''}</div><div style="display:flex;gap:3px;margin:2px 0;">${typeBadgeHtml(p.types)}</div><div class="stats">Lv.${p.level} | HP:${p.currentHp}/${p.maxHp} (${hp}%)</div><div class="xp-bar"><div class="xp-fill" style="width:${xp}%"></div></div><div style="font-size:.6rem;color:var(--muted);">XP:${p.exp||0}/${expNeeded(p.level)}</div></div><div class="mon-actions"></div>`;
+  let bonusIcons = '';
+if (p.bonusStats?.atk) bonusIcons += '⚔️';
+if (p.bonusStats?.def) bonusIcons += '🛡️';
+if (p.bonusStats?.spd) bonusIcons += '🏃';
+  d.innerHTML=`<img src="${spriteUrl(p.pokemonId)}" onerror="this.src='${spriteUrl(1)}'"><div class="mon-info"><div class="name">${p.name.toUpperCase()}${p.isShiny?' ✨':''}<span style="font-size:0.7rem;">${bonusIcons}</span></div><div style="display:flex;gap:3px;margin:2px 0;">${typeBadgeHtml(p.types)}</div><div class="stats">Lv.${p.level} | HP:${p.currentHp}/${p.maxHp} (${hp}%)</div><div class="xp-bar"><div class="xp-fill" style="width:${xp}%"></div></div><div style="font-size:.6rem;color:var(--muted);">XP:${p.exp||0}/${expNeeded(p.level)}</div></div><div class="mon-actions"></div>`;
   const acts=d.querySelector('.mon-actions');
   if(where==='team'){
     const moveBtn = document.createElement('button');
 moveBtn.className = 'btn btn-outline btn-small';
 moveBtn.textContent = '✏️ Moves';
+// Find the "Moves" button creation block, then add this after it:
+const evoBtn = document.createElement('button');
+evoBtn.className = 'btn btn-outline btn-small';
+evoBtn.textContent = '🔄 Evolve';
+evoBtn.style.background = '#fef9e3';
+evoBtn.style.color = '#b45309';
+evoBtn.onclick = async (e) => {
+    e.stopPropagation();
+    await triggerEvolution(p.id, p.pokemonId);
+};
+acts.appendChild(evoBtn);
 moveBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     openMoveEditor(p.id);
@@ -2605,6 +2890,46 @@ function renderPokedex(){
     d.innerHTML=`<div class="dex-num">#${String(id).padStart(3,'0')}</div><img src="${spriteUrl(id)}" style="${e.caught?'':'filter:brightness(0)'}" onerror="this.style.display='none'"><div>${e.caught?(e.name.charAt(0).toUpperCase()+e.name.slice(1)):'???'}</div><div style="font-size:.55rem;color:${e.caught?'var(--green)':'var(--muted)'};">${e.caught?'✅ Caught':e.seen?'👁 Seen':''}</div>`;
     grid.appendChild(d);
   });
+}
+
+async function triggerEvolution(pokemonId, speciesId) {
+    const pokemon = gs.pokemon.find(p => p.id === pokemonId);
+    if (!pokemon) return;
+    try {
+        const s = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${speciesId}`).then(r => r.json());
+        const e = await fetch(s.evolution_chain.url).then(r => r.json());
+        let stage = e.chain;
+        while (stage && stage.species.name !== s.name) stage = stage.evolves_to[0];
+        if (stage && stage.evolves_to.length > 0) {
+            const details = stage.evolves_to[0].evolution_details[0];
+            if (details.min_level && pokemon.level >= details.min_level) {
+                const nextName = stage.evolves_to[0].species.name;
+                const confirmed = confirm(`${pokemon.name.toUpperCase()} can evolve into ${nextName.toUpperCase()}. Evolve now?`);
+                if (confirmed) {
+                    const np = await fetch(`https://pokeapi.co/api/v2/pokemon/${nextName}`).then(r => r.json());
+                    const newMoves = await getMoves(np.moves.slice(0,4).map(m => m.move.url));
+                    // Update local game state directly
+                    pokemon.name = np.name;
+                    pokemon.pokemonId = np.id;
+                    pokemon.types = np.types.map(t => t.type.name);
+                    pokemon.moves = newMoves;
+                    // Bonus stats and shiny stay the same
+                    autoSave();
+                    invalidateTeamCache();
+                    renderTeam();
+                    renderCollection();
+                    showToast(`${pokemon.name.toUpperCase()} evolved into ${np.name.toUpperCase()}!`);
+                }
+            } else {
+                showToast(`Evolution requires level ${details.min_level}. Current level: ${pokemon.level}`);
+            }
+        } else {
+            showToast(`${pokemon.name.toUpperCase()} has no further evolution.`);
+        }
+    } catch(e) {
+        console.error(e);
+        showToast("Could not check evolution.");
+    }
 }
 
 // ══════════════════════════════════════════════

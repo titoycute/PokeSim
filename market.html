@@ -18,6 +18,63 @@
 }
 body{background:var(--bg);min-height:100vh;color:var(--text-dark);}
 
+/* Dark theme (applied to body.dark-theme) */
+body.dark-theme {
+  --bg: #1a1e2c;
+  --card-bg: #2d2f3e;
+  --primary: #6c5ce7;
+  --primary-dark: #5a4ad1;
+  --accent: #ff7675;
+  --text-dark: #e2e8f0;
+  --text-light: #a0aec0;
+  --border: #3d4050;
+  --success: #4cd964;
+  --danger: #ff5e5e;
+  --warning: #ff9f43;
+  --auction-gold: #f6ad55;
+  --auction-bg: #2d2f3e;
+  --auction-border: #6c5ce7;
+}
+
+/* Additional element overrides for dark mode */
+body.dark-theme .user-chip { background: #3d4050; color: #e2e8f0; }
+body.dark-theme .user-chip.primary { background: #5a4ad1; color: white; }
+body.dark-theme .tab:hover { background: #3d4050; color: var(--primary); }
+body.dark-theme .tab.active { background: var(--primary); color: white; }
+body.dark-theme .tab.auction-tab.active { background: linear-gradient(135deg, #f6ad55, #ed8936); }
+body.dark-theme .pokemon-card.shiny-card { background: linear-gradient(to bottom, #2d2f3e, #232536); border-color: #ecc94b; }
+body.dark-theme .card-img-wrap { background: #1e2230; }
+body.dark-theme .bid-section { background: #1e2230; border-color: #3d4050; }
+body.dark-theme .bidder-item { border-bottom-color: #3d4050; }
+body.dark-theme .modal-box { background: var(--card-bg); }
+body.dark-theme .modal-foot { background: #1e2230; }
+body.dark-theme .form-group input,
+body.dark-theme .form-group select,
+body.dark-theme .form-group textarea { background: #1a1e2c; color: #e2e8f0; border-color: var(--border); }
+body.dark-theme .form-group input:focus,
+body.dark-theme .form-group select:focus,
+body.dark-theme .form-group textarea:focus { background: #2d2f3e; }
+body.dark-theme .poke-preview-card { background: #1e2230; border-color: var(--primary); }
+body.dark-theme .poke-preview-card.shiny-preview { background: #232536; border-color: #ecc94b; }
+body.dark-theme .pp-empty { background: #1e2230; border-color: var(--border); }
+body.dark-theme .move-table th { background: #1e2230; color: var(--text-light); }
+body.dark-theme .move-table td { border-bottom-color: var(--border); }
+body.dark-theme .move-table tr:hover td { background: #2d2f3e; }
+body.dark-theme .selected-moves-row { background: #1e2230; }
+body.dark-theme .poke-want-preview { background: #1e2230; border-color: var(--border); }
+body.dark-theme .req-tag { background: #3d4050; color: var(--primary); border-color: #5a4ad1; }
+body.dark-theme .req-tag.gold { background: #4a3a1a; color: var(--warning); border-color: #f6d860; }
+body.dark-theme .req-tag.danger { background: #4a1a1a; color: var(--danger); border-color: #fed7d7; }
+body.dark-theme .bid-slot.filled { background: #3d4050; border-color: var(--primary); }
+body.dark-theme .settings-card { background: var(--auction-bg); border-color: var(--auction-border); }
+body.dark-theme .settings-card h4 { color: #f6ad55; }
+body.dark-theme .loading-state .spin { border-top-color: var(--primary); }
+body.dark-theme .reward-poke-wrap { background: #1e2230; border-color: var(--border); }
+body.dark-theme .reward-poke-img { border-bottom-color: var(--border); }
+body.dark-theme #toast { background: var(--primary-dark); }
+body.dark-theme #toast.success { background: var(--success); }
+body.dark-theme #toast.error { background: var(--danger); }
+
 /* ── NAV ── */
 .top-nav{background:var(--card-bg);padding:10px 24px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:200;box-shadow:var(--shadow);flex-wrap:wrap;gap:10px;}
 .nav-logo img{height:38px;}
@@ -206,6 +263,7 @@ body{background:var(--bg);min-height:100vh;color:var(--text-dark);}
 <nav class="top-nav">
   <div class="nav-logo"><img src="PokeSim Word.png" alt="PokéSim" onerror="this.style.display='none'"></div>
   <div class="user-info">
+    <button id="theme-toggle" class="btn btn-outline btn-sm"><i class="fas fa-moon"></i> Dark</button>
     <div class="user-chip primary"><i class="fas fa-user"></i><span id="trainer-name">Trainer</span></div>
     <div class="user-chip"><i class="fas fa-chart-line"></i> Lv.<span id="trainer-level">0</span></div>
     <div class="user-chip"><i class="fas fa-coins"></i> <span id="coin-amount">0</span></div>
@@ -1253,15 +1311,17 @@ async function buildAuctionCard(a, now){
 
   // Build bidders list
    const bids = a.bids || [];
-  const biddersHtml = bids.length ? bids.slice(-5).reverse().map(b => `
-    <div class="bidder-item view-bid-btn" style="cursor:pointer;" data-bidid="${b.bidId}" data-auctionid="${a.id}">
-      <div class="bidder-avatar">${(b.trainerName || '?').charAt(0).toUpperCase()}</div>
-      <div style="flex:1;">
-        <div style="font-weight:700">${esc(b.trainerName || 'Unknown')} ${b.userId === currentUser.uid ? '<small style="color:var(--primary)">(You)</small>' : ''}</div>
-        <div style="font-size:.7rem;color:var(--text-light);">${b.coins ? `💰 ${b.coins.toLocaleString()}` : ''} ${b.pokemon?.length ? `+ ${b.pokemon.length} Pokémon` : ''}</div>
-      </div>
-      <i class="fas fa-chevron-right" style="font-size:.7rem; color:var(--border);"></i>
-    </div>`).join('') : '<div style="font-size:.78rem;color:var(--text-light);text-align:center;padding:8px;">No bids yet.</div>';
+ const biddersHtml = bids.length ? bids.slice(-5).reverse().map(b => `
+  <div class="bidder-item view-bid-btn" style="cursor:pointer;" data-bidid="${b.bidId}" data-auctionid="${a.id}">
+    <div class="bidder-avatar">${(b.trainerName || '?').charAt(0).toUpperCase()}</div>
+    <div style="flex:1;">
+      <div style="font-weight:700">${esc(b.trainerName || 'Unknown')} ${b.userId === currentUser?.uid ? '<small style="color:var(--primary)">(You)</small>' : ''}</div>
+      <div style="font-size:.7rem;color:var(--text-light);">${b.coins ? `💰 ${b.coins.toLocaleString()}` : ''} ${b.pokemon?.length ? `+ ${b.pokemon.length} Pokémon` : ''}</div>
+    </div>
+    ${(isAdmin || a.createdBy === currentUser?.uid) ? `<button class="btn btn-success btn-sm accept-bid-btn" data-bid='${JSON.stringify(b)}' data-auctionid="${a.id}" style="margin-left:8px;">✔ Accept</button>` : ''}
+    <i class="fas fa-chevron-right" style="font-size:.7rem; color:var(--border);"></i>
+  </div>
+`).join('') : '<div style="font-size:.78rem;color:var(--text-light);text-align:center;padding:8px;">No bids yet. Be the first!</div>';
 
   card.innerHTML=`
     <div class="auction-timer"><i class="fas fa-clock"></i> <span class="auction-time-left" data-end="${endDate?.toISOString()||''}">${timeLeftStr}</span></div>
@@ -1925,6 +1985,36 @@ onAuthStateChanged(auth, async(user)=>{
   document.getElementById('logout-btn').onclick=()=>signOut(auth).then(()=>window.location.href='index.html');
   switchTab('shop');
 });
+
+// ========== DARK MODE TOGGLE ==========
+const themeToggleBtn = document.getElementById('theme-toggle');
+const DARK_THEME_KEY = 'pokesim_merkado_dark';
+
+// Load saved preference
+if (localStorage.getItem(DARK_THEME_KEY) === 'dark') {
+    document.body.classList.add('dark-theme');
+    if (themeToggleBtn) themeToggleBtn.innerHTML = '<i class="fas fa-sun"></i> Light';
+} else {
+    document.body.classList.remove('dark-theme');
+    if (themeToggleBtn) themeToggleBtn.innerHTML = '<i class="fas fa-moon"></i> Dark';
+}
+
+// Toggle function
+function toggleDarkTheme() {
+    if (document.body.classList.contains('dark-theme')) {
+        document.body.classList.remove('dark-theme');
+        localStorage.setItem(DARK_THEME_KEY, 'light');
+        if (themeToggleBtn) themeToggleBtn.innerHTML = '<i class="fas fa-moon"></i> Dark';
+    } else {
+        document.body.classList.add('dark-theme');
+        localStorage.setItem(DARK_THEME_KEY, 'dark');
+        if (themeToggleBtn) themeToggleBtn.innerHTML = '<i class="fas fa-sun"></i> Light';
+    }
+}
+
+if (themeToggleBtn) {
+    themeToggleBtn.addEventListener('click', toggleDarkTheme);
+}
 </script>
 </body>
 </html>

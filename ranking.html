@@ -377,24 +377,29 @@
 
         // Load all trainers (basic stats)
         async function loadAllTrainers() {
-            const usersSnap = await getDocs(collection(db, "users"));
-            const trainers = [];
-            for (const docSnap of usersSnap.docs) {
-                const data = docSnap.data();
-                if (!data.hasStarter) continue;
-                const trainerName = data.trainerName || docSnap.id.split('@')[0];
-                trainers.push({
-                    uid: docSnap.id,
-                    name: trainerName,
-                    email: docSnap.id,
-                    totalLevels: data.totalLevels || 0,
-                    totalEncounters: data.totalEncounters || 0
-                });
-            }
-            // Sort by totalLevels descending globally
-            trainers.sort((a, b) => b.totalLevels - a.totalLevels);
-            return trainers;
-        }
+    const usersSnap = await getDocs(collection(db, "users"));
+    const trainers = [];
+    for (const docSnap of usersSnap.docs) {
+        const data = docSnap.data();
+        // Skip users without a starter
+        if (!data.hasStarter) continue;
+        // Skip inactive accounts
+        if (data.active === false) continue;
+        // Skip admin accounts
+        if (data.role === 'admin') continue;
+        
+        const trainerName = data.trainerName || docSnap.id.split('@')[0];
+        trainers.push({
+            uid: docSnap.id,
+            name: trainerName,
+            email: docSnap.id,
+            totalLevels: data.totalLevels || 0,
+            totalEncounters: data.totalEncounters || 0
+        });
+    }
+    trainers.sort((a, b) => b.totalLevels - a.totalLevels);
+    return trainers;
+}
 
         // Fetch team and collection count for a single trainer
         async function fetchTrainerDetails(uid) {

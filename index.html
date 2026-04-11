@@ -711,6 +711,15 @@ body.dark-theme {
     }
 }
 
+body.dark-theme #summary-details {
+    background: #1e2230 !important;
+    color: #e2e8f0 !important;
+}
+body.dark-theme #summary-details span,
+body.dark-theme #summary-details strong {
+    color: #e2e8f0 !important;
+}
+
 #preview-weaknesses .type-badge {
     margin: 2px;
     font-size: 0.7rem;
@@ -773,6 +782,116 @@ body.dark-theme {
         padding: 2px 5px;
         margin-left: 4px;
     }
+}
+
+/* === DARK MODE BATTLE UI OVERRIDES === */
+
+/* Battle area background */
+body.dark-theme #battle-area {
+    background: linear-gradient(145deg, #1e2434 0%, #2a2f3e 40%, #1b3a2a 100%);
+    border-color: #3d4050;
+}
+
+/* Battle header */
+body.dark-theme .battle-header {
+    background: #5a4ad1;
+    color: #e2e8f0;
+}
+
+/* Stat boxes (both enemy and player) */
+body.dark-theme .stat-box {
+    background: rgba(30, 35, 50, 0.95);
+    color: #e2e8f0;
+    border-left-color: #6c5ce7;
+}
+
+/* Player stat box (extra specificity if needed) */
+body.dark-theme .player-side .stat-box {
+    background: rgba(30, 35, 50, 0.95);
+    color: #e2e8f0;
+    border-left-color: #4cd964;
+}
+
+/* Pokémon name and level inside stat box */
+body.dark-theme .stat-box .mon-name,
+body.dark-theme .stat-box .mon-lvl,
+body.dark-theme .stat-box strong,
+body.dark-theme .stat-box small {
+    color: #e2e8f0;
+}
+
+/* HP bar background */
+body.dark-theme .hp-bar {
+    background: #3d4050;
+}
+
+/* HP fill colors */
+body.dark-theme .hp-fill {
+    background: #4cd964;
+}
+body.dark-theme .hp-fill.mid {
+    background: #ff9f43;
+}
+body.dark-theme .hp-fill.low {
+    background: #ff5e5e;
+}
+
+/* Battle log */
+body.dark-theme #battle-log {
+    background: rgba(0, 0, 0, 0.85);
+    color: #cbd5e0;
+}
+
+/* Catch chance display */
+body.dark-theme .catch-chance {
+    background: rgba(30, 35, 50, 0.9);
+    color: #e2e8f0;
+}
+
+/* Catch buttons (filter for better visibility) */
+body.dark-theme .catch-btn {
+    filter: brightness(0.9);
+}
+
+/* Move buttons (optional – they already have type colors, but you can adjust text shadow) */
+body.dark-theme .move-btn {
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+/* === BATTLE SUMMARY MODAL DARK MODE === */
+body.dark-theme #battle-summary-modal .modal {
+    background: #2d2f3e;
+    border-color: #3d4050;
+}
+
+body.dark-theme #summary-header {
+    color: #e2e8f0;
+}
+
+body.dark-theme #summary-name {
+    color: #e2e8f0;
+}
+
+body.dark-theme #summary-info {
+    color: #a0aec0;
+}
+
+body.dark-theme #summary-details {
+    background: #1e2230;
+    border-color: #3d4050;
+    color: #e2e8f0;
+}
+
+body.dark-theme #summary-details strong {
+    color: #e2e8f0;
+}
+
+body.dark-theme #close-summary-btn {
+    background: #6c5ce7;
+}
+
+body.dark-theme #close-summary-btn:hover {
+    background: #5a4ad1;
 }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -1097,7 +1216,7 @@ body.dark-theme {
     import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, updateDoc, deleteDoc, writeBatch, increment, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
     const POWER_PRICE_MULTIPLIER = 35;
-    const SHINY_RATE = 512;
+    const SHINY_RATE = 1875;
     const firebaseConfig = { apiKey: "AIzaSyDkCE0wBrsQ1s-7zplvTtWOSE28ISaCFfQ", authDomain: "pokesim-7f9b7.firebaseapp.com", projectId: "pokesim-7f9b7", storageBucket: "pokesim-7f9b7.firebasestorage.app", messagingSenderId: "1087100425430", appId: "1:1087100425430:web:9558a79ee5330d4a792577" };
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
@@ -2886,7 +3005,7 @@ body.dark-theme {
 
     async function createPokemonCard(p, isTeam, teamSize) {
         const div = document.createElement('div');
-        div.style = `background: white; border: 1px solid var(--border); border-radius: 20px; padding: 15px; display: flex; flex-direction: column; gap: 10px; transition: transform 0.2s; position: relative; ${isTeam && activePokemonId === p.id ? 'outline: 2px solid var(--primary);' : ''}`;
+        div.style = `border: 1px solid var(--border); border-radius: 20px; padding: 15px; display: flex; flex-direction: column; gap: 10px; transition: transform 0.2s; position: relative; ${isTeam && activePokemonId === p.id ? 'outline: 2px solid var(--primary);' : ''}`;
         const expNeeded = getExpNeededForNextLevel(p.level);
         const prog = Math.floor(((p.exp || 0) / expNeeded) * 100);
         const spriteUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${p.pokemonId}.png`;

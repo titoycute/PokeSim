@@ -620,12 +620,86 @@ body.dark-theme .records-card-stats {
     /* ────────────── ADDITIONAL DARK THEME FIXES (DUPLICATED, KEPT FOR SAFETY) ────────────── */
     body.dark-theme #summary-details { background: #1e2230 !important; color: #e2e8f0 !important; }
     body.dark-theme #summary-details span, body.dark-theme #summary-details strong { color: #e2e8f0 !important; }
+
+    /* Loading overlay with rotating Pokéball */
+.loading-container {
+    background: var(--card-bg);
+    border-radius: 32px;
+    padding: 30px 40px;
+    text-align: center;
+    box-shadow: 0 25px 40px rgba(0,0,0,0.3);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 200px;
+}
+
+.pokeball-loader {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(to bottom, #ee1515 50%, #ffffff 50%);
+    border: 3px solid #1a1a1a;
+    position: relative;
+    animation: spinBall 1s linear infinite;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.pokeball-loader::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: #1a1a1a;
+    transform: translateY(-50%);
+    z-index: 1;
+}
+
+.pokeball-loader::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 3px solid #1a1a1a;
+    z-index: 2;
+}
+
+@keyframes spinBall {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Dark mode adjustments */
+body.dark-theme .loading-container {
+    background: #2d2f3e;
+    color: #e2e8f0;
+}
+body.dark-theme .pokeball-loader {
+    border-color: #e2e8f0;
+}
+body.dark-theme .pokeball-loader::before,
+body.dark-theme .pokeball-loader::after {
+    border-color: #e2e8f0;
+}
 </style>
 </head>
 <body>
 
     <!-- Overlays -->
-    <div id="loading-overlay" class="overlay hidden"><div class="modal"><h3>Processing...</h3><p id="load-status">Preparing Battle</p></div></div>
+   <div id="loading-overlay" class="overlay hidden">
+    <div class="loading-container">
+        <div class="pokeball-loader"></div>
+        <p id="load-status" style="margin-top: 20px; font-weight: 600;">Processing...</p>
+    </div>
+</div>
     <div id="info-overlay" class="overlay hidden" onclick="this.classList.add('hidden')">
         <div class="modal" onclick="event.stopPropagation()">
             <img id="info-img" src="" style="width:130px">

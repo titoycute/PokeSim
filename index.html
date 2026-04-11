@@ -718,6 +718,62 @@ body.dark-theme {
 #preview-capture-status, #preview-encounter-count {
     font-weight: 500;
 }
+
+        /* Prevent move buttons from overflowing */
+.move-btn {
+    overflow: hidden;
+    max-width: 100%;
+}
+
+.move-name {
+    white-space: normal;      /* allow text to wrap */
+    word-break: break-word;   /* break long words if needed */
+    overflow-wrap: break-word;
+    flex-shrink: 1;
+    min-width: 0;             /* helps flex children shrink */
+}
+
+.move-icon {
+    flex-shrink: 0;           /* keep icon from squishing */
+}
+
+.move-power {
+    flex-shrink: 0;           /* keep power badge from squishing */
+    white-space: nowrap;      /* keep "40" etc. on one line */
+}
+
+@media (max-width: 400px) {
+    #battle-moves {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Extra small screens – shrink move buttons more */
+@media (max-width: 480px) {
+    #battle-moves {
+        gap: 6px;
+    }
+    .move-btn {
+        padding: 6px 8px;
+        gap: 4px;
+    }
+    .move-icon {
+        width: 22px !important;
+        height: 22px !important;
+        margin-right: 4px;
+    }
+    .move-name {
+        font-size: 0.65rem;
+        line-height: 1.2;
+        white-space: normal;
+        word-break: break-word;
+    }
+    .move-power {
+        font-size: 0.6rem;
+        padding: 2px 5px;
+        margin-left: 4px;
+    }
+}
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>

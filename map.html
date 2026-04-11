@@ -2222,7 +2222,7 @@ body.dark-theme #map-info-modal .btn-primary:hover {
             const [owned, encounterCount] = await Promise.all([isSpeciesOwned(wildId), getEncounterCount(wildId)]);
             const allTypes = ['normal','fire','water','electric','grass','ice','fighting','poison','ground','flying','psychic','bug','rock','ghost','dragon','dark','steel','fairy'];
             const wildTypes = wildData.types.map(t => t.type.name);
-            const weaknesses = allTypes.filter(t => getTypeEffectiveness(t, wildTypes) === 2);
+            const weaknesses = allTypes.filter(t => getTypeEffectiveness(t, wildTypes) >= 2);
             document.getElementById('preview-weaknesses').innerHTML = weaknesses.length > 0 ? `<strong>Weaknesses:</strong> ${weaknesses.map(t => `<span class="type-badge" style="background: ${getTypeColor(t)};">${t.toUpperCase()}</span>`).join(' ')}` : `<strong>Weaknesses:</strong> None (or neutral)`;
             document.getElementById('preview-capture-status').innerHTML = owned ? `<span style="color: var(--success);">✓ Already captured</span>` : `<span style="color: var(--danger);">✗ Not yet captured</span>`;
             document.getElementById('preview-encounter-count').innerHTML = `📖 Encountered ${encounterCount} time${encounterCount !== 1 ? 's' : ''} before this battle.`;

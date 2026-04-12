@@ -211,12 +211,62 @@
     .arrow-controls { display: flex; flex-direction: column; align-items: center; gap: 15px; margin: 20px auto; }
     .arrow-up-wrapper { display: flex; justify-content: center; }
     .arrow-middle { display: flex; gap: 20px; justify-content: center; }
+    /* Enhanced Arrow Buttons – Uiverse inspired */
+.arrow-btn {
+    width: 70px;
+    height: 70px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    font-size: 2rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary-dark);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.arrow-btn:hover {
+    background: var(--primary);
+    color: white;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(59, 76, 202, 0.3);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.arrow-btn:active {
+    transform: translateY(1px);
+}
+
+/* Dark mode adjustments */
+body.dark-theme .arrow-btn {
+    background: rgba(30, 35, 50, 0.8);
+    backdrop-filter: blur(8px);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: #a0aec0;
+}
+
+body.dark-theme .arrow-btn:hover {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+    box-shadow: 0 0 12px rgba(59, 76, 202, 0.6), 0 8px 20px rgba(59, 76, 202, 0.3);
+}
+
+/* Responsive: smaller on mobile */
+@media (max-width: 600px) {
     .arrow-btn {
-        width: 70px; height: 70px; border-radius: 50%; outline: none; border: none; background: white;
-        font-weight: bold; font-size: 1.5rem; cursor: pointer; transition: 0.2s ease-in-out;
-        box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
-        display: flex; align-items: center; justify-content: center; color: var(--primary-dark);
+        width: 55px;
+        height: 55px;
+        font-size: 1.5rem;
+        border-radius: 16px;
     }
+}
     .arrow-btn:hover { background-color: var(--primary); color: white; transform: scale(1.05); }
     .arrow-btn:disabled { opacity: 0.5; transform: none; cursor: not-allowed; }
 
@@ -688,6 +738,25 @@ body.dark-theme .pokeball-loader {
 body.dark-theme .pokeball-loader::before,
 body.dark-theme .pokeball-loader::after {
     border-color: #e2e8f0;
+}
+/* Fix info modal stats area in dark mode */
+body.dark-theme #info-stats {
+    background: #1e2230 !important;
+    color: #e2e8f0 !important;
+}
+
+body.dark-theme #info-stats strong {
+    color: #e2e8f0 !important;
+}
+
+body.dark-theme #info-desc {
+    color: #cbd5e0 !important;
+}
+
+/* Also ensure the modal itself uses dark background */
+body.dark-theme #info-overlay .modal {
+    background: #2d2f3e;
+    color: #e2e8f0;
 }
 </style>
 </head>
@@ -1896,59 +1965,74 @@ body.dark-theme .pokeball-loader::after {
     }
 
     async function showInfo(id) {
-    const overlay = document.getElementById('loading-overlay');
-    overlay.classList.remove('hidden');
-    try {
-        // Fetch both Pokémon and species data in parallel
-        const [pokemonRes, speciesRes] = await Promise.all([
-            fetch(`https://pokeapi.co/api/v2/pokemon/${id}`),
-            fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}`)
-        ]);
-        if (!pokemonRes.ok || !speciesRes.ok) throw new Error(`HTTP error: ${pokemonRes.status} / ${speciesRes.status}`);
-        const p = await pokemonRes.json();
-        const s = await speciesRes.json();
-        const desc = s.flavor_text_entries.find(e => e.language.name === 'en')?.flavor_text.replace(/\f/g, ' ') || 'No description available.';
-        
-        loadImageWithFallback(document.getElementById('info-img'), getBattleSpriteUrl(id, 'front'));
-        document.getElementById('info-name').innerText = p.name.toUpperCase();
-        document.getElementById('info-desc').innerText = `"${desc}"`;
-        document.getElementById('info-stats').innerHTML = `Height: ${p.height / 10}m | Weight: ${p.weight / 10}kg | Types: ${p.types.map(t => t.type.name).join('/')}`;
-        
-        // --- Fetch and display evolution chain ---
-        const evolutionContainer = document.getElementById('info-evolution-list');
-        if (evolutionContainer) {
-            evolutionContainer.innerHTML = '<div style="text-align:center; padding:10px;">🌀 Loading evolution data...</div>';
-            const stages = await fetchEvolutionChain(id);
-            if (stages.length === 0) {
-                evolutionContainer.innerHTML = '<div style="color:#999;">No evolution data available</div>';
-            } else {
-                evolutionContainer.innerHTML = stages.map((stage, idx) => {
-                    const spriteUrl = getBattleSpriteUrl(stage.id, 'front')[0];
-                    const typeBadges = stage.types.map(t => `<span class="type-badge" style="background: ${getTypeColor(t)};">${t.toUpperCase()}</span>`).join('');
-                    const levelText = stage.level ? `Lv. ${stage.level}` : (idx === 0 ? 'Start' : 'Final Stage');
-                    return `
-                        <div style="text-align: center; width: 120px;">
-                            <img src="${spriteUrl}" style="width: 96px; height: 96px; object-fit: contain; image-rendering: crisp-edges;"
-                                 onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${stage.id}.png'">
-                            <div><strong>${stage.name.toUpperCase()}</strong></div>
-                            <div style="font-size:0.7rem; margin:4px 0;">${typeBadges}</div>
-                            <div style="font-size:0.7rem; color:var(--primary-dark);">${levelText}</div>
-                        </div>
-                        ${idx < stages.length-1 ? '<div style="font-size:1.5rem; align-self:center;">→</div>' : ''}
+                const overlay = document.getElementById('loading-overlay');
+                overlay.classList.remove('hidden');
+                try {
+                    const [pokemonRes, speciesRes] = await Promise.all([
+                        fetch(`https://pokeapi.co/api/v2/pokemon/${id}`),
+                        fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}`)
+                    ]);
+                    if (!pokemonRes.ok || !speciesRes.ok) throw new Error(`HTTP error: ${pokemonRes.status} / ${speciesRes.status}`);
+                    const p = await pokemonRes.json();
+                    const s = await speciesRes.json();
+                    const desc = s.flavor_text_entries.find(e => e.language.name === 'en')?.flavor_text.replace(/\f/g, ' ') || 'No description available.';
+                    
+                    loadImageWithFallback(document.getElementById('info-img'), getBattleSpriteUrl(id, 'front'));
+                    document.getElementById('info-name').innerText = p.name.toUpperCase();
+                    document.getElementById('info-desc').innerText = `"${desc}"`;
+                    
+                    // Get types and display as colored badges
+                    const types = p.types.map(t => t.type.name);
+                    const typesBadgesHtml = types.map(t => `<span class="type-badge" style="background: ${getTypeColor(t)};">${t.toUpperCase()}</span>`).join(' ');
+                    document.getElementById('info-types').innerHTML = typesBadgesHtml;
+                    
+                    // Compute weaknesses
+                    const allTypes = ['normal','fire','water','electric','grass','ice','fighting','poison','ground','flying','psychic','bug','rock','ghost','dragon','dark','steel','fairy'];
+                    const weaknesses = allTypes.filter(t => getTypeEffectiveness(t, types) >= 2);
+                    const weaknessHtml = weaknesses.length 
+                        ? `<div style="margin-top: 8px;"><strong>Weak to:</strong> ${weaknesses.map(t => `<span class="type-badge" style="background: ${getTypeColor(t)};">${t.toUpperCase()}</span>`).join(' ')}</div>`
+                        : `<div style="margin-top: 8px;"><strong>Weak to:</strong> None (or neutral)</div>`;
+                    
+                    document.getElementById('info-stats').innerHTML = `
+                        Height: ${p.height / 10}m | Weight: ${p.weight / 10}kg
+                        ${weaknessHtml}
                     `;
-                }).join('');
+                    
+                    // --- Fetch and display evolution chain ---
+                    const evolutionContainer = document.getElementById('info-evolution-list');
+                    if (evolutionContainer) {
+                        evolutionContainer.innerHTML = '<div style="text-align:center; padding:10px;">🌀 Loading evolution data...</div>';
+                        const stages = await fetchEvolutionChain(id);
+                        if (stages.length === 0) {
+                            evolutionContainer.innerHTML = '<div style="color:#999;">No evolution data available</div>';
+                        } else {
+                            evolutionContainer.innerHTML = stages.map((stage, idx) => {
+                                const spriteUrl = getBattleSpriteUrl(stage.id, 'front')[0];
+                                const typeBadges = stage.types.map(t => `<span class="type-badge" style="background: ${getTypeColor(t)};">${t.toUpperCase()}</span>`).join('');
+                                const levelText = stage.level ? `Lv. ${stage.level}` : (idx === 0 ? 'Start' : 'Final Stage');
+                                return `
+                                    <div style="text-align: center; width: 120px;">
+                                        <img src="${spriteUrl}" style="width: 96px; height: 96px; object-fit: contain; image-rendering: crisp-edges;"
+                                            onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${stage.id}.png'">
+                                        <div><strong>${stage.name.toUpperCase()}</strong></div>
+                                        <div style="font-size:0.7rem; margin:4px 0;">${typeBadges}</div>
+                                        <div style="font-size:0.7rem; color:var(--primary-dark);">${levelText}</div>
+                                    </div>
+                                    ${idx < stages.length-1 ? '<div style="font-size:1.5rem; align-self:center;">→</div>' : ''}
+                                `;
+                            }).join('');
+                        }
+                    }
+                    // --- End evolution chain ---
+                    
+                    document.getElementById('info-overlay').classList.remove('hidden');
+                } catch (err) {
+                    console.error("Failed to load Pokémon info:", err);
+                    alert("Could not load Pokémon details. Please try again later.");
+                } finally {
+                    overlay.classList.add('hidden');
+                }
             }
-        }
-        // --- End evolution chain ---
-        
-        document.getElementById('info-overlay').classList.remove('hidden');
-    } catch (err) {
-        console.error("Failed to load Pokémon info:", err);
-        alert("Could not load Pokémon details. Please try again later.");
-    } finally {
-        overlay.classList.add('hidden');
-    }
-}
     window.showInfo=showInfo;
 
     let currentMap = null;

@@ -20,7 +20,25 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
     <style>
+@keyframes evolutionGlow {
+    0% { filter: brightness(1) drop-shadow(0 0 0 gold); }
+    50% { filter: brightness(1.3) drop-shadow(0 0 20px gold); transform: scale(1.1); }
+    100% { filter: brightness(1) drop-shadow(0 0 0 gold); transform: scale(1); }
+}
+.evolution-animate {
+    animation: evolutionGlow 0.8s ease-in-out 3;
+}
 
+#evolution-options-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 12px;
+    margin-top: 20px;
+}
+#evolution-options-grid .starter-card {
+    text-align: center;
+    padding: 10px;
+}
         /* ========== STARTER MODAL FIX FOR SMALL SCREENS ========== */
 #trainer-starter-modal .modal {
     max-height: 90vh;
@@ -978,6 +996,53 @@ body.dark-theme #info-overlay .modal {
         </div>
 
         <button id="close-summary-btn" class="btn btn-primary" style="width: 100%; padding: 12px;">Continue Adventure</button>
+    </div>
+</div>
+
+<div id="evolution-modal" class="overlay hidden">
+    <div class="modal" style="text-align: center; max-width: 400px;">
+        <h2 id="evo-title">What? <span id="evo-old-name"></span> is evolving!</h2>
+        <div id="evo-sprite-container">
+            <img id="evo-old-sprite" src="" style="width: 150px; height: 150px; object-fit: contain;">
+            <div id="evo-arrow" style="font-size: 3rem; margin: 20px 0;">→</div>
+            <img id="evo-new-sprite" src="" style="width: 150px; height: 150px; object-fit: contain; display: none;">
+        </div>
+        <div id="evo-loading" style="margin-top: 20px;">
+            <div class="pokeball-loader" style="margin: 0 auto;"></div>
+        </div>
+        <button id="evo-continue-btn" class="btn btn-primary" style="display: none;">Continue</button>
+    </div>
+</div>
+
+<!-- Evolution selection modal (multiple choices) -->
+<div id="evolution-select-modal" class="overlay hidden">
+    <div class="modal" style="max-width: 600px; max-height: 80vh; overflow-y: auto;">
+        <h3>Choose Evolution</h3>
+        <div id="evolution-options-grid" class="starter-grid" style="grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));"></div>
+        <button id="cancel-evo-select" class="btn btn-outline" style="margin-top: 20px;">Cancel</button>
+    </div>
+</div>
+
+<!-- Evolution confirmation modal (single target) -->
+<div id="evolution-confirm-modal" class="overlay hidden">
+    <div class="modal" style="max-width: 500px; text-align: center;">
+        <h3>Confirm Evolution</h3>
+        <div style="display: flex; justify-content: center; gap: 30px; margin: 20px 0;">
+            <div>
+                <img id="confirm-old-sprite" src="" style="width: 120px; height: 120px; object-fit: contain;">
+                <p id="confirm-old-name" style="font-weight: bold; margin-top: 10px;"></p>
+            </div>
+            <div style="font-size: 3rem; align-self: center;">→</div>
+            <div>
+                <img id="confirm-new-sprite" src="" style="width: 120px; height: 120px; object-fit: contain;">
+                <p id="confirm-new-name" style="font-weight: bold; margin-top: 10px;"></p>
+            </div>
+        </div>
+        <div id="confirm-requirements" style="margin-bottom: 20px; font-size: 0.9rem; color: var(--text-light);"></div>
+        <div style="display: flex; gap: 10px; justify-content: center;">
+            <button id="confirm-evolution-yes" class="btn btn-primary">Yes, Evolve!</button>
+            <button id="confirm-evolution-no" class="btn btn-outline">Cancel</button>
+        </div>
     </div>
 </div>
 
@@ -2924,58 +2989,79 @@ body.dark-theme #info-overlay .modal {
         if (collectionList.length === 0) collContainer.innerHTML = "<p style='grid-column: 1/-1; text-align:center; padding:20px;'>No Pokémon found.</p>";
     }
 
-    async function createPokemonCard(p, isTeam, teamSize) {
-        const div = document.createElement('div');
-        div.style = `border: 1px solid var(--border); border-radius: 20px; padding: 15px; display: flex; flex-direction: column; gap: 10px; transition: transform 0.2s; position: relative; ${isTeam && activePokemonId === p.id ? 'outline: 2px solid var(--primary);' : ''}`;
-        const expNeeded = getExpNeededForNextLevel(p.level);
-        const prog = Math.floor(((p.exp || 0) / expNeeded) * 100);
-        const spriteUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${p.pokemonId}.png`;
-        let bonusIcons = '';
-        if (p.bonusStats?.atk) bonusIcons += '⚔️';
-        if (p.bonusStats?.def) bonusIcons += '🛡️';
-        if (p.bonusStats?.spd) bonusIcons += '🏃';
-        let shinyHtml = '';
-        if (p.isShiny) shinyHtml = '<span class="shiny-badge">✨ SHINY</span>';
-        const typeBadges = p.types.map(t => `<span class="type-badge" style="background: ${getTypeColor(t)}; font-size: 0.6rem;">${t.toUpperCase()}</span>`).join('');
-        div.innerHTML = `
-            <div style="display: flex; gap: 15px; align-items: center;">
-                <img src="${spriteUrl}" style="width: 70px; height: 70px; cursor:pointer;" onclick="window.showInfo(${p.pokemonId})">
-                <div style="flex: 1;">
-                    <div style="display: flex; justify-content: space-between;">
-                        <div class="pokemon-name">
-                            <span>${p.name.toUpperCase()} ${bonusIcons}</span>
-                            ${shinyHtml}
-                        </div>
-                        <span style="font-size: 0.8rem; font-weight: bold; color: var(--primary);">Lv. ${p.level}</span>
+async function createPokemonCard(p, isTeam, teamSize) {
+    const div = document.createElement('div');
+    div.style = `border: 1px solid var(--border); border-radius: 20px; padding: 15px; display: flex; flex-direction: column; gap: 10px; transition: transform 0.2s; position: relative; ${isTeam && activePokemonId === p.id ? 'outline: 2px solid var(--primary);' : ''}`;
+    const expNeeded = getExpNeededForNextLevel(p.level);
+    const prog = Math.floor(((p.exp || 0) / expNeeded) * 100);
+    
+    // Choose sprite URL based on shiny status
+    let spriteUrl;
+    if (p.isShiny) {
+        spriteUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/shiny/${p.pokemonId}.png`;
+    } else {
+        spriteUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${p.pokemonId}.png`;
+    }
+    // Fallback if the shiny artwork doesn't exist (some Pokémon may not have it)
+    const fallbackUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.pokemonId}.png`;
+    
+    let bonusIcons = '';
+    if (p.bonusStats?.atk) bonusIcons += '⚔️';
+    if (p.bonusStats?.def) bonusIcons += '🛡️';
+    if (p.bonusStats?.spd) bonusIcons += '🏃';
+    let shinyHtml = '';
+    if (p.isShiny) shinyHtml = '<span class="shiny-badge">✨ SHINY</span>';
+    const typeBadges = p.types.map(t => `<span class="type-badge" style="background: ${getTypeColor(t)}; font-size: 0.6rem;">${t.toUpperCase()}</span>`).join('');
+    
+    div.innerHTML = `
+        <div style="display: flex; gap: 15px; align-items: center;">
+            <img id="card-img-${p.id}" src="${spriteUrl}" style="width: 70px; height: 70px; cursor:pointer;" onerror="this.onerror=null; this.src='${fallbackUrl}';" onclick="window.showInfo(${p.pokemonId})">
+            <div style="flex: 1;">
+                <div style="display: flex; justify-content: space-between;">
+                    <div class="pokemon-name">
+                        <span>${p.name.toUpperCase()} ${bonusIcons}</span>
+                        ${shinyHtml}
                     </div>
-                    <div style="margin-bottom: 5px;">${typeBadges}</div>
-                    <div class="hp-bar" style="height: 6px; background: #eee; border-radius: 10px;">
-                        <div style="width: ${prog}%; height: 100%; background: var(--primary); border-radius: 10px;"></div>
-                    </div>
-                    <small style="font-size: 0.65rem; color: #999;">XP: ${p.exp || 0}/${expNeeded} (${prog}%)</small>
+                    <span style="font-size: 0.8rem; font-weight: bold; color: var(--primary);">Lv. ${p.level}</span>
                 </div>
-            </div>
-            <div style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px;">
-                ${p.moves.map(m => `<span style="font-size: 0.6rem; padding: 2px 6px; border: 1px solid #ddd; border-radius: 10px;">${m.name.toUpperCase()}</span>`).join('')}
-            </div>
-            <div class="mon-buttons" style="display: flex; gap: 5px; justify-content: space-between; margin-top: auto; padding-top: 10px; border-top: 1px solid #f0f0f0;">
-                <button class="btn btn-small btn-outline" id="edit-${p.id}">Moves</button>
-                <div style="display: flex; gap: 5px;">
-                    ${isTeam ? `
-                        ${activePokemonId !== p.id ? `<button class="btn btn-small btn-primary" id="act-${p.id}">Active</button>` : '<span class="active-badge" style="margin:0">ACTIVE</span>'}
-                        <button class="btn btn-small btn-outline" id="mov-${p.id}">📦</button>
-                    ` : `
-                        <button class="btn btn-small btn-primary" ${teamSize >= 6 ? 'disabled' : ''} id="add-${p.id}">+ Team</button>
-                    `}
-                    <button class="btn btn-small btn-danger" id="rel-${p.id}">🗑️</button>
+                <div style="margin-bottom: 5px;">${typeBadges}</div>
+                <div class="hp-bar" style="height: 6px; background: #eee; border-radius: 10px;">
+                    <div style="width: ${prog}%; height: 100%; background: var(--primary); border-radius: 10px;"></div>
                 </div>
+                <small style="font-size: 0.65rem; color: #999;">XP: ${p.exp || 0}/${expNeeded} (${prog}%)</small>
             </div>
-        `;
-        div.querySelector(`#edit-${p.id}`).onclick = () => openMoveEditor(p.id, p.name, p.pokemonId, p.moves, p.level);
-        if (isTeam) {
-            const actBtn = div.querySelector(`#act-${p.id}`);
-            if (actBtn) actBtn.onclick = () => setActivePokemon(p.id);
-            div.querySelector(`#mov-${p.id}`).onclick = async () => {
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px;">
+            ${p.moves.map(m => `<span style="font-size: 0.6rem; padding: 2px 6px; border: 1px solid #ddd; border-radius: 10px;">${m.name.toUpperCase()}</span>`).join('')}
+        </div>
+        <div class="mon-buttons" style="display: flex; gap: 5px; justify-content: space-between; margin-top: auto; padding-top: 10px; border-top: 1px solid #f0f0f0;">
+            <button class="btn btn-small btn-outline" id="edit-${p.id}">Moves</button>
+            <div style="display: flex; gap: 5px;">
+                ${isTeam ? `
+                    ${activePokemonId !== p.id ? `<button class="btn btn-small btn-primary" id="act-${p.id}">Active</button>` : '<span class="active-badge" style="margin:0">ACTIVE</span>'}
+                    <button class="btn btn-small btn-outline" id="mov-${p.id}">📦</button>
+                ` : `
+                    <button class="btn btn-small btn-primary" ${teamSize >= 6 ? 'disabled' : ''} id="add-${p.id}">+ Team</button>
+                `}
+                <button class="btn btn-small btn-danger" id="rel-${p.id}">🗑️</button>
+            </div>
+        </div>
+    `;
+
+    const acts = div.querySelector('.mon-buttons');
+    if (!acts) {
+        console.error("Could not find .mon-buttons element");
+        return div;
+    }
+
+    div.querySelector(`#edit-${p.id}`).onclick = () => openMoveEditor(p.id, p.name, p.pokemonId, p.moves, p.level);
+
+    if (isTeam) {
+        const actBtn = div.querySelector(`#act-${p.id}`);
+        if (actBtn) actBtn.onclick = () => setActivePokemon(p.id);
+        const movBtn = div.querySelector(`#mov-${p.id}`);
+        if (movBtn) {
+            movBtn.onclick = async () => {
                 if (teamSize <= 1) { alert("Must have at least one Pokémon in team."); return; }
                 await updateDoc(doc(db, "users", auth.currentUser.uid, "pokemon", p.id), { inTeam: false });
                 if (activePokemonId === p.id) {}
@@ -2983,8 +3069,21 @@ body.dark-theme #info-overlay .modal {
                 invalidateTeamCache();
                 refreshTeamView();
             };
-        } else {
-            div.querySelector(`#add-${p.id}`).onclick = async () => {
+        }
+        const evoBtn = document.createElement('button');
+        evoBtn.className = 'btn btn-outline btn-small';
+        evoBtn.textContent = '🔄 Evolve';
+        evoBtn.style.background = '#fef9e3';
+        evoBtn.style.color = '#b45309';
+        evoBtn.onclick = async (e) => {
+            e.stopPropagation();
+            await attemptEvolution(p.id, p.pokemonId);
+        };
+        acts.appendChild(evoBtn);
+    } else {
+        const addBtn = div.querySelector(`#add-${p.id}`);
+        if (addBtn) {
+            addBtn.onclick = async () => {
                 if (teamSize >= 6) { alert("Team is full!"); return; }
                 await updateDoc(doc(db, "users", auth.currentUser.uid, "pokemon", p.id), { inTeam: true });
                 trackWrite();
@@ -2992,11 +3091,467 @@ body.dark-theme #info-overlay .modal {
                 refreshTeamView();
             };
         }
-        div.querySelector(`#rel-${p.id}`).onclick = () => releasePokemon(p.id, p.name);
-        return div;
+        const moveBtn = document.createElement('button');
+        moveBtn.className = 'btn btn-outline btn-small';
+        moveBtn.textContent = '✏️ Moves';
+        moveBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openMoveEditor(p.id);
+        });
+        acts.appendChild(moveBtn);
+        const evoBtn = document.createElement('button');
+        evoBtn.className = 'btn btn-outline btn-small';
+        evoBtn.textContent = '🔄 Evolve';
+        evoBtn.style.background = '#fef9e3';
+        evoBtn.style.color = '#b45309';
+        evoBtn.onclick = async (e) => {
+            e.stopPropagation();
+            await attemptEvolution(p.id, p.pokemonId);
+        };
+        acts.appendChild(evoBtn);
     }
 
-    async function releasePokemon(id,name) {
+    div.querySelector(`#rel-${p.id}`).onclick = () => releasePokemon(p.id, p.name);
+    return div;
+}
+// ========== SPECIAL EVOLUTION HELPERS (MEGA, PRIMAL, G-MAX) ==========
+const formIdCache = {};
+
+async function getPokemonIdByFormName(formName) {
+    if (formIdCache[formName]) return formIdCache[formName];
+    try {
+        const res = await fetch(`https://pokeapi.co/api/v2/pokemon-form/${formName}`);
+        if (!res.ok) return null;
+        const data = await res.json();
+        const urlParts = data.pokemon.url.split('/');
+        const pokemonId = parseInt(urlParts[urlParts.length - 2]);
+        formIdCache[formName] = pokemonId;
+        return pokemonId;
+    } catch (e) {
+        console.warn(`Failed to fetch form ${formName}:`, e);
+        return null;
+    }
+}
+
+
+async function chooseSpecialEvolutionTarget(targets, pokemonName) {
+    if (targets.length === 0) return null;
+    if (targets.length === 1) return targets[0];
+    const options = targets.map((t, i) => `${i+1}. ${t.targetName} (Lv.${t.requiredLevel})`).join('\n');
+    const choice = prompt(`${pokemonName.toUpperCase()} can evolve into multiple special forms!\n\n${options}\n\nEnter the number (1-${targets.length}) or Cancel to skip.`);
+    if (choice === null) return null;
+    const idx = parseInt(choice) - 1;
+    if (isNaN(idx) || idx < 0 || idx >= targets.length) return null;
+    return targets[idx];
+}
+
+
+
+// Simple helper – replace with a nicer toast later if desired
+function showToast(msg) {
+    alert(msg); // or implement a floating toast
+}
+
+// Fixed: manual evolution (called when clicking "🔄 Evolve")
+async function attemptEvolution(pokemonId, speciesId) {
+    // 1. Get Pokémon data
+    let pokemon = null;
+    if (cachedAllPokemon) {
+        pokemon = cachedAllPokemon.find(p => p.id === pokemonId);
+    }
+    if (!pokemon) {
+        const snap = await getDoc(doc(db, "users", auth.currentUser.uid, "pokemon", pokemonId));
+        if (snap.exists()) pokemon = { id: snap.id, ...snap.data() };
+    }
+    if (!pokemon) { showToast("Pokémon not found!"); return; }
+
+    // 2. Gather all possible evolutions (normal + special)
+    let normalTargets = await getAllEvolutionTargets(pokemon);
+    let specialTargets = await getSpecialEvolutionTargets(pokemon);
+
+    const allTargets = [
+        ...normalTargets.map(t => ({ ...t, isSpecial: false })),
+        ...specialTargets.map(t => ({ ...t, isSpecial: true, met: true }))
+    ];
+
+    if (allTargets.length === 0) {
+        showToast(`${pokemon.name.toUpperCase()} has no further evolution.`);
+        return;
+    }
+
+    // 3. If only one target and requirements are met, show confirmation modal first
+    const availableTargets = allTargets.filter(t => t.met);
+    if (availableTargets.length === 1 && allTargets.length === 1) {
+        const target = availableTargets[0];
+        
+        // Show confirmation modal
+        const confirmed = await showEvolutionConfirmation(pokemon, target);
+        if (!confirmed) {
+            showToast("Evolution cancelled.");
+            return;
+        }
+        
+        let targetData;
+        try {
+            const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${target.targetId}`);
+            targetData = await res.json();
+        } catch (e) {
+            showToast("Failed to load evolution data.");
+            return;
+        }
+        await performEvolution(pokemon, target.targetId, target.targetName, targetData);
+        return;
+    }
+
+    // 4. Show selection modal (multiple choices)
+    const modal = document.getElementById('evolution-select-modal');
+    const grid = document.getElementById('evolution-options-grid');
+    grid.innerHTML = '';
+
+    for (const target of allTargets) {
+        const card = document.createElement('div');
+        card.className = 'starter-card';
+        card.style.opacity = target.met ? '1' : '0.6';
+        card.style.cursor = target.met ? 'pointer' : 'not-allowed';
+
+        const img = document.createElement('img');
+        loadImageWithFallback(img, getBattleSpriteUrl(target.targetId, 'front'));
+        img.style.width = '80px';
+        img.style.height = '80px';
+        card.appendChild(img);
+
+        const nameDiv = document.createElement('div');
+        nameDiv.innerHTML = `<strong>${target.targetName.toUpperCase()}</strong>`;
+        card.appendChild(nameDiv);
+
+        const reqDiv = document.createElement('div');
+        reqDiv.style.fontSize = '0.7rem';
+        let reqText = '';
+        if (target.requiredLevel) reqText += `Lv.${target.requiredLevel} `;
+        if (target.requiredItem) reqText += `+ ${target.requiredItem} `;
+        if (target.requiredMove) reqText += `+ ${target.requiredMove} `;
+        if (target.isSpecial) reqText = `Special (Lv.${target.requiredLevel})`;
+        if (!reqText) reqText = 'Evolve';
+        reqDiv.innerText = reqText;
+        card.appendChild(reqDiv);
+
+        const statusSpan = document.createElement('span');
+        statusSpan.className = target.met ? 'about-badge free' : 'about-badge danger';
+        statusSpan.innerText = target.met ? '✓ Available' : '❌ Locked';
+        statusSpan.style.marginTop = '8px';
+        statusSpan.style.display = 'inline-block';
+        card.appendChild(statusSpan);
+
+        if (target.met) {
+            card.onclick = async () => {
+                modal.classList.add('hidden');
+                let targetData;
+                try {
+                    const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${target.targetId}`);
+                    targetData = await res.json();
+                } catch (e) {
+                    showToast("Failed to load evolution data.");
+                    return;
+                }
+                await performEvolution(pokemon, target.targetId, target.targetName, targetData);
+            };
+        }
+
+        grid.appendChild(card);
+    }
+
+    document.getElementById('cancel-evo-select').onclick = () => modal.classList.add('hidden');
+    modal.classList.remove('hidden');
+}
+
+async function showEvolutionConfirmation(pokemon, target) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('evolution-confirm-modal');
+        const oldSprite = document.getElementById('confirm-old-sprite');
+        const oldNameSpan = document.getElementById('confirm-old-name');
+        const newSprite = document.getElementById('confirm-new-sprite');
+        const newNameSpan = document.getElementById('confirm-new-name');
+        const reqDiv = document.getElementById('confirm-requirements');
+        const yesBtn = document.getElementById('confirm-evolution-yes');
+        const noBtn = document.getElementById('confirm-evolution-no');
+
+        // Set old Pokémon info
+        oldNameSpan.innerText = pokemon.name.toUpperCase();
+        if (pokemon.isShiny) {
+            loadImageWithFallback(oldSprite, getShinyBattleSpriteUrl(pokemon.name, pokemon.pokemonId, 'front'));
+        } else {
+            loadImageWithFallback(oldSprite, getBattleSpriteUrl(pokemon.pokemonId, 'front'));
+        }
+
+        // Set new Pokémon info
+        newNameSpan.innerText = target.targetName.toUpperCase();
+        if (pokemon.isShiny) {
+            loadImageWithFallback(newSprite, getShinyBattleSpriteUrl(target.targetName, target.targetId, 'front'));
+        } else {
+            loadImageWithFallback(newSprite, getBattleSpriteUrl(target.targetId, 'front'));
+        }
+
+        // Show requirements
+        let reqText = `Requires Level ${target.requiredLevel}`;
+        if (target.isSpecial) reqText = `Special Evolution – Level ${target.requiredLevel}`;
+        reqDiv.innerText = reqText;
+
+        // Handle buttons
+        const cleanup = () => {
+            modal.classList.add('hidden');
+            yesBtn.removeEventListener('click', onYes);
+            noBtn.removeEventListener('click', onNo);
+        };
+        const onYes = () => {
+            cleanup();
+            resolve(true);
+        };
+        const onNo = () => {
+            cleanup();
+            resolve(false);
+        };
+        yesBtn.addEventListener('click', onYes);
+        noBtn.addEventListener('click', onNo);
+
+        modal.classList.remove('hidden');
+    });
+}
+
+
+// Helper: get all evolution targets (including branches)
+async function getAllEvolutionTargets(pokemon) {
+    const speciesId = pokemon.pokemonId;
+    const level = pokemon.level;
+    const targets = [];
+
+    try {
+        const speciesRes = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${speciesId}`);
+        const species = await speciesRes.json();
+        const chainRes = await fetch(species.evolution_chain.url);
+        const chain = await chainRes.json();
+
+        function collectTargets(chainLink) {
+            // If this link's species is our current Pokémon, look at its evolves_to
+            if (chainLink.species.name === species.name) {
+                for (const evo of chainLink.evolves_to) {
+                    const details = evo.evolution_details[0] || {};
+                    
+                    // Determine the effective required level
+                    let requiredLevel = details.min_level || null;
+                    let hasSpecialRequirement = false;
+                    
+                    // Check for non‑level requirements
+                    if (details.item) hasSpecialRequirement = true;
+                    if (details.known_move) hasSpecialRequirement = true;
+                    if (details.min_happiness) hasSpecialRequirement = true;
+                    if (details.time_of_day) hasSpecialRequirement = true;
+                    if (details.gender) hasSpecialRequirement = true;
+                    if (details.location) hasSpecialRequirement = true;
+                    if (details.needs_overworld_rain) hasSpecialRequirement = true;
+                    if (details.turn_upside_down) hasSpecialRequirement = true;
+                    
+                    // If there's a special requirement and no level (or level is lower than 100), set to 100
+                    if (hasSpecialRequirement && (requiredLevel === null || requiredLevel < 100)) {
+                        requiredLevel = 100;
+                    }
+                    // If there's no level at all (e.g., trade evolutions), also set to 100
+                    if (requiredLevel === null) {
+                        requiredLevel = 100;
+                    }
+                    
+                    targets.push({
+                        targetName: evo.species.name,
+                        targetId: null, // will fetch later
+                        requiredLevel: requiredLevel,
+                        originalDetails: details, // keep for reference
+                        met: level >= requiredLevel
+                    });
+                    
+                    // Recursively collect further evolutions from the new form
+                    for (const nextEvo of evo.evolves_to) {
+                        collectTargets({ species: nextEvo.species, evolves_to: nextEvo.evolves_to });
+                    }
+                }
+            } else {
+                // Not our species yet, continue down
+                for (const evo of chainLink.evolves_to) {
+                    collectTargets(evo);
+                }
+            }
+        }
+
+        collectTargets(chain.chain);
+
+        // Fetch target IDs and update requirement text for display
+        for (const t of targets) {
+            try {
+                const p = await fetch(`https://pokeapi.co/api/v2/pokemon/${t.targetName}`);
+                const pData = await p.json();
+                t.targetId = pData.id;
+            } catch (e) {
+                console.warn(`Could not fetch target ${t.targetName}`);
+                t.targetId = null;
+            }
+
+            // Build a human‑readable requirement string
+            let reqText = `Lv.${t.requiredLevel}`;
+            if (t.originalDetails && t.originalDetails.item && t.requiredLevel !== 100) {
+                // If original had an item but we didn't force level 100 (should not happen), show item
+                reqText = `${t.originalDetails.item.name} + Lv.${t.requiredLevel}`;
+            } else if (t.originalDetails && (t.originalDetails.min_happiness || t.originalDetails.known_move)) {
+                reqText = `Lv.${t.requiredLevel} (special)`;
+            }
+            t.displayRequirement = reqText;
+        }
+
+        return targets;
+    } catch (err) {
+        console.error("Error fetching evolution chain:", err);
+        return [];
+    }
+}
+// Helper: get special evolutions (Mega, Primal, G-Max) – already defined in your code
+// We'll merge them into the selection if they are available.
+async function getSpecialEvolutionTargets(pokemon) {
+    const speciesId = pokemon.pokemonId;
+    const level = pokemon.level;
+    const targets = [];
+
+    try {
+        // Fetch species data to get all varieties (forms)
+        const speciesRes = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${speciesId}`);
+        const species = await speciesRes.json();
+
+        // Loop through all varieties of this Pokémon
+        for (const variety of species.varieties) {
+            const formName = variety.pokemon.name; // e.g., "charizard-mega-x"
+            if (formName === species.name) continue; // skip base form
+
+            let type = null;
+            let requiredLevel = null;
+
+            // Detect special evolution types
+            if (formName.includes('-mega')) {
+                type = 'mega';
+                requiredLevel = 200;
+            } else if (formName.includes('-primal')) {
+                type = 'primal';
+                requiredLevel = 300;
+            } else if (formName.includes('-gmax')) {
+                type = 'gmax';
+                requiredLevel = 500;
+            } else {
+                continue; // not a special form we handle
+            }
+
+            // Only add if the Pokémon meets the level requirement
+            if (level >= requiredLevel) {
+                // Get the numeric ID of the form
+                const targetId = await getPokemonIdByFormName(formName);
+                if (targetId) {
+                    targets.push({
+                        targetId: targetId,
+                        targetName: formName.split('-').map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(' '),
+                        requiredLevel: requiredLevel,
+                        type: type,
+                        formName: formName,
+                        met: true   // we already checked level
+                    });
+                }
+            }
+        }
+    } catch (err) {
+        console.error("Error fetching special evolution targets:", err);
+    }
+
+    return targets;
+}
+
+// Fixed: performs the actual evolution update in Firestore and refreshes UI
+  
+    async function performEvolution(pokemon, targetId, targetName, targetData) {
+    const oldName = pokemon.name;
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const modal = document.getElementById('evolution-modal');
+    const oldNameSpan = document.getElementById('evo-old-name');
+    const oldSprite = document.getElementById('evo-old-sprite');
+    const newSprite = document.getElementById('evo-new-sprite');
+    const arrowDiv = document.getElementById('evo-arrow');
+    const loadingDiv = document.getElementById('evo-loading');
+    const continueBtn = document.getElementById('evo-continue-btn');
+
+    oldNameSpan.innerText = oldName.toUpperCase();
+
+    // Load old sprite (shiny if applicable)
+    if (pokemon.isShiny) {
+        loadImageWithFallback(oldSprite, getShinyBattleSpriteUrl(pokemon.name, pokemon.pokemonId, 'front'));
+    } else {
+        loadImageWithFallback(oldSprite, getBattleSpriteUrl(pokemon.pokemonId, 'front'));
+    }
+
+    oldSprite.style.display = 'block';
+    newSprite.style.display = 'none';
+    arrowDiv.style.display = 'block';
+    loadingDiv.style.display = 'block';
+    continueBtn.style.display = 'none';
+    modal.classList.remove('hidden');
+
+    oldSprite.classList.add('evolution-animate');
+
+    setTimeout(async () => {
+        // Load new sprite – preserve shiny
+        if (pokemon.isShiny) {
+            loadImageWithFallback(newSprite, getShinyBattleSpriteUrl(targetName, targetId, 'front'));
+        } else {
+            loadImageWithFallback(newSprite, getBattleSpriteUrl(targetId, 'front'));
+        }
+
+        newSprite.style.display = 'block';
+        oldSprite.classList.remove('evolution-animate');
+        oldSprite.style.display = 'none';
+        arrowDiv.style.display = 'none';
+        loadingDiv.style.display = 'none';
+        continueBtn.style.display = 'block';
+
+        continueBtn.onclick = async () => {
+            modal.classList.add('hidden');
+
+            const updatedFields = {
+                name: targetName,
+                pokemonId: targetId,
+                types: targetData.types.map(t => t.type.name),
+                isShiny: pokemon.isShiny || false,
+                bonusStats: pokemon.bonusStats || { atk: false, def: false, spd: false }
+            };
+
+            let newMoves = pokemon.moves;
+            if (targetData.moves && targetData.moves.length > 0) {
+                try {
+                    const moveUrls = targetData.moves.slice(0, 4).map(m => m.move.url);
+                    newMoves = await getMoveDetails(moveUrls);
+                    updatedFields.moves = newMoves;
+                } catch (e) { console.warn(e); }
+            }
+
+            const pokemonRef = doc(db, "users", user.uid, "pokemon", pokemon.id);
+            await updateDoc(pokemonRef, updatedFields);
+            trackWrite();
+
+            invalidateTeamCache();
+            refreshTeamView();
+
+            if (cachedActivePokemon && cachedActivePokemon.id === pokemon.id) {
+                cachedActivePokemon = { ...cachedActivePokemon, ...updatedFields };
+            }
+
+            showToast(`${oldName.toUpperCase()} evolved into ${targetName.toUpperCase()}!`);
+        };
+    }, 1500);
+}
+
+async function releasePokemon(id,name) {
         if(!confirm(`Release ${name}?`)) return;
         const teamSnap = await getDocs(collection(db,"users",auth.currentUser.uid,"pokemon")); trackRead();
         let teamCount=0; teamSnap.forEach(d=>{if(d.data().inTeam) teamCount++;});

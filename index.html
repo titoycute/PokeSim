@@ -20,6 +20,43 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
     <style>
+
+        /* ========== STARTER MODAL FIX FOR SMALL SCREENS ========== */
+#trainer-starter-modal .modal {
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+#trainer-starter-modal .modal .starter-grid {
+    overflow-y: auto;
+    flex: 1;
+    padding-right: 8px;
+    margin-bottom: 16px;
+}
+
+@media (max-width: 480px) {
+    #trainer-starter-modal .starter-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    #trainer-starter-modal .starter-card {
+        padding: 8px 4px;
+    }
+    #trainer-starter-modal .starter-card img {
+        width: 50px;
+        height: 50px;
+    }
+    #trainer-starter-modal .starter-card .s-name {
+        font-size: 0.6rem;
+    }
+}
+
+@media (max-width: 360px) {
+    #trainer-starter-modal .starter-grid {
+        grid-template-columns: 1fr;
+    }
+}
     /* ────────────── KEYFRAMES & ANIMATIONS ────────────── */
     @keyframes blinkShiny {
         0% { opacity: 1; transform: scale(1); background: #ffcc00; }

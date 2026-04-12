@@ -672,6 +672,77 @@ body{background:var(--bg);color:var(--text-dark);font-family:'Segoe UI','Inter',
   100%{transform:translate(1px,-2px) rotate(-1deg)}
 }
 .shake-effect{animation:shake .5s 1;}
+
+.dex-name {
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-top: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dex-status {
+  font-size: 0.6rem;
+  color: var(--muted);
+}
+
+.dex-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 8px;
+  max-height: 70vh;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.dex-name {
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-top: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dex-status {
+  font-size: 0.6rem;
+  color: var(--muted);
+}
+.dex-entry.seen img {
+  filter: brightness(0) invert(1);
+  opacity: 0.8;
+}
+
+.dex-entry.seen img {
+  filter: brightness(0) !important;
+  opacity: 0.7 !important;
+}
+
+/* Dark theme overrides for Pokédex */
+body.dark-theme .dex-entry {
+    background: var(--card-bg);  /* already dark, but ensure no white */
+    border-color: var(--border);
+    color: var(--text-dark);
+}
+
+body.dark-theme .dex-entry.seen img {
+    /* For seen-only: make a dark silhouette (almost black) on dark background */
+    filter: brightness(0) !important;
+    opacity: 0.7;
+}
+
+body.dark-theme .dex-entry.caught img {
+    /* Caught: full color, no filter */
+    filter: none;
+    opacity: 1;
+}
+
+body.dark-theme .dex-name {
+    color: var(--text-dark);
+}
+
+body.dark-theme .dex-status {
+    color: var(--text-light);
+}
 </style>
 </head>
 <body>
@@ -883,6 +954,7 @@ body{background:var(--bg);color:var(--text-dark);font-family:'Segoe UI','Inter',
         <div class="sync-bar" id="byahe-sync-bar">
           <div class="sync-dot"></div>
           <span id="byahe-sync-text">Connected to PokéSim server</span>
+          <span id="pending-sync-count" style="margin-left: auto; background: #ffcc00; padding: 2px 8px; border-radius: 20px; font-size: 0.7rem;">0</span>
         </div>
         <!-- Map view or active -->
         <div id="byahe-map-sel">
@@ -956,6 +1028,17 @@ body{background:var(--bg);color:var(--text-dark);font-family:'Segoe UI','Inter',
     <!-- ══ POKÉDEX TAB ══ -->
     <div id="tab-pokedex" class="hidden">
       <div class="section-header"><h2>📖 Pokédex</h2><span style="font-size:.8rem;color:var(--muted);" id="dex-count">0 seen, 0 caught</span></div>
+      <div class="section-header" style="justify-content:space-between; align-items:center;">
+  <div>
+    <input type="text" id="pokedex-search" placeholder="Search Pokémon..." style="padding:4px 8px; border-radius:8px; border:1px solid var(--border);">
+    <button id="pokedex-search-btn" class="btn btn-outline" style="margin-left:8px;">Search</button>
+  </div>
+  <div>
+    <button class="btn btn-outline" id="sort-num">Number</button>
+    <button class="btn btn-outline" id="sort-name">Name</button>
+    <button class="btn btn-outline" id="sort-caught">Caught</button>
+  </div>
+</div>
       <div class="dex-grid" id="dex-grid"></div>
     </div>
 
@@ -1032,6 +1115,26 @@ document.getElementById('install-btn')?.addEventListener('click', async () => {
   console.log(`User ${outcome}`);
   deferredPrompt = null;
   document.getElementById('install-btn').style.display = 'none';
+});
+
+let pokedexFilter = '';
+let currentSort = 'number'; // 'number', 'name', 'caught'
+document.getElementById('pokedex-search-btn').addEventListener('click', ()=> {
+  pokedexFilter = document.getElementById('pokedex-search').value.trim().toLowerCase();
+  renderPokedex();
+});
+
+document.getElementById('sort-num').addEventListener('click', ()=> {
+  currentSort='number'; 
+  renderPokedex();
+});
+document.getElementById('sort-name').addEventListener('click', ()=> {
+  currentSort='name'; 
+  renderPokedex();
+});
+document.getElementById('sort-caught').addEventListener('click', ()=> {
+  currentSort='caught'; 
+  renderPokedex();
 });
 
 // Dynamically create a manifest and service worker
@@ -1139,6 +1242,10 @@ const TYPE_COLORS = {
   psychic:'#f85888',bug:'#a8b820',rock:'#b8a038',ghost:'#705898',dragon:'#7038f8',
   dark:'#705848',steel:'#b8b8d0',fairy:'#ee99ac'
 };
+function updatePendingSyncUI() {
+    const span = document.getElementById('pending-sync-count');
+    if (span) span.textContent = syncQueue.length;
+}
 const TYPE_EFF = {
   fire:{grass:2,ice:2,bug:2,steel:2,fire:.5,water:.5,rock:.5,dragon:.5},
   water:{fire:2,ground:2,rock:2,water:.5,grass:.5,dragon:.5},
@@ -2028,8 +2135,9 @@ async function startBattleForContext(ctx){ // ctx: 'ex' or 'by'
     const wildBonus=genWildBonusStats();
     // Update dex seen
     if(!gs.pokedex[wildId]) gs.pokedex[wildId]={seen:false,caught:false,name:pd.name};
-    gs.pokedex[wildId].seen=true;
-    gs.totalEncounters=(gs.totalEncounters||0)+1;
+gs.pokedex[wildId].seen=true;
+gs.totalEncounters=(gs.totalEncounters||0)+1;
+autoSave();   // <-- add this line
     hideLoading();
     // Weaknesses
     const allTypes=['normal','fire','water','electric','grass','ice','fighting','poison','ground','flying','psychic','bug','rock','ghost','dragon','dark','steel','fairy'];
@@ -2319,7 +2427,7 @@ if (win && b) {
   document.getElementById(ctx==='ex'?'explore-battle':'byahe-battle').classList.add('hidden');
   autoSave(); updateNav();
   showBattleSummary(win,xp,coins);
-  if(ctx==='ex'){ exProcessing=false; } else{ byProcessing=false; if(byTeam.length) await syncByahTeam(); }
+  if(ctx==='ex'){ exProcessing=false; } else{ byProcessing=false; }
   battleBallBonus=1.0;
  disableNavigationDuringBattle(false);
 }
@@ -2339,27 +2447,74 @@ async function attemptCatch(ctx){
   const mapRate=((b.map.catchRate||45)/100);
   let chance=Math.min(mapRate,(1-hpPct)*.8+.05)*battleBallBonus;
   if(b.wild.isSpecial) chance*=.3;
-  if(Math.random()<chance){
-    addLog(ctx,`You caught ${b.wild.name.toUpperCase()}!`);
-    const teamCnt=gs.pokemon.filter(p=>p.inTeam).length;
-    const caught=makePokemon(b.wild.pokemonId,b.wild.name,b.wild.level,b.wild.types,b.wild.moves,teamCnt<TEAM_MAX, b.wild.bonusStats );
-    caught.isShiny=b.wild.isShiny;
+  if (Math.random() < chance) {
+    addLog(ctx, `You caught ${b.wild.name.toUpperCase()}!`);
+    const teamCnt = gs.pokemon.filter(p => p.inTeam).length;
+    const caught = makePokemon(
+        b.wild.pokemonId, b.wild.name, b.wild.level,
+        b.wild.types, b.wild.moves, teamCnt < TEAM_MAX, b.wild.bonusStats
+    );
+    caught.isShiny = b.wild.isShiny;
     gs.pokemon.push(caught);
-    if(!gs.pokedex[b.wild.pokemonId]) gs.pokedex[b.wild.pokemonId]={seen:true,caught:false,name:b.wild.name};
-    gs.pokedex[b.wild.pokemonId].caught=true;
-    const reward=Math.floor(b.wild.level*5+(b.wild.isSpecial?100:0));
-    gs.coins=(gs.coins||0)+reward;
-    showToast(`🎉 Caught ${b.wild.name.toUpperCase()}! +${reward}💰`);
-    // If byahe online, sync caught pokemon to Firebase
-    if(ctx==='by'&&byOnline&&byFbUser){
-      try{
-        const uid=byFbUser.uid;
-        await addDoc(collection(fbDb,'users',uid,'pokemon'),{pokemonId:b.wild.pokemonId,name:b.wild.name,level:b.wild.level,exp:0,moves:b.wild.moves,types:b.wild.types,inTeam:teamCnt<TEAM_MAX,bonusStats:b.wild.bonusStats,isShiny:b.wild.isShiny,capturedAt:new Date()}).catch(()=>{});
-        await updateDoc(doc(fbDb,'users',uid),{coins:increment(reward)}).catch(()=>{});
-      }catch(e){console.warn('Sync catch error',e);}
+
+    if (!gs.pokedex[b.wild.pokemonId]) {
+        gs.pokedex[b.wild.pokemonId] = { seen: true, caught: false, name: b.wild.name };
     }
-    await resolveBattle(ctx,false);
-  } else {
+    gs.pokedex[b.wild.pokemonId].caught = true;
+
+    // Prepare data for sync
+    const syncData = {
+        pokemonId: b.wild.pokemonId,
+        name: b.wild.name,
+        level: b.wild.level,
+        exp: 0,
+        moves: b.wild.moves,
+        types: b.wild.types,
+        inTeam: teamCnt < TEAM_MAX,
+        bonusStats: b.wild.bonusStats,
+        isShiny: b.wild.isShiny,
+        capturedAt: new Date().toISOString(),
+        coinsGained: Math.floor(b.wild.level * 5 + (b.wild.isSpecial ? 50 : 0))
+    };
+
+    // Try to sync immediately if online & logged in, otherwise queue
+    if (ctx === 'by' && byOnline && byFbUser && navigator.onLine) {
+        try {
+            const uid = byFbUser.uid;
+            const docRef = await addDoc(collection(fbDb, 'users', uid, 'pokemon'), {
+                pokemonId: syncData.pokemonId,
+                name: syncData.name,
+                level: syncData.level,
+                exp: syncData.exp,
+                moves: syncData.moves,
+                types: syncData.types,
+                inTeam: syncData.inTeam,
+                bonusStats: syncData.bonusStats,
+                isShiny: syncData.isShiny,
+                capturedAt: new Date()
+            });
+            // Replace local ID with Firebase document ID (avoid duplicates later)
+            const added = gs.pokemon.find(p => p.id === caught.id);
+            if (added) added.id = docRef.id;
+
+            await updateDoc(doc(fbDb, 'users', uid), {
+                coins: increment(syncData.coinsGained)
+            }).catch(() => {});
+            showToast(`🎉 Caught ${b.wild.name.toUpperCase()}! (synced)`);
+        } catch (e) {
+            console.warn('Sync failed, queueing', e);
+            addToSyncQueue(syncData);
+            showToast(`🎉 Caught ${b.wild.name.toUpperCase()}! (will sync later)`);
+        }
+    } else {
+        // Offline or not logged in – just queue
+        addToSyncQueue(syncData);
+        showToast(`🎉 Caught ${b.wild.name.toUpperCase()}! (offline, will sync later)`);
+    }
+
+    autoSave();
+    await resolveBattle(ctx, true);   // <-- Victory! and give XP/coins
+} else {
     addLog(ctx,`${b.wild.name.toUpperCase()} broke free!`);
     const wm=b.wild.moves[Math.floor(Math.random()*b.wild.moves.length)]||{name:'tackle',power:40,type:'normal',accuracy:100};
     const {dmg:wd}=calcDmg(b.wild,b.player,wm);
@@ -2461,6 +2616,72 @@ document.getElementById('byahe-login-btn').addEventListener('click', async()=>{
     document.getElementById('byahe-login-btn').textContent='🔑 Login to PokeSim';
   }
 });
+
+// ========== OFFLINE SYNC QUEUE (for Byahe catches) ==========
+const SYNC_QUEUE_KEY = 'byahe_sync_queue';
+let syncQueue = [];
+
+function loadSyncQueue() {
+    const stored = localStorage.getItem(SYNC_QUEUE_KEY);
+    if (stored) syncQueue = JSON.parse(stored);
+    else syncQueue = [];
+}
+
+function saveSyncQueue() {
+    localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(syncQueue));
+}
+
+function addToSyncQueue(catchData) {
+    syncQueue.push(catchData);
+    saveSyncQueue();
+    console.log(`📦 Queued catch: ${catchData.name} (level ${catchData.level})`);
+}
+
+async function processSyncQueue() {
+    if (!byOnline || !byFbUser || !navigator.onLine) return;
+    if (syncQueue.length === 0) return;
+
+    showToast(`🔄 Syncing ${syncQueue.length} catches...`);
+    const uid = byFbUser.uid;
+    const failed = [];
+
+    for (const item of syncQueue) {
+        try {
+            await addDoc(collection(fbDb, 'users', uid, 'pokemon'), {
+                pokemonId: item.pokemonId,
+                name: item.name,
+                level: item.level,
+                exp: item.exp || 0,
+                moves: item.moves,
+                types: item.types,
+                inTeam: item.inTeam,
+                bonusStats: item.bonusStats,
+                isShiny: item.isShiny,
+                capturedAt: new Date(item.capturedAt)
+            });
+            await updateDoc(doc(fbDb, 'users', uid), {
+                coins: increment(item.coinsGained)
+            }).catch(() => {});
+            console.log(`✅ Synced ${item.name}`);
+        } catch (e) {
+            console.warn('Sync failed for', item, e);
+            failed.push(item);
+        }
+    }
+
+    if (failed.length === 0) {
+        syncQueue = [];
+        saveSyncQueue();
+        showToast('✅ All catches synced to server!');
+    } else {
+        syncQueue = failed;
+        saveSyncQueue();
+        showToast(`⚠️ ${failed.length} catches failed – will retry later`);
+    }
+}
+
+// Listen for when the browser goes online
+window.addEventListener('online', () => processSyncQueue());
 document.getElementById('byahe-logout-btn').addEventListener('click',()=>signOut(fbAuth));
 document.getElementById('byahe-sync-btn').addEventListener('click',()=>syncByahTeam());
 document.getElementById('byahe-reload-maps-btn').addEventListener('click',()=>loadByaheMaps());
@@ -2484,6 +2705,8 @@ onAuthStateChanged(fbAuth, async(user)=>{
       document.getElementById('byahe-trainer-name').textContent='🧑 '+(data.trainerName||user.email);
       document.getElementById('byahe-user-email').textContent=user.email;
     } catch(e){ document.getElementById('byahe-trainer-name').textContent='🧑 '+user.email; }
+    loadSyncQueue();          // load any pending catches
+    processSyncQueue();       // try to send them now (if online)
     await loadByaheMaps();
     await syncByahTeam();
     document.getElementById('byahe-sync-text').textContent='Synced with PokéSim server ✓';
@@ -2637,13 +2860,12 @@ async function syncByahTeam() {
     const userDoc = await getDoc(doc(fbDb, 'users', uid));
     const userData = userDoc.data() || {};
 
-    // ----- SYNC POKÉDEX (download only) -----
+    // ----- SYNC POKÉDEX (from user document) -----
     if (userData.pokedex) {
       let pokedexChanged = false;
       for (const [pokemonId, serverEntry] of Object.entries(userData.pokedex)) {
         const localEntry = gs.pokedex[pokemonId];
         if (!localEntry) {
-          // New Pokémon – add it
           gs.pokedex[pokemonId] = {
             seen: serverEntry.seen || false,
             caught: serverEntry.caught || false,
@@ -2651,7 +2873,6 @@ async function syncByahTeam() {
           };
           pokedexChanged = true;
         } else {
-          // Update only if server has more progress (seen/caught)
           if (serverEntry.seen && !localEntry.seen) {
             localEntry.seen = true;
             pokedexChanged = true;
@@ -2668,8 +2889,8 @@ async function syncByahTeam() {
       }
       if (pokedexChanged) {
         autoSave();
-        renderPokedex();   // refresh Pokédex tab
-        updateNav();       // update navbar counter
+        renderPokedex();
+        updateNav();
       }
     }
 
@@ -2707,7 +2928,6 @@ async function syncByahTeam() {
     for (const [serverId, serverMon] of serverPokemonMap) {
       const existingIndex = gs.pokemon.findIndex(local => local.id === serverId);
       if (existingIndex === -1) {
-        // New Pokémon – add it (team or box)
         const newMon = makePokemon(
           serverMon.pokemonId, serverMon.name, serverMon.level,
           serverMon.types, serverMon.moves, serverMon.inTeam, serverMon.bonusStats
@@ -2720,7 +2940,6 @@ async function syncByahTeam() {
         gs.pokemon.push(newMon);
         pokemonChanged = true;
       } else {
-        // Existing Pokémon – update level/exp/inTeam if server is ahead
         const localMon = gs.pokemon[existingIndex];
         if (serverMon.level > localMon.level) {
           localMon.level = serverMon.level;
@@ -2731,52 +2950,79 @@ async function syncByahTeam() {
           localMon.exp = serverMon.exp;
           pokemonChanged = true;
         }
-        // Sync team status (if server says it's in team, but never force out of team)
         if (serverMon.inTeam && !localMon.inTeam) {
           localMon.inTeam = true;
           pokemonChanged = true;
         }
-        // Do NOT overwrite currentHp – keep local battle state
       }
     }
 
-    // 5. Ensure team size does not exceed TEAM_MAX (trim if needed)
+    // 5. Fetch encounter records (from the 'records' subcollection)
+    const recordsSnap = await getDocs(collection(fbDb, 'users', uid, 'records'));
+    let recordsChanged = false;
+    recordsSnap.forEach(docSnap => {
+      const record = docSnap.data();
+      const pid = record.pokemonId.toString();
+      if (!gs.pokedex[pid]) {
+        gs.pokedex[pid] = {
+          seen: true,
+          caught: false,
+          name: record.name || `#${pid}`
+        };
+        recordsChanged = true;
+      } else {
+        if (!gs.pokedex[pid].seen) {
+          gs.pokedex[pid].seen = true;
+          recordsChanged = true;
+        }
+        if (!gs.pokedex[pid].name && record.name) {
+          gs.pokedex[pid].name = record.name;
+          recordsChanged = true;
+        }
+      }
+    });
+    if (recordsChanged) {
+      autoSave();
+      renderPokedex();
+      updateNav();
+    }
+
+    // 6. Ensure team size does not exceed TEAM_MAX
     const teamMembers = gs.pokemon.filter(p => p.inTeam);
     if (teamMembers.length > TEAM_MAX) {
-      // Move extra team members to box (keep first TEAM_MAX)
       for (let i = TEAM_MAX; i < teamMembers.length; i++) {
         teamMembers[i].inTeam = false;
       }
       pokemonChanged = true;
     }
 
-    // Derive Pokédex from the list of owned Pokémon
-let pokedexChanged = false;
-for (const [serverId, serverMon] of serverPokemonMap) {
-  const pid = serverMon.pokemonId;
-  if (!gs.pokedex[pid]) {
-    gs.pokedex[pid] = { seen: true, caught: true, name: serverMon.name };
-    pokedexChanged = true;
-  } else {
-    if (!gs.pokedex[pid].caught) {
-      gs.pokedex[pid].caught = true;
-      pokedexChanged = true;
+    // 7. Derive caught status from owned Pokémon (overwrites any 'caught: false' from records)
+    let pokedexFromOwnedChanged = false;
+    for (const [serverId, serverMon] of serverPokemonMap) {
+      const pid = serverMon.pokemonId;
+      if (!gs.pokedex[pid]) {
+        gs.pokedex[pid] = { seen: true, caught: true, name: serverMon.name };
+        pokedexFromOwnedChanged = true;
+      } else {
+        if (!gs.pokedex[pid].caught) {
+          gs.pokedex[pid].caught = true;
+          pokedexFromOwnedChanged = true;
+        }
+        if (!gs.pokedex[pid].seen) {
+          gs.pokedex[pid].seen = true;
+          pokedexFromOwnedChanged = true;
+        }
+        if (!gs.pokedex[pid].name && serverMon.name) {
+          gs.pokedex[pid].name = serverMon.name;
+          pokedexFromOwnedChanged = true;
+        }
+      }
     }
-    if (!gs.pokedex[pid].seen) {
-      gs.pokedex[pid].seen = true;
-      pokedexChanged = true;
+    if (pokedexFromOwnedChanged) {
+      autoSave();
+      renderPokedex();
+      updateNav();
     }
-    if (!gs.pokedex[pid].name && serverMon.name) {
-      gs.pokedex[pid].name = serverMon.name;
-      pokedexChanged = true;
-    }
-  }
-}
-if (pokedexChanged) {
-  autoSave();
-  renderPokedex();
-  updateNav();
-}
 
     if (pokemonChanged) {
       autoSave();
@@ -2785,19 +3031,17 @@ if (pokedexChanged) {
       updateNav();
     }
 
-    // 6. Update byTeam array for live battles
+    // 8. Update byTeam array for live battles
     byTeam = gs.pokemon.filter(p => p.inTeam && p.currentHp > 0);
 
-    document.getElementById('byahe-sync-text').innerHTML = `✅ Downloaded ${serverPokemonMap.size} Pokémon, Pokédex ${Object.keys(userData.pokedex || {}).length} entries`;
-    showToast(`📥 Synced ${serverPokemonMap.size} Pokémon + Pokédex from server`);
+    document.getElementById('byahe-sync-text').innerHTML = `✅ Downloaded ${serverPokemonMap.size} Pokémon, ${recordsSnap.size} encounter records, ${Object.keys(userData.pokedex || {}).length} Pokédex entries`;
+    showToast(`📥 Synced ${serverPokemonMap.size} Pokémon + encounter records from server`);
   } catch (e) {
     console.error(e);
     document.getElementById('byahe-sync-text').textContent = '❌ Sync failed: ' + e.message;
     showToast('Sync error – check console');
   }
 }
-
-
 // ══════════════════════════════════════════════
 // TEAM / COLLECTION / POKÉDEX
 // ══════════════════════════════════════════════
@@ -2880,16 +3124,68 @@ function releasePokemon(id){
   if(!confirm(`Release ${p.name.toUpperCase()}?`)) return;
   gs.pokemon=gs.pokemon.filter(q=>q.id!==id); autoSave(); renderCollection();
 }
-function renderPokedex(){
-  const grid=document.getElementById('dex-grid'); grid.innerHTML='';
-  const seen=Object.values(gs.pokedex||{}).filter(e=>e.seen).length;
-  const caught=Object.values(gs.pokedex||{}).filter(e=>e.caught).length;
-  document.getElementById('dex-count').textContent=`${seen} seen, ${caught} caught`;
-  Object.entries(gs.pokedex||{}).forEach(([id,e])=>{
-    const d=document.createElement('div'); d.className='dex-entry'+(e.caught?' caught':e.seen?' seen':'');
-    d.innerHTML=`<div class="dex-num">#${String(id).padStart(3,'0')}</div><img src="${spriteUrl(id)}" style="${e.caught?'':'filter:brightness(0)'}" onerror="this.style.display='none'"><div>${e.caught?(e.name.charAt(0).toUpperCase()+e.name.slice(1)):'???'}</div><div style="font-size:.55rem;color:${e.caught?'var(--green)':'var(--muted)'};">${e.caught?'✅ Caught':e.seen?'👁 Seen':''}</div>`;
-    grid.appendChild(d);
-  });
+
+function renderPokedex() {
+    const grid = document.getElementById('dex-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    const pokedex = gs.pokedex || {};
+    let entries = Object.entries(pokedex);
+
+    // Filter based on search
+    if (pokedexFilter) {
+      entries = entries.filter(([id, e]) => {
+        const name = e.name ? e.name.toLowerCase() : '';
+        return name.includes(pokedexFilter) || id.includes(pokedexFilter);
+      });
+    }
+
+    // Sort based on currentSort
+    if (currentSort === 'number') {
+      entries.sort((a, b) => parseInt(a[0]) - parseInt(b[0]));
+    } else if (currentSort === 'name') {
+      entries.sort((a, b) => (a[1].name || '').localeCompare(b[1].name || ''));
+    } else if (currentSort === 'caught') {
+      entries.sort((a, b) => (b[1].caught ? 1 : 0) - (a[1].caught ? 1 : 0));
+    }
+
+    const seenCount = entries.filter(([, e]) => e.seen).length;
+    const caughtCount = entries.filter(([, e]) => e.caught).length;
+    document.getElementById('dex-count').textContent = `${seenCount} seen, ${caughtCount} caught`;
+
+    for (const [id, e] of entries) {
+        const div = document.createElement('div');
+        div.className = `dex-entry ${e.caught ? 'caught' : (e.seen ? 'seen' : '')}`;
+
+        let displayName = '???';
+        if (e.caught) {
+            displayName = e.name ? e.name.charAt(0).toUpperCase() + e.name.slice(1) : `#${id}`;
+        } else if (e.seen && e.name) {
+            displayName = e.name.charAt(0).toUpperCase() + e.name.slice(1);
+        }
+
+        const spriteUrlStr = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
+        // Apply filter style for unseen
+        let imgStyle = '';
+        if (!e.caught) {
+            if (document.body.classList.contains('dark-theme')) {
+                imgStyle = 'style="filter: brightness(0); opacity: 0.7;"';
+            } else {
+                imgStyle = 'style="filter: brightness(0) invert(1); opacity: 0.8;"';
+            }
+        }
+
+        const imgTag = `<img src="${spriteUrlStr}" ${imgStyle} alt="${displayName}" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Crect width='100' height='100' fill='%23333'/%3E%3Ctext x='50' y='55' text-anchor='middle' fill='%999' font-size='12'%3E?%3C/text%3E%3C/svg%3E'">`;
+
+        div.innerHTML = `
+            <div class="dex-num">#${String(id).padStart(3, '0')}</div>
+            ${imgTag}
+            <div class="dex-name">${displayName}</div>
+            <div class="dex-status">${e.caught ? '✅' : (e.seen ? '👁' : '')}</div>
+        `;
+        grid.appendChild(div);
+    }
 }
 
 async function triggerEvolution(pokemonId, speciesId) {

@@ -44,35 +44,56 @@
     max-height: 90vh;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow-y: auto;   /* Change from 'hidden' to 'auto' */
+    padding: 20px; 
 }
 
 #trainer-starter-modal .modal .starter-grid {
+     max-height: 40vh;
     overflow-y: auto;
-    flex: 1;
-    padding-right: 8px;
-    margin-bottom: 16px;
+    margin-top: 12px;
+    margin-bottom: 12px;
 }
 
-@media (max-width: 480px) {
+#trainer-starter-modal .modal > div:last-child {
+    margin-top: 16px;
+    margin-bottom: 8px;
+    position: sticky;
+    bottom: 0;
+    background: inherit; /* so it doesn't look weird when scrolling */
+    padding-top: 8px;
+}
+
+/* Extra adjustments for very small screens (width ≤ 400px) */
+@media (max-width: 400px) {
+    #trainer-starter-modal .modal {
+        padding: 15px;
+        max-height: 95vh;   /* Use more screen space */
+    }
     #trainer-starter-modal .starter-grid {
-        grid-template-columns: repeat(2, 1fr);
+        max-height: 50vh;   /* Give more room for grid, less for button? Actually let's keep balanced */
+        grid-template-columns: 1fr; /* Force single column to avoid tiny cards */
     }
     #trainer-starter-modal .starter-card {
-        padding: 8px 4px;
+        padding: 8px;
     }
     #trainer-starter-modal .starter-card img {
-        width: 50px;
-        height: 50px;
+        width: 60px;
+        height: 60px;
     }
-    #trainer-starter-modal .starter-card .s-name {
-        font-size: 0.6rem;
+    #confirm-trainer-starter {
+        font-size: 0.9rem;
+        padding: 10px;
     }
 }
 
-@media (max-width: 360px) {
+/* For zoomed browsers (simulate by using em or vw units) */
+@media (max-height: 600px) {
+    #trainer-starter-modal .modal {
+        max-height: 85vh;
+    }
     #trainer-starter-modal .starter-grid {
-        grid-template-columns: 1fr;
+        max-height: 35vh;
     }
 }
     /* ────────────── KEYFRAMES & ANIMATIONS ────────────── */
@@ -813,6 +834,12 @@ body.dark-theme #info-overlay .modal {
     background: #2d2f3e;
     color: #e2e8f0;
 }
+
+#loading-spinner {
+    display: block;
+    margin: 0 auto;
+    animation: spinBall 1s linear infinite;
+}
 </style>
 </head>
 <body>
@@ -820,7 +847,7 @@ body.dark-theme #info-overlay .modal {
     <!-- Overlays -->
    <div id="loading-overlay" class="overlay hidden">
     <div class="loading-container">
-        <div class="pokeball-loader"></div>
+        <img id="loading-spinner" src="download.png" alt="Loading..." style="width: 64px; height: 64px; animation: spinBall 1s linear infinite;">
         <p id="load-status" style="margin-top: 20px; font-weight: 600;">Processing...</p>
     </div>
 </div>
@@ -878,7 +905,9 @@ body.dark-theme #info-overlay .modal {
             <p>⭐ 5th encounter of the same species = auto‑capture when defeated</p>
             <p>💰 Catching costs 20% of current XP</p>
             <p>🎵 Dynamic battle music</p>
-            
+            <div class="support-section">
+                <p>☕ Enjoying the game? <a href="support.html">Buy me a coffee</a> to support further development!</p>
+            </div>
 
 <!-- Add this new Install Section right below the support-section -->
 <!-- Put this version in BOTH the About Modal and the Game Features section -->
@@ -889,7 +918,7 @@ body.dark-theme #info-overlay .modal {
     </button>
 </div>
             <br>
-            <p>📅 <strong>Last Updated:</strong> April 12, 2026</p>
+            <p>📅 <strong>Last Updated:</strong> April 9, 2026</p>
             <p>👨‍💻 <strong>Created by:</strong> Tootzkie Custodio</p>
             <button id="check-update">Check for update</button>
             <hr style="margin: 15px 0;">
@@ -1163,7 +1192,7 @@ body.dark-theme #info-overlay .modal {
 
     <footer>
         <div class="support-section">
-          <!--      <p>☕ Enjoying the game? <a href="support.html">Buy me a coffee</a> to support further development!</p> -->
+                <p>☕ Enjoying the game? <a href="support.html">Buy me a coffee</a> to support further development!</p>
             
             <p>📅 <strong><a href="updates.html">Last Updated:</a></strong> April 7, 2026</p>
             </div>

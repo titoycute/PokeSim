@@ -978,6 +978,8 @@ body.dark-theme #map-info-modal .btn-primary:hover {
     <div id="map-list" class="map-grid"></div>
 </div>
 
+
+
 <div id="deactivated-overlay" class="overlay hidden">
   <div class="modal" style="max-width: 400px; text-align: center;">
     <h2>⛔ Account Suspended</h2>
@@ -2092,25 +2094,38 @@ body.dark-theme #map-info-modal .btn-primary:hover {
     }
 
     // ========== MAP GENERATION & SELECTION ==========
-    async function generateMapFromTheme(mapConfig) {
-        const grid = document.getElementById('map-grid');
-        grid.innerHTML = '';
-        const tileColors = mapConfig.tileColors || ['#c2b280', '#78cd54'];
-        const tileClasses = mapConfig.tileClasses || ['dirt', 'grass'];
-        for (let y = 0; y < 50; y++) {
-            mapData[y] = [];
-            for (let x = 0; x < 50; x++) {
-                const idx = Math.floor(Math.random() * tileClasses.length);
-                const tileClass = tileClasses[idx];
-                mapData[y][x] = tileClass;
-                const d = document.createElement('div');
-                d.className = `tile ${tileClass}`;
-                d.style.backgroundColor = tileColors[idx];
-                grid.appendChild(d);
+   async function generateMapFromTheme(mapConfig) {
+    const grid = document.getElementById('map-grid');
+    grid.innerHTML = '';
+    const tileColors = mapConfig.tileColors || ['#c2b280', '#78cd54'];
+    const tileClasses = mapConfig.tileClasses || ['dirt', 'grass'];
+    const pattern = mapConfig.tilePattern; // 10x10 array (0..n-1)
+    
+    for (let y = 0; y < 50; y++) {
+        mapData[y] = [];
+        for (let x = 0; x < 50; x++) {
+            let idx;
+            if (pattern && pattern.length === 10) {
+                // Use pattern: scale 10x10 to 50x50 by repeating each cell 5 times
+                const px = Math.floor(x / 5);
+                const py = Math.floor(y / 5);
+                idx = pattern[py][px] % tileClasses.length;
+            } else {
+                // fallback to smooth noise
+                const n = Math.sin(x * 0.3 + y * 0.7) * 0.5 + Math.cos(x * 0.7 - y * 0.3) * 0.5;
+                idx = Math.floor(((n + 1) / 2) * tileClasses.length);
+                idx = Math.min(idx, tileClasses.length - 1);
             }
+            const tileClass = tileClasses[idx];
+            mapData[y][x] = tileClass;
+            const d = document.createElement('div');
+            d.className = `tile ${tileClass}`;
+            d.style.backgroundColor = tileColors[idx];
+            grid.appendChild(d);
         }
-        renderPlayer();
     }
+    renderPlayer();
+}
 
     function renderPlayer() {
         document.getElementById('player').style.backgroundImage = `url(${TRAINER_GIF})`;
@@ -2453,87 +2468,296 @@ body.dark-theme #map-info-modal .btn-primary:hover {
         });
     }
 
-    function openMapEditModal(map = null) {
-        const modal = document.createElement('div');
-        modal.className = 'overlay';
-        const isNew = !map;
-        const mapData = map ? { ...map } : {
-            name: '',
-            generation: 'I',
-            requiredLevel: 0,
-            description: '',
-            catchRate: 45,
-            requiredExpPercent: 10,
-            catchXpPenaltyPercent: 10,
-            pokemonMin: 1,
-            pokemonMax: 151,
-            imageUrl: 'map1.png',
-            tileClasses: ['dirt', 'grass'],
-            tileColors: ['#c2b280', '#78cd54'],
-            specialLevelRange: { enabled: false, min: 1, max: 100 },
-            specialPokemonList: []
-        };
-        modal.innerHTML = `
-            <div class="modal" style="max-width: 600px;">
-                <h3>${isNew ? 'Create New Map' : 'Edit Map'}</h3>
-                <div style="text-align: left; margin: 20px 0;">
-                    <div class="form-group"><label>Map Name</label><input type="text" id="map-name" value="${escapeHtml(mapData.name)}"></div>
-                    <div class="form-group"><label>Description</label><textarea id="map-description">${escapeHtml(mapData.description || '')}</textarea></div>
-                    <div class="form-group"><label>Generation (I-IX)</label><input type="text" id="map-generation" value="${mapData.generation || 'I'}"></div>
-                    <div class="form-group"><label>Required Total Level</label><input type="number" id="map-req-level" value="${mapData.requiredLevel}" min="0"></div>
-                    <div class="form-group"><label>Catch Rate (%)</label><input type="number" id="map-catch-rate" value="${mapData.catchRate || 45}" min="1" max="100"></div>
-                    <div class="form-group"><label>Required XP % to Catch</label><input type="number" id="map-req-xp" value="${mapData.requiredExpPercent || 10}" min="1" max="100"></div>
-                    <div class="form-group"><label>Catch XP Penalty (%)</label><input type="number" id="map-catch-penalty" value="${mapData.catchXpPenaltyPercent || 10}" min="1" max="100"></div>
-                    <div class="form-group"><label>Pokémon ID Min</label><input type="number" id="map-pokemon-min" value="${mapData.pokemonMin}" min="1" max="20000"></div>
-                    <div class="form-group"><label>Pokémon ID Max</label><input type="number" id="map-pokemon-max" value="${mapData.pokemonMax}" min="1" max="20000"></div>
-                    <div class="form-group"><label>Map Image (filename from map1.png to map15.png)</label><input type="text" id="map-image" value="${mapData.imageUrl || 'map1.png'}"></div>
-                    <div class="form-group"><label>Tile Colors (comma‑separated hex codes, e.g., #c2b280,#78cd54)</label><input type="text" id="map-tile-colors" value="${(mapData.tileColors || ['#c2b280','#78cd54']).join(',')}"></div>
-                    <div class="form-group"><label>Tile Classes (comma‑separated, e.g., dirt,grass)</label><input type="text" id="map-tile-classes" value="${(mapData.tileClasses || ['dirt','grass']).join(',')}"></div>
-                    <div class="form-group"><label><input type="checkbox" id="special-level-enabled" ${mapData.specialLevelRange?.enabled ? 'checked' : ''}> Enable special level range for wild Pokémon</label></div>
-                    <div id="special-level-fields" style="display: ${mapData.specialLevelRange?.enabled ? 'block' : 'none'}; margin-left: 20px;">
-                        <div class="form-group"><label>Min Level</label><input type="number" id="special-level-min" value="${mapData.specialLevelRange?.min || 1}"></div>
-                        <div class="form-group"><label>Max Level</label><input type="number" id="special-level-max" value="${mapData.specialLevelRange?.max || 100}"></div>
-                    </div>
-                    <div class="form-group"><label>Special Pokémon IDs (comma‑separated, leave empty to use ID range)</label><input type="text" id="special-pokemon-list" value="${(mapData.specialPokemonList || []).join(',')}"></div>
+function openMapEditModal(map = null) {
+    const modal = document.createElement('div');
+    modal.className = 'overlay';
+    const isNew = !map;
+    const mapData = map ? { ...map } : {
+        name: '',
+        generation: 'I',
+        requiredLevel: 0,
+        description: '',
+        catchRate: 45,
+        requiredExpPercent: 10,
+        catchXpPenaltyPercent: 10,
+        pokemonMin: 1,
+        pokemonMax: 151,
+        imageUrl: 'map1.png',
+        tileClasses: ['dirt', 'grass'],
+        tileColors: ['#c2b280', '#78cd54'],
+        specialLevelRange: { enabled: false, min: 1, max: 100 },
+        specialPokemonList: []
+    };
+
+    modal.innerHTML = `
+        <div class="modal" style="max-width: 700px;">
+            <h3>${isNew ? 'Create New Map' : 'Edit Map'}</h3>
+            <div style="text-align: left; margin: 20px 0; max-height: 70vh; overflow-y: auto;">
+                <!-- Basic fields -->
+                <div class="form-group"><label>Map Name</label><input type="text" id="map-name" value="${escapeHtml(mapData.name)}"></div>
+                <div class="form-group"><label>Description</label><textarea id="map-description">${escapeHtml(mapData.description || '')}</textarea></div>
+                <div class="form-group"><label>Generation (I-IX)</label><input type="text" id="map-generation" value="${mapData.generation || 'I'}"></div>
+                <div class="form-group"><label>Required Total Level</label><input type="number" id="map-req-level" value="${mapData.requiredLevel}" min="0"></div>
+                <div class="form-group"><label>Catch Rate (%)</label><input type="number" id="map-catch-rate" value="${mapData.catchRate || 45}" min="1" max="100"></div>
+                <div class="form-group"><label>Required XP % to Catch</label><input type="number" id="map-req-xp" value="${mapData.requiredExpPercent || 10}" min="1" max="100"></div>
+                <div class="form-group"><label>Catch XP Penalty (%)</label><input type="number" id="map-catch-penalty" value="${mapData.catchXpPenaltyPercent || 10}" min="1" max="100"></div>
+                <div class="form-group"><label>Pokémon ID Min</label><input type="number" id="map-pokemon-min" value="${mapData.pokemonMin}" min="1" max="20000"></div>
+                <div class="form-group"><label>Pokémon ID Max</label><input type="number" id="map-pokemon-max" value="${mapData.pokemonMax}" min="1" max="20000"></div>
+                <div class="form-group"><label>Map Image (filename from map1.png to map15.png)</label><input type="text" id="map-image" value="${mapData.imageUrl || 'map1.png'}"></div>
+                
+                <!-- Tile Classes (comma separated) -->
+                <div class="form-group"><label>Tile Classes (comma‑separated, e.g., dirt,grass)</label><input type="text" id="map-tile-classes" value="${(mapData.tileClasses || ['dirt','grass']).join(',')}"></div>
+                
+                <!-- Dynamic Color Pickers (one per tile class) -->
+                <div class="form-group" id="color-pickers-container">
+                    <label>Tile Colors</label>
+                    <div id="color-pickers-list" style="margin-top: 8px;"></div>
                 </div>
+                
+                <!-- Live Tile Preview -->
+                <div class="form-group">
+                    <label>Tile Preview</label>
+                    <div id="tile-preview-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; width: 120px; margin-top: 8px;"></div>
+                </div>
+                
+                <!-- Special Level Range -->
+                <div class="form-group"><label><input type="checkbox" id="special-level-enabled" ${mapData.specialLevelRange?.enabled ? 'checked' : ''}> Enable special level range for wild Pokémon</label></div>
+                <div id="special-level-fields" style="display: ${mapData.specialLevelRange?.enabled ? 'block' : 'none'}; margin-left: 20px;">
+                    <div class="form-group"><label>Min Level</label><input type="number" id="special-level-min" value="${mapData.specialLevelRange?.min || 1}"></div>
+                    <div class="form-group"><label>Max Level</label><input type="number" id="special-level-max" value="${mapData.specialLevelRange?.max || 100}"></div>
+                </div>
+                
+                <!-- Searchable Pokémon Selector (with sprites) -->
+                <div class="form-group">
+                    <label>Special Pokémon List (spawns in addition to range)</label>
+                    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                        <input type="text" id="pokemon-search" placeholder="Search by name or ID..." style="flex:1;">
+                        <button type="button" id="add-pokemon-btn" class="btn btn-primary btn-small">Add</button>
+                    </div>
+                    <div id="special-pokemon-tags" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;"></div>
+                    <input type="hidden" id="special-pokemon-list" value="${(mapData.specialPokemonList || []).join(',')}">
+                </div>
+            </div>
+            <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
                 <button id="save-map-btn" class="btn btn-primary">Save</button>
                 <button id="cancel-map-btn" class="btn btn-outline">Cancel</button>
             </div>
-        `;
-        document.body.appendChild(modal);
-        const specialCheckbox = modal.querySelector('#special-level-enabled');
-        const specialFields = modal.querySelector('#special-level-fields');
-        specialCheckbox.onchange = () => specialFields.style.display = specialCheckbox.checked ? 'block' : 'none';
-        modal.querySelector('#save-map-btn').onclick = async () => {
-            const newMap = {
-                name: modal.querySelector('#map-name').value.trim(),
-                description: modal.querySelector('#map-description').value.trim(),
-                generation: modal.querySelector('#map-generation').value.trim(),
-                requiredLevel: parseInt(modal.querySelector('#map-req-level').value),
-                catchRate: parseInt(modal.querySelector('#map-catch-rate').value),
-                requiredExpPercent: parseInt(modal.querySelector('#map-req-xp').value),
-                catchXpPenaltyPercent: parseInt(modal.querySelector('#map-catch-penalty').value),
-                pokemonMin: parseInt(modal.querySelector('#map-pokemon-min').value),
-                pokemonMax: parseInt(modal.querySelector('#map-pokemon-max').value),
-                imageUrl: modal.querySelector('#map-image').value.trim(),
-                tileColors: modal.querySelector('#map-tile-colors').value.split(',').map(s => s.trim()),
-                tileClasses: modal.querySelector('#map-tile-classes').value.split(',').map(s => s.trim()),
-                specialLevelRange: {
-                    enabled: specialCheckbox.checked,
-                    min: parseInt(modal.querySelector('#special-level-min').value),
-                    max: parseInt(modal.querySelector('#special-level-max').value)
-                },
-                specialPokemonList: modal.querySelector('#special-pokemon-list').value.split(',').map(s => s.trim()).filter(s => s && !isNaN(parseInt(s))).map(s => parseInt(s))
-            };
-            if (isNew) await addDoc(collection(db, "maps"), newMap);
-            else await updateDoc(doc(db, "maps", map.id), newMap);
-            modal.remove();
-            loadMaps();
-        };
-        modal.querySelector('#cancel-map-btn').onclick = () => modal.remove();
-    }
+        </div>
+    `;
 
-    function escapeHtml(str) {
+    document.body.appendChild(modal);
+
+    // ========== TILE CLASSES & COLOR PICKERS ==========
+    const classInput = modal.querySelector('#map-tile-classes');
+    const colorListDiv = modal.querySelector('#color-pickers-list');
+    const previewGrid = modal.querySelector('#tile-preview-grid');
+    
+    // Initial tile colors from mapData (or default)
+    let tileColorsArray = [...(mapData.tileColors || ['#c2b280', '#78cd54'])];
+    
+    // Function to rebuild color pickers based on current tile classes
+    function rebuildColorPickers() {
+        const classes = classInput.value.split(',').map(s => s.trim()).filter(s => s);
+        // Ensure tileColorsArray length matches classes
+        while (tileColorsArray.length < classes.length) tileColorsArray.push('#888888');
+        while (tileColorsArray.length > classes.length) tileColorsArray.pop();
+        
+        colorListDiv.innerHTML = '';
+        for (let i = 0; i < classes.length; i++) {
+            const wrapper = document.createElement('div');
+            wrapper.style.display = 'flex';
+            wrapper.style.alignItems = 'center';
+            wrapper.style.gap = '8px';
+            wrapper.style.marginBottom = '6px';
+            wrapper.innerHTML = `
+                <span style="width: 60px; font-size:0.8rem;">${classes[i]}:</span>
+                <input type="color" class="tile-color-picker" data-index="${i}" value="${tileColorsArray[i]}" style="width: 50px; height: 30px; cursor: pointer;">
+                <span class="color-hex" style="font-size:0.7rem;">${tileColorsArray[i]}</span>
+            `;
+            colorListDiv.appendChild(wrapper);
+        }
+        
+        // Attach change events to color pickers
+        document.querySelectorAll('.tile-color-picker').forEach(picker => {
+            picker.addEventListener('input', (e) => {
+                const idx = parseInt(picker.dataset.index);
+                tileColorsArray[idx] = picker.value;
+                const hexSpan = picker.parentElement.querySelector('.color-hex');
+                if (hexSpan) hexSpan.textContent = picker.value;
+                updateTilePreview();
+            });
+        });
+        updateTilePreview();
+    }
+    
+    // Update live preview (uses current classes and colors)
+    function updateTilePreview() {
+        const classes = classInput.value.split(',').map(s => s.trim());
+        previewGrid.innerHTML = '';
+        for (let i = 0; i < Math.min(classes.length, tileColorsArray.length); i++) {
+            const tile = document.createElement('div');
+            tile.style.backgroundColor = tileColorsArray[i];
+            tile.style.aspectRatio = '1 / 1';
+            tile.style.border = '1px solid #ccc';
+            tile.title = classes[i];
+            previewGrid.appendChild(tile);
+        }
+    }
+    
+    // When tile classes change, rebuild the color pickers
+    classInput.addEventListener('input', () => {
+        rebuildColorPickers();
+    });
+    rebuildColorPickers(); // initial build
+    
+    // ========== SPECIAL POKÉMON LIST (with sprites) ==========
+    let specialIds = [];
+    const specialInput = modal.querySelector('#special-pokemon-list');
+    const tagsContainer = modal.querySelector('#special-pokemon-tags');
+    const searchInput = modal.querySelector('#pokemon-search');
+    const addBtn = modal.querySelector('#add-pokemon-btn');
+    
+    const existingIds = specialInput.value ? specialInput.value.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n)) : [];
+    existingIds.forEach(id => { if (!specialIds.includes(id)) specialIds.push(id); });
+    
+    async function getPokemonInfo(id) {
+        try {
+            const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
+            if (!res.ok) throw new Error();
+            const data = await res.json();
+            return { name: data.name, sprite: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png` };
+        } catch (e) {
+            return { name: `#${id}`, sprite: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png` };
+        }
+    }
+    
+    async function renderSpecialTags() {
+        tagsContainer.innerHTML = '';
+        if (specialIds.length === 0) {
+            tagsContainer.innerHTML = '<span style="font-size:0.7rem; color:var(--muted);">No special Pokémon added.</span>';
+            specialInput.value = '';
+            return;
+        }
+        const infoMap = new Map();
+        const promises = specialIds.map(async id => {
+            const info = await getPokemonInfo(id);
+            infoMap.set(id, info);
+        });
+        await Promise.all(promises);
+        for (const id of specialIds) {
+            const info = infoMap.get(id);
+            const tag = document.createElement('div');
+            tag.style.background = '#eef2ff';
+            tag.style.padding = '4px 8px';
+            tag.style.borderRadius = '20px';
+            tag.style.fontSize = '0.7rem';
+            tag.style.display = 'inline-flex';
+            tag.style.alignItems = 'center';
+            tag.style.gap = '6px';
+            tag.innerHTML = `
+                <img src="${info.sprite}" style="width: 24px; height: 24px; object-fit: contain; image-rendering: pixelated;" onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png'">
+                <span>${info.name.toUpperCase()} (#${id})</span>
+                <button class="remove-special" data-id="${id}" style="background:none; border:none; cursor:pointer; color:var(--danger); font-weight:bold;">✕</button>
+            `;
+            tagsContainer.appendChild(tag);
+        }
+        specialInput.value = specialIds.join(',');
+        document.querySelectorAll('.remove-special').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const id = parseInt(btn.dataset.id);
+                const index = specialIds.indexOf(id);
+                if (index !== -1) specialIds.splice(index, 1);
+                renderSpecialTags();
+            });
+        });
+    }
+    renderSpecialTags();
+    
+    async function searchPokemon(query) {
+        if (!query) return [];
+        try {
+            const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${query.toLowerCase()}`);
+            if (res.ok) {
+                const data = await res.json();
+                return [{ id: data.id, name: data.name }];
+            } else {
+                const id = parseInt(query);
+                if (!isNaN(id) && id > 0 && id < 20000) {
+                    const res2 = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
+                    if (res2.ok) {
+                        const data = await res2.json();
+                        return [{ id: data.id, name: data.name }];
+                    }
+                }
+            }
+        } catch (e) {}
+        return [];
+    }
+    
+    addBtn.onclick = async () => {
+        const query = searchInput.value.trim();
+        if (!query) return;
+        const results = await searchPokemon(query);
+        if (results.length === 0) {
+            alert('Pokémon not found');
+            return;
+        }
+        for (const p of results) {
+            if (!specialIds.includes(p.id)) specialIds.push(p.id);
+        }
+        await renderSpecialTags();
+        searchInput.value = '';
+    };
+    
+    // ========== SAVE & CANCEL ==========
+    const saveBtn = modal.querySelector('#save-map-btn');
+    const cancelBtn = modal.querySelector('#cancel-map-btn');
+    
+    saveBtn.onclick = async () => {
+        // Collect tile colors from color pickers
+        const colorPickers = modal.querySelectorAll('.tile-color-picker');
+        const tileColors = Array.from(colorPickers).map(p => p.value);
+        
+        const newMap = {
+            name: modal.querySelector('#map-name').value.trim(),
+            description: modal.querySelector('#map-description').value.trim(),
+            generation: modal.querySelector('#map-generation').value.trim(),
+            requiredLevel: parseInt(modal.querySelector('#map-req-level').value) || 0,
+            catchRate: parseInt(modal.querySelector('#map-catch-rate').value) || 45,
+            requiredExpPercent: parseInt(modal.querySelector('#map-req-xp').value) || 10,
+            catchXpPenaltyPercent: parseInt(modal.querySelector('#map-catch-penalty').value) || 10,
+            pokemonMin: parseInt(modal.querySelector('#map-pokemon-min').value) || 1,
+            pokemonMax: parseInt(modal.querySelector('#map-pokemon-max').value) || 151,
+            imageUrl: modal.querySelector('#map-image').value.trim(),
+            tileClasses: classInput.value.split(',').map(s => s.trim()),
+            tileColors: tileColors,
+            specialLevelRange: {
+                enabled: modal.querySelector('#special-level-enabled').checked,
+                min: parseInt(modal.querySelector('#special-level-min').value) || 1,
+                max: parseInt(modal.querySelector('#special-level-max').value) || 100
+            },
+            specialPokemonList: specialIds
+        };
+        if (isNew) {
+            await addDoc(collection(db, "maps"), newMap);
+        } else {
+            await updateDoc(doc(db, "maps", map.id), newMap);
+        }
+        modal.remove();
+        loadMaps();
+    };
+    
+    cancelBtn.onclick = () => modal.remove();
+    
+    const specialCheckbox = modal.querySelector('#special-level-enabled');
+    const specialFields = modal.querySelector('#special-level-fields');
+    specialCheckbox.onchange = () => specialFields.style.display = specialCheckbox.checked ? 'block' : 'none';
+}
+
+
+
+
+function escapeHtml(str) {
         return str.replace(/[&<>]/g, function(m) {
             if (m === '&') return '&amp;';
             if (m === '<') return '&lt;';
@@ -2541,6 +2765,21 @@ body.dark-theme #map-info-modal .btn-primary:hover {
             return m;
         });
     }
+
+        function updateTilePreview(colors, classes) {
+    const container = document.getElementById('tile-preview-grid');
+    if (!container) return;
+    container.innerHTML = '';
+    for (let i = 0; i < Math.min(colors.length, classes.length); i++) {
+        const tile = document.createElement('div');
+        tile.style.backgroundColor = colors[i];
+        tile.style.aspectRatio = '1 / 1';
+        tile.style.border = '1px solid #ccc';
+        tile.title = classes[i];
+        container.appendChild(tile);
+    }
+}
+
 
     async function startGameWithMap(map) {
         if (!activePokemonId) {

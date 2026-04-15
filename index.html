@@ -2041,14 +2041,31 @@ body.dark-theme #info-overlay .modal {
         if (win && currentBattle) {
             const b = currentBattle;
             const userId = auth.currentUser.uid;
-            if(b.wild.encounterCount === 5) {
-                const newPokemon = { pokemonId: b.wild.pokemonId, name: b.wild.name, level: b.wild.level, exp: 0, moves: b.wild.moves, types: b.wild.types, inTeam: false, capturedAt: new Date(), isShiny: b.wild.isShiny };
-                await addDoc(collection(db, "users", userId, "pokemon"), newPokemon);
-                await updateUserTotalLevels(userId, b.wild.level);
-                invalidateTeamCache();
-                showBattleSummary('catch');
-                return;
-            }
+            if (b.wild.encounterCount >= 5) {
+    const recordRef = doc(db, "users", userId, "records", b.wild.pokemonId.toString());
+    const recordSnap = await getDoc(recordRef);
+    const alreadyAutoCaught = recordSnap.exists() && recordSnap.data().autoCaught5th === true;
+    
+    if (!alreadyAutoCaught) {
+        const newPokemon = {
+            pokemonId: b.wild.pokemonId,
+            name: b.wild.name,
+            level: b.wild.level,
+            exp: 0,
+            moves: b.wild.moves,
+            types: b.wild.types,
+            inTeam: false,
+            capturedAt: new Date(),
+            isShiny: b.wild.isShiny
+        };
+        await addDoc(collection(db, "users", userId, "pokemon"), newPokemon);
+        await updateUserTotalLevels(userId, b.wild.level);
+        await updateDoc(recordRef, { autoCaught5th: true });
+        invalidateTeamCache();
+        showBattleSummary('catch');
+        return;
+    }
+}
             let gainXP = Math.floor(b.wild.level * 15);
             let coins = Math.floor(b.wild.level * 5);
             let leveledUp = false;
@@ -2841,12 +2858,17 @@ body.dark-theme #info-overlay .modal {
         }, 1000);
     }
 
-    async function trackRecord(id,name) {
-        pendingRecordUpdates[id]={name,count:(pendingRecordUpdates[id]?.count||0)+1};
-        await updateUserTotalEncounters(auth.currentUser.uid, 1);
-        if(Object.keys(pendingRecordUpdates).length>=5) flushRecordUpdates();
-        return (pendingRecordUpdates[id]?.count||1);
+    async function trackRecord(id, name) {
+    // Ensure pending count includes existing Firestore count
+    if (!pendingRecordUpdates[id]) {
+        const existing = await getEncounterCount(id); // reads Firestore
+        pendingRecordUpdates[id] = { name, count: existing };
     }
+    pendingRecordUpdates[id].count++;
+    await updateUserTotalEncounters(auth.currentUser.uid, 1);
+    if (Object.keys(pendingRecordUpdates).length >= 5) flushRecordUpdates();
+    return pendingRecordUpdates[id].count;
+}
 
     async function isSpeciesOwned(pokemonId) {
         try {
@@ -2872,7 +2894,7 @@ body.dark-theme #info-overlay .modal {
             const snap=await getDoc(ref);
             trackRead();
             const newCount=(snap.exists()?snap.data().count:0)+data.count;
-            batch.set(ref,{name:data.name,count:newCount,pokemonId:parseInt(id)});
+            batch.set(ref,{name:data.name,count:newCount,pokemonId:parseInt(id), autoCaught5th: snap.exists() ? snap.data().autoCaught5th || false : false},);
         }
         await batch.commit();
         trackWrite(Object.keys(pendingRecordUpdates).length);

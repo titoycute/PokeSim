@@ -3891,7 +3891,7 @@ async function releasePokemon(id,name) {
             trackWrite();
             await new Promise(resolve => setTimeout(resolve, 500));
              console.log("Saving email:", user.email);
-            await setDoc(doc(db, "users", user.uid), { hasStarter: true, activePokemonId: added.id, trainerName: trainerName, birthdate: birthdate, coins: 0, lastNameChange: null, totalLevels: 10, totalEncounters: 0, active: false, email: user.email  }, { merge: true });
+            await setDoc(doc(db, "users", user.uid), { hasStarter: true, activePokemonId: added.id, trainerName: trainerName, birthdate: birthdate, coins: 10000, lastNameChange: null, totalLevels: 10, totalEncounters: 0, active: false, email: user.email  }, { merge: true });
             trackWrite();
             document.getElementById('trainer-starter-modal').classList.add('hidden');
             pendingUser = null;

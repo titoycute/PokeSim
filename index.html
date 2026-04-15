@@ -922,9 +922,23 @@ body.dark-theme #info-overlay .modal {
             <p>👨‍💻 <strong>Created by:</strong> Tootzkie Custodio</p>
             <button id="check-update">Check for update</button>
             <hr style="margin: 15px 0;">
-            <p><strong>Disclaimer:</strong> This is a fan‑made game and is not affiliated with, endorsed, or sponsored by Nintendo, The Pokémon Company, or Game Freak. All Pokémon and related assets are property of their respective owners.</p>
-            <p><strong>Credits:</strong> Pokémon data and images provided by <a href="https://pokeapi.co/" target="_blank">PokeAPI</a>. Game backend powered by <a href="https://firebase.google.com/" target="_blank">Firebase</a>. Special thanks to the open‑source community.</p>
-        </div>
+            <div style="border-top: 2px solid var(--border); margin-top: 20px; padding-top: 20px; font-size: 0.75rem; color: var(--text-light); line-height: 1.5;">
+    <p><strong>⚠️ Disclaimer & Legal Notice</strong></p>
+    <p><strong>PokeSim</strong> is a <strong>fan‑made, non‑commercial project</strong> created for entertainment and educational purposes only.  
+    This game is <strong>not affiliated with, endorsed, sponsored, or approved by</strong> Nintendo, The Pokémon Company, Game Freak, or any of their respective subsidiaries or affiliates.</p>
+    
+    <p>All Pokémon names, characters, images, and related assets are <strong>trademarks and copyrights of Nintendo, The Pokémon Company, and Game Freak</strong>.  
+    No copyright infringement is intended. This project does not generate revenue from Pokémon intellectual property; any donations received go solely toward server and development costs, not for the sale of Pokémon content.</p>
+    
+    <p><strong>Data Sources:</strong> Pokémon data and sprites are provided by <a href="https://pokeapi.co/" target="_blank" style="color: var(--primary);">PokeAPI</a> under their respective licenses.  
+    Backend services by <a href="https://firebase.google.com/" target="_blank" style="color: var(--primary);">Firebase</a> and <a href="https://cloudflare.com/" target="_blank" style="color: var(--primary);">Cloudflare</a>.  
+    Special thanks to the open‑source community for their contributions.</p>
+    
+    <p><strong>If you are a rights holder and believe this project violates your intellectual property, please contact us to resolve the matter promptly.</strong></p>
+    
+    <p style="margin-top: 10px;">© 2026 PokeSim – Fan Project | Created by Tootzkie Custodio</p>
+</div>
+  </div>
         <button class="btn btn-primary" style="margin-top: 20px;" onclick="document.getElementById('about-modal').classList.add('hidden')">Close</button>
     </div>
 </div>
@@ -1168,6 +1182,28 @@ body.dark-theme #info-overlay .modal {
     <div id="team-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px;"></div>
 </div>
 
+ <div id="legal-modal" class="overlay hidden">
+    <div class="modal" style="max-width: 500px; text-align: left;">
+        <h2 style="color: var(--primary-dark);">Legal & Credits</h2>
+        <div style="margin: 20px 0; font-size: 0.85rem; line-height: 1.5;">
+            <p><strong>⚠️ Disclaimer</strong><br>
+            PokeSim is a fan‑made, non‑commercial project. All Pokémon-related trademarks, characters, and assets are the property of Nintendo, The Pokémon Company, and Game Freak. This project is not affiliated with or endorsed by them.</p>
+            
+            <p><strong>Data & Images</strong><br>
+            Pokémon data and sprites are provided by <a href="https://pokeapi.co/" target="_blank">PokeAPI</a> (© 2017–2026 PokeAPI contributors). Sprites are sourced from the official Pokémon games and are used under fair use for non‑commercial fan projects.</p>
+            
+            <p><strong>Backend</strong><br>
+            This game uses Firebase (Google) for authentication and database, and Cloudflare for CDN and security. Their respective terms and privacy policies apply.</p>
+            
+            <p><strong>Contact</strong><br>
+            For any legal concerns, please reach out via the <a href="https://www.facebook.com/profile.php?id=61574391684893" target="_blank">PokeSim Facebook Page</a>.</p>
+            
+            <p style="margin-top: 20px;">© 2026 PokeSim – Created by Tootzkie Custodio</p>
+        </div>
+        <button class="btn btn-primary" onclick="document.getElementById('legal-modal').classList.add('hidden')">Close</button>
+    </div>
+</div>
+
 <!-- Update Collection View -->
 <div id="view-collection" class="list-container hidden">
     <div class="flex-between" style="margin-bottom: 20px; align-items: center; gap: 10px;">
@@ -1205,9 +1241,26 @@ body.dark-theme #info-overlay .modal {
             
             
         Created by Tootzkie Custodio <span id="app-version"></span>
-             <p><strong>Disclaimer:</strong> This is a fan‑made game and is not affiliated with, endorsed, or sponsored by Nintendo, The Pokémon Company, or Game Freak. All Pokémon and related assets are property of their respective owners.</p>
-            <p><strong>Credits:</strong> Pokémon data and images provided by <a href="https://pokeapi.co/" target="_blank">PokeAPI</a>. Game backend powered by <a href="https://firebase.google.com/" target="_blank">Firebase</a>. Special thanks to the open‑source community.</p>
-    </footer>
+           <div style="border-top: 2px solid var(--border); margin-top: 20px; padding-top: 20px; font-size: 0.75rem; color: var(--text-light); line-height: 1.5;">
+    <p><strong>⚠️ Disclaimer & Legal Notice</strong></p>
+    <p><strong>PokeSim</strong> is a <strong>fan‑made, non‑commercial project</strong> created for entertainment and educational purposes only.  
+    This game is <strong>not affiliated with, endorsed, sponsored, or approved by</strong> Nintendo, The Pokémon Company, Game Freak, or any of their respective subsidiaries or affiliates.</p>
+    
+    <p>All Pokémon names, characters, images, and related assets are <strong>trademarks and copyrights of Nintendo, The Pokémon Company, and Game Freak</strong>.  
+    No copyright infringement is intended. This project does not generate revenue from Pokémon intellectual property; any donations received go solely toward server and development costs, not for the sale of Pokémon content.</p>
+    
+    <p><strong>Data Sources:</strong> Pokémon data and sprites are provided by <a href="https://pokeapi.co/" target="_blank" style="color: var(--primary);">PokeAPI</a> under their respective licenses.  
+    Backend services by <a href="https://firebase.google.com/" target="_blank" style="color: var(--primary);">Firebase</a> and <a href="https://cloudflare.com/" target="_blank" style="color: var(--primary);">Cloudflare</a>.  
+    Special thanks to the open‑source community for their contributions.</p>
+    
+    <p><strong>If you are a rights holder and believe this project violates your intellectual property, please contact us to resolve the matter promptly.</strong></p>
+    
+    <p style="margin-top: 10px;">© 2026 PokeSim – Fan Project | Created by Tootzkie Custodio</p>
+</div>
+<a href="#" id="legal-modal-link" style="color: var(--primary);">Legal & Credits</a>
+ </footer>
+
+
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -1341,6 +1394,8 @@ body.dark-theme #info-overlay .modal {
         }
     }
     loadMoveDatabase();
+
+
 
     // ========== BONUS STATS HELPERS ==========
     function generateWildBonusStats() {
@@ -3976,6 +4031,11 @@ function toggleDarkTheme() {
 if (themeToggle) {
   themeToggle.addEventListener('click', toggleDarkTheme);
 }
+
+document.getElementById('legal-modal-link')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('legal-modal').classList.remove('hidden');
+});
 
 </script>
 </body>

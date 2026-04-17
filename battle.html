@@ -1528,6 +1528,26 @@ if (opponent.isShiny) {
     loadImageWithFallback(document.getElementById('e-sprite-btl'), getBattleSpriteUrl(opponent.pokemonId, 'front'));
 }
 
+// ========== KEYBOARD CONTROLS FOR BATTLE ONLY ==========
+function clickMoveButton(index) {
+    const moveBtns = document.querySelectorAll('#battle-moves .move-btn');
+    if (moveBtns.length >= index && index >= 1) {
+        const btn = moveBtns[index - 1];
+        if (!btn.disabled) btn.click();
+    }
+}
+
+window.addEventListener('keydown', (e) => {
+    const key = e.key;
+    if (key === '1' || key === '2' || key === '3' || key === '4') {
+        e.preventDefault();
+        if (currentBattle && !isProcessing) {
+            clickMoveButton(parseInt(key));
+        }
+    }
+});
+
+
 // Apply G-Max size boost (2x)
 const enemySprite = document.getElementById('e-sprite-btl');
 if (opponent.name.toLowerCase().includes('-gmax')) {

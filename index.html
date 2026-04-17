@@ -747,7 +747,7 @@ body.dark-theme .records-card-stats {
     body.dark-theme #summary-details { background: #1e2230 !important; color: #e2e8f0 !important; }
     body.dark-theme #summary-details span, body.dark-theme #summary-details strong { color: #e2e8f0 !important; }
 
-    /* Loading overlay with rotating Pokéball */
+      /* Loading overlay with rotating Pokéball */
 .loading-container {
     background: var(--card-bg);
     border-radius: 32px;
@@ -839,6 +839,309 @@ body.dark-theme #info-overlay .modal {
     display: block;
     margin: 0 auto;
     animation: spinBall 1s linear infinite;
+}
+
+/* ---------- CARD-STYLE SCROLLABLE NAVIGATION (FIXED) ---------- */
+/* ---------- CARD-STYLE SCROLLABLE NAVIGATION (FIXED) ---------- */
+.card-nav {
+    background: transparent;
+    padding: 12px 5%;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+    overflow-x: hidden; /* prevent the whole nav from scrolling */
+}
+
+/* Header with logo and hamburger */
+.nav-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    width: 100%;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 800;
+    font-size: 1.5rem;
+    color: var(--primary-dark);
+    flex-shrink: 0; /* prevent logo from shrinking */
+}
+.logo img {
+    height: 40px;
+    width: auto;
+    border-radius: 12px;
+}
+
+/* Hamburger button - always visible on the right */
+.hamburger {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 30px;
+    height: 24px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    z-index: 1100;
+    flex-shrink: 0; /* prevent shrinking */
+    margin-left: auto; /* push to the right */
+}
+.hamburger span {
+    width: 100%;
+    height: 3px;
+    background: var(--text-dark);
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+.hamburger.open span:nth-child(1) {
+    transform: translateY(10px) rotate(45deg);
+}
+.hamburger.open span:nth-child(2) {
+    opacity: 0;
+}
+.hamburger.open span:nth-child(3) {
+    transform: translateY(-10px) rotate(-45deg);
+}
+
+/* Collapsible container */
+.nav-collapsible {
+    transition: max-height 0.4s ease-out, opacity 0.2s ease;
+    overflow: hidden;
+    width: 100%;
+}
+
+/* On desktop: always expanded, hamburger hidden */
+@media (min-width: 769px) {
+    .nav-collapsible {
+        max-height: none !important;
+        opacity: 1 !important;
+    }
+    .hamburger {
+        display: none !important;
+    }
+}
+
+/* On mobile: collapsible hidden by default, hamburger visible */
+@media (max-width: 768px) {
+    .nav-collapsible {
+        max-height: 0;
+        opacity: 0;
+    }
+    .nav-collapsible.open {
+        max-height: 500px;
+        opacity: 1;
+    }
+    .hamburger {
+        display: flex;
+    }
+}
+
+/* Each card */
+.nav-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 8px 12px;
+    margin-bottom: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    width: 100%;
+    box-sizing: border-box;
+    overflow-x: auto; /* allow horizontal scroll inside card if needed */
+}
+.nav-card:last-child {
+    margin-bottom: 0;
+}
+
+/* Scrollable row inside card - ensures horizontal scrolling without expanding parent */
+.nav-row {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    scrollbar-width: thin;
+    padding: 6px 0;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap; /* force items to stay in one line */
+}
+.nav-row::-webkit-scrollbar {
+    height: 4px;
+}
+.nav-row::-webkit-scrollbar-track {
+    background: var(--border);
+    border-radius: 4px;
+}
+.nav-row::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 4px;
+}
+
+/* Items inside rows - prevent wrapping */
+.nav-link, .nav-item, .volume-btn, .btn-outline {
+    flex: 0 0 auto;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 40px;
+    transition: 0.2s;
+    color: var(--text-dark);
+    font-size: 0.9rem;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+.nav-link:hover, .nav-item:hover {
+    background: #eef2ff;
+    color: var(--primary);
+}
+.volume-btn {
+    background: rgba(255,255,255,0.8);
+    width: 36px;
+    height: 36px;
+    justify-content: center;
+}
+.volume-btn:hover {
+    background: white;
+    transform: scale(1.05);
+}
+#user-display {
+    background: #eef2ff;
+    padding: 4px 10px;
+    border-radius: 40px;
+    gap: 8px;
+}
+#level-display, #coin-display {
+    background: #fef9e3;
+    color: #b45309;
+    padding: 4px 12px;
+    border-radius: 40px;
+    font-weight: bold;
+    font-size: 0.85rem;
+}
+.btn-outline {
+    background: transparent;
+    border: 1px solid var(--border);
+}
+.btn-outline:hover {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+#change-name-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    color: var(--primary);
+}
+.guide-link {
+    background: var(--primary);
+    color: white !important;
+}
+.guide-link:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+}
+
+/* Dark theme adjustments for cards */
+.dark-theme .nav-card {
+    background: var(--card-bg);
+    border-color: var(--border);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+.dark-theme .nav-link:hover,
+.dark-theme .nav-item:hover {
+    background: #2d2f3e;
+    color: var(--primary);
+}
+.dark-theme #user-display {
+    background: #2d2f3e;
+    color: var(--text-dark);
+}
+.dark-theme #level-display,
+.dark-theme #coin-display {
+    background: #1e2230;
+    color: #fbbf24;
+}
+.dark-theme .volume-btn {
+    background: rgba(30,35,50,0.8);
+}
+.dark-theme .volume-btn:hover {
+    background: var(--primary);
+    color: white;
+}
+
+/* Responsive: smaller padding on mobile */
+@media (max-width: 600px) {
+    .nav-card {
+        padding: 6px 10px;
+    }
+    .nav-link, .nav-item {
+        padding: 4px 10px;
+        font-size: 0.8rem;
+    }
+    .volume-btn {
+        width: 32px;
+        height: 32px;
+    }
+}
+/* Fix info modal for mobile: make content scrollable and close button accessible */
+#info-overlay .modal {
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    overflow-y: auto;
+}
+#info-overlay .modal > *:last-child {
+    margin-top: auto;
+    position: sticky;
+    bottom: 0;
+    background: var(--card-bg);
+    padding-top: 10px;
+    margin-bottom: 0;
+}
+/* Ensure the close button is always visible */
+#info-overlay .modal .btn-primary {
+    width: 100%;
+    margin-top: 15px;
+}
+/* On very small screens, reduce padding */
+@media (max-width: 480px) {
+    #info-overlay .modal {
+        padding: 15px;
+    }
+}
+#info-overlay .modal {
+    text-align: center;
+}
+#info-img {
+    display: block;
+    margin: 0 auto;
+    width: 130px;
+    height: auto;
+}
+@media (max-width: 480px) {
+    #info-img {
+        width: 100px;
+    }
+}
+#zoom-in-btn, #zoom-out-btn {
+    font-weight: bold;
+    font-size: 1.2rem;
 }
 </style>
 </head>
@@ -1108,36 +1411,59 @@ body.dark-theme #info-overlay .modal {
 
     <!-- Game Screen -->
     <div id="game-screen" class="hidden">
-        <nav>
-            <div class="logo"><img src="PokeSim Word.png" alt="PokeSim"></div>
-            <div class="nav-links">
+   <nav class="card-nav">
+    <div class="nav-header">
+        <div class="logo"><img src="PokeSim Word.png" alt="PokeSim"></div>
+        <button id="nav-toggle" class="hamburger" aria-label="Menu">
+            <span></span><span></span><span></span>
+        </button>
+    </div>
+
+    <div id="nav-collapsible" class="nav-collapsible">
+        <!-- Card 1: Admin & Info -->
+        <div class="nav-card">
+            <div class="nav-row">
+                <button id="volume-toggle" class="volume-btn nav-item" title="Mute/Unmute">🔊</button>
+                <button id="theme-toggle" class="volume-btn nav-item" title="Dark/Light mode">🌙</button>
                 <a id="admin-link" href="admin.html" class="nav-link" style="display: none;">👑 Admin Portal</a>
-               <a href="updates.html" class="nav-link">📢 Updates</a>
-                <!-- <button class="nav-link" onclick="window.switchView('explore')"> Home</button>-->
+                <a href="updates.html" class="nav-link">📢 Updates</a>
+                <button class="nav-link" onclick="window.showAbout()">ℹ️ About the Game</button>
+                <a href="pokesim_guide.html" class="nav-link guide-link"><i class="fas fa-book-open"></i> How to Play</a>
+                <a href="ranking.html" class="nav-link">🏆 Global Ranking</a>
+            </div>
+        </div>
+
+        <!-- Card 2: Gameplay -->
+        <div class="nav-card">
+            <div class="nav-row">
                 <a href="map.html" class="nav-link">🚗 Byahe</a>
                 <a href="market.html" id="merkado-link" class="nav-link" style="display: none;">🛒 Merkado</a>
+                <a href="battle.html" class="nav-link">🏆 Gym Battles</a>
                 <button class="nav-link" onclick="window.switchView('team')">⚔️ Pokemon Team</button>
                 <button class="nav-link" onclick="window.switchView('collection')">📦 Caught Pokemon</button>
                 <button class="nav-link" onclick="window.switchView('records')">📖 Encountered Pokemon</button>
-                <button class="nav-link" onclick="window.showAbout()">ℹ️ About the Game</button>
-                <a href="ranking.html" class="nav-link" style="text-decoration: none;">🏆 Global Ranking</a>
-                <div id="user-display">
-                    <span id="trainer-name-display"></span>
-                    <button id="change-name-btn" class="btn-small" style=" border: none; cursor: pointer; font-size: 0.7rem; padding: 2px 6px;">✏️</button>
-                </div>
-                <div id="level-display">⭐ Lv. <span id="trainer-level">0</span></div>
-                <div id="coin-display">💰 <span id="coin-amount">0</span></div>
-                <button class="btn btn-outline" id="logout-btn">Logout</button>
-                <button id="volume-toggle" class="volume-btn" title="Mute/Unmute">🔊</button>
-                <button id="theme-toggle" class="volume-btn" title="Dark/Light mode">🌙</button>
+                
             </div>
-        </nav>
+        </div>
 
-      <div style="text-align: center; margin-bottom: 15px; margin-top: 20px;">
-    <a href="pokesim_guide.html" class="guide-link">
-        <i class="fas fa-book-open"></i> How to Play PokeSim
-    </a>
+        <!-- Card 3: User & Controls -->
+        <div class="nav-card">
+            <div class="nav-row user-row">
+                <div id="user-display" class="nav-item">
+                    <span id="trainer-name-display"></span>
+                    <button id="change-name-btn" class="btn-small" title="Change name">✏️</button>
+                </div>
+                <div id="level-display" class="nav-item">⭐ Lv. <span id="trainer-level">0</span></div>
+                <div id="coin-display" class="nav-item">💰 <span id="coin-amount">0</span></div>
+                <button class="btn btn-outline nav-item" id="logout-btn">Logout</button>
+                 <button id="zoom-out-btn" class="volume-btn nav-item" title="Zoom Out">−</button>
+        <button id="zoom-in-btn" class="volume-btn nav-item" title="Zoom In">+</button>
+                
+            </div>
+        </div>
     </div>
+</nav>
+
 <div id="current-map-info" style="text-align:center; margin-bottom:20px;">
     <h3 id="current-map-name-display">Loading map...</h3>
     <button id="edit-default-map-btn" class="btn btn-outline" style="display:none;">✏️ Edit Map</button>
@@ -1270,7 +1596,7 @@ body.dark-theme #info-overlay .modal {
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, updateDoc, deleteDoc, writeBatch, increment, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, updateDoc, deleteDoc, writeBatch, increment, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
     const POWER_PRICE_MULTIPLIER = 35;
     const SHINY_RATE = 1875;
     const firebaseConfig = { apiKey: "AIzaSyDkCE0wBrsQ1s-7zplvTtWOSE28ISaCFfQ", authDomain: "pokesim-7f9b7.firebaseapp.com", projectId: "pokesim-7f9b7", storageBucket: "pokesim-7f9b7.firebasestorage.app", messagingSenderId: "1087100425430", appId: "1:1087100425430:web:9558a79ee5330d4a792577" };
@@ -2587,6 +2913,28 @@ body.dark-theme #info-overlay .modal {
         });
     }
 
+    // ---------- Mobile Navigation Toggle ----------
+const navToggle = document.getElementById('nav-toggle');
+const navCollapsible = document.getElementById('nav-collapsible');
+
+if (navToggle && navCollapsible) {
+    navToggle.addEventListener('click', () => {
+        navCollapsible.classList.toggle('open');
+        navToggle.classList.toggle('open');
+    });
+
+    // Close menu when a link/button inside is clicked (optional)
+    // const navLinks = navCollapsible.querySelectorAll('.nav-link, .nav-item, .btn-outline, .volume-btn');
+    // navLinks.forEach(link => {
+    //     link.addEventListener('click', () => {
+    //         if (window.innerWidth <= 768) {
+    //             navCollapsible.classList.remove('open');
+    //             navToggle.classList.remove('open');
+    //         }
+    //     });
+    // });
+}
+
     async function runTurn(selectedMove) {
     if (isProcessing) return;
     isProcessing = true;
@@ -3891,7 +4239,19 @@ async function releasePokemon(id,name) {
             trackWrite();
             await new Promise(resolve => setTimeout(resolve, 500));
              console.log("Saving email:", user.email);
-            await setDoc(doc(db, "users", user.uid), { hasStarter: true, activePokemonId: added.id, trainerName: trainerName, birthdate: birthdate, coins: 10000, lastNameChange: null, totalLevels: 10, totalEncounters: 0, active: false, email: user.email  }, { merge: true });
+            await setDoc(doc(db, "users", user.uid), {
+                hasStarter: true,
+                activePokemonId: added.id,
+                trainerName: trainerName,
+                birthdate: birthdate,
+                coins: 10000,
+                lastNameChange: null,
+                totalLevels: 10,
+                totalEncounters: 0,
+                active: false,
+                email: user.email,
+                createdAt: serverTimestamp()   // ← add this line
+                }, { merge: true });
             trackWrite();
             document.getElementById('trainer-starter-modal').classList.add('hidden');
             pendingUser = null;
@@ -4041,6 +4401,51 @@ document.getElementById('legal-modal-link')?.addEventListener('click', (e) => {
     e.preventDefault();
     document.getElementById('legal-modal').classList.remove('hidden');
 });
+
+// ---------- Zoom Controls ----------
+let currentZoom = 1;
+const ZOOM_STEP = 0.1;
+const MIN_ZOOM = 0.5;
+const MAX_ZOOM = 1.5;
+
+function applyZoom() {
+    // Apply zoom to the main game container (#game-screen) or to the body
+    const gameScreen = document.getElementById('game-screen');
+    if (gameScreen) {
+        gameScreen.style.transform = `scale(${currentZoom})`;
+        gameScreen.style.transformOrigin = 'top center';
+        // Adjust container width to prevent clipping
+        gameScreen.style.width = `${100 / currentZoom}%`;
+        gameScreen.style.margin = '0 auto';
+    }
+    // Store zoom level in localStorage for persistence
+    localStorage.setItem('pokesim_zoom', currentZoom);
+}
+
+function zoomIn() {
+    if (currentZoom + ZOOM_STEP <= MAX_ZOOM) {
+        currentZoom += ZOOM_STEP;
+        applyZoom();
+    }
+}
+
+function zoomOut() {
+    if (currentZoom - ZOOM_STEP >= MIN_ZOOM) {
+        currentZoom -= ZOOM_STEP;
+        applyZoom();
+    }
+}
+
+// Load saved zoom level
+const savedZoom = localStorage.getItem('pokesim_zoom');
+if (savedZoom) {
+    currentZoom = parseFloat(savedZoom);
+    applyZoom();
+}
+
+// Attach event listeners
+document.getElementById('zoom-in-btn')?.addEventListener('click', zoomIn);
+document.getElementById('zoom-out-btn')?.addEventListener('click', zoomOut);
 
 </script>
 </body>

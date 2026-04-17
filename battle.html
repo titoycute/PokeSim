@@ -625,6 +625,23 @@
     /* ========== TRANSITIONS FOR VIEW HIDING ========== */
     #gym-view, #battle-container { transition: opacity 0.2s ease; }
     .hidden { display: none !important; }
+
+    /* Fix gym team preview images background in dark mode */
+.dark-theme .gym-team-pokemon img {
+    background: #2d2f3e !important;  /* match your dark card background */
+}
+.dark-theme .gym-team-pokemon span {
+    color: #e2e8f0 !important;        /* ensure level text is readable */
+}
+
+/* Improve modal performance */
+.modal {
+    will-change: transform;
+    transform: translateZ(0);
+}
+.gym-form-modal .modal {
+    will-change: transform;
+}
 </style>
 </head>
 <body>
@@ -1786,220 +1803,242 @@ async function startGymBattle(gymId) {
             }
         }
 
-        async function createSpeciesInput(currentId, onChange) {
-            const container = document.createElement('div');
-            container.className = 'form-group';
-            container.innerHTML = `
-                <label>Pokémon ID / Name</label>
-                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                    <input type="number" id="species-id-input" class="species-id-input" value="${currentId}" min="1" max="10400" step="1" style="flex: 1;">
-                    <input type="text" id="species-name-input" class="species-name-input" placeholder="or enter name" list="pokemon-names" style="flex: 2;">
-                    <datalist id="pokemon-names">
-                        ${allPokemon.map(p => `<option value="${p.name}">`).join('')}
-                    </datalist>
-                </div>
-                <div id="species-preview" class="species-preview">
-                    <img id="species-sprite" src="" alt="">
-                    <div class="preview-info">
-                        <div id="species-info">Loading...</div>
-                    </div>
-                    <button id="view-animated-btn" class="animated-btn" style="margin-left: auto;">🎬 View Animated</button>
-                </div>
-            `;
-            const idInput = container.querySelector('#species-id-input');
-            const nameInput = container.querySelector('#species-name-input');
-            const spriteImg = container.querySelector('#species-sprite');
-            const infoDiv = container.querySelector('#species-info');
-            const viewAnimatedBtn = container.querySelector('#view-animated-btn');
-            let currentSpecies = null;
+      async function createSpeciesInput(currentId, onChange) {
+    const container = document.createElement('div');
+    container.className = 'form-group';
+    container.innerHTML = `
+        <label>Pokémon ID / Name</label>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <input type="number" id="species-id-input" class="species-id-input" value="${currentId}" min="1" max="10400" step="1" style="flex: 1;">
+            <input type="text" id="species-name-input" class="species-name-input" placeholder="or enter name" list="pokemon-names" style="flex: 2;">
+            <datalist id="pokemon-names">
+                ${allPokemon.map(p => `<option value="${p.name}">`).join('')}
+            </datalist>
+        </div>
+        <div id="species-preview" class="species-preview">
+            <img id="species-sprite" src="" alt="">
+            <div class="preview-info">
+                <div id="species-info">Loading...</div>
+            </div>
+            <button id="view-animated-btn" class="animated-btn" style="margin-left: auto;">🎬 View Animated</button>
+        </div>
+    `;
+    const idInput = container.querySelector('#species-id-input');
+    const nameInput = container.querySelector('#species-name-input');
+    const spriteImg = container.querySelector('#species-sprite');
+    const infoDiv = container.querySelector('#species-info');
+    const viewAnimatedBtn = container.querySelector('#view-animated-btn');
+    let currentSpecies = null;
+    let speciesTimeout;
 
-            async function updatePreview() {
-                if (!currentSpecies) return;
-                const urls = getStaticSpriteUrl(currentSpecies.id);
-                loadImageWithFallback(spriteImg, urls);
-                infoDiv.innerHTML = `<strong>${currentSpecies.name.toUpperCase()}</strong> (${currentSpecies.types.join(', ')})`;
-                if (onChange) onChange(currentSpecies.id, currentSpecies);
-            }
+    async function updatePreview() {
+        if (!currentSpecies) return;
+        const urls = getStaticSpriteUrl(currentSpecies.id);
+        loadImageWithFallback(spriteImg, urls);
+        infoDiv.innerHTML = `<strong>${currentSpecies.name.toUpperCase()}</strong> (${currentSpecies.types.join(', ')})`;
+        if (onChange) onChange(currentSpecies.id, currentSpecies);
+    }
 
-            async function setSpeciesById(id) {
-                const species = await getPokemonById(id);
-                if (species) {
+    async function setSpeciesById(id) {
+        const species = await getPokemonById(id);
+        if (species) {
+            currentSpecies = species;
+            idInput.value = id;
+            nameInput.value = species.name;
+            await updatePreview();
+        } else {
+            currentSpecies = null;
+            infoDiv.innerHTML = '<span style="color: var(--danger);">Invalid Pokémon ID</span>';
+            spriteImg.style.display = 'none';
+            if (onChange) onChange(null, null);
+        }
+    }
+
+    async function onIdChange() {
+        const id = parseInt(idInput.value, 10);
+        if (isNaN(id) || id < 1) {
+            infoDiv.innerHTML = '<span style="color: var(--danger);">Enter a valid ID (1-1025)</span>';
+            spriteImg.style.display = 'none';
+            if (onChange) onChange(null, null);
+            return;
+        }
+        await setSpeciesById(id);
+    }
+
+    async function onNameChange() {
+        const name = nameInput.value.toLowerCase().trim();
+        if (!name) return;
+        const matchingPokemon = allPokemon.find(p => p.name === name);
+        if (matchingPokemon) {
+            await setSpeciesById(matchingPokemon.id);
+        } else {
+            try {
+                const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${name}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    const species = {
+                        id: data.id,
+                        name: data.name,
+                        types: data.types.map(t => t.type.name),
+                        sprite: getStaticSpriteUrl(data.id)[0]
+                    };
                     currentSpecies = species;
-                    idInput.value = id;
+                    idInput.value = species.id;
                     nameInput.value = species.name;
                     await updatePreview();
                 } else {
-                    currentSpecies = null;
-                    infoDiv.innerHTML = '<span style="color: var(--danger);">Invalid Pokémon ID</span>';
+                    infoDiv.innerHTML = '<span style="color: var(--danger);">Pokémon not found</span>';
                     spriteImg.style.display = 'none';
                     if (onChange) onChange(null, null);
                 }
+            } catch(e) {
+                infoDiv.innerHTML = '<span style="color: var(--danger);">Error searching</span>';
             }
-
-            async function onIdChange() {
-                const id = parseInt(idInput.value, 10);
-                if (isNaN(id) || id < 1) {
-                    infoDiv.innerHTML = '<span style="color: var(--danger);">Enter a valid ID (1-1025)</span>';
-                    spriteImg.style.display = 'none';
-                    if (onChange) onChange(null, null);
-                    return;
-                }
-                await setSpeciesById(id);
-            }
-
-            async function onNameChange() {
-                const name = nameInput.value.toLowerCase().trim();
-                if (!name) return;
-                const matchingPokemon = allPokemon.find(p => p.name === name);
-                if (matchingPokemon) {
-                    await setSpeciesById(matchingPokemon.id);
-                } else {
-                    try {
-                        const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${name}`);
-                        if (res.ok) {
-                            const data = await res.json();
-                            const species = {
-                                id: data.id,
-                                name: data.name,
-                                types: data.types.map(t => t.type.name),
-                                sprite: getStaticSpriteUrl(data.id)[0]
-                            };
-                            currentSpecies = species;
-                            idInput.value = species.id;
-                            nameInput.value = species.name;
-                            await updatePreview();
-                        } else {
-                            infoDiv.innerHTML = '<span style="color: var(--danger);">Pokémon not found</span>';
-                            spriteImg.style.display = 'none';
-                            if (onChange) onChange(null, null);
-                        }
-                    } catch(e) {
-                        infoDiv.innerHTML = '<span style="color: var(--danger);">Error searching</span>';
-                    }
-                }
-            }
-
-            idInput.addEventListener('input', onIdChange);
-            nameInput.addEventListener('change', onNameChange);
-            await setSpeciesById(currentId);
-
-            viewAnimatedBtn.onclick = () => {
-                if (!currentSpecies) {
-                    alert("No Pokémon selected.");
-                    return;
-                }
-                const modal = document.getElementById('animated-sprite-modal');
-                const title = document.getElementById('animated-title');
-                const img = document.getElementById('animated-sprite-img');
-                const info = document.getElementById('animated-info');
-                const errorDiv = document.getElementById('animated-error');
-                const retryBtn = document.getElementById('retry-animated-btn');
-
-                title.innerText = currentSpecies.name.toUpperCase();
-                info.innerHTML = generateTypeBadges(currentSpecies.types);
-                errorDiv.innerHTML = '';
-                img.style.display = 'block';
-                img.style.width = '200px';
-                img.style.height = '200px';
-                img.onerror = () => {
-                    errorDiv.innerHTML = 'Failed to load animated sprite. Click retry.';
-                    img.style.display = 'none';
-                };
-                const loadGif = () => {
-                    img.onload = () => { img.style.display = 'block'; errorDiv.innerHTML = ''; };
-                    loadImageWithFallback(img, getShowdownSpriteUrl(currentSpecies.id));
-                };
-                loadGif();
-                retryBtn.onclick = () => loadGif();
-                modal.classList.remove('hidden');
-            };
-            return container;
         }
+    }
 
+    idInput.addEventListener('input', () => {
+        clearTimeout(speciesTimeout);
+        speciesTimeout = setTimeout(onIdChange, 300);
+    });
+    nameInput.addEventListener('change', onNameChange);
+    await setSpeciesById(currentId);
+
+    viewAnimatedBtn.onclick = () => {
+        if (!currentSpecies) {
+            alert("No Pokémon selected.");
+            return;
+        }
+        const modal = document.getElementById('animated-sprite-modal');
+        const title = document.getElementById('animated-title');
+        const img = document.getElementById('animated-sprite-img');
+        const info = document.getElementById('animated-info');
+        const errorDiv = document.getElementById('animated-error');
+        const retryBtn = document.getElementById('retry-animated-btn');
+
+        title.innerText = currentSpecies.name.toUpperCase();
+        info.innerHTML = generateTypeBadges(currentSpecies.types);
+        errorDiv.innerHTML = '';
+        img.style.display = 'block';
+        img.style.width = '200px';
+        img.style.height = '200px';
+        img.onerror = () => {
+            errorDiv.innerHTML = 'Failed to load animated sprite. Click retry.';
+            img.style.display = 'none';
+        };
+        const loadGif = () => {
+            img.onload = () => { img.style.display = 'block'; errorDiv.innerHTML = ''; };
+            loadImageWithFallback(img, getShowdownSpriteUrl(currentSpecies.id));
+        };
+        loadGif();
+        retryBtn.onclick = () => loadGif();
+        modal.classList.remove('hidden');
+    };
+    return container;
+}
         // ---------- Move Selector Component ----------
         function renderMoveSelector(containerId, currentMoves, onChange) {
-            const container = document.getElementById(containerId);
-            if (!container) return;
-            container.innerHTML = `
-                <input type="text" class="move-search" placeholder="Search moves...">
-                <div class="move-table-container">
-                    <table class="move-table">
-                        <thead>
-                            <tr><th>Move</th><th>Type</th><th>Power</th><th style="width: 50px;">Select</th> </thead>
-                        </thead>
-                        <tbody id="move-table-body"></tbody>
-                    </table>
-                </div>
-                <div class="selected-moves-preview" style="margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px;"></div>
-            `;
-            const searchInput = container.querySelector('.move-search');
-            const tbody = container.querySelector('#move-table-body');
-            const previewDiv = container.querySelector('.selected-moves-preview');
-            const selected = [...currentMoves];
-            const updatePreview = () => {
-                previewDiv.innerHTML = selected.map(m => `
-                    <span style="background: ${getTypeColor(m.type)}; color: white; padding: 2px 8px; border-radius: 20px; font-size: 0.7rem;">
-                        ${m.name.toUpperCase()} (${m.power})
-                        <button class="remove-move" data-name="${m.name}" style="background: none; border: none; color: white; margin-left: 5px; cursor: pointer;">✕</button>
-                    </span>
-                `).join('');
-                document.querySelectorAll('.remove-move').forEach(btn => {
-                    btn.onclick = () => {
-                        const name = btn.dataset.name;
-                        const idx = selected.findIndex(m => m.name === name);
-                        if (idx !== -1) selected.splice(idx, 1);
-                        updateTable();
-                        updatePreview();
-                        if (onChange) onChange(selected);
-                    };
-                });
-            };
-            const updateTable = () => {
-                const searchTerm = searchInput.value.toLowerCase();
-                const filtered = moveDatabase.filter(m => m.name.includes(searchTerm));
-                tbody.innerHTML = filtered.map(m => `
-                    <tr data-name="${m.name}">
-                        <td>${m.name.toUpperCase()}</td>
-                        <td><span class="type-badge" style="background: ${getTypeColor(m.type)};">${m.type.toUpperCase()}</span></td>
-                        <td>${m.power}</td>
-                        <td class="move-select"><input type="checkbox" ${selected.some(s => s.name === m.name) ? 'checked' : ''}></td>
-                    </tr>
-                `).join('');
-                tbody.querySelectorAll('tr').forEach(tr => {
-                    const name = tr.dataset.name;
-                    const move = moveDatabase.find(m => m.name === name);
-                    const cb = tr.querySelector('input');
-                    cb.onchange = () => {
-                        if (cb.checked) {
-                            if (selected.length < 4) {
-                                selected.push({
-                                    name: move.name,
-                                    type: move.type,
-                                    power: move.power,
-                                    accuracy: move.accuracy,
-                                    effect: '-',
-                                    effectAccuracy: '-',
-                                    icon: '✨'
-                                });
-                            } else {
-                                alert('You can only select up to 4 moves.');
-                                cb.checked = false;
-                            }
-                        } else {
-                            const idx = selected.findIndex(s => s.name === name);
-                            if (idx !== -1) selected.splice(idx, 1);
-                        }
-                        updatePreview();
-                        if (onChange) onChange(selected);
-                    };
-                });
-            };
-            searchInput.addEventListener('input', updateTable);
-            updateTable();
-            updatePreview();
-            if (onChange) onChange(selected);
-        }
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = `
+        <input type="text" class="move-search" placeholder="Search moves...">
+        <div class="move-table-container">
+            <table class="move-table">
+                <thead>
+                    <tr><th>Move</th><th>Type</th><th>Power</th><th style="width:50px;">Select</th> </thead>
+                </thead>
+                <tbody id="move-table-body"></tbody>
+            </table>
+        </div>
+        <div class="selected-moves-preview" style="margin-top:12px; display:flex; flex-wrap:wrap; gap:8px;"></div>
+    `;
+    const searchInput = container.querySelector('.move-search');
+    const tbody = container.querySelector('#move-table-body');
+    const previewDiv = container.querySelector('.selected-moves-preview');
+    let selected = [...currentMoves];
+    let currentFilter = '';
+    let updateTimeout;
 
+    function updatePreview() {
+        previewDiv.innerHTML = selected.map(m => `
+            <span style="background:${getTypeColor(m.type)}; color:white; padding:2px 8px; border-radius:20px; font-size:0.7rem;">
+                ${m.name.toUpperCase()} (${m.power})
+                <button class="remove-move" data-name="${m.name}" style="background:none; border:none; color:white; margin-left:5px; cursor:pointer;">✕</button>
+            </span>
+        `).join('');
+        document.querySelectorAll('.remove-move').forEach(btn => {
+            btn.onclick = () => {
+                const name = btn.dataset.name;
+                const idx = selected.findIndex(m => m.name === name);
+                if (idx !== -1) selected.splice(idx, 1);
+                updateTable();
+                updatePreview();
+                if (onChange) onChange(selected);
+            };
+        });
+    }
+
+    function updateTable() {
+        const searchTerm = currentFilter.toLowerCase();
+        let filtered = moveDatabase.filter(m => m.name.includes(searchTerm));
+        // Limit to 100 rows for performance
+        const limited = filtered.slice(0, 100);
+        const fragment = document.createDocumentFragment();
+        limited.forEach(m => {
+            const tr = document.createElement('tr');
+            tr.dataset.name = m.name;
+            tr.innerHTML = `
+                <td>${m.name.toUpperCase()}</td>
+                <td><span class="type-badge" style="background:${getTypeColor(m.type)};">${m.type.toUpperCase()}</span></td>
+                <td>${m.power}</td>
+                <td class="move-select"><input type="checkbox" ${selected.some(s => s.name === m.name) ? 'checked' : ''}></td>
+            `;
+            fragment.appendChild(tr);
+        });
+        tbody.innerHTML = '';
+        tbody.appendChild(fragment);
+        // attach events
+        tbody.querySelectorAll('tr').forEach(tr => {
+            const name = tr.dataset.name;
+            const move = moveDatabase.find(m => m.name === name);
+            const cb = tr.querySelector('input');
+            cb.onchange = () => {
+                if (cb.checked) {
+                    if (selected.length < 4) {
+                        selected.push({
+                            name: move.name,
+                            type: move.type,
+                            power: move.power,
+                            accuracy: move.accuracy,
+                            effect: '-',
+                            effectAccuracy: '-',
+                            icon: '✨'
+                        });
+                    } else {
+                        alert('You can only select up to 4 moves.');
+                        cb.checked = false;
+                    }
+                } else {
+                    const idx = selected.findIndex(s => s.name === name);
+                    if (idx !== -1) selected.splice(idx, 1);
+                }
+                updatePreview();
+                if (onChange) onChange(selected);
+            };
+        });
+    }
+
+    searchInput.addEventListener('input', (e) => {
+        clearTimeout(updateTimeout);
+        currentFilter = e.target.value;
+        updateTimeout = setTimeout(() => {
+            updateTable();
+        }, 300);
+    });
+    updateTable();
+    updatePreview();
+    if (onChange) onChange(selected);
+}
         // ---------- Edit Gym Pokémon Modal ----------
         async function openEditGymPokemonModal(idx) {
             const poke = tempTeam[idx];
@@ -2084,21 +2123,21 @@ async function startGymBattle(gymId) {
         let currentEditingGymId = null;
         let tempTeam = [];
 
-       async function openGymForm(gym=null) {
-               if (!allPokemon.length) await loadAllPokemon();
-            currentEditingGymId = gym?.id || null;
-            document.getElementById('form-title').innerText = gym ? 'Edit Gym' : 'Create Gym';
-            document.getElementById('gym-name').value = gym?.name || '';
-            document.getElementById('gym-badge').value = gym?.badgeImage || 'badges/default.png';
-            document.getElementById('gym-badge-name').value = gym?.badgeName || '';
-            document.getElementById('gym-image').value = gym?.gymImage || 'gym/default.png';
-            document.getElementById('gym-req-level').value = gym?.requiredLevel || 0;
-            document.getElementById('gym-xp-reward').value = gym?.xpReward || 0;
-            document.getElementById('gym-coin-reward').value = gym?.coinReward || 0;
-            tempTeam = gym?.team ? JSON.parse(JSON.stringify(gym.team)) : [];
-            renderTeamEditor();
-            document.getElementById('gym-form-modal').classList.remove('hidden');
-        }
+      async function openGymForm(gym=null) {
+    // Data already loaded globally – no need to call loadAllPokemon again
+    currentEditingGymId = gym?.id || null;
+    document.getElementById('form-title').innerText = gym ? 'Edit Gym' : 'Create Gym';
+    document.getElementById('gym-name').value = gym?.name || '';
+    document.getElementById('gym-badge').value = gym?.badgeImage || 'badges/default.png';
+    document.getElementById('gym-badge-name').value = gym?.badgeName || '';
+    document.getElementById('gym-image').value = gym?.gymImage || 'gym/default.png';
+    document.getElementById('gym-req-level').value = gym?.requiredLevel || 0;
+    document.getElementById('gym-xp-reward').value = gym?.xpReward || 0;
+    document.getElementById('gym-coin-reward').value = gym?.coinReward || 0;
+    tempTeam = gym?.team ? JSON.parse(JSON.stringify(gym.team)) : [];
+    renderTeamEditor();
+    document.getElementById('gym-form-modal').classList.remove('hidden');
+}
 
         document.getElementById('add-pokemon-btn').onclick = async () => {
             const btn = document.getElementById('add-pokemon-btn');
@@ -2175,6 +2214,8 @@ async function startGymBattle(gymId) {
                 if (data?.active === false) { alert("Account deactivated"); signOut(auth); return; }
                 currentUser = { uid: user.uid, totalLevels: data?.totalLevels || 0, badges: data?.badges || [] };
                 isAdmin = data?.role === 'admin';
+                await loadAllPokemon();
+                await loadMoveDatabase();
                 document.getElementById('auth-screen').classList.add('hidden');
                 document.getElementById('app').classList.remove('hidden');
                 if (isAdmin) document.getElementById('admin-panel-toggle').classList.remove('hidden');

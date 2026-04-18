@@ -3,663 +3,929 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>PokeSim - Trainer Ranking</title>
+    <title>PokeSim – Trainer Ranking</title>
     <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', 'Inter', system-ui, sans-serif;
-        }
+        /* ===== TOKENS ===== */
         :root {
-            --bg: #f0f2f5;
-            --card-bg: #ffffff;
-            --primary: #3b4cca;
-            --primary-dark: #00238f;
-            --border: #e2e8f0;
-            --text-dark: #2d3748;
-            --text-light: #5a6e8a;
-            --success: #48bb78;
-            --danger: #f56565;
-            --gold: #ffd700;
-            --silver: #c0c0c0;
-            --bronze: #cd7f32;
+            --bg:          #f0f3f9;
+            --surface:     #ffffff;
+            --surface2:    #f7f9fc;
+            --border:      #e3e8f0;
+            --primary:     #3b4cca;
+            --primary-dk:  #00238f;
+            --primary-lt:  #eef0fb;
+            --text:        #1e2535;
+            --text-2:      #5a6e8a;
+            --text-3:      #8fa3bc;
+            --success:     #22c55e;
+            --danger:      #ef4444;
+            --gold:        #f59e0b;
+            --gold-bg:     #fef3c7;
+            --silver:      #94a3b8;
+            --silver-bg:   #f1f5f9;
+            --bronze:      #b45309;
+            --bronze-bg:   #fef3c7;
+            --shadow:      0 2px 16px rgba(59,76,202,0.08);
+            --shadow-lg:   0 8px 40px rgba(59,76,202,0.14);
+            --radius:      16px;
+            --radius-sm:   10px;
+            --font:        'Outfit', system-ui, sans-serif;
+            --mono:        'JetBrains Mono', monospace;
         }
+        body.dark {
+            --bg:          #0f1117;
+            --surface:     #1a1d2e;
+            --surface2:    #232640;
+            --border:      #2e3356;
+            --primary:     #6c7dff;
+            --primary-dk:  #9aaeff;
+            --primary-lt:  #1e2245;
+            --text:        #e8ecf5;
+            --text-2:      #8fa3c4;
+            --text-3:      #4d6080;
+            --gold:        #fbbf24;
+            --gold-bg:     #2d2710;
+            --silver-bg:   #1e2535;
+            --bronze-bg:   #2d1f10;
+            --shadow:      0 2px 20px rgba(0,0,0,0.4);
+            --shadow-lg:   0 8px 50px rgba(0,0,0,0.6);
+        }
+
+        /* ===== RESET ===== */
+        *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
         body {
+            font-family: var(--font);
             background: var(--bg);
+            color: var(--text);
             min-height: 100vh;
-            color: var(--text-dark);
-            padding: 20px;
+            transition: background .25s, color .25s;
         }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: var(--card-bg);
-            border-radius: 24px;
-            padding: 30px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
-            border: 1px solid var(--border);
-        }
-        .header {
+        .hidden { display: none !important; }
+
+        /* ===== LAYOUT ===== */
+        .page { max-width: 1000px; margin: 0 auto; padding: 24px 16px 60px; }
+
+        /* ===== TOP BAR ===== */
+        .topbar {
             display: flex;
+            align-items: center;
             justify-content: space-between;
-            align-items: baseline;
             flex-wrap: wrap;
-            margin-bottom: 20px;
+            gap: 12px;
+            margin-bottom: 28px;
         }
-        h1 {
-            color: var(--primary-dark);
-            border-left: 4px solid var(--primary);
-            padding-left: 16px;
-            margin: 0;
-        }
-        .user-rank {
-            background: #f0f2f5;
-            padding: 8px 16px;
-            border-radius: 40px;
-            font-size: 0.9rem;
-            font-weight: bold;
-            color: var(--primary-dark);
-        }
-        .user-rank span {
-            color: var(--primary);
-        }
+        .topbar-left { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
         .back-link {
-            display: inline-block;
-            margin-bottom: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
             color: var(--primary);
             text-decoration: none;
-            font-weight: bold;
+            font-weight: 600;
+            font-size: .9rem;
+            padding: 6px 14px;
+            border-radius: 40px;
+            border: 1.5px solid var(--primary);
+            transition: all .2s;
         }
-        .back-link:hover {
-            text-decoration: underline;
+        .back-link:hover { background: var(--primary); color: #fff; }
+        .page-title {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: var(--primary-dk);
+            letter-spacing: -.5px;
+        }
+        body.dark .page-title { color: var(--primary-dk); }
+
+        .topbar-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+        /* My rank chip */
+        .my-rank-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            border-radius: 40px;
+            font-size: .85rem;
+            font-weight: 700;
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            color: var(--text);
+            white-space: nowrap;
+            transition: background .25s, border .25s;
+        }
+        .my-rank-chip.gold   { background: var(--gold-bg);   border-color: var(--gold);   color: #92400e; }
+        .my-rank-chip.silver { background: var(--silver-bg); border-color: var(--silver); color: var(--text-2); }
+        .my-rank-chip.bronze { background: var(--bronze-bg); border-color: var(--bronze); color: var(--bronze); }
+        body.dark .my-rank-chip.gold   { color: var(--gold); }
+        body.dark .my-rank-chip.silver { color: var(--silver); }
+        body.dark .my-rank-chip.bronze { color: #fb923c; }
+
+        /* Dark mode toggle */
+        .theme-btn {
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            border: 1.5px solid var(--border);
+            background: var(--surface);
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex; align-items: center; justify-content: center;
+            transition: all .2s;
+            color: var(--text);
+        }
+        .theme-btn:hover { border-color: var(--primary); background: var(--primary-lt); }
+
+        /* ===== STATS SUMMARY BAR ===== */
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            box-shadow: var(--shadow);
+            transition: background .25s, border .25s;
+        }
+        .stat-card-label { font-size: .72rem; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: .5px; }
+        .stat-card-value { font-size: 1.5rem; font-weight: 800; color: var(--primary); font-family: var(--mono); }
+
+        /* ===== SEARCH + FILTER ===== */
+        .search-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+            align-items: center;
+        }
+        .search-wrap {
+            flex: 1;
+            position: relative;
+        }
+        .search-icon {
+            position: absolute;
+            left: 14px; top: 50%;
+            transform: translateY(-50%);
+            font-size: .95rem;
+            pointer-events: none;
+            color: var(--text-3);
         }
         .search-input {
             width: 100%;
-            padding: 10px 16px;
-            margin: 10px 0 20px;
-            border: 1px solid var(--border);
+            padding: 10px 16px 10px 38px;
+            border: 1.5px solid var(--border);
             border-radius: 40px;
-            font-size: 1rem;
+            font-size: .95rem;
+            font-family: var(--font);
+            background: var(--surface);
+            color: var(--text);
+            outline: none;
+            transition: border .2s, background .25s;
         }
-        .trainer-cards {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 24px;
-            margin-top: 20px;
-        }
-        .trainer-card {
-            background: white;
-            border-radius: 24px;
-            border: 1px solid var(--border);
-            padding: 20px;
-            transition: transform 0.2s, box-shadow 0.2s;
+        .search-input:focus { border-color: var(--primary); }
+        .search-input::placeholder { color: var(--text-3); }
+
+        .sort-select {
+            padding: 10px 14px;
+            border: 1.5px solid var(--border);
+            border-radius: 40px;
+            font-family: var(--font);
+            font-size: .85rem;
+            background: var(--surface);
+            color: var(--text);
             cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            position: relative;
+            outline: none;
+            transition: border .2s, background .25s;
         }
-        .trainer-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 20px rgba(0,0,0,0.1);
-        }
-     
-.rank-number {
-    display: inline-block;
-    font-weight: bold;
-    margin-right: 8px;
-    padding: 2px 8px;
-    border-radius: 20px;
-    background: #e2e8f0;
-    color: #2d3748;
-}
-.rank-number.rank-1 {
-    background: var(--gold);
-    color: #333;
-}
-.rank-number.rank-2 {
-    background: var(--silver);
-    color: #333;
-}
-.rank-number.rank-3 {
-    background: var(--bronze);
-    color: white;
-}
-.trainer-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 8px;
-    border-bottom: 2px solid var(--border);
-    padding-bottom: 8px;
-}
-.trainer-name {
-    font-size: 1.3rem;
-    font-weight: bold;
-    color: var(--primary-dark);
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
+        .sort-select:focus { border-color: var(--primary); }
 
-
-        .trainer-stats {
-            display: flex;
-            gap: 16px;
-            font-size: 0.85rem;
-            color: var(--text-light);
-        }
-        .trainer-stats span {
-            font-weight: bold;
-            color: var(--text-dark);
-        }
-        .team-preview {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            margin-top: 8px;
-        }
-        .team-preview-item {
-            flex: 1 1 90px;
-            text-align: center;
-            background: #f8fafc;
-            border-radius: 16px;
-            padding: 8px 4px;
-            transition: 0.2s;
-        }
-        .team-preview-item img {
-            width: 50px;
-            height: 50px;
-            object-fit: contain;
-            margin-bottom: 4px;
-        }
-        .team-preview-name {
-            font-size: 0.7rem;
-            font-weight: bold;
-            white-space: nowrap;
+        /* ===== TABLE ===== */
+        .table-wrap {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
             overflow: hidden;
-            text-overflow: ellipsis;
+            box-shadow: var(--shadow);
+            transition: background .25s, border .25s;
         }
-        .team-preview-types {
-            font-size: 0.65rem;
-            display: flex;
-            justify-content: center;
-            gap: 4px;
-            margin-top: 2px;
-        }
-        .team-preview-level {
-            font-size: 0.65rem;
-            color: var(--text-light);
-        }
-        .type-badge {
-            display: inline-block;
-            padding: 2px 6px;
-            border-radius: 12px;
-            font-size: 0.6rem;
-            font-weight: bold;
-            color: white;
-            text-shadow: 0 1px 1px rgba(0,0,0,0.2);
-        }
-        .move-badge {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 20px;
-            font-size: 0.7rem;
-            font-weight: 600;
-            margin: 2px 4px;
-            color: white;
-            text-shadow: 0 0 1px rgba(0,0,0,0.3);
-        }
-        .mon-item {
-            display: flex;
-            align-items: center;
-            padding: 12px;
-            border-bottom: 1px solid var(--border);
-            flex-wrap: wrap;
-        }
-        .mon-item img {
-            width: 60px;
-            height: 60px;
-            object-fit: contain;
-            margin-right: 20px;
-        }
-        .mon-info {
-            flex: 1;
-        }
-        .overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
+        table {
             width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.85);
-            display: flex;
+            border-collapse: collapse;
+        }
+        thead tr {
+            background: var(--surface2);
+            border-bottom: 2px solid var(--border);
+        }
+        th {
+            padding: 11px 14px;
+            font-size: .72rem;
+            font-weight: 700;
+            color: var(--text-3);
+            text-transform: uppercase;
+            letter-spacing: .6px;
+            text-align: left;
+            white-space: nowrap;
+        }
+        tbody tr {
+            border-bottom: 1px solid var(--border);
+            transition: background .15s;
+            cursor: pointer;
+        }
+        tbody tr:last-child { border-bottom: none; }
+        tbody tr:hover { background: var(--primary-lt); }
+        tbody tr.is-me { background: var(--primary-lt); }
+        body.dark tbody tr.is-me { background: #1e2245; }
+        td {
+            padding: 11px 14px;
+            vertical-align: middle;
+            font-size: .9rem;
+        }
+
+        /* Rank badge */
+        .rank-badge {
+            display: inline-flex;
             align-items: center;
             justify-content: center;
-            z-index: 5000;
-            backdrop-filter: blur(4px);
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            font-weight: 800;
+            font-size: .85rem;
+            background: var(--surface2);
+            color: var(--text-2);
+            font-family: var(--mono);
+            border: 2px solid var(--border);
         }
-        .modal {
-            background: var(--card-bg);
-            padding: 30px;
-            border-radius: 32px;
-            max-width: 800px;
-            width: 90%;
-            text-align: center;
-            box-shadow: 0 25px 40px rgba(0,0,0,0.3);
-            max-height: 80vh;
-            overflow-y: auto;
+        .rank-badge.r1 { background: #fef3c7; border-color: #f59e0b; color: #92400e; }
+        .rank-badge.r2 { background: #f1f5f9; border-color: #94a3b8; color: #475569; }
+        .rank-badge.r3 { background: #fef3c7; border-color: #b45309; color: #92400e; }
+        body.dark .rank-badge.r1 { background: #2d2710; color: #fbbf24; border-color: #fbbf24; }
+        body.dark .rank-badge.r2 { background: #1e2535; color: #94a3b8; border-color: #94a3b8; }
+        body.dark .rank-badge.r3 { background: #2d1f10; color: #fb923c; border-color: #b45309; }
+
+        /* Trainer name */
+        .trainer-name {
+            font-weight: 700;
+            font-size: .95rem;
+            color: var(--text);
         }
-        .hidden {
-            display: none !important;
-        }
-        .btn {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 40px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: 0.2s;
-        }
-        .btn-primary {
+        .trainer-name .me-tag {
+            display: inline-block;
+            margin-left: 6px;
+            font-size: .65rem;
+            font-weight: 700;
             background: var(--primary);
             color: white;
+            padding: 1px 6px;
+            border-radius: 20px;
+            vertical-align: middle;
         }
-        .btn-primary:hover {
-            background: var(--primary-dark);
-        }
-        .btn-outline {
-            background: transparent;
+
+        /* Stat pills */
+        .stat-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 9px;
+            border-radius: 20px;
+            font-size: .75rem;
+            font-weight: 600;
+            background: var(--surface2);
+            color: var(--text-2);
             border: 1px solid var(--border);
-            color: var(--text-light);
+            white-space: nowrap;
+            font-family: var(--mono);
         }
-        .load-more-btn {
-            display: block;
-            width: 200px;
-            margin: 30px auto 0;
-            text-align: center;
+        .pill.lvl  { border-color: #818cf8; color: #4f46e5; background: #eef2ff; }
+        .pill.enc  { border-color: #34d399; color: #065f46; background: #ecfdf5; }
+        .pill.col  { border-color: #fb923c; color: #9a3412; background: #fff7ed; }
+        body.dark .pill.lvl { background: #1e1f4a; color: #818cf8; }
+        body.dark .pill.enc { background: #0d2d22; color: #34d399; }
+        body.dark .pill.col { background: #2d1a0d; color: #fb923c; }
+
+        /* Mini team icons */
+        .mini-team { display: flex; align-items: center; gap: 3px; flex-wrap: wrap; }
+        .mini-icon {
+            width: 30px; height: 30px;
+            border-radius: 8px;
+            background: var(--surface2);
+            display: flex; align-items: center; justify-content: center;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            transition: transform .15s;
         }
-        .loading {
+        .mini-icon:hover { transform: scale(1.2); z-index: 2; }
+        .mini-icon img {
+            width: 26px; height: 26px;
+            object-fit: contain;
+            image-rendering: pixelated;
+        }
+        .mini-more {
+            font-size: .65rem;
+            font-weight: 700;
+            color: var(--text-3);
+            padding: 0 4px;
+        }
+        .no-team-text { font-size: .75rem; color: var(--text-3); font-style: italic; }
+
+        /* ===== LOADING / EMPTY ===== */
+        .table-msg {
             text-align: center;
             padding: 40px;
-            color: var(--text-light);
+            color: var(--text-3);
+            font-size: .9rem;
         }
-        @media (max-width: 768px) {
-            .container {
-                padding: 20px;
-            }
-            .trainer-cards {
-                grid-template-columns: 1fr;
-            }
-            .team-preview-item {
-                flex: 1 1 70px;
-            }
-            .team-preview-item img {
-                width: 40px;
-                height: 40px;
-            }
-            .header {
-                flex-direction: column;
-                gap: 10px;
-            }
+        .spinner {
+            display: inline-block;
+            width: 22px; height: 22px;
+            border: 3px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ===== LOAD MORE ===== */
+        .load-more-row {
+            text-align: center;
+            padding: 20px;
+        }
+        .btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 9px 20px;
+            border-radius: 40px;
+            border: none;
+            font-family: var(--font);
+            font-weight: 600;
+            font-size: .9rem;
+            cursor: pointer;
+            transition: all .2s;
+        }
+        .btn-outline {
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            color: var(--text-2);
+        }
+        .btn-outline:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-lt); }
+
+        /* ===== MODAL ===== */
+        .overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,.7);
+            backdrop-filter: blur(6px);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 999;
+            padding: 16px;
+        }
+        .modal {
+            background: var(--surface);
+            border-radius: 24px;
+            padding: 28px;
+            width: 100%;
+            max-width: 640px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border);
+        }
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .modal-title { font-size: 1.2rem; font-weight: 800; color: var(--text); }
+        .modal-close {
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            border: 1px solid var(--border);
+            background: var(--surface2);
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--text-2);
+            transition: all .2s;
+        }
+        .modal-close:hover { background: var(--danger); color: white; border-color: var(--danger); }
+
+        /* Modal Pokémon list */
+        .mon-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 10px;
+        }
+        .mon-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border-radius: var(--radius-sm);
+            background: var(--surface2);
+            border: 1px solid var(--border);
+        }
+        .mon-card img {
+            width: 52px; height: 52px;
+            object-fit: contain;
+            image-rendering: pixelated;
+            flex-shrink: 0;
+            border-radius: 8px;
+            background: var(--surface);
+            padding: 2px;
+        }
+        .mon-card-info { flex: 1; min-width: 0; }
+        .mon-card-name { font-weight: 700; font-size: .85rem; color: var(--text); }
+        .mon-card-level { font-size: .75rem; color: var(--text-2); font-family: var(--mono); }
+        .mon-card-types { display: flex; gap: 4px; flex-wrap: wrap; margin: 4px 0; }
+        .type-badge {
+            display: inline-block;
+            padding: 1px 7px;
+            border-radius: 10px;
+            font-size: .6rem;
+            font-weight: 700;
+            color: white;
+            text-shadow: 0 1px 1px rgba(0,0,0,.25);
+        }
+        .move-badges { display: flex; gap: 3px; flex-wrap: wrap; margin-top: 4px; }
+        .move-badge {
+            display: inline-block;
+            padding: 1px 6px;
+            border-radius: 10px;
+            font-size: .58rem;
+            font-weight: 700;
+            color: white;
+            text-shadow: 0 1px 1px rgba(0,0,0,.2);
+        }
+        .xp-bar-wrap {
+            margin-top: 5px;
+            background: var(--border);
+            border-radius: 4px;
+            height: 4px;
+            overflow: hidden;
+        }
+        .xp-bar-fill {
+            height: 100%;
+            background: var(--primary);
+            border-radius: 4px;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 640px) {
+            .stats-bar { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+            .stat-card { padding: 10px 12px; }
+            .stat-card-value { font-size: 1.2rem; }
+            th:nth-child(4), td:nth-child(4) { display: none; } /* hide team on tiny screens */
+            .pill { padding: 2px 6px; font-size: .68rem; }
+            .page-title { font-size: 1.3rem; }
+        }
+        @media (max-width: 420px) {
+            th:nth-child(3) .pill-enc, td:nth-child(3) .enc { display: none; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <a href="index.html" class="back-link">← Back to Game</a>
-        <div class="header">
-            <h1>🏆 Trainer Ranking</h1>
-            <div id="user-rank-display" class="user-rank">Loading...</div>
-        </div>
-        <input type="text" id="ranking-search" class="search-input" placeholder="Search by trainer name or email...">
-        <div id="trainer-cards-container" class="trainer-cards">
-            <div class="loading">Loading leaderboard...</div>
-        </div>
-        <button id="load-more-btn" class="btn btn-outline load-more-btn hidden">Load More</button>
-    </div>
+<div class="page">
 
-    <!-- Trainer Team Modal -->
-    <div id="trainer-team-modal" class="overlay hidden" onclick="this.classList.add('hidden')">
-        <div class="modal" onclick="event.stopPropagation()">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h2 id="trainer-team-name">Trainer Team</h2>
-                <button onclick="document.getElementById('trainer-team-modal').classList.add('hidden')" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
-            </div>
-            <div id="trainer-team-list" style="display: flex; flex-direction: column; gap: 10px;"></div>
+    <!-- TOP BAR -->
+    <div class="topbar">
+        <div class="topbar-left">
+            <a href="index.html" class="back-link">← Back</a>
+            <span class="page-title">🏆 Trainer Ranking</span>
+        </div>
+        <div class="topbar-right">
+            <div id="my-rank-chip" class="my-rank-chip">⏳ Loading...</div>
+            <button class="theme-btn" id="theme-btn" title="Toggle dark mode">🌙</button>
         </div>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    <!-- SUMMARY STATS -->
+    <div class="stats-bar">
+        <div class="stat-card">
+            <div class="stat-card-label">👥 Total Trainers</div>
+            <div class="stat-card-value" id="stat-trainers">—</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card-label">🏆 Top Level</div>
+            <div class="stat-card-value" id="stat-top-level">—</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card-label">⚔️ Top Encounters</div>
+            <div class="stat-card-value" id="stat-top-enc">—</div>
+        </div>
+    </div>
 
-        const firebaseConfig = { apiKey: "AIzaSyDkCE0wBrsQ1s-7zplvTtWOSE28ISaCFfQ", authDomain: "pokesim-7f9b7.firebaseapp.com", projectId: "pokesim-7f9b7", storageBucket: "pokesim-7f9b7.firebasestorage.app", messagingSenderId: "1087100425430", appId: "1:1087100425430:web:9558a79ee5330d4a792577" };
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+    <!-- SEARCH + SORT -->
+    <div class="search-row">
+        <div class="search-wrap">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="ranking-search" class="search-input" placeholder="Search trainer name…">
+        </div>
+        <select id="sort-select" class="sort-select">
+            <option value="levels">Sort: Level</option>
+            <option value="encounters">Sort: Encounters</option>
+            <option value="collection">Sort: Collection</option>
+        </select>
+    </div>
 
-        // Helper functions
-        function getTypeColor(type) {
-            const colors = {
-                normal: '#A8A77A', fire: '#EE8130', water: '#6390F0', electric: '#F7D02C',
-                grass: '#7AC74C', ice: '#96D9D6', fighting: '#C22E28', poison: '#A33EA1',
-                ground: '#E2BF65', flying: '#A98FF3', psychic: '#F95587', bug: '#A6B91A',
-                rock: '#B6A136', ghost: '#735797', dragon: '#6F35FC', dark: '#705746',
-                steel: '#B7B7CE', fairy: '#D685AD'
-            };
-            return colors[type] || '#777777';
-        }
+    <!-- TABLE -->
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:56px;">Rank</th>
+                    <th>Trainer</th>
+                    <th>Stats</th>
+                    <th style="width:180px;">Team</th>
+                </tr>
+            </thead>
+            <tbody id="ranking-tbody">
+                <tr>
+                    <td colspan="4" class="table-msg">
+                        <span class="spinner"></span> Loading leaderboard…
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <div class="load-more-row hidden" id="load-more-row">
+            <button class="btn btn-outline" id="load-more-btn">Load more trainers ↓</button>
+        </div>
+    </div>
 
-        function getStaticSpriteUrl(id) {
-            return [`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`, `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`];
-        }
+</div>
 
-        function loadImageWithFallback(img, urls) {
-            let i = 0;
-            function next() {
-                if (i >= urls.length) return;
-                img.src = urls[i];
-                img.onerror = () => { i++; next(); };
-            }
-            next();
-        }
+<!-- TRAINER MODAL -->
+<div id="trainer-modal" class="overlay hidden" onclick="closeModal()">
+    <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <span class="modal-title" id="modal-title">Trainer Team</span>
+            <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <div id="modal-body">
+            <div class="table-msg"><span class="spinner"></span> Loading…</div>
+        </div>
+    </div>
+</div>
 
-        function getExpNeededForNextLevel(l) { return l * 300; }
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        function generateTypeBadges(types) {
-            return types.map(t => `<span class="type-badge" style="background: ${getTypeColor(t)};">${t.toUpperCase()}</span>`).join('');
-        }
+const firebaseConfig = {
+    apiKey: "AIzaSyDkCE0wBrsQ1s-7zplvTtWOSE28ISaCFfQ",
+    authDomain: "pokesim-7f9b7.firebaseapp.com",
+    projectId: "pokesim-7f9b7",
+    storageBucket: "pokesim-7f9b7.firebasestorage.app",
+    messagingSenderId: "1087100425430",
+    appId: "1:1087100425430:web:9558a79ee5330d4a792577"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
 
-        // Load all trainers (basic stats)
-        async function loadAllTrainers() {
-    const usersSnap = await getDocs(collection(db, "users"));
-    const trainers = [];
-    for (const docSnap of usersSnap.docs) {
-        const data = docSnap.data();
-        // Skip users without a starter
-        if (!data.hasStarter) continue;
-        // Skip inactive accounts
-        if (data.active === false) continue;
-        // Skip admin accounts
-        if (data.role === 'admin') continue;
-        
-        const trainerName = data.trainerName || docSnap.id.split('@')[0];
-        trainers.push({
-            uid: docSnap.id,
-            name: trainerName,
-            email: docSnap.id,
-            totalLevels: data.totalLevels || 0,
-            totalEncounters: data.totalEncounters || 0
-        });
-    }
-    trainers.sort((a, b) => b.totalLevels - a.totalLevels);
-    return trainers;
+// ── Dark mode ─────────────────────────────────────────────────────────────
+const DARK_KEY = 'pokesim_rank_dark';
+const themeBtn = document.getElementById('theme-btn');
+if (localStorage.getItem(DARK_KEY) === '1') { document.body.classList.add('dark'); themeBtn.textContent = '☀️'; }
+themeBtn.onclick = () => {
+    const dark = document.body.classList.toggle('dark');
+    localStorage.setItem(DARK_KEY, dark ? '1' : '0');
+    themeBtn.textContent = dark ? '☀️' : '🌙';
+};
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+function esc(s) { return String(s).replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
+function expNeeded(lvl) { return lvl * 300; }
+function spriteUrl(id) {
+    return [
+        `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`,
+        `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`
+    ];
+}
+function imgFallback(img, urls) {
+    let i = 0;
+    const next = () => { if (i >= urls.length) return; img.src = urls[i]; img.onerror = () => { i++; next(); }; };
+    next();
+}
+function typeColor(t) {
+    return { normal:'#A8A77A', fire:'#EE8130', water:'#6390F0', electric:'#F7D02C', grass:'#7AC74C',
+             ice:'#96D9D6', fighting:'#C22E28', poison:'#A33EA1', ground:'#E2BF65', flying:'#A98FF3',
+             psychic:'#F95587', bug:'#A6B91A', rock:'#B6A136', ghost:'#735797', dragon:'#6F35FC',
+             dark:'#705746', steel:'#B7B7CE', fairy:'#D685AD' }[t] || '#888';
 }
 
-        // Fetch team and collection count for a single trainer
-        async function fetchTrainerDetails(uid) {
-            try {
-                const pokemonSnap = await getDocs(collection(db, "users", uid, "pokemon"));
-                let team = [];
-                let collectionCount = 0;
-                pokemonSnap.forEach(doc => {
-                    const p = doc.data();
-                    collectionCount++;
-                    if (p.inTeam) {
-                        team.push(p);
-                    }
-                });
-                return { team, collectionCount };
-            } catch (error) {
-                console.error(`Failed to load details for ${uid}`, error);
-                return { team: [], collectionCount: 0 };
-            }
-        }
+// ── localStorage cache (7 day TTL) ────────────────────────────────────────
+const CACHE_TTL = 7 * 86400 * 1000;
+const RANK_CACHE_KEY = 'pkr_trainers_v1';
+const DETAIL_PREFIX  = 'pkr_detail_';
 
-        // Render a single card with rank
-        function renderTrainerCard(trainer, rank, team, collectionCount) {
-            const card = document.createElement('div');
-            card.className = 'trainer-card';
-            card.setAttribute('data-uid', trainer.uid);
+function cacheGet(key) {
+    try {
+        const r = localStorage.getItem(key);
+        if (!r) return null;
+        const { d, ts } = JSON.parse(r);
+        if (Date.now() - ts > CACHE_TTL) { localStorage.removeItem(key); return null; }
+        return d;
+    } catch { return null; }
+}
+function cacheSet(key, data) {
+    try { localStorage.setItem(key, JSON.stringify({ d: data, ts: Date.now() })); } catch { }
+}
 
-            // Rank badge
-           // Rank number badge
-const rankNumber = document.createElement('span');
-rankNumber.className = `rank-number rank-${rank > 3 ? 'other' : rank}`;
-if (rank === 1) rankNumber.innerText = '#1';
-else if (rank === 2) rankNumber.innerText = '#2';
-else if (rank === 3) rankNumber.innerText = '#3';
-else rankNumber.innerText = `#${rank}`;
+// ── State ─────────────────────────────────────────────────────────────────
+let allTrainers    = [];   // sorted master list
+let detailsCache   = {};   // uid → { team, collectionCount }
+let currentUserUid = null;
+let currentUserName= '';
+let visibleCount   = 25;
+let isLoading      = false;
+let sortMode       = 'levels';   // levels | encounters | collection
+let filterText     = '';
 
-// Header
-const header = document.createElement('div');
-header.className = 'trainer-header';
-const nameDiv = document.createElement('div');
-nameDiv.className = 'trainer-name';
-nameDiv.appendChild(rankNumber);
-nameDiv.appendChild(document.createTextNode(escapeHtml(trainer.name)));
-header.appendChild(nameDiv);
-const statsDiv = document.createElement('div');
-statsDiv.className = 'trainer-stats';
-statsDiv.innerHTML = `
-    <div>🏆 <span>${trainer.totalLevels}</span></div>
-    <div>👥 <span>${trainer.totalEncounters}</span></div>
-    <div>📦 <span>${collectionCount}</span></div>
-`;
-header.appendChild(statsDiv);
-card.appendChild(header);
+// ── Load trainers from Firestore (or cache) ────────────────────────────────
+async function loadTrainers() {
+    // short-session cache (in-memory already populated)
+    if (allTrainers.length) return allTrainers;
 
-            // Team preview
-            const teamPreview = document.createElement('div');
-            teamPreview.className = 'team-preview';
-            if (team.length === 0) {
-                teamPreview.innerHTML = '<div style="color: #999; font-size: 0.8rem;">No Pokémon in team</div>';
-            } else {
-                for (const mon of team) {
-                    const item = document.createElement('div');
-                    item.className = 'team-preview-item';
-                    const img = document.createElement('img');
-                    loadImageWithFallback(img, getStaticSpriteUrl(mon.pokemonId));
-                    item.appendChild(img);
-                    const nameSpan = document.createElement('div');
-                    nameSpan.className = 'team-preview-name';
-                    nameSpan.innerText = mon.name.toUpperCase();
-                    item.appendChild(nameSpan);
-                    const typesDiv = document.createElement('div');
-                    typesDiv.className = 'team-preview-types';
-                    typesDiv.innerHTML = generateTypeBadges(mon.types);
-                    item.appendChild(typesDiv);
-                    const levelSpan = document.createElement('div');
-                    levelSpan.className = 'team-preview-level';
-                    levelSpan.innerText = `Lv ${mon.level}`;
-                    item.appendChild(levelSpan);
-                    teamPreview.appendChild(item);
-                }
-            }
-            card.appendChild(teamPreview);
-
-            // Click handler to show full team modal
-            card.addEventListener('click', () => showTrainerTeam(trainer.uid));
-            return card;
-        }
-
-        // Show full team in modal
-        async function showTrainerTeam(uid) {
-            try {
-                const teamSnap = await getDocs(collection(db, "users", uid, "pokemon"));
-                const team = [];
-                teamSnap.forEach(doc => {
-                    const p = doc.data();
-                    if (p.inTeam) {
-                        team.push(p);
-                    }
-                });
-                const userDoc = await getDoc(doc(db, "users", uid));
-                const userData = userDoc.data();
-                const trainerName = userData?.trainerName || uid.split('@')[0];
-                document.getElementById('trainer-team-name').innerText = `${escapeHtml(trainerName)}'s Team`;
-                const container = document.getElementById('trainer-team-list');
-                container.innerHTML = '';
-                if (team.length === 0) {
-                    container.innerHTML = '<p>This trainer has no Pokémon in their team.</p>';
-                } else {
-                    for (const mon of team) {
-                        const div = document.createElement('div');
-                        div.className = 'mon-item';
-                        const img = document.createElement('img');
-                        loadImageWithFallback(img, getStaticSpriteUrl(mon.pokemonId));
-                        div.appendChild(img);
-                        const info = document.createElement('div');
-                        info.className = 'mon-info';
-                        const expNeeded = getExpNeededForNextLevel(mon.level);
-                        const expCur = mon.exp || 0;
-                        const prog = Math.floor((expCur/expNeeded)*100);
-                        const moveBadges = mon.moves.map(m => `<span class="move-badge" style="background: ${getTypeColor(m.type)};">${m.name.toUpperCase()}</span>`).join('');
-                        info.innerHTML = `
-                            <b>${escapeHtml(mon.name.toUpperCase())}</b> (Lvl ${mon.level} | XP: ${expCur}/${expNeeded} [${prog}%])<br>
-                            <small>${mon.types.join(', ')}</small><br>
-                            <div style="margin-top: 6px;">${moveBadges}</div>
-                        `;
-                        div.appendChild(info);
-                        container.appendChild(div);
-                    }
-                }
-                document.getElementById('trainer-team-modal').classList.remove('hidden');
-            } catch (error) {
-                console.error("Failed to load trainer team:", error);
-                alert("Could not load the trainer's team.");
-            }
-        }
-
-        function escapeHtml(str) {
-            return str.replace(/[&<>]/g, function(m) {
-                if (m === '&') return '&amp;';
-                if (m === '<') return '&lt;';
-                if (m === '>') return '&gt;';
-                return m;
-            });
-        }
-
-        // Global data
-        let allTrainers = [];           // sorted list of all trainers (with only basic stats)
-        let currentUserUid = null;
-        let currentUserName = '';
-        let currentUserTotalLevels = 0;
-        let visibleCount = 25;          // initial visible count
-        let isLoading = false;
-
-        async function refreshLeaderboard(filterText = '') {
-            const container = document.getElementById('trainer-cards-container');
-            container.innerHTML = '<div class="loading">Loading leaderboard...</div>';
-            const loadMoreBtn = document.getElementById('load-more-btn');
-
-            if (allTrainers.length === 0) {
-                allTrainers = await loadAllTrainers();
-            }
-            let filtered = allTrainers;
-            if (filterText) {
-                const lower = filterText.toLowerCase();
-                filtered = allTrainers.filter(t => t.name.toLowerCase().includes(lower) || t.email.toLowerCase().includes(lower));
-            }
-            // Determine visible slice
-            const visible = filtered.slice(0, visibleCount);
-            const hasMore = visibleCount < filtered.length;
-
-            // Fetch details for visible trainers in parallel
-            const detailsPromises = visible.map(t => fetchTrainerDetails(t.uid));
-            const details = await Promise.all(detailsPromises);
-
-            // Render cards
-            container.innerHTML = '';
-            for (let i = 0; i < visible.length; i++) {
-                const trainer = visible[i];
-                const rank = filtered.findIndex(t => t.uid === trainer.uid) + 1; // rank in filtered list (1-indexed)
-                const card = renderTrainerCard(trainer, rank, details[i].team, details[i].collectionCount);
-                container.appendChild(card);
-            }
-            if (visible.length === 0) {
-                container.innerHTML = '<div class="loading">No trainers found.</div>';
-            }
-
-            // Show/hide load more button
-            if (hasMore && !filterText) {
-                loadMoreBtn.classList.remove('hidden');
-            } else {
-                loadMoreBtn.classList.add('hidden');
-            }
-        }
-
-        // Load more (increase visibleCount by 25)
-        async function loadMore() {
-            if (isLoading) return;
-            isLoading = true;
-            visibleCount += 25;
-            await refreshLeaderboard(document.getElementById('ranking-search').value);
-            isLoading = false;
-        }
-
-        // Display current user's rank in header
-        function updateUserRankDisplay() {
-            const rankDiv = document.getElementById('user-rank-display');
-            if (!currentUserUid) {
-                rankDiv.innerHTML = 'Not logged in';
-                return;
-            }
-            // Find user in allTrainers (sorted)
-            const index = allTrainers.findIndex(t => t.uid === currentUserUid);
-            if (index === -1) {
-                rankDiv.innerHTML = `👤 ${escapeHtml(currentUserName)} (unranked)`;
-            } else {
-                const rank = index + 1;
-                rankDiv.innerHTML = `👤 ${escapeHtml(currentUserName)} • Rank #${rank}`;
-                // add a little flair for top ranks
-                if (rank === 1) rankDiv.style.background = 'var(--gold)';
-                else if (rank === 2) rankDiv.style.background = 'var(--silver)';
-                else if (rank === 3) rankDiv.style.background = 'var(--bronze)';
-                else rankDiv.style.background = '#f0f2f5';
-            }
-        }
-
-        // Main initialization
-        onAuthStateChanged(auth, async (user) => {
-            if (!user) {
-                window.location.href = 'index.html';
-                return;
-            }
-            currentUserUid = user.uid;
-            // Fetch user's own data to get trainerName and totalLevels
-            const userDoc = await getDoc(doc(db, "users", currentUserUid));
-            const userData = userDoc.data();
-            currentUserName = userData?.trainerName || user.email.split('@')[0];
-            currentUserTotalLevels = userData?.totalLevels || 0;
-
-            // Load all trainers first, then display ranking and user rank
-            allTrainers = await loadAllTrainers();
-            updateUserRankDisplay();
-            await refreshLeaderboard();
-
-            // Set up search
-            const searchInput = document.getElementById('ranking-search');
-            if (searchInput) {
-                let debounceTimeout;
-                searchInput.addEventListener('input', (e) => {
-                    clearTimeout(debounceTimeout);
-                    debounceTimeout = setTimeout(() => {
-                        visibleCount = 25; // reset to 25 when searching
-                        refreshLeaderboard(e.target.value);
-                    }, 300);
-                });
-            }
-
-            // Load more button
-            const loadMoreBtn = document.getElementById('load-more-btn');
-            loadMoreBtn.addEventListener('click', loadMore);
+    const snap = await getDocs(collection(db, "users"));
+    const list = [];
+    snap.forEach(s => {
+        const d = s.data();
+        if (!d.hasStarter || d.active === false || d.role === 'admin') return;
+        list.push({
+            uid:             s.id,
+            name:            d.trainerName || s.id.split('@')[0],
+            totalLevels:     d.totalLevels     || 0,
+            totalEncounters: d.totalEncounters || 0,
         });
-    </script>
+    });
+    list.sort((a,b) => b.totalLevels - a.totalLevels);
+    allTrainers = list;
+
+    // Update summary stats
+   document.getElementById('stat-trainers').textContent  = list.length.toLocaleString();
+
+const topLevel = list[0];
+document.getElementById('stat-top-level').innerHTML = topLevel
+    ? `${topLevel.totalLevels.toLocaleString()}<div style="font-size:.7rem;font-weight:600;color:var(--text-2);margin-top:2px;">👤 ${esc(topLevel.name)}</div>`
+    : '—';
+
+const topEnc = list.reduce((best, t) => t.totalEncounters > (best?.totalEncounters ?? -1) ? t : best, null);
+document.getElementById('stat-top-enc').innerHTML = topEnc
+    ? `${topEnc.totalEncounters.toLocaleString()}<div style="font-size:.7rem;font-weight:600;color:var(--text-2);margin-top:2px;">👤 ${esc(topEnc.name)}</div>`
+    : '—';
+    return list;
+}
+
+// ── Load team + collection for one trainer (cached per session) ────────────
+async function loadDetails(uid) {
+    if (detailsCache[uid]) return detailsCache[uid];
+    try {
+        const snap = await getDocs(collection(db, "users", uid, "pokemon"));
+        let team = [], col = 0;
+        snap.forEach(d => {
+            col++;
+            if (d.data().inTeam) team.push(d.data());
+        });
+        detailsCache[uid] = { team, collectionCount: col };
+    } catch {
+        detailsCache[uid] = { team: [], collectionCount: 0 };
+    }
+    return detailsCache[uid];
+}
+
+// ── Sort helpers ──────────────────────────────────────────────────────────
+function getSortedFiltered() {
+    let list = [...allTrainers];
+    if (filterText) {
+        const q = filterText.toLowerCase();
+        list = list.filter(t => t.name.toLowerCase().includes(q));
+    }
+    if (sortMode === 'levels')     list.sort((a,b) => b.totalLevels - a.totalLevels);
+    if (sortMode === 'encounters') list.sort((a,b) => b.totalEncounters - a.totalEncounters);
+    if (sortMode === 'collection') {
+        list.sort((a,b) => (detailsCache[b.uid]?.collectionCount||0) - (detailsCache[a.uid]?.collectionCount||0));
+    }
+    return list;
+}
+
+// ── Render one table row ──────────────────────────────────────────────────
+function renderRow(trainer, rank, team, col) {
+    const tr = document.createElement('tr');
+    if (trainer.uid === currentUserUid) tr.classList.add('is-me');
+
+    // Rank
+    const rankClass = rank===1?'r1':rank===2?'r2':rank===3?'r3':'';
+    const rankEmoji = rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':'';
+
+    tr.innerHTML = `
+      <td>
+        <span class="rank-badge ${rankClass}">${rankEmoji || '#'+rank}</span>
+      </td>
+      <td>
+        <div class="trainer-name">
+          ${esc(trainer.name)}
+          ${trainer.uid === currentUserUid ? '<span class="me-tag">YOU</span>' : ''}
+        </div>
+      </td>
+      <td>
+        <div class="stat-pills">
+          <span class="pill lvl">🏆 ${trainer.totalLevels.toLocaleString()}</span>
+          <span class="pill enc">⚔️ ${trainer.totalEncounters.toLocaleString()}</span>
+          <span class="pill col">📦 ${col.toLocaleString()}</span>
+        </div>
+      </td>
+      <td id="team-cell-${esc(trainer.uid)}">
+        <div class="mini-team"><span class="no-team-text">—</span></div>
+      </td>
+    `;
+
+    // Team icons (fill in)
+    const teamCell = tr.querySelector(`#team-cell-${CSS.escape(trainer.uid)}`);
+    const miniTeam = document.createElement('div');
+    miniTeam.className = 'mini-team';
+    if (team.length === 0) {
+        miniTeam.innerHTML = '<span class="no-team-text">No team</span>';
+    } else {
+        team.slice(0, 6).forEach(mon => {
+            const wrap = document.createElement('div');
+            wrap.className = 'mini-icon';
+            const img = document.createElement('img');
+            imgFallback(img, spriteUrl(mon.pokemonId));
+            img.alt = mon.name;
+            wrap.appendChild(img);
+            miniTeam.appendChild(wrap);
+        });
+        if (team.length > 6) {
+            const more = document.createElement('span');
+            more.className = 'mini-more';
+            more.textContent = `+${team.length - 6}`;
+            miniTeam.appendChild(more);
+        }
+    }
+    teamCell.innerHTML = '';
+    teamCell.appendChild(miniTeam);
+
+    // Click to open modal
+    tr.addEventListener('click', () => openModal(trainer.uid, trainer.name));
+    return tr;
+}
+
+// ── Refresh leaderboard ───────────────────────────────────────────────────
+async function refresh() {
+    const tbody = document.getElementById('ranking-tbody');
+    tbody.innerHTML = `<tr><td colspan="4" class="table-msg"><span class="spinner"></span> Loading…</td></tr>`;
+
+    const sorted = getSortedFiltered();
+    const slice  = sorted.slice(0, visibleCount);
+
+    // Load details for visible rows in parallel
+    await Promise.all(slice.map(t => loadDetails(t.uid)));
+
+    // Re-sort if collection mode (now we have data)
+    const finalSorted = getSortedFiltered();
+    const finalSlice  = finalSorted.slice(0, visibleCount);
+
+    tbody.innerHTML = '';
+    if (finalSlice.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="table-msg">No trainers found.</td></tr>';
+    } else {
+        finalSlice.forEach((trainer, idx) => {
+            const rank = idx + 1;
+            const det  = detailsCache[trainer.uid] || { team: [], collectionCount: 0 };
+            tbody.appendChild(renderRow(trainer, rank, det.team, det.collectionCount));
+        });
+    }
+
+    const loadMoreRow = document.getElementById('load-more-row');
+    if (visibleCount < finalSorted.length && !filterText) {
+        loadMoreRow.classList.remove('hidden');
+    } else {
+        loadMoreRow.classList.add('hidden');
+    }
+}
+
+// ── My rank chip ──────────────────────────────────────────────────────────
+function updateMyChip() {
+    const chip = document.getElementById('my-rank-chip');
+    if (!currentUserUid) { chip.textContent = 'Not logged in'; return; }
+    const idx = allTrainers.findIndex(t => t.uid === currentUserUid);
+    if (idx === -1) { chip.textContent = `👤 ${esc(currentUserName)}`; return; }
+    const rank = idx + 1;
+    chip.textContent = `👤 ${esc(currentUserName)}  •  #${rank}`;
+    chip.className = 'my-rank-chip ' + (rank===1?'gold':rank===2?'silver':rank===3?'bronze':'');
+}
+
+// ── Modal ─────────────────────────────────────────────────────────────────
+window.closeModal = () => document.getElementById('trainer-modal').classList.add('hidden');
+
+window.openModal = async (uid, name) => {
+    document.getElementById('modal-title').textContent = `${esc(name)}'s Team`;
+    document.getElementById('modal-body').innerHTML = `<div class="table-msg"><span class="spinner"></span> Loading…</div>`;
+    document.getElementById('trainer-modal').classList.remove('hidden');
+
+    const det = await loadDetails(uid);
+    const body = document.getElementById('modal-body');
+
+    if (det.team.length === 0) {
+        body.innerHTML = '<p style="text-align:center;color:var(--text-3);padding:20px;">No Pokémon in team.</p>';
+        return;
+    }
+
+    const grid = document.createElement('div');
+    grid.className = 'mon-grid';
+
+    det.team.forEach(mon => {
+        const card = document.createElement('div');
+        card.className = 'mon-card';
+
+        const img = document.createElement('img');
+        imgFallback(img, spriteUrl(mon.pokemonId));
+        img.alt = mon.name;
+
+        const xpCur = mon.exp || 0;
+        const xpMax = expNeeded(mon.level);
+        const prog  = Math.min(100, Math.floor((xpCur / xpMax) * 100));
+
+        const typeBadges = (mon.types || []).map(t =>
+            `<span class="type-badge" style="background:${typeColor(t)}">${t.toUpperCase()}</span>`
+        ).join('');
+
+        const moveBadges = (mon.moves || []).map(m =>
+            `<span class="move-badge" style="background:${typeColor(m.type)}">${esc(m.name).toUpperCase()}</span>`
+        ).join('');
+
+       const shinyTag = mon.isShiny ? '<span class="type-badge" style="background:#f59e0b;">✨ SHINY</span>' : '';
+const bonusIcons = [
+    mon.bonusStats?.atk ? '<span title="ATK Boost" style="font-size:.85rem;">⚔️</span>' : '',
+    mon.bonusStats?.def ? '<span title="DEF Boost" style="font-size:.85rem;">🛡️</span>' : '',
+    mon.bonusStats?.spd ? '<span title="SPD Boost" style="font-size:.85rem;">🏃</span>' : '',
+].join('');
+        card.innerHTML = `
+          <div class="mon-card-info">
+          <div class="mon-card-name">${esc(mon.name.toUpperCase())} ${shinyTag} ${bonusIcons}</div>
+            <div class="mon-card-level">Lv.${mon.level} &nbsp;|&nbsp; XP ${xpCur.toLocaleString()}/${xpMax.toLocaleString()} (${prog}%)</div>
+            <div class="mon-card-types">${typeBadges}</div>
+            <div class="move-badges">${moveBadges}</div>
+            <div class="xp-bar-wrap"><div class="xp-bar-fill" style="width:${prog}%"></div></div>
+          </div>
+        `;
+        card.prepend(img);
+        grid.appendChild(card);
+    });
+
+    body.innerHTML = '';
+    body.appendChild(grid);
+};
+
+// ── Init ──────────────────────────────────────────────────────────────────
+onAuthStateChanged(auth, async user => {
+    if (!user) { window.location.href = 'index.html'; return; }
+
+    currentUserUid  = user.uid;
+    const uDoc      = await getDoc(doc(db, "users", user.uid));
+    currentUserName = uDoc.data()?.trainerName || user.email.split('@')[0];
+
+    await loadTrainers();
+    updateMyChip();
+    await refresh();
+
+    // Search
+    let debounce;
+    document.getElementById('ranking-search').addEventListener('input', e => {
+        clearTimeout(debounce);
+        debounce = setTimeout(() => {
+            filterText   = e.target.value.trim();
+            visibleCount = 25;
+            refresh();
+        }, 280);
+    });
+
+    // Sort
+    document.getElementById('sort-select').addEventListener('change', e => {
+        sortMode     = e.target.value;
+        visibleCount = 25;
+        refresh();
+    });
+
+    // Load more
+    document.getElementById('load-more-btn').addEventListener('click', async () => {
+        if (isLoading) return;
+        isLoading     = true;
+        visibleCount += 25;
+        await refresh();
+        isLoading = false;
+    });
+});
+</script>
 </body>
 </html>

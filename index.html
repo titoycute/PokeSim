@@ -2938,36 +2938,44 @@ if (navToggle && navCollapsible) {
     //     });
     // });
 }
+// ========== KEYBOARD CONTROLS (FIXED) ==========
+function isTyping() {
+    const active = document.activeElement;
+    return active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable);
+}
 
-// ========== KEYBOARD CONTROLS ==========
-
-// Helper: simulate a click on a move button by its position (1-based)
 function clickMoveButton(index) {
     const moveBtns = document.querySelectorAll('#battle-moves .move-btn');
+    console.log(`[Debug] clickMoveButton(${index}) – found ${moveBtns.length} move buttons`);
     if (moveBtns.length >= index && index >= 1) {
         const btn = moveBtns[index - 1];
         if (!btn.disabled) {
             btn.click();
             addBattleLog(`[Keyboard] Used move ${index}.`);
         } else {
-            addBattleLog(`[Keyboard] Move ${index} is not available.`);
+            addBattleLog(`[Keyboard] Move ${index} is disabled.`);
         }
     } else {
-        addBattleLog(`[Keyboard] Move ${index} does not exist.`);
+        addBattleLog(`[Keyboard] Move ${index} does not exist (only ${moveBtns.length} moves).`);
     }
 }
 
-// Main keyboard handler
 window.addEventListener('keydown', (e) => {
-    // Prevent default actions for our keys (e.g., scrolling with arrows)
     const key = e.key;
+    
+    // If typing in a field, do nothing
+    if (isTyping()) return;
+
+    // Log for debugging
+    console.log(`[Keyboard] Key pressed: ${key}, currentBattle: ${!!currentBattle}, isProcessing: ${isProcessing}`);
+
+    // Block game control keys
     if (key === 'ArrowUp' || key === 'ArrowDown' || key === 'ArrowLeft' || key === 'ArrowRight' ||
         key === '1' || key === '2' || key === '3' || key === '4') {
         e.preventDefault();
     }
 
-    // ---------- ARROW KEYS (movement) ----------
-    // Only allow movement if there is NO active battle
+    // Movement arrows (only if no battle)
     if (!currentBattle) {
         switch (key) {
             case 'ArrowUp': movePlayer(0, -1); break;
@@ -2978,8 +2986,7 @@ window.addEventListener('keydown', (e) => {
         return;
     }
 
-    // ---------- NUMBER KEYS (battle moves) ----------
-    // Only allow move selection if battle is active and NOT processing
+    // Number keys for moves (during battle)
     if (currentBattle && !isProcessing) {
         switch (key) {
             case '1': clickMoveButton(1); break;

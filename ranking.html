@@ -642,13 +642,14 @@ function cacheSet(key, data) {
 }
 
 // ── State ─────────────────────────────────────────────────────────────────
-let allTrainers    = [];   // sorted master list
-let detailsCache   = {};   // uid → { team, collectionCount }
+let allTrainers    = [];
+let detailsCache   = {};
+let gymsCache      = [];   // ✅ added
 let currentUserUid = null;
 let currentUserName= '';
 let visibleCount   = 25;
 let isLoading      = false;
-let sortMode       = 'levels';   // levels | encounters | collection
+let sortMode       = 'levels';
 let filterText     = '';
 
 // ── Load trainers from Firestore (or cache) ────────────────────────────────
@@ -662,11 +663,12 @@ async function loadTrainers() {
         const d = s.data();
         if (!d.hasStarter || d.active === false || d.role === 'admin') return;
         list.push({
-            uid:             s.id,
-            name:            d.trainerName || s.id.split('@')[0],
-            totalLevels:     d.totalLevels     || 0,
-            totalEncounters: d.totalEncounters || 0,
-        });
+    uid:             s.id,
+    name:            d.trainerName || s.id.split('@')[0],
+    totalLevels:     d.totalLevels     || 0,
+    totalEncounters: d.totalEncounters || 0,
+    badges:          d.badges           || [],
+});
     });
     list.sort((a,b) => b.totalLevels - a.totalLevels);
     allTrainers = list;
@@ -732,11 +734,21 @@ function renderRow(trainer, rank, team, col) {
         <span class="rank-badge ${rankClass}">${rankEmoji || '#'+rank}</span>
       </td>
       <td>
-        <div class="trainer-name">
-          ${esc(trainer.name)}
-          ${trainer.uid === currentUserUid ? '<span class="me-tag">YOU</span>' : ''}
-        </div>
-      </td>
+  <div class="trainer-name">
+    ${esc(trainer.name)}
+    ${trainer.uid === currentUserUid ? '<span class="me-tag">YOU</span>' : ''}
+  </div>
+  ${trainer.badges.length > 0 ? `
+  <div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:5px;">
+    ${trainer.badges.slice(0, 8).map(badgeId => {
+        const gym = gymsCache.find(g => g.id === badgeId);
+        return gym?.badgeImage
+            ? `<img src="${esc(gym.badgeImage)}" title="${esc(gym.badgeName || gym.name || 'Badge')}" style="width:20px;height:20px;object-fit:contain;border-radius:50%;background:var(--surface2);padding:1px;border:1px solid var(--border);" onerror="this.style.display='none'">`
+            : `<span style="font-size:.6rem;background:var(--primary-lt);color:var(--primary);padding:1px 5px;border-radius:10px;font-weight:700;">🏅</span>`;
+    }).join('')}
+    ${trainer.badges.length > 8 ? `<span style="font-size:.65rem;color:var(--text-3);align-self:center;">+${trainer.badges.length - 8}</span>` : ''}
+  </div>` : ''}
+</td>
       <td>
         <div class="stat-pills">
           <span class="pill lvl">🏆 ${trainer.totalLevels.toLocaleString()}</span>
@@ -894,6 +906,10 @@ onAuthStateChanged(auth, async user => {
     currentUserUid  = user.uid;
     const uDoc      = await getDoc(doc(db, "users", user.uid));
     currentUserName = uDoc.data()?.trainerName || user.email.split('@')[0];
+
+    // ✅ Load gyms once so badge images can be resolved
+    const gymsSnap = await getDocs(collection(db, "gyms"));
+    gymsSnap.forEach(d => gymsCache.push({ id: d.id, ...d.data() }));
 
     await loadTrainers();
     updateMyChip();

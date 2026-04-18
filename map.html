@@ -3033,34 +3033,39 @@ function clickMoveButton(index) {
 
 // Main keyboard handler
 window.addEventListener('keydown', (e) => {
-    // Prevent default actions for our keys (e.g., scrolling with arrows)
     const key = e.key;
-    if (key === 'ArrowUp' || key === 'ArrowDown' || key === 'ArrowLeft' || key === 'ArrowRight' ||
-        key === '1' || key === '2' || key === '3' || key === '4') {
-        e.preventDefault();
-    }
 
-    // ---------- ARROW KEYS (movement) ----------
-    // Only allow movement if there is NO active battle
-    if (!currentBattle) {
-        switch (key) {
-            case 'ArrowUp': movePlayer(0, -1); break;
-            case 'ArrowDown': movePlayer(0, 1); break;
-            case 'ArrowLeft': movePlayer(-1, 0); break;
-            case 'ArrowRight': movePlayer(1, 0); break;
+    // 1️⃣ If any modal overlay is visible → do nothing (let user type freely)
+    const anyModalVisible = document.querySelector('.overlay:not(.hidden)');
+    if (anyModalVisible) return;
+
+    // 2️⃣ If the user is typing in an input, textarea, or select → do nothing
+    const activeTag = document.activeElement?.tagName;
+    if (activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT') return;
+
+    // 3️⃣ Arrow keys → movement (only if no battle)
+    if (key === 'ArrowUp' || key === 'ArrowDown' || key === 'ArrowLeft' || key === 'ArrowRight') {
+        e.preventDefault();
+        if (!currentBattle) {
+            switch (key) {
+                case 'ArrowUp': movePlayer(0, -1); break;
+                case 'ArrowDown': movePlayer(0, 1); break;
+                case 'ArrowLeft': movePlayer(-1, 0); break;
+                case 'ArrowRight': movePlayer(1, 0); break;
+            }
         }
         return;
     }
 
-    // ---------- NUMBER KEYS (battle moves) ----------
-    // Only allow move selection if battle is active and NOT processing
-    if (currentBattle && !isProcessing) {
-        switch (key) {
-            case '1': clickMoveButton(1); break;
-            case '2': clickMoveButton(2); break;
-            case '3': clickMoveButton(3); break;
-            case '4': clickMoveButton(4); break;
+    // 4️⃣ Number keys 1-4 → battle moves (only if in battle and not processing)
+    if (key === '1' || key === '2' || key === '3' || key === '4') {
+        if (currentBattle && !isProcessing) {
+            e.preventDefault();
+            const moveIndex = parseInt(key);
+            clickMoveButton(moveIndex);
         }
+        // If not in battle, do nothing – let the browser type normally
+        return;
     }
 });
 

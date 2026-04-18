@@ -1453,19 +1453,25 @@ async function showSwitchPokemonModal(availablePokemon, isForced = false) {
     return new Promise((resolve) => {
         const modal = document.getElementById('switch-pokemon-modal');
         const listDiv = document.getElementById('switch-pokemon-list');
-        // Find the cancel button (the one inside the modal, not in the list)
-        let cancelBtn = modal.querySelector('.modal .btn-outline');
-        if (!cancelBtn) cancelBtn = modal.querySelector('.btn-outline');
-        
+
+        // ✅ Use the correct ID directly — no fragile querySelector
+        const cancelBtn = document.getElementById('switch-cancel-btn');
+
+        // ✅ Show or hide cancel depending on forced faint-switch
         if (isForced) {
             cancelBtn.classList.add('hidden');
         } else {
             cancelBtn.classList.remove('hidden');
         }
-        
+
+        // ✅ Reassign onclick directly — no cloneNode needed
+        cancelBtn.onclick = () => {
+            modal.classList.add('hidden');
+            resolve(null);
+        };
+
         listDiv.innerHTML = '';
-        
-        // Add Pokémon buttons
+
         availablePokemon.forEach((p) => {
             const btn = document.createElement('button');
             btn.className = 'btn btn-outline';
@@ -1476,7 +1482,7 @@ async function showSwitchPokemonModal(availablePokemon, isForced = false) {
             btn.style.padding = '10px';
             btn.style.width = '100%';
             btn.style.justifyContent = 'flex-start';
-            
+
             const img = document.createElement('img');
             img.src = getStaticSpriteUrl(p.pokemonId)[0];
             img.style.width = '50px';
@@ -1484,14 +1490,14 @@ async function showSwitchPokemonModal(availablePokemon, isForced = false) {
             img.style.objectFit = 'contain';
             img.onerror = () => { img.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.pokemonId}.png`; };
             btn.appendChild(img);
-            
+
             let bonusIcons = '';
             if (p.bonusStats?.atk) bonusIcons += '⚔️';
             if (p.bonusStats?.def) bonusIcons += '🛡️';
             if (p.bonusStats?.spd) bonusIcons += '🏃';
             let shinyBadge = '';
-            if (p.isShiny) shinyBadge = '<span style="background: #ffcc00; color: #333; padding: 2px 6px; border-radius: 20px; font-size: 0.6rem; margin-left: 8px;">✨ SHINY</span>';
-            
+            if (p.isShiny) shinyBadge = '<span style="background:#ffcc00;color:#333;padding:2px 6px;border-radius:20px;font-size:0.6rem;margin-left:8px;">✨ SHINY</span>';
+
             const textDiv = document.createElement('div');
             textDiv.style.flex = '1';
             textDiv.style.textAlign = 'left';
@@ -1503,52 +1509,42 @@ async function showSwitchPokemonModal(availablePokemon, isForced = false) {
                 <small>Lvl ${p.level} — HP: ${p.currentHp}/${p.maxHp} (${hpPct}%)</small>
             `;
             btn.appendChild(textDiv);
-            
+
             btn.onclick = () => {
                 modal.classList.add('hidden');
                 resolve(p);
             };
             listDiv.appendChild(btn);
         });
-        
-        // ---------- FIX: Override the Cancel button ----------
-        // Remove any existing onclick (including inline) by cloning and replacing
-        const newCancelBtn = cancelBtn.cloneNode(true);
-        cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
-        newCancelBtn.onclick = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            modal.classList.add('hidden');
-            console.log("Cancel clicked – resolving null");
-            resolve(null);
-        };
-        
+
         modal.classList.remove('hidden');
     });
 }
 
-
 async function handlePlayerFaint(battle) {
-    // Snapshot the fainted Pokémon's id BEFORE anything changes
+    // ✅ Snapshot the fainted ID before anything changes
     const faintedId = battle.player ? battle.player.id : null;
 
-    // Filter: alive AND not the one that just fainted
+    // ✅ Exclude the fainted Pokémon explicitly
     const available = battle.playerTeam.filter(p => p.currentHp > 0 && p.id !== faintedId);
 
     if (available.length === 0) {
         addBattleLog("All your Pokémon have fainted! You black out...");
+        isProcessing = false;
+        toggleBattleUI(false);
         showBattleSummary('defeat');
         endBattleCleanup();
         return null;
     }
 
-    addBattleLog(`${battle.player.name.toUpperCase()} fainted! Choose another.`);
+    addBattleLog(`${battle.player.name.toUpperCase()} fainted! Choose your next Pokémon.`);
 
-    // isForced = true → hides the Cancel button so player MUST pick
+    // isForced = true → Cancel button is hidden, player MUST pick
     const selected = await showSwitchPokemonModal(available, true);
 
-    // If somehow nothing selected, treat as full defeat
     if (!selected) {
+        isProcessing = false;
+        toggleBattleUI(false);
         showBattleSummary('defeat');
         endBattleCleanup();
         return null;
@@ -1557,11 +1553,10 @@ async function handlePlayerFaint(battle) {
     const newIdx = battle.playerTeam.findIndex(p => p.id === selected.id);
     battle.activePokemonIndex = newIdx;
     battle.player = battle.playerTeam[newIdx];
-    // Do NOT restore HP here — the Pokémon keeps whatever HP it had
     renderBattleUI();
     addBattleLog(`Go! ${battle.player.name.toUpperCase()}!`);
 
-    // Always unlock the UI after a forced faint-switch
+    // ✅ Always unlock UI after forced faint-switch
     isProcessing = false;
     toggleBattleUI(false);
     if (currentTurnTimeout) {
@@ -1571,7 +1566,6 @@ async function handlePlayerFaint(battle) {
 
     return newIdx;
 }
-
 
    async function resolveBattle(win) {
     if (currentTurnTimeout) clearTimeout(currentTurnTimeout);
@@ -2053,15 +2047,15 @@ async function attemptSwitch() {
     b.player = b.playerTeam[newIdx];
     renderBattleUI();
     addBattleLog(`Go! ${b.player.name.toUpperCase()}!`);
-
+    
     // After switch, enemy attacks immediately
-    setTimeout(() => {
+    setTimeout(async () => {                          // ✅ async added
         if (!currentBattle) return;
         const wM = b.wild.moves[Math.floor(Math.random() * b.wild.moves.length)];
         executeAttack(b.wild, b.player, wM, false);
         renderBattleUI();
         if (b.player.currentHp <= 0) {
-            handlePlayerFaint(b);
+            await handlePlayerFaint(b);              // ✅ properly awaited now
         } else {
             isProcessing = false;
             toggleBattleUI(false);

@@ -1364,16 +1364,26 @@ body.dark-theme #map-info-modal .btn-primary:hover {
     function getTypeEffectiveness(at, def) { let m=1; for(let d of def) { const c=typeEffectiveness[at]; if(c&&c[d]!==undefined) m*=c[d]; } return m; }
     function getExpNeededForNextLevel(l) { return l*300; }
 
-    async function updateNavDisplay() {
-        const user = auth.currentUser;
-        if (!user) return;
+   let cachedNavData = null;
+let navCacheTimestamp = 0;
+const NAV_CACHE_TTL = 10000; // 10 seconds
+
+async function updateNavDisplay(forceRefresh = false) {
+    const user = auth.currentUser;
+    if (!user) return;
+    const now = Date.now();
+    if (!forceRefresh && cachedNavData && (now - navCacheTimestamp) < NAV_CACHE_TTL) {
+        // Use cached data
+    } else {
         const userDoc = await getDoc(doc(db, "users", user.uid));
-        const data = userDoc.data();
-        const levelSpan = document.getElementById('trainer-level');
-        if (levelSpan) levelSpan.innerText = data?.totalLevels || 0;
-        const coinSpan = document.getElementById('coin-amount');
-        if (coinSpan) coinSpan.innerText = data?.coins?.toLocaleString() || '0';
+        cachedNavData = userDoc.data();
+        navCacheTimestamp = now;
     }
+    const levelSpan = document.getElementById('trainer-level');
+    if (levelSpan) levelSpan.innerText = cachedNavData?.totalLevels || 0;
+    const coinSpan = document.getElementById('coin-amount');
+    if (coinSpan) coinSpan.innerText = cachedNavData?.coins?.toLocaleString() || '0';
+}
 
     async function updateUserTotalLevels(userId, delta) {
         await updateDoc(doc(db, "users", userId), { totalLevels: increment(delta) });
@@ -1383,12 +1393,17 @@ body.dark-theme #map-info-modal .btn-primary:hover {
     }
 
     // ========== BATTLE FUNCTIONS (with shiny support) ==========
-    async function getMoveDetails(moves) {
-        return Promise.all(moves.slice(0,4).map(async m=>{
-            const d = await fetch(m.move ? m.move.url : m.url).then(r=>r.json());
-            return { name: d.name, power: d.power||40, type: d.type.name, icon: TYPE_ICONS[d.type.name]||d.type.name, accuracy: d.accuracy||100 };
-        }));
-    }
+   async function getMoveDetails(moves) {
+    return Promise.all(moves.slice(0, 4).map(async m => {
+        try {
+            const url = m.move ? m.move.url : m.url;
+            const d = await cachedFetch(url);   // ← uses cache instead of raw fetch
+            return { name: d.name, power: d.power || 40, type: d.type.name, icon: TYPE_ICONS[d.type.name] || d.type.name, accuracy: d.accuracy || 100 };
+        } catch (e) {
+            return { name: 'tackle', power: 40, type: 'normal', icon: '🔘', accuracy: 100 };
+        }
+    }));
+}
 
     function addBattleLog(m) { const log = document.getElementById('battle-log'); if(log) { log.innerHTML += `<div>> ${m}</div>`; log.scrollTop = log.scrollHeight; } }
 
@@ -1574,7 +1589,7 @@ async function handlePlayerFaint(battle) {
     if (win && currentBattle) {
         const b = currentBattle;
         const userId = auth.currentUser.uid;
-
+        cachedNavData = null; // invalidate nav cache after any write
         // === AUTO‑CATCH ON 5TH ENCOUNTER (ONCE PER SPECIES) ===
         if (b.wild.encounterCount === 5) {
             const recordRef = doc(db, "users", userId, "records", b.wild.pokemonId.toString());
@@ -1604,7 +1619,9 @@ const newPokemon = {
                 await updateUserTotalLevels(userId, b.wild.level);
                 await updateDoc(recordRef, { autoCaught5th: true });
                 invalidateTeamCache();
+                cachedNavData = null; 
                 showBattleSummary('catch');
+                // invalidate nav cache after any write
                 return;  // stop – no XP/coins for this battle
             }
             // if already auto‑caught before, fall through to normal win rewards
@@ -2047,7 +2064,7 @@ async function attemptSwitch() {
     b.player = b.playerTeam[newIdx];
     renderBattleUI();
     addBattleLog(`Go! ${b.player.name.toUpperCase()}!`);
-    
+
     // After switch, enemy attacks immediately
     setTimeout(async () => {                          // ✅ async added
         if (!currentBattle) return;
@@ -2380,22 +2397,17 @@ async function runTurn(selectedMove) {
                 }
                 if (!valid) wildId = min;
             }
-            const wildRes = await fetch(`https://pokeapi.co/api/v2/pokemon/${wildId}`);
-            const wildData = await wildRes.json();
+           const wildData = await cachedFetch(`https://pokeapi.co/api/v2/pokemon/${wildId}`);
             let species = { id: wildId, is_legendary: false, is_mythical: false, generation: { url: "9" } };
             try {
-                const speciesRes = await fetch(wildData.species.url);
-                if (speciesRes.ok) species = await speciesRes.json();
+                species = await cachedFetch(wildData.species.url);
             } catch (e) {}
             let wildMoves = [];
             let rawMoves = wildData.moves;
             if (!rawMoves || rawMoves.length === 0) {
                 try {
-                    const baseRes = await fetch(`https://pokeapi.co/api/v2/pokemon/${species.id}`);
-                    if (baseRes.ok) {
-                        const baseData = await baseRes.json();
-                        rawMoves = baseData.moves;
-                    }
+                    const baseData = await cachedFetch(`https://pokeapi.co/api/v2/pokemon/${species.id}`);
+rawMoves = baseData.moves;
                 } catch (e) {}
             }
             if (!rawMoves || rawMoves.length === 0) wildMoves = DEFAULT_MOVESET;
@@ -3225,6 +3237,45 @@ document.addEventListener('touchend', (e) => {
     }
     lastTouchEnd = now;
 }, false);
+
+// ========== POKEAPI LOCAL CACHE ==========
+const POKE_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days in ms
+
+function pokeCache_get(key) {
+    try {
+        const raw = localStorage.getItem('pkc_' + key);
+        if (!raw) return null;
+        const { data, ts } = JSON.parse(raw);
+        if (Date.now() - ts > POKE_CACHE_TTL) { localStorage.removeItem('pkc_' + key); return null; }
+        return data;
+    } catch (e) { return null; }
+}
+
+function pokeCache_set(key, data) {
+    try {
+        localStorage.setItem('pkc_' + key, JSON.stringify({ data, ts: Date.now() }));
+    } catch (e) {
+        // localStorage full — clear old cache entries and retry
+        clearOldPokeCacheEntries();
+    }
+}
+
+function clearOldPokeCacheEntries() {
+    try {
+        const keys = Object.keys(localStorage).filter(k => k.startsWith('pkc_'));
+        keys.forEach(k => localStorage.removeItem(k));
+    } catch (e) {}
+}
+
+async function cachedFetch(url) {
+    const cached = pokeCache_get(url);
+    if (cached) return cached;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Fetch failed: ${url}`);
+    const data = await res.json();
+    pokeCache_set(url, data);
+    return data;
+}
 </script>
 </body>
 </html>

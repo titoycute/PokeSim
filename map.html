@@ -1529,18 +1529,27 @@ async function showSwitchPokemonModal(availablePokemon, isForced = false) {
 
 
 async function handlePlayerFaint(battle) {
-    const available = battle.playerTeam.filter(p => p.currentHp > 0);
+    // Snapshot the fainted Pokémon's id BEFORE anything changes
+    const faintedId = battle.player ? battle.player.id : null;
+
+    // Filter: alive AND not the one that just fainted
+    const available = battle.playerTeam.filter(p => p.currentHp > 0 && p.id !== faintedId);
+
     if (available.length === 0) {
         addBattleLog("All your Pokémon have fainted! You black out...");
-        await showBattleSummary('defeat');
+        showBattleSummary('defeat');
         endBattleCleanup();
         return null;
     }
 
     addBattleLog(`${battle.player.name.toUpperCase()} fainted! Choose another.`);
+
+    // isForced = true → hides the Cancel button so player MUST pick
     const selected = await showSwitchPokemonModal(available, true);
+
+    // If somehow nothing selected, treat as full defeat
     if (!selected) {
-        await showBattleSummary('defeat');
+        showBattleSummary('defeat');
         endBattleCleanup();
         return null;
     }
@@ -1548,19 +1557,21 @@ async function handlePlayerFaint(battle) {
     const newIdx = battle.playerTeam.findIndex(p => p.id === selected.id);
     battle.activePokemonIndex = newIdx;
     battle.player = battle.playerTeam[newIdx];
-    battle.player.currentHp = battle.player.maxHp;
+    // Do NOT restore HP here — the Pokémon keeps whatever HP it had
     renderBattleUI();
     addBattleLog(`Go! ${battle.player.name.toUpperCase()}!`);
 
-    // Reset flags and clear any pending timeout
+    // Always unlock the UI after a forced faint-switch
     isProcessing = false;
     toggleBattleUI(false);
     if (currentTurnTimeout) {
         clearTimeout(currentTurnTimeout);
         currentTurnTimeout = null;
     }
+
     return newIdx;
 }
+
 
    async function resolveBattle(win) {
     if (currentTurnTimeout) clearTimeout(currentTurnTimeout);
@@ -1606,8 +1617,8 @@ const newPokemon = {
         }
 
         // === NORMAL WIN REWARDS (XP, coins, evolution) ===
-        let gainXP = Math.floor(b.wild.level * 15);
-        let coins = Math.floor(b.wild.level * 5);
+        let gainXP = Math.floor(b.wild.level * 17);
+        let coins = Math.floor(b.wild.level * 7);
         let leveledUp = false;
         const monRef = doc(db, "users", userId, "pokemon", b.player.id);
         let curExp = b.player.exp || 0;

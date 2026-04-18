@@ -1813,6 +1813,38 @@ body.dark-theme #info-overlay .modal {
     const MOVE_DELAY = 200, TEAM_CACHE_TIME = 5000;
     const TRAINER_GIF = "https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/078dadf7-4d9b-4bf4-9855-0112be351700/d54f6cb-230b552c-50d1-45ad-be7e-7eab211c1cf8.gif?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7InBhdGgiOiIvZi8wNzhkYWRmNy00ZDliLTRiZjQtOTg1NS0wMTEyYmUzNTE3MDAvZDU0ZjZjYi0yMzBiNTUyYy01MGQxLTQ1YWQtYmU3ZS03ZWFiMjExYzFjZjguZ2lmIn1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmZpbGUuZG93bmxvYWQiXX0.A8hNnEQQMDN-XZI-VOQkzR71AozVAvgQDF6FcAAqi6M";
     const TYPE_ICONS = { fire: "🔥", water: "💧", grass: "🌿", electric: "⚡", normal: "🔘", ice: "❄️", psychic: "🔮", poison: "🧪", ground: "🏜️", flying: "🦅", dragon: "🐲", bug: "🐛", rock: "🪨", ghost: "👻", dark: "🌙", steel: "⚙️", fairy: "✨", fighting: "👊" };
+    // ========== POKEAPI LOCAL CACHE ==========
+const POKE_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+function pokeCache_get(key) {
+    try {
+        const raw = localStorage.getItem('pkc_' + key);
+        if (!raw) return null;
+        const { data, ts } = JSON.parse(raw);
+        if (Date.now() - ts > POKE_CACHE_TTL) { localStorage.removeItem('pkc_' + key); return null; }
+        return data;
+    } catch(e) { return null; }
+}
+function pokeCache_set(key, data) {
+    try {
+        localStorage.setItem('pkc_' + key, JSON.stringify({ data, ts: Date.now() }));
+    } catch(e) {
+        // localStorage full — wipe old cache entries and retry
+        try {
+            Object.keys(localStorage).filter(k => k.startsWith('pkc_')).forEach(k => localStorage.removeItem(k));
+            localStorage.setItem('pkc_' + key, JSON.stringify({ data, ts: Date.now() }));
+        } catch(e2) {}
+    }
+}
+async function cachedFetch(url) {
+    const hit = pokeCache_get(url);
+    if (hit) return hit;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Fetch failed: ' + url);
+    const data = await res.json();
+    pokeCache_set(url, data);
+    return data;
+}
     const bgMusic = document.getElementById('bg-music'), battleMusic = document.getElementById('battle-music');
     let isMuted = false;
     function playMainMusic() { if (!isMuted) { battleMusic.pause(); battleMusic.currentTime = 0; bgMusic.play().catch(e => console.log("Autoplay blocked:", e)); } }
@@ -1849,12 +1881,26 @@ body.dark-theme #info-overlay .modal {
     function getTypeEffectiveness(at, def) { let m=1; for(let d of def) { const c=typeEffectiveness[at]; if(c&&c[d]!==undefined) m*=c[d]; } return m; }
     function getExpNeededForNextLevel(l) { return l*300; }
 
-    async function updateNavDisplay() {
-        const user = auth.currentUser;
-        if (!user) return;
+    
+
+
+    let cachedNavData = null;
+let navCacheTs = 0;
+const NAV_CACHE_TTL = 10000; // 10 seconds
+
+async function updateNavDisplay(forceRefresh = false) {
+    const user = auth.currentUser;
+    if (!user) return;
+    const now = Date.now();
+    if (!forceRefresh && cachedNavData && (now - navCacheTs) < NAV_CACHE_TTL) {
+        // use cached — fall through
+    } else {
         const userDoc = await getDoc(doc(db, "users", user.uid));
         trackRead();
-        const data = userDoc.data();
+        cachedNavData = userDoc.data();
+        navCacheTs = now;
+    }
+    const data = cachedNavData;
         const displayName = data?.trainerName || user.email.split('@')[0];
         document.getElementById('trainer-name-display').innerText = displayName;
         document.getElementById('coin-amount').innerText = data?.coins?.toLocaleString() || '0';
@@ -1866,7 +1912,7 @@ body.dark-theme #info-overlay .modal {
     }
 
         const lastChange = data?.lastNameChange ? data.lastNameChange.toDate() : null;
-        const now = new Date();
+        
         const canChange = !lastChange || (now - lastChange) > 7 * 24 * 60 * 60 * 1000;
         const changeBtn = document.getElementById('change-name-btn');
         if (changeBtn) changeBtn.style.display = canChange ? 'inline-block' : 'none';
@@ -1994,7 +2040,9 @@ body.dark-theme #info-overlay .modal {
 
         let moveOptions = [];
         try {
-            const pokeData = await fetch(`https://pokeapi.co/api/v2/pokemon/${speciesId}`).then(r => r.json());
+          
+
+            const pokeData = await cachedFetch(`https://pokeapi.co/api/v2/pokemon/${speciesId}`);
             const levelUpMoves = [];
             for (const moveEntry of pokeData.moves) {
                 const levelUpVersions = moveEntry.version_details.filter(vd => vd.learn_method.name === 'level-up');
@@ -2056,7 +2104,7 @@ body.dark-theme #info-overlay .modal {
         if (moveOptions.length === 0) {
             let types = ['normal'];
             try {
-                const p = await fetch(`https://pokeapi.co/api/v2/pokemon/${speciesId}`).then(r => r.json());
+               const p = await cachedFetch(`https://pokeapi.co/api/v2/pokemon/${speciesId}`);
                 types = p.types.map(t => t.type.name);
             } catch(e) {}
             moveOptions = generateFallbackMoveList(pokemonName, types);
@@ -2481,13 +2529,14 @@ body.dark-theme #info-overlay .modal {
 
     async function checkEvolution(id,lvl,apiId) {
         try {
-            const s=await fetch(`https://pokeapi.co/api/v2/pokemon-species/${apiId}`).then(r=>r.json()), e=await fetch(s.evolution_chain.url).then(r=>r.json());
+            const s = await cachedFetch(`https://pokeapi.co/api/v2/pokemon-species/${apiId}`);
+            const e = await cachedFetch(s.evolution_chain.url);
             let stage=e.chain, next=null;
             while(stage&&stage.species.name!==s.name) stage=stage.evolves_to[0];
             if(stage&&stage.evolves_to.length>0) { const d=stage.evolves_to[0].evolution_details[0]; if(d.min_level&&lvl>=d.min_level) next=stage.evolves_to[0].species.name; }
             if(next) {
                 addBattleLog(`WHAT? ${next.toUpperCase()} is evolving!`);
-                const np=await fetch(`https://pokeapi.co/api/v2/pokemon/${next}`).then(r=>r.json());
+                const np = await cachedFetch(`https://pokeapi.co/api/v2/pokemon/${next}`);
                 const newMoves = await getMoveDetails(np.moves.slice(0,4));
                 const existingSnap = await getDoc(doc(db, "users", auth.currentUser.uid, "pokemon", id));
                 const existingData = existingSnap.data();
@@ -2504,13 +2553,10 @@ body.dark-theme #info-overlay .modal {
                 const overlay = document.getElementById('loading-overlay');
                 overlay.classList.remove('hidden');
                 try {
-                    const [pokemonRes, speciesRes] = await Promise.all([
-                        fetch(`https://pokeapi.co/api/v2/pokemon/${id}`),
-                        fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}`)
-                    ]);
-                    if (!pokemonRes.ok || !speciesRes.ok) throw new Error(`HTTP error: ${pokemonRes.status} / ${speciesRes.status}`);
-                    const p = await pokemonRes.json();
-                    const s = await speciesRes.json();
+                    const [p, s] = await Promise.all([
+                        cachedFetch(`https://pokeapi.co/api/v2/pokemon/${id}`),
+                        cachedFetch(`https://pokeapi.co/api/v2/pokemon-species/${id}`)
+                    ]);         
                     const desc = s.flavor_text_entries.find(e => e.language.name === 'en')?.flavor_text.replace(/\f/g, ' ') || 'No description available.';
                     
                     loadImageWithFallback(document.getElementById('info-img'), getBattleSpriteUrl(id, 'front'));
@@ -2717,7 +2763,17 @@ body.dark-theme #info-overlay .modal {
 
     function renderPlayer() { document.getElementById('player').style.backgroundImage=`url(${TRAINER_GIF})`; document.getElementById('map-grid').style.transform=`translate(${275-playerPos.x*50}px,${175-playerPos.y*50}px)`; }
 
-    async function getMoveDetails(moves) { return Promise.all(moves.slice(0,4).map(async m=>{const d=await fetch(m.move?m.move.url:m.url).then(r=>r.json()); return {name:d.name,power:d.power||40,type:d.type.name,icon:TYPE_ICONS[d.type.name]||d.type.name,accuracy:d.accuracy||100};})); }
+   async function getMoveDetails(moves) {
+    return Promise.all(moves.slice(0,4).map(async m => {
+        try {
+            const url = m.move ? m.move.url : m.url;
+            const d = await cachedFetch(url);
+            return { name: d.name, power: d.power||40, type: d.type.name, icon: TYPE_ICONS[d.type.name]||d.type.name, accuracy: d.accuracy||100 };
+        } catch(e) {
+            return { name: 'tackle', power: 40, type: 'normal', icon: '🔘', accuracy: 100 };
+        }
+    }));
+}
 
     async function startBattle() {
         if (!currentMap) { alert("No map loaded!"); return; }
@@ -2745,9 +2801,9 @@ body.dark-theme #info-overlay .modal {
             }
 
             const [wild, species] = await Promise.all([
-                fetch(`https://pokeapi.co/api/v2/pokemon/${wildId}`).then(r => r.json()),
-                fetch(`https://pokeapi.co/api/v2/pokemon-species/${wildId}`).then(r => r.json())
-            ]);
+    cachedFetch(`https://pokeapi.co/api/v2/pokemon/${wildId}`),
+    cachedFetch(`https://pokeapi.co/api/v2/pokemon-species/${wildId}`)
+]);
 
             let wildLevel;
             if (currentMap.specialLevelRange?.enabled) {

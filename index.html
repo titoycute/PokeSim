@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
     <meta name="description" content="PokeSim – catch, train, and battle Pokémon online. Build your team, explore the map, and challenge wild Pokémon with a full type‑effectiveness system.">
     <title>PokeSim | Kanto Noybi - By Tootzkie Custodio</title>
     <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -20,6 +20,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
     <style>
+        /* Prevent zoom on double‑tap for all elements */
+html, body {
+    touch-action: pan-x pan-y;  /* allows panning but prevents pinch‑zoom */
+}
 @keyframes evolutionGlow {
     0% { filter: brightness(1) drop-shadow(0 0 0 gold); }
     50% { filter: brightness(1.3) drop-shadow(0 0 20px gold); transform: scale(1.1); }
@@ -4497,6 +4501,20 @@ if (savedZoom) {
 // Attach event listeners
 document.getElementById('zoom-in-btn')?.addEventListener('click', zoomIn);
 document.getElementById('zoom-out-btn')?.addEventListener('click', zoomOut);
+document.addEventListener('touchstart', (e) => {
+    if (e.touches.length > 1) {
+        e.preventDefault(); // prevent pinch‑zoom
+    }
+}, { passive: false });
+
+let lastTouchEnd = 0;
+document.addEventListener('touchend', (e) => {
+    const now = Date.now();
+    if (now - lastTouchEnd <= 300) {
+        e.preventDefault(); // prevent double‑tap zoom
+    }
+    lastTouchEnd = now;
+}, false);
 
 </script>
 </body>

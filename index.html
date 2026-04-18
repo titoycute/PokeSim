@@ -3244,7 +3244,10 @@ window.addEventListener('keydown', (e) => {
                 btn.onclick = () => { modal.classList.add('hidden'); resolve(p); };
                 listDiv.appendChild(btn);
             });
-            modal.classList.remove('hidden');
+           const cancelBtn = document.getElementById('cancel-switch-modal');
+        cancelBtn.onclick = () => { modal.classList.add('hidden'); resolve(null); };
+
+        modal.classList.remove('hidden');
         });
     }
 

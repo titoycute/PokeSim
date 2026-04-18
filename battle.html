@@ -1543,6 +1543,10 @@
                     div.onclick = () => { modal.classList.add('hidden'); resolve(p); };
                     list.appendChild(div);
                 });
+
+                  const cancelBtn = modal.querySelector('.btn-outline');
+            cancelBtn.onclick = () => { modal.classList.add('hidden'); resolve(null); };
+
                 modal.classList.remove('hidden');
             });
         }
@@ -1555,7 +1559,17 @@
             isProcessing=true;
             toggleBattleUI(true);
             const selected = await showSwitchModal(available, b.playerTeam[b.activePlayerIdx].id);
-            if(!selected) { isProcessing=false; toggleBattleUI(false); return; }
+           if (!selected) {
+    // Cancel penalty: opponent gets a free attack
+    addBattleLog("Switch cancelled! The opponent attacks!");
+    const opponent = b.opponentTeam[b.activeOpponentIdx];
+    const randomMove = opponent.moves.filter(m => m.power > 0)[0] || { name: "Tackle", power: 40, type: "normal" };
+    executeAttack(opponent, b.playerTeam[b.activePlayerIdx], randomMove, false);
+    renderBattleUI();
+    if (b.playerTeam[b.activePlayerIdx].currentHp <= 0) handlePlayerFaint();
+    else { isProcessing = false; toggleBattleUI(false); }
+    return;
+}
             const newIdx = b.playerTeam.findIndex(p => p.id === selected.id);
             b.activePlayerIdx = newIdx;
             b.playerTeam[newIdx].currentHp = b.playerTeam[newIdx].maxHp;

@@ -978,8 +978,15 @@ body.dark-theme #map-info-modal .btn-primary:hover {
     </div>
     <!-- New landscape image -->
     <img src="Map_0.jpg" alt="Region overview" class="map-landscape">
+    <div style="display: flex; gap: 10px; margin-bottom: 20px; align-items: center;">
+    <input type="text" id="map-search" placeholder="🔍 Search by name, generation, description, level, catch rate..." style="flex: 1; padding: 10px 16px; border-radius: 40px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-dark);">
+    <button id="clear-search" class="btn btn-outline">✖ Clear</button>
+</div>
+
     <div id="map-list" class="map-grid"></div>
 </div>
+
+<!-- Search Bar -->
 
 <div id="legal-modal" class="overlay hidden">
     <div class="modal" style="max-width: 500px; text-align: left;">
@@ -1187,6 +1194,7 @@ body.dark-theme #map-info-modal .btn-primary:hover {
     let userTotalLevel = 0;
     let isAdmin = false;
     let currentTurnTimeout = null;
+    let ownedPokemonIds = new Set();
 
         // Shiny bonus: +15% max HP
     function getMaxHp(level, isShiny) {
@@ -1464,6 +1472,59 @@ async function updateNavDisplay(forceRefresh = false) {
         });
     }
 
+
+
+    // --- Map Search Feature ---
+let currentSearchTerm = "";
+
+function filterMaps() {
+    const term = currentSearchTerm.toLowerCase().trim();
+    if (!term) return maps;
+    return maps.filter(map => {
+        return (map.name && map.name.toLowerCase().includes(term)) ||
+               (map.generation && map.generation.toLowerCase().includes(term)) ||
+               (map.description && map.description.toLowerCase().includes(term)) ||
+               (map.requiredLevel && map.requiredLevel.toString().includes(term)) ||
+               (map.catchRate && map.catchRate.toString().includes(term));
+    });
+}
+
+// Override or extend the existing renderMapCards to accept an array
+const originalRenderMapCards = renderMapCards;
+window.renderMapCards = function(mapArray = maps) {
+    const container = document.getElementById('map-list');
+    if (!container) return;
+    container.innerHTML = '';
+    if (mapArray.length === 0) {
+        container.innerHTML = '<p style="text-align:center; padding:40px;">No maps available. ' + (isAdmin ? 'Click "Add New Map" to create one.' : 'Please check back later.') + '</p>';
+        return;
+    }
+    for (const map of mapArray) {
+        // ... (copy your existing card creation loop from the original renderMapCards)
+        // Make sure to use map.name, map.generation etc.
+    }
+};
+
+// Attach event listeners after DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    const searchInput = document.getElementById('map-search');
+    const clearBtn = document.getElementById('clear-search');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            currentSearchTerm = e.target.value;
+            renderMapCards(filterMaps());
+        });
+    }
+    if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+            searchInput.value = '';
+            currentSearchTerm = '';
+            renderMapCards(maps);
+        });
+    }
+});
+
+
 async function showSwitchPokemonModal(availablePokemon, isForced = false) {
     return new Promise((resolve) => {
         const modal = document.getElementById('switch-pokemon-modal');
@@ -1616,6 +1677,7 @@ const newPokemon = {
 };
 
                 await addDoc(collection(db, "users", userId, "pokemon"), newPokemon);
+                ownedPokemonIds.add(b.wild.pokemonId);
                 await updateUserTotalLevels(userId, b.wild.level);
                 await updateDoc(recordRef, { autoCaught5th: true });
                 invalidateTeamCache();
@@ -1879,6 +1941,7 @@ const newPokemon = {
                 isShiny: b.wild.isShiny
             };
             await addDoc(collection(db, "users", auth.currentUser.uid, "pokemon"), newPokemon);
+            ownedPokemonIds.add(b.wild.pokemonId);
             await updateUserTotalLevels(auth.currentUser.uid, b.wild.level);
             invalidateTeamCache();
             showBattleSummary('catch');
@@ -2293,6 +2356,7 @@ async function runTurn(selectedMove) {
 
 
     async function isSpeciesOwned(pokemonId) {
+        return ownedPokemonIds.has(pokemonId);
         const q = query(collection(db, "users", auth.currentUser.uid, "pokemon"), where("pokemonId", "==", pokemonId));
         const snap = await getDocs(q);
         return !snap.empty;
@@ -2606,73 +2670,77 @@ rawMoves = baseData.moves;
         renderMapCards();
     }
 
-    function renderMapCards() {
-        const container = document.getElementById('map-list');
-        if (!container) return;
-        container.innerHTML = '';
-        if (maps.length === 0) {
-            container.innerHTML = '<p style="text-align:center; padding:40px;">No maps available. ' + (isAdmin ? 'Click "Add New Map" to create one.' : 'Please check back later.') + '</p>';
-            return;
-        }
-        for (const map of maps) {
-            const unlocked = userTotalLevel >= map.requiredLevel;
-            const card = document.createElement('div');
-            card.className = 'map-card';
-            card.style.cursor = 'pointer';
-            card.onclick = () => showMapPokemonList(map);
-            card.innerHTML = `
-                <img src="${map.imageUrl || 'map1.png'}" alt="${map.name}" onerror="this.src='map1.png'">
-                <h3>${escapeHtml(map.name)}</h3>
-                <p style="font-weight: bold; color: var(--primary);">Gen ${map.generation || '?'}</p>
-                <p class="map-description" style="font-style: italic;">${map.description || ''}</p>
-                <div style="font-size: 0.75rem; color: var(--text-light); margin: 8px 0;">
-                    <div>🎯 Catch rate: ${map.catchRate || 45}% (max)</div>
-                    <div>📊 Need ${map.requiredExpPercent || 10}% XP progress to catch</div>
-                    <div>💸 Catch costs ${map.catchXpPenaltyPercent || 10}% of XP progress bar</div>
-                    <div style="font-size: 0.75rem; color: var(--text-light); margin: 4px 0;">
-                        ${map.specialLevelRange?.enabled ? `📈 Wild levels: ${map.specialLevelRange.min} – ${map.specialLevelRange.max}` : `📈 Wild levels: around your active Pokémon's level (±10, min 1)`}
-                    </div>
-                </div>
-                <p style="font-size: 0.75rem; color: var(--text-light);">Click card to view Pokémon list</p>
-                <p class="required ${unlocked ? 'unlocked' : 'locked'}">
-                    ${unlocked ? '✓ Available' : `🔒 Requires total level ${map.requiredLevel}`}
-                </p>
-                <button class="btn btn-primary explore-btn" data-map-id="${map.id}" ${!unlocked ? 'disabled' : ''} onclick="event.stopPropagation();">Explore</button>
-            `;
-            const exploreBtn = card.querySelector('.explore-btn');
-            exploreBtn.onclick = (e) => {
-                e.stopPropagation();
-                if (unlocked) startGameWithMap(map);
-            };
-            if (isAdmin) {
-                const editBtn = document.createElement('button');
-                editBtn.className = 'admin-edit-btn';
-                editBtn.innerHTML = '<i class="fas fa-edit"></i>';
-                editBtn.onclick = (e) => { e.stopPropagation(); openMapEditModal(map); };
-                card.appendChild(editBtn);
-                const delBtn = document.createElement('button');
-                delBtn.className = 'admin-delete-btn';
-                delBtn.innerHTML = '<i class="fas fa-trash"></i>';
-                delBtn.onclick = async (e) => {
-                    e.stopPropagation();
-                    if (confirm(`Delete map "${map.name}"?`)) {
-                        await deleteDoc(doc(db, "maps", map.id));
-                        loadMaps();
-                    }
-                };
-                card.appendChild(delBtn);
-            }
-            container.appendChild(card);
-        }
-        document.querySelectorAll('.explore-btn').forEach(btn => {
-            btn.onclick = () => {
-                const mapId = btn.dataset.mapId;
-                const selected = maps.find(m => m.id === mapId);
-                if (selected && userTotalLevel >= selected.requiredLevel) startGameWithMap(selected);
-                else alert("You don't meet the level requirement for this map.");
-            };
-        });
+function renderMapCards(mapArray = maps) {
+    const container = document.getElementById('map-list');
+    if (!container) return;
+    container.innerHTML = '';
+    if (mapArray.length === 0) {
+        container.innerHTML = '<p style="text-align:center; padding:40px;">No maps match your search. ' + (isAdmin ? 'Click "Add New Map" to create one.' : 'Please check back later.') + '</p>';
+        return;
     }
+    for (const map of mapArray) {
+        const unlocked = userTotalLevel >= map.requiredLevel;
+        const card = document.createElement('div');
+        card.className = 'map-card';
+        card.style.cursor = 'pointer';
+        card.onclick = () => showMapPokemonList(map);
+        card.innerHTML = `
+            <img src="${map.imageUrl || 'map1.png'}" alt="${map.name}" onerror="this.src='map1.png'">
+            <h3>${escapeHtml(map.name)}</h3>
+            <p style="font-weight: bold; color: var(--primary);">Gen ${map.generation || '?'}</p>
+            <p class="map-description" style="font-style: italic;">${map.description || ''}</p>
+            <div style="font-size: 0.75rem; color: var(--text-light); margin: 8px 0;">
+                <div>🎯 Catch rate: ${map.catchRate || 45}% (max)</div>
+                <div>📊 Need ${map.requiredExpPercent || 10}% XP progress to catch</div>
+                <div>💸 Catch costs ${map.catchXpPenaltyPercent || 10}% of XP progress bar</div>
+                <div style="font-size: 0.75rem; color: var(--text-light); margin: 4px 0;">
+                    ${map.specialLevelRange?.enabled ? `📈 Wild levels: ${map.specialLevelRange.min} – ${map.specialLevelRange.max}` : `📈 Wild levels: around your active Pokémon's level (±10, min 1)`}
+                </div>
+            </div>
+            <p style="font-size: 0.75rem; color: var(--text-light);">Click card to view Pokémon list</p>
+            <p class="required ${unlocked ? 'unlocked' : 'locked'}">
+                ${unlocked ? '✓ Available' : `🔒 Requires total level ${map.requiredLevel}`}
+            </p>
+            <button class="btn btn-primary explore-btn" data-map-id="${map.id}" ${!unlocked ? 'disabled' : ''} onclick="event.stopPropagation();">Explore</button>
+        `;
+        const exploreBtn = card.querySelector('.explore-btn');
+        exploreBtn.onclick = (e) => {
+            e.stopPropagation();
+            if (unlocked) startGameWithMap(map);
+        };
+        if (isAdmin) {
+            const editBtn = document.createElement('button');
+            editBtn.className = 'admin-edit-btn';
+            editBtn.innerHTML = '<i class="fas fa-edit"></i>';
+            editBtn.onclick = (e) => { e.stopPropagation(); openMapEditModal(map); };
+            card.appendChild(editBtn);
+            const delBtn = document.createElement('button');
+            delBtn.className = 'admin-delete-btn';
+            delBtn.innerHTML = '<i class="fas fa-trash"></i>';
+            delBtn.onclick = async (e) => {
+                e.stopPropagation();
+                if (confirm(`Delete map "${map.name}"?`)) {
+                    await deleteDoc(doc(db, "maps", map.id));
+                    loadMaps();
+                }
+            };
+            card.appendChild(delBtn);
+        }
+        container.appendChild(card);
+    }
+    // Re-attach explore button events (in case of dynamic loading)
+    document.querySelectorAll('.explore-btn').forEach(btn => {
+        btn.onclick = () => {
+            const mapId = btn.dataset.mapId;
+            const selected = maps.find(m => m.id === mapId);
+            if (selected && userTotalLevel >= selected.requiredLevel) startGameWithMap(selected);
+            else alert("You don't meet the level requirement for this map.");
+        };
+    });
+}
+
+
+
 
 function openMapEditModal(map = null) {
     const modal = document.createElement('div');
@@ -3106,7 +3174,15 @@ window.addEventListener('keydown', (e) => {
                 return;
             }
             cachedActivePokemon = { id: activePokemonId, ...activePokemonSnap.data() };
+             const ownedSnap = await getDocs(collection(db, "users", user.uid, "pokemon"));
+    ownedPokemonIds.clear();
+    ownedSnap.forEach(doc => {
+      const p = doc.data();
+      ownedPokemonIds.add(p.pokemonId);
+    });
+            
             updateNavDisplay();
+
             if (isAdmin) document.getElementById('add-map-btn').classList.remove('hidden');
             await loadMaps();
             document.getElementById('game-screen').classList.add('hidden');

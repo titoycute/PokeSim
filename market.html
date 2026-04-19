@@ -458,8 +458,7 @@ body.dark-theme #toast.error { background: var(--danger); }
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, getDocs, setDoc, collection, addDoc, updateDoc, deleteDoc, query, where, runTransaction, increment, serverTimestamp, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
+import { getFirestore, doc, getDoc, getDocs, setDoc, collection, addDoc, updateDoc, deleteDoc, query, where, runTransaction, increment, serverTimestamp, orderBy, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 const FB = {apiKey:"AIzaSyDkCE0wBrsQ1s-7zplvTtWOSE28ISaCFfQ",authDomain:"pokesim-7f9b7.firebaseapp.com",projectId:"pokesim-7f9b7",storageBucket:"pokesim-7f9b7.firebasestorage.app",messagingSenderId:"1087100425430",appId:"1:1087100425430:web:9558a79ee5330d4a792577"};
 const app=initializeApp(FB), auth=getAuth(app), db=getFirestore(app);
 
@@ -617,13 +616,18 @@ async function getUserPokemon(){
   const list=[];snap.forEach(d=>list.push({id:d.id,...d.data()}));
   return list;
 }
-async function updateNav(){
-  if(!currentUser)return;
-  const d=(await getDoc(doc(db,'users',currentUser.uid))).data();
-  document.getElementById('trainer-name').textContent=d?.trainerName||currentUser.email.split('@')[0];
-  document.getElementById('trainer-level').textContent=d?.totalLevels||0;
-  document.getElementById('coin-amount').textContent=(d?.coins||0).toLocaleString();
-  userData=d;
+// Change this function
+async function updateNav(forceRefresh = false) {
+  if (!currentUser) return;
+  // Only read from Firestore if userData is empty OR if we force a refresh after a purchase
+  if (!userData || forceRefresh) {
+    const snap = await getDoc(doc(db, 'users', currentUser.uid));
+    if (snap.exists()) userData = snap.data();
+  }
+  document.getElementById('trainer-name').textContent = userData?.trainerName || "Trainer";
+  document.getElementById('trainer-level').textContent = userData?.totalLevels || 0;
+  document.getElementById('coin-amount').textContent = (userData?.coins || 0).toLocaleString();
+  isAdmin = userData?.role === 'admin';
 }
 
 // ──────────── REWARD MODAL ────────────
@@ -705,23 +709,24 @@ async function showEvolutionModal(pokemonId){
 // ══════════════════════════════════════
 // SHOP TAB
 // ══════════════════════════════════════
-async function loadShop(){
-  const c=document.getElementById('shop-listings');
-  c.innerHTML=`<div class="loading-state"><div class="spin"></div><p>Loading market...</p></div>`;
-  try{
-    const snap=await getDocs(collection(db,'market_shop_listings'));
-    const listings=[]; snap.forEach(d=>listings.push({id:d.id,...d.data()}));
-    c.innerHTML='';
-    if(!listings.length){c.innerHTML='<div class="empty-state"><i class="fas fa-store"></i><p>No listings right now.</p></div>';return;}
-    for(const l of listings){
-      const p={pokemonId:l.pokemonId,name:l.name,types:l.types,level:l.level,moves:l.moves,bonusStats:l.bonusStats,price:l.price,isSpecial:l.isSpecial,isShiny:l.isShiny||false};
-      const extra=`<div style="font-size:.78rem;color:var(--text-light);">📦 Stock: ${l.stock}</div>`;
-      const actions=[{label:'<i class="fas fa-shopping-cart"></i> Buy',cls:'btn-primary',fn:()=>buyShop(l.id,l.price)},{label:'<i class="fas fa-dna"></i> Evo',cls:'btn-outline',fn:()=>showEvolutionModal(l.pokemonId)}];
-      if(isAdmin){actions.push({label:'Edit',cls:'btn-outline',fn:()=>openShopModal(l)});actions.push({label:'Delete',cls:'btn-danger',fn:()=>deleteShopListing(l.id)});}
-      c.appendChild(createPokemonCard(p,actions,extra));
+async function loadShop() {
+  const c = document.getElementById('shop-listings');
+  c.innerHTML = `<div class="loading-state"><div class="spin"></div><p>Loading market...</p></div>`;
+  try {
+    const q = query(collection(db, 'market_shop_listings'), limit(24));
+    const snap = await getDocs(q);
+    const listings = []; snap.forEach(d => listings.push({ id: d.id, ...d.data() }));
+    c.innerHTML = '';
+    if (!listings.length) { c.innerHTML = '<div class="empty-state"><p>No listings.</p></div>'; return; }
+    for (const l of listings) {
+      const p = { pokemonId: l.pokemonId, name: l.name, types: l.types, level: l.level, moves: l.moves, bonusStats: l.bonusStats, price: l.price, isSpecial: l.isSpecial, isShiny: l.isShiny || false };
+      const actions = [{ label: 'Buy', cls: 'btn-primary', fn: () => buyShop(l.id, l.price) }];
+      if(isAdmin) actions.push({label:'Edit',cls:'btn-outline',fn:()=>openShopModal(l)});
+      c.appendChild(createPokemonCard(p, actions, `<div style="font-size:.78rem;color:var(--text-light);">Stock: ${l.stock}</div>`));
     }
-  }catch(e){c.innerHTML='<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Failed to load.</p></div>';}
+  } catch (e) { console.error(e); }
 }
+
 
 async function buyShop(id, price){
   if(!currentUser){toast('Please log in.','error');return;}
@@ -740,7 +745,7 @@ async function buyShop(id, price){
       l.stock===1?tx.delete(ref):tx.update(ref,{stock:increment(-1)});
     });
     showReward({...purchased,exp:0},'💰 Purchase Complete!','Added to your collection!');
-    updateNav(); loadShop();
+    updateNav(true); loadShop();
   }catch(e){toast(e.message,'error');}
 }
 async function deleteShopListing(id){
@@ -816,22 +821,22 @@ async function openShopModal(existing=null){
 // ══════════════════════════════════════
 // SELL TAB
 // ══════════════════════════════════════
-async function loadSell(){
-  const c=document.getElementById('sell-listings');
-  c.innerHTML=`<div class="loading-state"><div class="spin"></div><p>Loading...</p></div>`;
-  try{
-    const snap=await getDocs(collection(db,'market_sell_listings'));
-    const listings=[]; snap.forEach(d=>listings.push({id:d.id,...d.data()}));
-    c.innerHTML='';
-    if(!listings.length){c.innerHTML='<div class="empty-state"><i class="fas fa-tag"></i><p>No Pokémon for sale.</p></div>';return;}
-    for(const l of listings){
-      const isOwn=l.ownerId===currentUser?.uid;
-      const p={...l,name:l.name,pokemonId:l.pokemonId,isOwn};
-      const actions=[{label:'<i class="fas fa-shopping-cart"></i> Buy',cls:'btn-primary',fn:()=>buySell(l.id,l.price,l.ownerId)}];
-      if(isOwn)actions.push({label:'<i class="fas fa-times"></i> Cancel',cls:'btn-danger',fn:()=>cancelSell(l.id)});
-      c.appendChild(createPokemonCard(p,actions));
+async function loadSell() {
+  const c = document.getElementById('sell-listings');
+  c.innerHTML = `<div class="loading-state"><div class="spin"></div><p>Loading...</p></div>`;
+  try {
+    const q = query(collection(db, 'market_sell_listings'), limit(24));
+    const snap = await getDocs(q);
+    const listings = []; snap.forEach(d => listings.push({ id: d.id, ...d.data() }));
+    c.innerHTML = '';
+    if (!listings.length) { c.innerHTML = '<div class="empty-state"><p>No items for sale.</p></div>'; return; }
+    for (const l of listings) {
+      const isOwn = l.ownerId === currentUser?.uid;
+      const actions = [{ label: 'Buy', cls: 'btn-primary', fn: () => buySell(l.id, l.price, l.ownerId) }];
+      if (isOwn) actions.push({ label: 'Cancel', cls: 'btn-danger', fn: () => cancelSell(l.id) });
+      c.appendChild(createPokemonCard({ ...l, isOwn }, actions));
     }
-  }catch(e){c.innerHTML='<div class="empty-state"><p>Failed to load.</p></div>';}
+  } catch (e) { console.error(e); }
 }
 
 async function openSellModal(){
@@ -1131,32 +1136,23 @@ async function cancelTrade(id){
 // ══════════════════════════════════════
 // REDEEM CODES
 // ══════════════════════════════════════
-async function loadRedeem(){
-  const c=document.getElementById('redeem-listings');
-  c.innerHTML=`<div class="loading-state"><div class="spin"></div><p>Loading codes...</p></div>`;
-  try{
-    const snap=await getDocs(collection(db,'redeem_codes'));
-    const codes=[]; snap.forEach(d=>codes.push({id:d.id,...d.data()}));
-    c.innerHTML='';
-    const now=new Date();
-    const active=codes.filter(cd=>{
-      const exp=cd.expiry?cd.expiry.toDate():null;
-      return cd.stock>0&&(!exp||exp>=now);
+async function loadRedeem() {
+  const c = document.getElementById('redeem-listings');
+  c.innerHTML = `<div class="loading-state"><div class="spin"></div><p>Loading codes...</p></div>`;
+  try {
+    // Optimization: Only show 5 featured codes to save quota
+    const q = query(collection(db, 'redeem_codes'), where('stock', '>', 0), limit(5));
+    const snap = await getDocs(q);
+    c.innerHTML = '';
+    if (snap.empty) { c.innerHTML = '<div class="empty-state"><p>Enter a code manually to redeem!</p></div>'; return; }
+    snap.forEach(docSnap => {
+      const cd = docSnap.data();
+      const p = { pokemonId: cd.pokemonId, name: cd.name, types: cd.types, level: cd.level, moves: cd.moves, isShiny: cd.isShiny };
+      c.appendChild(createPokemonCard(p, [], `<div style="font-size:.75rem;color:var(--success);">ACTIVE CODE AVAILABLE</div>`));
     });
-    if(!active.length){c.innerHTML='<div class="empty-state"><i class="fas fa-gift"></i><p>No active codes.</p></div>';return;}
-    for(const cd of active){
-      const p={pokemonId:cd.pokemonId,name:cd.name,types:cd.types,level:cd.level,moves:cd.moves,bonusStats:cd.bonusStats,isSpecial:cd.isSpecial,isShiny:cd.isShiny||false};
-      const exp=cd.expiry?cd.expiry.toDate():null;
-      const extra=`<div style="font-size:.78rem;color:var(--text-light);margin:5px 0;">🎟️ Code: <strong>${isAdmin?cd.code:'••••••••'}</strong><br>📦 Stock: ${cd.stock}<br>⏰ ${exp?`Expires ${exp.toLocaleDateString()}`:'No expiry'}</div>`;
-      const actions=[];
-      if(isAdmin){
-        actions.push({label:'<i class="fas fa-edit"></i> Edit',cls:'btn-outline',fn:()=>openRedeemModal(cd)});
-        actions.push({label:'Delete',cls:'btn-danger',fn:()=>deleteRedeem(cd.id)});
-      }
-      c.appendChild(createPokemonCard(p,actions,extra));
-    }
-  }catch(e){c.innerHTML='<div class="empty-state"><p>Failed.</p></div>';}
+  } catch (e) { console.error(e); }
 }
+
 
 async function openRedeemModal(existing=null){
   const isEdit=!!existing;
@@ -1260,7 +1256,7 @@ async function redeemByCode(codeStr){
       redeemed=np;
     });
     showReward(redeemed,'🎉 Code Redeemed!','Pokémon added to your collection!');
-    loadRedeem(); updateNav();
+    loadRedeem(); updateNav(true);
     return true;
   }catch(e){toast(e.message,'error');return false;}
 }

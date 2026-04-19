@@ -1601,7 +1601,7 @@ body.dark-theme #info-overlay .modal {
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, updateDoc, deleteDoc, writeBatch, increment, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, updateDoc, deleteDoc, writeBatch, increment, query, where, serverTimestamp, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
     const POWER_PRICE_MULTIPLIER = 35;
     const SHINY_RATE = 575;
     const firebaseConfig = { apiKey: "AIzaSyDkCE0wBrsQ1s-7zplvTtWOSE28ISaCFfQ", authDomain: "pokesim-7f9b7.firebaseapp.com", projectId: "pokesim-7f9b7", storageBucket: "pokesim-7f9b7.firebasestorage.app", messagingSenderId: "1087100425430", appId: "1:1087100425430:web:9558a79ee5330d4a792577" };
@@ -4144,98 +4144,111 @@ async function releasePokemon(id,name) {
     async function setActivePokemon(id) { await updateDoc(doc(db,"users",auth.currentUser.uid),{activePokemonId:id}); trackWrite(); activePokemonId=id; await updateActiveCache(id); refreshTeamView(); }
     async function updateActiveCache(id) { const a=await getDoc(doc(db,"users",auth.currentUser.uid,"pokemon",id)); trackRead(); if(a.exists()) cachedActivePokemon={id:a.id,...a.data()}; }
 
-    window.switchView=async v=>{
-        if (currentBattle && v !== 'explore') { alert("You cannot switch views while in battle! Finish or escape first."); return; }
-        document.querySelectorAll('.list-container, #view-explore').forEach(el=>el.classList.add('hidden')); document.getElementById(`view-${v}`).classList.remove('hidden'); if(v!=='explore') document.getElementById('battle-area').classList.add('hidden'); if(v==='team'||v==='collection') refreshTeamView();
+ // ========== CLEAN & OPTIMIZED VIEW SWITCHING (30-USER GRIND FIX) ==========
+// ========== OPTIMIZED VIEW SWITCHING & POKEDEX ==========
+    window.switchView = async v => {
+        if (currentBattle && v !== 'explore') { 
+            alert("Finish battle first!"); 
+            return; 
+        }
+        
+        document.querySelectorAll('.list-container, #view-explore').forEach(el => el.classList.add('hidden'));
+        const target = document.getElementById(`view-${v}`);
+        if (target) target.classList.remove('hidden');
+        if (v !== 'explore') document.getElementById('battle-area').classList.add('hidden');
+        
+        if (v === 'team' || v === 'collection') refreshTeamView();
+
         if (v === 'records') {
             const listDiv = document.getElementById('records-list');
-            listDiv.innerHTML = `<div style="margin-bottom: 20px; display: flex; gap: 10px;"><input type="text" id="record-search" class="search-input" style="margin:0; flex:1;" placeholder="Search by name or ID..."></div><div id="records-table-container"><div class="loader" style="text-align:center; padding:20px;"><i class="fas fa-spinner fa-pulse"></i> Syncing records...</div></div><div id="records-footer" style="text-align:center; margin-top:20px; padding-bottom:20px;"></div>`;
+            
+            // IF ALREADY LOADED, STOP HERE (SAVES READS)
+            if (allUserRecords.length > 0) {
+                filteredUserRecords = [...allUserRecords];
+                renderRecordChunk(); 
+                return;
+            }
+
+            listDiv.innerHTML = `
+                <div style="margin-bottom: 20px; display: flex; gap: 10px;">
+                    <input type="text" id="record-search" class="search-input" style="margin:0; flex:1;" placeholder="Search name or ID...">
+                    <button id="refresh-records-btn" class="btn btn-small btn-outline">🔄 Sync</button>
+                </div>
+                <div id="records-table-container"><div style="text-align:center; padding:20px;">Loading Pokedex...</div></div>
+                <div id="records-footer" style="text-align:center; margin-top:20px; padding-bottom:20px;"></div>`;
+
             await flushRecordUpdates();
-            const snap = await getDocs(collection(db, "users", auth.currentUser.uid, "records"));
-            trackRead();
+            
+            // LIMIT TO 150 TO PREVENT QUOTA CRASH
+            const q = query(collection(db, "users", auth.currentUser.uid, "records"), limit(150));
+            const snap = await getDocs(q);
+            trackRead(snap.size);
+
             allUserRecords = [];
-            snap.forEach(doc => { const r = doc.data(); allUserRecords.push({ id: r.pokemonId, name: r.name, count: r.count }); });
+            snap.forEach(doc => { 
+                const r = doc.data(); 
+                allUserRecords.push({ id: r.pokemonId, name: r.name, count: r.count }); 
+            });
+            
             allUserRecords.sort((a, b) => a.id - b.id);
             filteredUserRecords = [...allUserRecords];
-            recordsDisplayLimit = 50;
-            const renderRecordChunk = async () => {
-                const tableContainer = document.getElementById('records-table-container');
-                const footer = document.getElementById('records-footer');
-                const chunk = filteredUserRecords.slice(0, recordsDisplayLimit);
-                
-                if (chunk.length === 0) {
-                    tableContainer.innerHTML = "<p style='text-align:center; color:#666;'>No matching Pokémon found.</p>";
-                    footer.innerHTML = "";
-                    return;
-                }
-                
-                tableContainer.style.opacity = "0.6";
-                
-                // Enrich each record with type, generation, category, and sprite
-                const enriched = await Promise.all(chunk.map(async (record) => {
-                    try {
-                        const pokemonData = await getCachedJson(`https://pokeapi.co/api/v2/pokemon/${record.id}`, pokeDataCache);
-                        let speciesData = { is_legendary: false, is_mythical: false, generation: { url: "9" } };
-                        try { speciesData = await getCachedJson(pokemonData.species.url, speciesDataCache); } catch(e) {}
-                        const types = pokemonData.types.map(t => t.type.name);
-                        const generation = (() => {
-                            if (!speciesData.generation?.url) return 'IX';
-                            const genId = speciesData.generation.url.split('/').filter(p => p).pop();
-                            const roman = ['0', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX'];
-                            return roman[genId] || genId;
-                        })();
-                        const isParadox = paradoxIds.has(record.id);
-                        let cat = 'Normal';
-                        if (speciesData.is_legendary) cat = 'Legendary';
-                        else if (speciesData.is_mythical) cat = 'Mythical';
-                        else if (isParadox) cat = 'Paradox';
-                        return { ...record, types, generation, cat, sprite: pokemonData.sprites.front_default || `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${record.id}.png` };
-                    } catch (err) {
-                        return { ...record, types: ['?'], generation: '?', cat: 'Unknown', sprite: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${record.id}.png` };
-                    }
-                }));
-                
-                // Build card grid
-                let html = `<div class="records-card-grid">`;
-                enriched.forEach(rec => {
-                    const typeBadges = rec.types.map(t => `<span class="type-badge" style="background: ${getTypeColor(t)};">${t.toUpperCase()}</span>`).join('');
-                    html += `
-                        <div class="records-card" onclick="window.showInfo(${rec.id})" style="cursor: pointer;">
-                            <div class="records-card-img">
-                                <img src="${rec.sprite}" alt="${rec.name}" onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${rec.id}.png'">
-                            </div>
-                            <div class="records-card-info">
-                                <div class="records-card-name">${rec.name.toUpperCase()}</div>
-                                <div class="records-card-types">${typeBadges}</div>
-                                <div class="records-card-stats">
-                                    <span><i class="fas fa-eye"></i> ${rec.count}</span>
-                                    <span><i class="fas fa-tag"></i> ${rec.cat}</span>
-                                    <span>Gen ${rec.generation}</span>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                });
-                html += `</div>`;
-                
-                tableContainer.innerHTML = html;
-                tableContainer.style.opacity = "1";
-                
-                if (recordsDisplayLimit < filteredUserRecords.length) {
-                    footer.innerHTML = `<button id="btn-show-more-records" class="btn btn-outline">Show More (${filteredUserRecords.length - recordsDisplayLimit} left)</button>`;
-                    document.getElementById('btn-show-more-records').onclick = () => { recordsDisplayLimit += 100; renderRecordChunk(); };
-                } else {
-                    footer.innerHTML = `<p style="color:#999; font-size:0.8rem;">Showing all ${filteredUserRecords.length} encounters</p>`;
-                }
-            };
-         
+            recordsDisplayLimit = 25; 
+
+            document.getElementById('refresh-records-btn').onclick = () => { allUserRecords = []; window.switchView('records'); };
             document.getElementById('record-search').addEventListener('input', (e) => {
                 const term = e.target.value.toLowerCase();
                 filteredUserRecords = allUserRecords.filter(r => r.name.toLowerCase().includes(term) || r.id.toString().includes(term));
                 recordsDisplayLimit = 25;
                 renderRecordChunk();
             });
+
             renderRecordChunk();
+        }
+    };
+
+    const renderRecordChunk = async () => {
+        const tableContainer = document.getElementById('records-table-container');
+        const footer = document.getElementById('records-footer');
+        const chunk = filteredUserRecords.slice(0, recordsDisplayLimit);
+        
+        if (chunk.length === 0) {
+            tableContainer.innerHTML = "<p style='text-align:center;'>No Pokémon found.</p>";
+            footer.innerHTML = "";
+            return;
+        }
+        
+        footer.innerHTML = `<p style="font-size:0.7rem; color:var(--primary);">⌛ Processing Cards...</p>`;
+
+        const enriched = await Promise.all(chunk.map(async (record) => {
+            try {
+                const pData = await getCachedJson(`https://pokeapi.co/api/v2/pokemon/${record.id}`, pokeDataCache);
+                return { ...record, types: pData.types.map(t => t.type.name), sprite: pData.sprites.front_default };
+            } catch (err) {
+                return { ...record, types: ['?'], sprite: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${record.id}.png` };
+            }
+        }));
+        
+        let html = `<div class="records-card-grid">`;
+        enriched.forEach(rec => {
+            const tBadges = rec.types.map(t => `<span class="type-badge" style="background:${getTypeColor(t)}">${t.toUpperCase()}</span>`).join('');
+            html += `
+                <div class="records-card" onclick="window.showInfo(${rec.id})" style="cursor:pointer;">
+                    <div class="records-card-img"><img src="${rec.sprite}"></div>
+                    <div class="records-card-info">
+                        <div class="records-card-name">${rec.name.toUpperCase()}</div>
+                        <div class="records-card-types">${tBadges}</div>
+                        <div class="records-card-stats"><span>👁️ ${rec.count}</span><span>#${rec.id}</span></div>
+                    </div>
+                </div>`;
+        });
+        html += `</div>`;
+        tableContainer.innerHTML = html;
+        
+        if (recordsDisplayLimit < filteredUserRecords.length) {
+            footer.innerHTML = `<button id="btn-show-more-records" class="btn btn-outline">Show More</button>`;
+            document.getElementById('btn-show-more-records').onclick = () => { recordsDisplayLimit += 50; renderRecordChunk(); };
+        } else {
+            footer.innerHTML = `<p style="color:#999; font-size:0.8rem; margin-top:10px;">End of records</p>`;
         }
     };
 

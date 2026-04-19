@@ -2489,7 +2489,9 @@ rawMoves = baseData.moves;
             const isGmax = nameLower.includes('-gmax');
             const isMega = nameLower.includes('-mega');
             const isParadox = [984,985,986,987,988,989,990,991,992,993,994,995,1005,1006,1009,1010,1020,1021,1022,1023].includes(wildId);
-            const isUltraBeast = species.is_ultra_beast === true || nameLower.includes('-ub');
+            const isUltraBeast = species.is_ultra_beast === true || 
+                     nameLower.includes('-ub') || 
+                     [793,794,795,796,797,798,799,803,804,805,806].includes(wildId);
             const isLegendary = species.is_legendary === true;
             const isMythical = species.is_mythical === true;
             const isSpecial = isLegendary || isMythical || isParadox || isUltraBeast || isMega;

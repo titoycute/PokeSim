@@ -458,7 +458,8 @@ body.dark-theme #toast.error { background: var(--danger); }
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, getDocs, setDoc, collection, addDoc, updateDoc, deleteDoc, query, where, runTransaction, increment, serverTimestamp, orderBy, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, getDocs, setDoc, collection, addDoc, updateDoc, deleteDoc, query, where, runTransaction, increment, serverTimestamp, orderBy, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
 const FB = {apiKey:"AIzaSyDkCE0wBrsQ1s-7zplvTtWOSE28ISaCFfQ",authDomain:"pokesim-7f9b7.firebaseapp.com",projectId:"pokesim-7f9b7",storageBucket:"pokesim-7f9b7.firebasestorage.app",messagingSenderId:"1087100425430",appId:"1:1087100425430:web:9558a79ee5330d4a792577"};
 const app=initializeApp(FB), auth=getAuth(app), db=getFirestore(app);
 
@@ -619,14 +620,21 @@ async function getUserPokemon(){
 // Change this function
 async function updateNav(forceRefresh = false) {
   if (!currentUser) return;
-  // Only read from Firestore if userData is empty OR if we force a refresh after a purchase
+  
+  // Only read from Firestore if we don't have data yet OR if we specifically force a refresh (like after a purchase)
   if (!userData || forceRefresh) {
     const snap = await getDoc(doc(db, 'users', currentUser.uid));
-    if (snap.exists()) userData = snap.data();
+    if (snap.exists()) {
+      userData = snap.data();
+    }
   }
-  document.getElementById('trainer-name').textContent = userData?.trainerName || "Trainer";
+
+  // Update UI using the local userData object
+  document.getElementById('trainer-name').textContent = userData?.trainerName || currentUser.email.split('@')[0];
   document.getElementById('trainer-level').textContent = userData?.totalLevels || 0;
   document.getElementById('coin-amount').textContent = (userData?.coins || 0).toLocaleString();
+  
+  // Update global isAdmin status
   isAdmin = userData?.role === 'admin';
 }
 
@@ -713,15 +721,15 @@ async function loadShop() {
   const c = document.getElementById('shop-listings');
   c.innerHTML = `<div class="loading-state"><div class="spin"></div><p>Loading market...</p></div>`;
   try {
+    // Optimization: Added limit(24)
     const q = query(collection(db, 'market_shop_listings'), limit(24));
     const snap = await getDocs(q);
     const listings = []; snap.forEach(d => listings.push({ id: d.id, ...d.data() }));
     c.innerHTML = '';
-    if (!listings.length) { c.innerHTML = '<div class="empty-state"><p>No listings.</p></div>'; return; }
+    if (!listings.length) { c.innerHTML = '<div class="empty-state"><p>No listings right now.</p></div>'; return; }
     for (const l of listings) {
       const p = { pokemonId: l.pokemonId, name: l.name, types: l.types, level: l.level, moves: l.moves, bonusStats: l.bonusStats, price: l.price, isSpecial: l.isSpecial, isShiny: l.isShiny || false };
       const actions = [{ label: 'Buy', cls: 'btn-primary', fn: () => buyShop(l.id, l.price) }];
-      if(isAdmin) actions.push({label:'Edit',cls:'btn-outline',fn:()=>openShopModal(l)});
       c.appendChild(createPokemonCard(p, actions, `<div style="font-size:.78rem;color:var(--text-light);">Stock: ${l.stock}</div>`));
     }
   } catch (e) { console.error(e); }
@@ -825,6 +833,7 @@ async function loadSell() {
   const c = document.getElementById('sell-listings');
   c.innerHTML = `<div class="loading-state"><div class="spin"></div><p>Loading...</p></div>`;
   try {
+    // Optimization: Added limit(24)
     const q = query(collection(db, 'market_sell_listings'), limit(24));
     const snap = await getDocs(q);
     const listings = []; snap.forEach(d => listings.push({ id: d.id, ...d.data() }));

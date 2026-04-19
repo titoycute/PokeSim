@@ -492,35 +492,44 @@ function shinySprite(name){return `https://play.pokemonshowdown.com/sprites/ani-
 
 function esc(s){return String(s).replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));}
 
-// ──────────── MOVE DB (lazy, cached) ────────────
+// ──────────── POKEAPI LOCAL CACHE (7-day localStorage) ────────────
+const PKC_TTL = 7 * 86400 * 1000;
+function pkcGet(key){ try{ const r=localStorage.getItem('pkc_'+key); if(!r)return null; const {d,ts}=JSON.parse(r); if(Date.now()-ts>PKC_TTL){localStorage.removeItem('pkc_'+key);return null;} return d; }catch{return null;} }
+function pkcSet(key,data){ try{ localStorage.setItem('pkc_'+key,JSON.stringify({d:data,ts:Date.now()})); }catch{ try{ Object.keys(localStorage).filter(k=>k.startsWith('pkc_')).forEach(k=>localStorage.removeItem(k)); localStorage.setItem('pkc_'+key,JSON.stringify({d:data,ts:Date.now()})); }catch{} } }
+async function cachedFetch(url){ const h=pkcGet(url); if(h)return h; const r=await fetch(url); if(!r.ok)throw new Error('Fetch failed: '+url); const d=await r.json(); pkcSet(url,d); return d; }
+
+// ──────────── MOVE DB (lazy, localStorage cached 7 days) ────────────
 async function ensureMoveDB(){
   if(moveDatabase.length) return;
   if(movesLoading) return new Promise(r=>{const chk=setInterval(()=>{if(!movesLoading){clearInterval(chk);r();}},200);});
   movesLoading=true;
+  // ✅ Check localStorage cache first
+  const CACHE_KEY='pokesim_move_db_mrkt_v1';
+  try{
+    const cached=localStorage.getItem(CACHE_KEY);
+    if(cached){ const {data,ts}=JSON.parse(cached); if(Date.now()-ts<PKC_TTL){ moveDatabase=data; movesLoading=false; console.log(`Move DB from cache: ${moveDatabase.length}`); return; } }
+  }catch{}
   try{
     const res=await fetch('https://pokeapi.co/api/v2/move?limit=2000');
     const list=(await res.json()).results;
     const details=[];
-    // Batch fetch in parallel groups of 50
     for(let i=0;i<list.length;i+=50){
-      const batch=list.slice(i,i+50).map(m=>fetch(m.url).then(r=>r.json()).catch(()=>null));
+      const batch=list.slice(i,i+50).map(m=>cachedFetch(m.url).catch(()=>null)); // ✅ cachedFetch
       const results=await Promise.all(batch);
-      for(const d of results){
-        if(d&&d.power&&d.accuracy&&d.power>0&&d.accuracy>0){
-          details.push({name:d.name,type:d.type.name,power:d.power,accuracy:d.accuracy});
-        }
-      }
+      for(const d of results){ if(d&&d.power&&d.accuracy&&d.power>0&&d.accuracy>0){ details.push({name:d.name,type:d.type.name,power:d.power,accuracy:d.accuracy}); } }
     }
     moveDatabase=details;
+    // ✅ Save to localStorage — next visit skips all 2000+ fetches
+    try{ localStorage.setItem(CACHE_KEY,JSON.stringify({data:moveDatabase,ts:Date.now()})); }catch{}
   }catch(e){console.error(e);}
   movesLoading=false;
 }
 // Start loading in background immediately
 ensureMoveDB();
 
-// ──────────── POKEMON DATA HELPERS ────────────
-async function fetchPokemon(id){const r=await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);if(!r.ok)throw new Error('Not found');return r.json();}
-async function fetchSpecies(id){const r=await fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}`);if(!r.ok)return{is_legendary:false,is_mythical:false};return r.json();}
+// ──────────── POKEMON DATA HELPERS (now use cachedFetch) ────────────
+async function fetchPokemon(id){ return cachedFetch(`https://pokeapi.co/api/v2/pokemon/${id}`); }
+async function fetchSpecies(id){ try{ return await cachedFetch(`https://pokeapi.co/api/v2/pokemon-species/${id}`); }catch{ return{is_legendary:false,is_mythical:false}; } }
 
 // ──────────── POKEMON PREVIEW COMPONENT ────────────
 async function renderPokePreview(containerId, pokemonId, isShiny=false){
@@ -611,30 +620,36 @@ function renderMoveSelector(containerId, currentMoves, onChange){
   if(onChange)onChange(selected);
 }
 
-// ──────────── USER POKEMON ────────────
-async function getUserPokemon(){
+// ──────────── USER POKEMON (session cached) ────────────
+let _userPokeCache = null;
+let _userPokeCacheTs = 0;
+const POKE_SESSION_TTL = 20000; // 20 seconds
+
+async function getUserPokemon(forceRefresh = false){
+  const now = Date.now();
+  if (!forceRefresh && _userPokeCache && (now - _userPokeCacheTs) < POKE_SESSION_TTL) return _userPokeCache;
   const snap=await getDocs(collection(db,'users',currentUser.uid,'pokemon'));
   const list=[];snap.forEach(d=>list.push({id:d.id,...d.data()}));
+  _userPokeCache = list; _userPokeCacheTs = now;
   return list;
 }
-// Change this function
+
+function invalidatePokeCache(){ _userPokeCache = null; _userPokeCacheTs = 0; }
+// ──────────── NAV (cached, only reads Firestore when needed) ────────────
+let _navCacheTs = 0;
+const NAV_CACHE_TTL = 15000; // 15 seconds
+
 async function updateNav(forceRefresh = false) {
   if (!currentUser) return;
-  
-  // Only read from Firestore if we don't have data yet OR if we specifically force a refresh (like after a purchase)
-  if (!userData || forceRefresh) {
+  const now = Date.now();
+  // ✅ Use cached userData unless forced or TTL expired
+  if (!userData || forceRefresh || (now - _navCacheTs) > NAV_CACHE_TTL) {
     const snap = await getDoc(doc(db, 'users', currentUser.uid));
-    if (snap.exists()) {
-      userData = snap.data();
-    }
+    if (snap.exists()) { userData = snap.data(); _navCacheTs = now; }
   }
-
-  // Update UI using the local userData object
   document.getElementById('trainer-name').textContent = userData?.trainerName || currentUser.email.split('@')[0];
   document.getElementById('trainer-level').textContent = userData?.totalLevels || 0;
   document.getElementById('coin-amount').textContent = (userData?.coins || 0).toLocaleString();
-  
-  // Update global isAdmin status
   isAdmin = userData?.role === 'admin';
 }
 
@@ -721,18 +736,42 @@ async function loadShop() {
   const c = document.getElementById('shop-listings');
   c.innerHTML = `<div class="loading-state"><div class="spin"></div><p>Loading market...</p></div>`;
   try {
-    // Optimization: Added limit(24)
-    const q = query(collection(db, 'market_shop_listings'), limit(24));
+    // ✅ Admin sees all listings; players only see those with stock > 0
+    const q = isAdmin
+      ? query(collection(db, 'market_shop_listings'), limit(48))
+      : query(collection(db, 'market_shop_listings'), where('stock', '>', 0), limit(24));
     const snap = await getDocs(q);
     const listings = []; snap.forEach(d => listings.push({ id: d.id, ...d.data() }));
     c.innerHTML = '';
     if (!listings.length) { c.innerHTML = '<div class="empty-state"><p>No listings right now.</p></div>'; return; }
     for (const l of listings) {
-      const p = { pokemonId: l.pokemonId, name: l.name, types: l.types, level: l.level, moves: l.moves, bonusStats: l.bonusStats, price: l.price, isSpecial: l.isSpecial, isShiny: l.isShiny || false };
-      const actions = [{ label: 'Buy', cls: 'btn-primary', fn: () => buyShop(l.id, l.price) }];
-      c.appendChild(createPokemonCard(p, actions, `<div style="font-size:.78rem;color:var(--text-light);">Stock: ${l.stock}</div>`));
+      const outOfStock = l.stock <= 0;
+      const p = { pokemonId: l.pokemonId, name: l.name, types: l.types, level: l.level,
+                  moves: l.moves, bonusStats: l.bonusStats, price: l.price,
+                  isSpecial: l.isSpecial, isShiny: l.isShiny || false };
+      if (isAdmin) {
+        // ✅ Admin: show stock count, edit & delete, and out-of-stock badge
+        const stockColor = outOfStock ? 'var(--danger)' : 'var(--success)';
+        const stockLabel = outOfStock
+          ? `<span style="color:var(--danger);font-weight:700;">⚠️ OUT OF STOCK</span>`
+          : `<span style="color:${stockColor};font-weight:700;">Stock: ${l.stock}</span>`;
+        c.appendChild(createPokemonCard(p,
+          [
+            { label: '✏️ Edit', cls: 'btn-outline btn-sm', fn: () => openShopModal(l) },
+            { label: '🗑️ Delete', cls: 'btn-danger btn-sm', fn: () => deleteShopListing(l.id) }
+          ],
+          `<div style="font-size:.78rem;margin-top:4px;">${stockLabel}</div>`
+        ));
+      } else {
+        // ✅ Player: only sees in-stock items (query already filters, but safety check)
+        if (outOfStock) continue;
+        c.appendChild(createPokemonCard(p,
+          [{ label: 'Buy', cls: 'btn-primary', fn: () => buyShop(l.id, l.price) }],
+          `<div style="font-size:.78rem;color:var(--text-light);">Stock: ${l.stock}</div>`
+        ));
+      }
     }
-  } catch (e) { console.error(e); }
+  } catch (e) { console.error(e); c.innerHTML = '<div class="empty-state"><p>Failed to load.</p></div>'; }
 }
 
 
@@ -753,7 +792,7 @@ async function buyShop(id, price){
       l.stock===1?tx.delete(ref):tx.update(ref,{stock:increment(-1)});
     });
     showReward({...purchased,exp:0},'💰 Purchase Complete!','Added to your collection!');
-    updateNav(true); loadShop();
+    invalidatePokeCache(); updateNav(true); loadShop();
   }catch(e){toast(e.message,'error');}
 }
 async function deleteShopListing(id){
@@ -1124,7 +1163,7 @@ async function openAcceptTradeModal(offer){
         tx.update(offerRef,{status:'accepted'});
       });
       showReward({pokemonId:offer.pokemonId,name:offer.pokemonName,level:offer.pokemonLevel,types:offer.pokemonTypes,moves:offer.pokemonMoves,bonusStats:offer.pokemonBonusStats,isShiny:offer.isShiny||false,exp:0},'🤝 Trade Complete!','Pokémon added to collection!');
-      closeModal('accept-trade-modal'); loadTrade(); updateNav();
+      closeModal('accept-trade-modal'); invalidatePokeCache(); loadTrade(); updateNav();
     }catch(e){toast(e.message,'error');}
   };
 }
@@ -1139,7 +1178,7 @@ async function cancelTrade(id){
     tx.set(doc(collection(db,'users',currentUser.uid,'pokemon')),{pokemonId:od.pokemonId,name:od.pokemonName,level:od.pokemonLevel,exp:0,moves:od.pokemonMoves,types:od.pokemonTypes,inTeam:false,capturedAt:new Date(),bonusStats:od.pokemonBonusStats,isSpecial:od.isSpecial||false,isShiny:od.isShiny||false});
     tx.update(ref,{status:'cancelled'});
   });
-  loadTrade(); updateNav(); toast('Trade cancelled.','success');
+  loadTrade(); invalidatePokeCache(); updateNav(); toast('Trade cancelled.','success');
 }
 
 // ══════════════════════════════════════
@@ -1149,17 +1188,76 @@ async function loadRedeem() {
   const c = document.getElementById('redeem-listings');
   c.innerHTML = `<div class="loading-state"><div class="spin"></div><p>Loading codes...</p></div>`;
   try {
-    // Optimization: Only show 5 featured codes to save quota
-    const q = query(collection(db, 'redeem_codes'), where('stock', '>', 0), limit(5));
-    const snap = await getDocs(q);
+    let snap;
+    if (isAdmin) {
+      // ✅ Admin sees ALL codes including out-of-stock, with full details
+      snap = await getDocs(query(collection(db, 'redeem_codes'), limit(50)));
+    } else {
+      // ✅ Players only see codes with stock > 0
+      snap = await getDocs(query(collection(db, 'redeem_codes'), where('stock', '>', 0), limit(12)));
+    }
     c.innerHTML = '';
-    if (snap.empty) { c.innerHTML = '<div class="empty-state"><p>Enter a code manually to redeem!</p></div>'; return; }
+    if (snap.empty) {
+      c.innerHTML = '<div class="empty-state"><p>No active codes right now. Enter a code manually!</p></div>';
+      return;
+    }
     snap.forEach(docSnap => {
-      const cd = docSnap.data();
-      const p = { pokemonId: cd.pokemonId, name: cd.name, types: cd.types, level: cd.level, moves: cd.moves, isShiny: cd.isShiny };
-      c.appendChild(createPokemonCard(p, [], `<div style="font-size:.75rem;color:var(--success);">ACTIVE CODE AVAILABLE</div>`));
+      const cd = { id: docSnap.id, ...docSnap.data() };
+      const isExpired = cd.expiry && cd.expiry.toDate() < new Date();
+      const outOfStock = cd.stock <= 0;
+
+      // ✅ Players: skip out-of-stock (shouldn't happen due to query, but safety check)
+      if (!isAdmin && (outOfStock || isExpired)) return;
+
+      const p = { pokemonId: cd.pokemonId, name: cd.name, types: cd.types, level: cd.level,
+                  moves: cd.moves, isShiny: cd.isShiny, bonusStats: cd.bonusStats };
+
+      if (isAdmin) {
+        // ✅ Admin card: shows code, stock, expiry, edit/delete buttons + full pokemon info
+        const expText = cd.expiry ? new Date(cd.expiry.toDate()).toLocaleString() : 'No expiry';
+        const stockColor = outOfStock ? 'var(--danger)' : 'var(--success)';
+        const statusTag = outOfStock
+          ? `<span style="background:var(--danger);color:white;padding:2px 8px;border-radius:20px;font-size:.65rem;font-weight:700;">OUT OF STOCK</span>`
+          : isExpired
+            ? `<span style="background:var(--warning);color:white;padding:2px 8px;border-radius:20px;font-size:.65rem;font-weight:700;">EXPIRED</span>`
+            : `<span style="background:var(--success);color:white;padding:2px 8px;border-radius:20px;font-size:.65rem;font-weight:700;">ACTIVE</span>`;
+
+        const adminExtra = `
+          <div style="margin-top:8px;padding:10px;background:var(--bg);border-radius:12px;font-size:.78rem;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+              <span style="font-weight:700;color:var(--text-light);">CODE:</span>
+              <span style="font-family:monospace;font-size:.95rem;font-weight:800;color:var(--primary);letter-spacing:2px;background:var(--card-bg);padding:3px 10px;border-radius:8px;border:1px solid var(--border);">${esc(cd.code||'???')}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+              <span style="color:var(--text-light);">Stock:</span>
+              <strong style="color:${stockColor};">${cd.stock} remaining</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+              <span style="color:var(--text-light);">Expires:</span>
+              <span>${expText}</span>
+            </div>
+            <div style="display:flex;gap:4px;align-items:center;">${statusTag}</div>
+          </div>`;
+
+        c.appendChild(createPokemonCard(p,
+          [
+            { label: '✏️ Edit', cls: 'btn-outline', fn: () => openRedeemModal(cd) },
+            { label: '🗑️ Delete', cls: 'btn-danger', fn: () => deleteRedeem(cd.id) }
+          ],
+          adminExtra
+        ));
+      } else {
+        // ✅ Player card: only shows "ACTIVE CODE AVAILABLE" — no code, no stock number
+        c.appendChild(createPokemonCard(p, [],
+          `<div style="font-size:.75rem;color:var(--success);font-weight:700;">🎁 ACTIVE CODE AVAILABLE</div>`
+        ));
+      }
     });
-  } catch (e) { console.error(e); }
+
+    if (c.innerHTML === '') {
+      c.innerHTML = '<div class="empty-state"><p>No active codes right now. Enter a code manually!</p></div>';
+    }
+  } catch (e) { console.error(e); c.innerHTML = '<div class="empty-state"><p>Failed to load.</p></div>'; }
 }
 
 
@@ -1265,7 +1363,7 @@ async function redeemByCode(codeStr){
       redeemed=np;
     });
     showReward(redeemed,'🎉 Code Redeemed!','Pokémon added to your collection!');
-    loadRedeem(); updateNav(true);
+    invalidatePokeCache(); loadRedeem(); updateNav(true);
     return true;
   }catch(e){toast(e.message,'error');return false;}
 }

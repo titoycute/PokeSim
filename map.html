@@ -1165,7 +1165,7 @@ body.dark-theme #map-info-modal .btn-primary:hover {
     const db = getFirestore(app);
 
     // ========== SHINY RATE ==========
-    const SHINY_RATE = 8192; // 1/8192 chance – change to 1 for testing
+    const SHINY_RATE = 592; // 1/8192 chance – change to 1 for testing
 
     // ========== GLOBALS ==========
     let playerPos = { x: 25, y: 25 };
@@ -1628,8 +1628,8 @@ const newPokemon = {
         }
 
         // === NORMAL WIN REWARDS (XP, coins, evolution) ===
-        let gainXP = Math.floor(b.wild.level * 17);
-        let coins = Math.floor(b.wild.level * 7);
+        let gainXP = Math.floor(b.wild.level * 30);
+        let coins = Math.floor(b.wild.level * 10);
         let leveledUp = false;
         const monRef = doc(db, "users", userId, "pokemon", b.player.id);
         let curExp = b.player.exp || 0;

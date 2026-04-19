@@ -1613,7 +1613,8 @@ body.dark-theme #info-overlay .modal {
     let totalReads = parseInt(localStorage.getItem('pokesim_reads') || '0');
     let totalWrites = parseInt(localStorage.getItem('pokesim_writes') || '0');
     let totalDeletes = parseInt(localStorage.getItem('pokesim_deletes') || '0');
-    const READ_LIMIT = 50000, WRITE_LIMIT = 20000, DELETE_LIMIT = 20000;
+    let forceRefreshRecords = false;
+    const READ_LIMIT = 500, WRITE_LIMIT = 200, DELETE_LIMIT = 200;
 
     function trackRead(count = 1) { totalReads += count; localStorage.setItem('pokesim_reads', totalReads); }
     function trackWrite(count = 1) { totalWrites += count; localStorage.setItem('pokesim_writes', totalWrites); }
@@ -4159,51 +4160,58 @@ async function releasePokemon(id,name) {
         
         if (v === 'team' || v === 'collection') refreshTeamView();
 
-        if (v === 'records') {
-            const listDiv = document.getElementById('records-list');
-            
-            // IF ALREADY LOADED, STOP HERE (SAVES READS)
-            if (allUserRecords.length > 0) {
-                filteredUserRecords = [...allUserRecords];
-                renderRecordChunk(); 
-                return;
-            }
+       if (v === 'records') {
+    const listDiv = document.getElementById('records-list');
+    
+    // ---- CACHE CHECK ----
+    if (allUserRecords.length > 0 && !forceRefreshRecords) {
+        // Use cached data – no Firestore read
+        filteredUserRecords = [...allUserRecords];
+        renderRecordChunk();
+        return;
+    }
+    // ---- END CACHE CHECK ----
 
-            listDiv.innerHTML = `
-                <div style="margin-bottom: 20px; display: flex; gap: 10px;">
-                    <input type="text" id="record-search" class="search-input" style="margin:0; flex:1;" placeholder="Search name or ID...">
-                    <button id="refresh-records-btn" class="btn btn-small btn-outline">🔄 Sync</button>
-                </div>
-                <div id="records-table-container"><div style="text-align:center; padding:20px;">Loading Pokedex...</div></div>
-                <div id="records-footer" style="text-align:center; margin-top:20px; padding-bottom:20px;"></div>`;
+    listDiv.innerHTML = `
+        <div style="margin-bottom: 20px; display: flex; gap: 10px;">
+            <input type="text" id="record-search" class="search-input" style="margin:0; flex:1;" placeholder="Search name or ID...">
+            <button id="refresh-records-btn" class="btn btn-small btn-outline">🔄 Sync</button>
+        </div>
+        <div id="records-table-container"><div style="text-align:center; padding:20px;">Loading Pokedex...</div></div>
+        <div id="records-footer" style="text-align:center; margin-top:20px; padding-bottom:20px;"></div>`;
 
-            await flushRecordUpdates();
-            
-            // LIMIT TO 150 TO PREVENT QUOTA CRASH
-            const q = query(collection(db, "users", auth.currentUser.uid, "records"), limit(150));
-            const snap = await getDocs(q);
-            trackRead(snap.size);
+    await flushRecordUpdates();
+    
+    const q = query(collection(db, "users", auth.currentUser.uid, "records"), limit(150));
+    const snap = await getDocs(q);
+    trackRead(snap.size);
 
-            allUserRecords = [];
-            snap.forEach(doc => { 
-                const r = doc.data(); 
-                allUserRecords.push({ id: r.pokemonId, name: r.name, count: r.count }); 
-            });
-            
-            allUserRecords.sort((a, b) => a.id - b.id);
-            filteredUserRecords = [...allUserRecords];
-            recordsDisplayLimit = 25; 
+    allUserRecords = [];
+    snap.forEach(doc => { 
+        const r = doc.data(); 
+        allUserRecords.push({ id: r.pokemonId, name: r.name, count: r.count }); 
+    });
+    
+    allUserRecords.sort((a, b) => a.id - b.id);
+    filteredUserRecords = [...allUserRecords];
+    recordsDisplayLimit = 25; 
 
-            document.getElementById('refresh-records-btn').onclick = () => { allUserRecords = []; window.switchView('records'); };
-            document.getElementById('record-search').addEventListener('input', (e) => {
-                const term = e.target.value.toLowerCase();
-                filteredUserRecords = allUserRecords.filter(r => r.name.toLowerCase().includes(term) || r.id.toString().includes(term));
-                recordsDisplayLimit = 25;
-                renderRecordChunk();
-            });
+    // Refresh button forces a new fetch
+    document.getElementById('refresh-records-btn').onclick = () => { 
+        allUserRecords = []; 
+        forceRefreshRecords = true;
+        switchView('records'); 
+        forceRefreshRecords = false;
+    };
+    document.getElementById('record-search').addEventListener('input', (e) => {
+        const term = e.target.value.toLowerCase();
+        filteredUserRecords = allUserRecords.filter(r => r.name.toLowerCase().includes(term) || r.id.toString().includes(term));
+        recordsDisplayLimit = 25;
+        renderRecordChunk();
+    });
 
-            renderRecordChunk();
-        }
+    renderRecordChunk();
+}
     };
 
     const renderRecordChunk = async () => {

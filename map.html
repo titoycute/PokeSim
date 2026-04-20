@@ -1260,8 +1260,9 @@ body.dark-theme #map-info-modal .btn-primary:hover {
     let ownedPokemonIds = new Set();
     let encounterCountsCache = new Map();
     let encounterCacheTimestamp = 0;
-    const ENCOUNTER_CACHE_TTL = 60000;
+    const ENCOUNTER_CACHE_TTL = 3000000;
     let cachedTrainerName = '';
+    let cachedMaps = null;
 
         // Shiny bonus: +15% max HP
     function getMaxHp(level, isShiny) {
@@ -1273,7 +1274,7 @@ body.dark-theme #map-info-modal .btn-primary:hover {
     // ========== TEAM CACHE ==========
     let cachedTeam = null;         // team array (Pokémon with inTeam = true)
     let teamCacheTimestamp = 0;
-    const TEAM_CACHE_TTL = 30000;  // 30 seconds
+    const TEAM_CACHE_TTL = 300000; // 5 minutes // 30 seconds
 
     function invalidateTeamCache() {
         cachedTeam = null;
@@ -1290,32 +1291,31 @@ body.dark-theme #map-info-modal .btn-primary:hover {
         return cachedTeam;
     }
 
-    const snap = await getDocs(collection(db, "users", user.uid, "pokemon"));
+    // ✅ Query only Pokémon with inTeam == true
+    const q = query(collection(db, "users", user.uid, "pokemon"), where("inTeam", "==", true));
+    const snap = await getDocs(q);
     const team = [];
     snap.forEach(doc => {
         const p = doc.data();
-        if (p.inTeam) {
-            team.push({
-                id: doc.id,
-                pokemonId: p.pokemonId,
-                name: p.name,
-                level: p.level,
-                exp: p.exp,
-                moves: p.moves,
-                types: p.types,
-                bonusStats: p.bonusStats || { atk: false, def: false, spd: false },
-                maxHp: getMaxHp(p.level, p.isShiny || false),
-                currentHp: getMaxHp(p.level, p.isShiny || false),
-                isShiny: p.isShiny || false
-            });
-        }
+        team.push({
+            id: doc.id,
+            pokemonId: p.pokemonId,
+            name: p.name,
+            level: p.level,
+            exp: p.exp,
+            moves: p.moves,
+            types: p.types,
+            bonusStats: p.bonusStats || { atk: false, def: false, spd: false },
+            maxHp: getMaxHp(p.level, p.isShiny || false),
+            currentHp: getMaxHp(p.level, p.isShiny || false),
+            isShiny: p.isShiny || false
+        });
     });
 
     cachedTeam = team;
     teamCacheTimestamp = now;
     return team;
 }
-
     // ========== UTILITY FUNCTIONS ==========
     function getTypeColor(type) {
         const colors = {
@@ -1439,9 +1439,9 @@ body.dark-theme #map-info-modal .btn-primary:hover {
     function getTypeEffectiveness(at, def) { let m=1; for(let d of def) { const c=typeEffectiveness[at]; if(c&&c[d]!==undefined) m*=c[d]; } return m; }
     function getExpNeededForNextLevel(l) { return l*300; }
 
-   let cachedNavData = null;
+  let cachedNavData = null;
 let navCacheTimestamp = 0;
-const NAV_CACHE_TTL = 60000; // 10 seconds
+const NAV_CACHE_TTL = 300000; // 5 minutes
 
 async function updateNavDisplay(forceRefresh = false) {
     const user = auth.currentUser;
@@ -1770,7 +1770,7 @@ async function handlePlayerFaint(battle) {
             newExp -= getExpNeededForNextLevel(newLvl);
             newLvl++;
             leveledUp = true;
-            await checkEvolution(b.player.id, newLvl, b.player.pokemonId);
+           await checkEvolution(b.player.id, newLvl, b.player.pokemonId, b.player.bonusStats, b.player.isShiny);
         }
         // Batch: write Pokémon XP/level + user coins in one round trip
         const batch = writeBatch(db);
@@ -1787,11 +1787,11 @@ async function handlePlayerFaint(battle) {
         await batch.commit();
         invalidateTeamCache();
         showBattleSummary('win', { xp: gainXP, coins: coins, leveledUp: leveledUp });
-        updateNavDisplay();
+        updateNavDisplay(true);
     }
 }
 
-    async function checkEvolution(id, lvl, apiId) {
+   async function checkEvolution(id, lvl, apiId, bonusStats, isShiny) {
         try {
             const s = await cachedFetch(`https://pokeapi.co/api/v2/pokemon-species/${apiId}`);
             const e = await cachedFetch(s.evolution_chain.url);
@@ -1808,15 +1808,14 @@ async function handlePlayerFaint(battle) {
                 const newName = np.name.toUpperCase();
                 const newMoves = await getMoveDetails(np.moves.slice(0, 4));
                 // Single Firestore read for bonusStats/isShiny
-                const existingSnap = await getDoc(doc(db, "users", auth.currentUser.uid, "pokemon", id));
-                const existingData = existingSnap.data();
+               
                 await updateDoc(doc(db, "users", auth.currentUser.uid, "pokemon", id), {
                     name: np.name,
                     pokemonId: np.id,
                     types: np.types.map(t => t.type.name),
                     moves: newMoves,
-                    bonusStats: existingData.bonusStats || { atk: false, def: false, spd: false },
-                    isShiny: existingData.isShiny || false
+                    bonusStats: bonusStats,     // from parameter
+                    isShiny: isShiny            // from parameter
                 });
                 // Update companion sprite if this is the active Pokémon
                 if (cachedActivePokemon && cachedActivePokemon.id === id) {
@@ -2005,15 +2004,22 @@ async function attemptCatch() {
     try {
         const penalty = Math.floor(expNeededTotal * penaltyPercent);
         const newExp = Math.max(0, currentXP - penalty);
-        await updateDoc(doc(db, "users", auth.currentUser.uid, "pokemon", b.player.id), { exp: newExp });
+        // Batch start
+        const batch = writeBatch(db);
+        const userRef = doc(db, "users", auth.currentUser.uid);
+        const pokemonRef = doc(db, "users", auth.currentUser.uid, "pokemon", b.player.id);
+        batch.update(pokemonRef, { exp: newExp });
+
         b.player.exp = newExp;
         if (cachedActivePokemon && cachedActivePokemon.id === b.player.id) cachedActivePokemon.exp = newExp;
         addBattleLog(`Catch attempt! Spent ${penalty} XP.`);
         renderBattleUI();
+
         const hpPct = b.wild.currentHp / b.wild.maxHp;
         let catchChance = Math.min((currentMap.catchRate || 45) / 100, (1 - hpPct) * 0.8 + 0.05);
         if (Math.random() < catchChance) {
             const trainerName = await getTrainerName();
+            const newPokemonRef = doc(collection(db, "users", auth.currentUser.uid, "pokemon"));
             const newPokemon = {
                 pokemonId: b.wild.pokemonId,
                 name: b.wild.name,
@@ -2028,15 +2034,17 @@ async function attemptCatch() {
                 bonusStats: b.wild.bonusStats,
                 isShiny: b.wild.isShiny
             };
-            await addDoc(collection(db, "users", auth.currentUser.uid, "pokemon"), newPokemon);
+            batch.set(newPokemonRef, newPokemon);
+            batch.update(userRef, { totalLevels: increment(b.wild.level) });
             ownedPokemonIds.add(b.wild.pokemonId);
-            await updateUserTotalLevels(auth.currentUser.uid, b.wild.level);
             invalidateTeamCache();
-            // ✅ Save position to Firebase on successful catch
+            await batch.commit();
             await savePlayerPositionToFirestore();
             showBattleSummary('catch');
-            updateNavDisplay();
+            updateNavDisplay(true);
         } else {
+            // If catch fails, we only committed the XP penalty – we need to commit that now
+            await batch.commit();
             addBattleLog(`It broke free!`);
             setTimeout(() => {
                 if (!currentBattle) return;
@@ -2045,7 +2053,6 @@ async function attemptCatch() {
                 renderBattleUI();
                 if (b.player.currentHp <= 0) {
                     handlePlayerFaint(b);
-                    // Cleanup after forced switch
                     isProcessing = false;
                     toggleBattleUI(false);
                     if (currentTurnTimeout) clearTimeout(currentTurnTimeout);
@@ -2066,8 +2073,6 @@ async function attemptCatch() {
         currentTurnTimeout = null;
     }
 }
-
-
 
     async function attemptEscape() {
         if (!currentBattle || isProcessing) return;
@@ -2747,9 +2752,7 @@ rawMoves = baseData.moves;
         try {
             const results = await Promise.all(listToLoad.map(async (id) => {
                 try {
-                    const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
-                    if (!res.ok) return null;
-                    const data = await res.json();
+                    const data = await cachedFetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
                     return {
                         id: id,
                         name: data.name.replace('-', ' '),
@@ -2808,12 +2811,18 @@ rawMoves = baseData.moves;
 
     // ========== MAP LIST & ADMIN ==========
     let maps = [];
-    async function loadMaps() {
-        const snap = await getDocs(collection(db, "maps"));
-        maps = [];
-        snap.forEach(doc => { maps.push({ id: doc.id, ...doc.data() }); });
+   async function loadMaps(force = false) {
+    if (cachedMaps && !force) {
+        maps = cachedMaps;
         renderMapCards();
+        return;
     }
+    const snap = await getDocs(collection(db, "maps"));
+    maps = [];
+    snap.forEach(doc => { maps.push({ id: doc.id, ...doc.data() }); });
+    cachedMaps = [...maps];
+    renderMapCards();
+}
 
     function renderMapCards() {
         const container = document.getElementById('map-list');
@@ -3399,12 +3408,7 @@ window.addEventListener('keydown', (e) => {
                 return;
             }
             cachedActivePokemon = { id: activePokemonId, ...activePokemonSnap.data() };
-             const ownedSnap = await getDocs(collection(db, "users", user.uid, "pokemon"));
-    ownedPokemonIds.clear();
-    ownedSnap.forEach(doc => {
-      const p = doc.data();
-      ownedPokemonIds.add(p.pokemonId);
-    });
+         
             
             updateNavDisplay();
 

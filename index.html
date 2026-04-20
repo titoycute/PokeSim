@@ -1147,6 +1147,60 @@ body.dark-theme #info-overlay .modal {
     font-weight: bold;
     font-size: 1.2rem;
 }
+
+#player {
+    position: absolute;
+    width: 60px;
+    height: auto;
+    top: 170px;
+    left: 270px;
+    z-index: 999;
+    pointer-events: none;
+    overflow: visible;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+#player-sprite-img {
+    width: 60px;
+    height: 60px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.3));
+    flex-shrink: 0;
+}
+#player-companion {
+    position: absolute;
+    bottom: 0px;
+    right: -30px;
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    image-rendering: pixelated;
+    filter: drop-shadow(1px 1px 2px rgba(0,0,0,0.4));
+    animation: companionBob 1.2s ease-in-out infinite;
+}
+@keyframes companionBob {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-3px); }
+}
+#player-name-label {
+    background: rgba(0,0,0,0.65);
+    color: #fff;
+    font-size: 8px;
+    font-weight: bold;
+    padding: 1px 5px;
+    border-radius: 8px;
+    white-space: nowrap;
+    margin-top: 1px;
+    max-width: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: 0.3px;
+    line-height: 1.4;
+    pointer-events: none;
+}
 </style>
 </head>
 <body>
@@ -1476,7 +1530,11 @@ body.dark-theme #info-overlay .modal {
     <div class="map-wrapper">
         <div id="map-viewport">
             <div id="map-grid"></div>
-            <div id="player"></div>
+            <div id="player">
+            <div id="player-sprite-img"></div>
+            <img id="player-companion" src="" alt="" style="display:none;">
+            <div id="player-name-label"></div>
+        </div>
         </div>
     </div>
     <div id="battle-area" class="hidden">
@@ -1603,7 +1661,7 @@ body.dark-theme #info-overlay .modal {
     import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, updateDoc, deleteDoc, writeBatch, increment, query, where, serverTimestamp, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
     const POWER_PRICE_MULTIPLIER = 35;
-    const SHINY_RATE = 575;
+    const SHINY_RATE = 4096;
     const firebaseConfig = { apiKey: "AIzaSyDkCE0wBrsQ1s-7zplvTtWOSE28ISaCFfQ", authDomain: "pokesim-7f9b7.firebaseapp.com", projectId: "pokesim-7f9b7", storageBucket: "pokesim-7f9b7.firebasestorage.app", messagingSenderId: "1087100425430", appId: "1:1087100425430:web:9558a79ee5330d4a792577" };
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
@@ -1618,7 +1676,8 @@ body.dark-theme #info-overlay .modal {
     let ownedPokemonIds = new Set();          // stores owned species IDs (number)
     let encounterCountsCache = new Map();     // stores { pokemonId: count }
     let encounterCacheTimestamp = 0;
-    const ENCOUNTER_CACHE_TTL = 60000; 
+    const ENCOUNTER_CACHE_TTL = 300000; 
+    let cachedTrainerName = '';
 
 
     function trackRead(count = 1) { totalReads += count; localStorage.setItem('pokesim_reads', totalReads); }
@@ -1944,7 +2003,9 @@ async function updateNavDisplay(forceRefresh = false) {
         }
         await updateDoc(userRef, { trainerName: newName, lastNameChange: new Date() });
         trackWrite();
+        cachedTrainerName = newName;  
         updateNavDisplay();
+        updatePlayerLabel();  
         alert(`Name changed to "${newName}"!`);
     }
 
@@ -2796,24 +2857,82 @@ function movePlayer(dx, dy) {
 
     playerPos.x = nx;
     playerPos.y = ny;
+    
+    // ✅ Flip only the sprite, not the whole container
     if (dx !== 0) {
-        document.getElementById('player').style.transform = dx < 0 ? 'scaleX(-1)' : 'scaleX(1)';
+        const spriteImg = document.getElementById('player-sprite-img');
+        if (spriteImg) {
+            spriteImg.style.transform = dx < 0 ? 'scaleX(-1)' : 'scaleX(1)';
+        }
     }
+    
     renderPlayer();
 
-    // ✅ Save position locally after every step (no Firebase)
+    // Save position locally after every step
     savePlayerPositionLocal();
 
-    // Encounter check – removed Firebase save
+    // Encounter check
     const firstTileClass = currentMap?.tileClasses?.[0] || 'dirt';
     if (!encounterCooldown && mapData[ny] && mapData[ny][nx] !== firstTileClass && Math.random() < 0.15) {
-        startBattle();   // no position save here anymore
+        startBattle();
     }
 }
 
 window.movePlayer = movePlayer;
 
-    function renderPlayer() { document.getElementById('player').style.backgroundImage=`url(${TRAINER_GIF})`; document.getElementById('map-grid').style.transform=`translate(${275-playerPos.x*50}px,${175-playerPos.y*50}px)`; }
+  function renderPlayer() {
+    const spriteEl = document.getElementById('player-sprite-img');
+    if (spriteEl) spriteEl.style.backgroundImage = `url(${TRAINER_GIF})`;
+    document.getElementById('map-grid').style.transform = `translate(${275 - playerPos.x * 50}px, ${175 - playerPos.y * 50}px)`;
+}
+
+function updatePlayerLabel() {
+    // Trainer name
+    const nameLabel = document.getElementById('player-name-label');
+    if (nameLabel && cachedTrainerName) nameLabel.textContent = cachedTrainerName;
+
+    // Active Pokémon companion sprite – using Showdown sprites
+    const companion = document.getElementById('player-companion');
+    if (companion && cachedActivePokemon?.pokemonId) {
+        const id = cachedActivePokemon.pokemonId;
+        const name = cachedActivePokemon.name?.toLowerCase() || '';
+        const isShiny = cachedActivePokemon.isShiny || false;
+
+        let spriteUrl;
+        if (isShiny) {
+            spriteUrl = `https://play.pokemonshowdown.com/sprites/ani-shiny/${name}.gif`;
+        } else {
+            spriteUrl = `https://play.pokemonshowdown.com/sprites/ani/${name}.gif`;
+        }
+
+        companion.src = spriteUrl;
+        companion.style.display = 'block';
+        companion.style.width = '48px';
+        companion.style.height = '48px';
+        companion.style.objectFit = 'contain';
+
+        companion.onerror = () => {
+            const fallbackUrl = isShiny
+                ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/shiny/${id}.png`
+                : `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
+            companion.src = fallbackUrl;
+            companion.onerror = () => {
+                companion.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
+            };
+        };
+    } else if (companion) {
+        companion.style.display = 'none';
+    }
+
+    // Also set the trainer sprite background (if needed)
+    const playerSprite = document.getElementById('player-sprite-img');
+    if (playerSprite) {
+        playerSprite.style.backgroundImage = `url(${TRAINER_GIF})`;
+        playerSprite.style.backgroundSize = 'contain';
+        playerSprite.style.backgroundRepeat = 'no-repeat';
+        playerSprite.style.backgroundPosition = 'center';
+    }
+}
 
    async function getMoveDetails(moves) {
     return Promise.all(moves.slice(0,4).map(async m => {
@@ -4185,7 +4304,7 @@ async function getSpecialEvolutionTargets(pokemon) {
 
             invalidateTeamCache();
             refreshTeamView();
-
+            updatePlayerLabel();     
             if (cachedActivePokemon && cachedActivePokemon.id === pokemon.id) {
                 cachedActivePokemon = { ...cachedActivePokemon, ...updatedFields };
             }
@@ -4205,9 +4324,15 @@ async function releasePokemon(id,name) {
         invalidateTeamCache();
         refreshTeamView();
     }
-
-    async function setActivePokemon(id) { await updateDoc(doc(db,"users",auth.currentUser.uid),{activePokemonId:id}); trackWrite(); activePokemonId=id; await updateActiveCache(id); refreshTeamView(); }
-    async function updateActiveCache(id) { const a=await getDoc(doc(db,"users",auth.currentUser.uid,"pokemon",id)); trackRead(); if(a.exists()) cachedActivePokemon={id:a.id,...a.data()}; }
+        async function setActivePokemon(id) {
+    await updateDoc(doc(db,"users",auth.currentUser.uid),{activePokemonId:id});
+    trackWrite();
+    activePokemonId=id;
+    await updateActiveCache(id);
+    refreshTeamView();
+    updatePlayerLabel();   // ← ADD THIS LINE
+}
+       async function updateActiveCache(id) { const a=await getDoc(doc(db,"users",auth.currentUser.uid,"pokemon",id)); trackRead(); if(a.exists()) cachedActivePokemon={id:a.id,...a.data()}; }
 
  // ========== CLEAN & OPTIMIZED VIEW SWITCHING (30-USER GRIND FIX) ==========
 // ========== OPTIMIZED VIEW SWITCHING & POKEDEX ==========
@@ -4475,7 +4600,7 @@ async function releasePokemon(id,name) {
     };
     document.getElementById('close-trainer-modal').onclick = async () => { if (pendingUser) { await signOut(auth); } document.getElementById('trainer-starter-modal').classList.add('hidden'); location.reload(); };
 
-    onAuthStateChanged(auth, async (user) => {
+onAuthStateChanged(auth, async (user) => {
     console.log("1. Auth state changed. User:", user ? user.uid : "none");
     if (user) {
         console.log("2. User logged in, fetching user doc...");
@@ -4483,6 +4608,10 @@ async function releasePokemon(id,name) {
         trackRead();
         const data = uDoc.data();
         console.log("3. User data:", data);
+        
+        // ✅ ADD: Store trainer name for the label
+        cachedTrainerName = data?.trainerName || user.email.split('@')[0];
+        
         document.getElementById('auth-screen').classList.add('hidden');
         
         if (!data || !data.hasStarter) {
@@ -4546,7 +4675,11 @@ async function releasePokemon(id,name) {
         if (activePokemonId) {
             const a = await getDoc(doc(db, "users", user.uid, "pokemon", activePokemonId));
             trackRead();
-            if (a.exists()) cachedActivePokemon = { id: a.id, ...a.data() };
+            if (a.exists()) {
+                cachedActivePokemon = { id: a.id, ...a.data() };
+                // ✅ ADD: Update player label after active Pokémon is set
+                updatePlayerLabel();
+            }
         }
         
         isAdmin = (data?.role === 'admin');

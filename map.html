@@ -2117,52 +2117,67 @@ async function attemptCatch() {
         setTimeout(() => { if (btn) btn.disabled = false; isProcessing = false; }, 1000);
     }
 
-    function showSwitchModal(availablePokemon, currentId) {
-        return new Promise((resolve) => {
-            const modal = document.getElementById('switch-pokemon-modal');
-            const listDiv = document.getElementById('switch-pokemon-list');
-            listDiv.innerHTML = '';
-            availablePokemon.forEach((p) => {
-                if (p.id === currentId) return;
-                const btn = document.createElement('button');
-                btn.className = 'btn btn-outline';
-                btn.style.margin = '5px';
-                btn.style.display = 'flex';
-                btn.style.alignItems = 'center';
-                btn.style.gap = '12px';
-                btn.style.textAlign = 'left';
-                btn.style.padding = '10px';
-                btn.style.width = '100%';
-                btn.style.justifyContent = 'flex-start';
-                const img = document.createElement('img');
-                const spriteUrl = getStaticSpriteUrl(p.pokemonId)[0];
-                img.src = spriteUrl;
-                img.style.width = '50px';
-                img.style.height = '50px';
-                img.style.objectFit = 'contain';
-                img.onerror = () => { img.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.pokemonId}.png`; };
-                btn.appendChild(img);
-                let shinyBadge = '';
-                if (p.isShiny) shinyBadge = '<span style="background: #ffcc00; color: #333; padding: 2px 6px; border-radius: 20px; font-size: 0.6rem; margin-left: 8px;">✨ SHINY</span>';
-                const textDiv = document.createElement('div');
-                textDiv.style.flex = '1';
-                const hpPct = Math.floor((p.currentHp / p.maxHp) * 100);
-                const neededXP = getExpNeededForNextLevel(p.level);
-                const currentXP = p.exp || 0;
-                const xpPercent = Math.floor((currentXP / neededXP) * 100);
-                const typeBadgesHtml = generateTypeBadges(p.types);
-                textDiv.innerHTML = `
-                    <strong>${p.name.toUpperCase()}</strong> ${shinyBadge}<br>
-                    <div style="margin: 4px 0;">${typeBadgesHtml}</div>
-                    <small>Lvl ${p.level} — HP: ${p.currentHp}/${p.maxHp} (${hpPct}%)</small><br>
-                    <small>XP: ${currentXP}/${neededXP} (${xpPercent}%)</small>
-                `;
-                btn.appendChild(textDiv);
-                btn.onclick = () => { modal.classList.add('hidden'); resolve(p); };
-                listDiv.appendChild(btn);
-            });
-             // ✅ NEW: wire up cancel button
+   function showSwitchModal(availablePokemon, currentId) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('switch-pokemon-modal');
+        const listDiv = document.getElementById('switch-pokemon-list');
         const cancelBtn = document.getElementById('switch-cancel-btn');
+
+        // ✅ Ensure cancel button is visible (not hidden from forced faint)
+        cancelBtn.classList.remove('hidden');
+
+        listDiv.innerHTML = '';
+
+        availablePokemon.forEach((p) => {
+            if (p.id === currentId) return; // skip currently active Pokémon
+
+            const btn = document.createElement('button');
+            btn.className = 'btn btn-outline';
+            btn.style.margin = '5px';
+            btn.style.display = 'flex';
+            btn.style.alignItems = 'center';
+            btn.style.gap = '12px';
+            btn.style.textAlign = 'left';
+            btn.style.padding = '10px';
+            btn.style.width = '100%';
+            btn.style.justifyContent = 'flex-start';
+
+            const img = document.createElement('img');
+            const spriteUrl = getStaticSpriteUrl(p.pokemonId)[0];
+            img.src = spriteUrl;
+            img.style.width = '50px';
+            img.style.height = '50px';
+            img.style.objectFit = 'contain';
+            img.onerror = () => { img.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.pokemonId}.png`; };
+            btn.appendChild(img);
+
+            let shinyBadge = '';
+            if (p.isShiny) shinyBadge = '<span style="background: #ffcc00; color: #333; padding: 2px 6px; border-radius: 20px; font-size: 0.6rem; margin-left: 8px;">✨ SHINY</span>';
+
+            const textDiv = document.createElement('div');
+            textDiv.style.flex = '1';
+            const hpPct = Math.floor((p.currentHp / p.maxHp) * 100);
+            const neededXP = getExpNeededForNextLevel(p.level);
+            const currentXP = p.exp || 0;
+            const xpPercent = Math.floor((currentXP / neededXP) * 100);
+            const typeBadgesHtml = generateTypeBadges(p.types);
+
+            textDiv.innerHTML = `
+                <strong>${p.name.toUpperCase()}</strong> ${shinyBadge}<br>
+                <div style="margin: 4px 0;">${typeBadgesHtml}</div>
+                <small>Lvl ${p.level} — HP: ${p.currentHp}/${p.maxHp} (${hpPct}%)</small><br>
+                <small>XP: ${currentXP}/${neededXP} (${xpPercent}%)</small>
+            `;
+            btn.appendChild(textDiv);
+
+            btn.onclick = () => {
+                modal.classList.add('hidden');
+                resolve(p);
+            };
+            listDiv.appendChild(btn);
+        });
+
+        // Cancel button handler
         cancelBtn.onclick = () => {
             modal.classList.add('hidden');
             resolve(null);
@@ -2171,6 +2186,7 @@ async function attemptCatch() {
         modal.classList.remove('hidden');
     });
 }
+
 
 async function attemptSwitch() {
     // Clear any pending turn timeout
@@ -2510,29 +2526,27 @@ async function trackRecord(id, name) {
         document.getElementById('map-grid').style.transform = `translate(${275 - playerPos.x * 50}px, ${175 - playerPos.y * 50}px)`;
     }
 
-    function updatePlayerLabel() {
-        // Trainer name
-        const nameLabel = document.getElementById('player-name-label');
-        if (nameLabel && cachedTrainerName) nameLabel.textContent = cachedTrainerName;
+ function updatePlayerLabel() {
+    // Trainer name
+    const nameLabel = document.getElementById('player-name-label');
+    if (nameLabel && cachedTrainerName) nameLabel.textContent = cachedTrainerName;
 
-        // Active Pokémon companion sprite
-        const companion = document.getElementById('player-companion');
-        if (companion && cachedActivePokemon?.pokemonId) {
-            const id = cachedActivePokemon.pokemonId;
-            const isShiny = cachedActivePokemon.isShiny || false;
-            const spriteUrl = isShiny
-                ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/${id}.png`
-                : `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
-            companion.src = spriteUrl;
-            companion.style.display = 'block';
-            companion.style.left  = (BORDER + PLAYER_LEFT + SPRITE_W + 2) + 'px';
-companion.style.top   = (BORDER + PLAYER_TOP + (SPRITE_H - compSize) / 2) + 'px';
-            companion.onerror = () => {
-                companion.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
-            };
-        }
+    // Active Pokémon companion sprite
+    const companion = document.getElementById('player-companion');
+    if (companion && cachedActivePokemon?.pokemonId) {
+        const id = cachedActivePokemon.pokemonId;
+        const isShiny = cachedActivePokemon.isShiny || false;
+        const spriteUrl = isShiny
+            ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/${id}.png`
+            : `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
+        companion.src = spriteUrl;
+        companion.style.display = 'block';
+        // ✅ Remove the broken left/top assignments – CSS already handles positioning
+        companion.onerror = () => {
+            companion.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
+        };
     }
-
+}
     // ========== REFACTORED MOVEMENT (local only, save on encounter) ==========
  async function savePlayerPositionToFirestore() {
     if (!auth.currentUser) return;
@@ -2986,7 +3000,7 @@ function openMapEditModal(map = null) {
             </div>
         </div>
     `;
-
+    
     // Delete All button
 const deleteAllBtn = modal.querySelector('#delete-all-btn');
 deleteAllBtn.onclick = async () => {
@@ -3094,7 +3108,7 @@ batchAddBtn.onclick = async () => {
             tile.title = classes[i];
             previewGrid.appendChild(tile);
         }
-    }}
+    }
     
     // When tile classes change, rebuild the color pickers
     classInput.addEventListener('input', () => {
@@ -3245,7 +3259,7 @@ batchAddBtn.onclick = async () => {
     const specialFields = modal.querySelector('#special-level-fields');
     specialCheckbox.onchange = () => specialFields.style.display = specialCheckbox.checked ? 'block' : 'none';
 }
-
+}
 
 
 
@@ -3369,6 +3383,7 @@ window.addEventListener('keydown', (e) => {
         return;
     }
 });
+
 
 
     // ========== AUTH & INIT ==========

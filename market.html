@@ -775,13 +775,16 @@ async function loadShop() {
 }
 
 
-async function buyShop(id, price){
-  if(!currentUser){toast('Please log in.','error');return;}
-  const coins=(await getDoc(doc(db,'users',currentUser.uid))).data()?.coins||0;
-  if(coins<price){toast(`Need ${price} coins. You have ${coins}.`,'error');return;}
-  try{
-    let purchased;
-    await runTransaction(db,async tx=>{
+async function buyShop(id, price) {
+    if (!currentUser) { toast('Please log in.', 'error'); return; }
+    // ✅ Prevent double-buy: disable all buy buttons while processing
+    const allBuyBtns = document.querySelectorAll('#shop-listings .btn-primary');
+    allBuyBtns.forEach(b => b.disabled = true);
+    try {
+        const coins = (await getDoc(doc(db, 'users', currentUser.uid))).data()?.coins || 0;
+        if (coins < price) { toast(`Need ${price} coins. You have ${coins}.`, 'error'); allBuyBtns.forEach(b => b.disabled = false); return; }
+        let purchased;
+        await runTransaction(db, async tx => {
       const ref=doc(db,'market_shop_listings',id);
       const snap=await tx.get(ref); if(!snap.exists())throw new Error('Listing gone.');
       const l=snap.data(); if(l.stock<=0)throw new Error('Out of stock.');
@@ -794,6 +797,10 @@ async function buyShop(id, price){
     showReward({...purchased,exp:0},'💰 Purchase Complete!','Added to your collection!');
     invalidatePokeCache(); updateNav(true); loadShop();
   }catch(e){toast(e.message,'error');}
+   finally {
+        // ✅ Always re-enable after processing
+        document.querySelectorAll('#shop-listings .btn-primary').forEach(b => b.disabled = false);
+    }
 }
 async function deleteShopListing(id){
   if(!confirm('Delete this listing?'))return;
@@ -1349,19 +1356,22 @@ async function redeemByCode(codeStr){
     const now=new Date(); const exp=cd.expiry?cd.expiry.toDate():null;
     if(cd.stock<=0){toast('No stock remaining.','error');return false;}
     if(exp&&exp<now){toast('Code expired.','error');return false;}
-    const claimRef=doc(db,'redeem_codes',codeDoc.id,'claims',currentUser.uid);
-    if((await getDoc(claimRef)).exists()){toast('Already redeemed.','error');return false;}
-    let redeemed;
-    await runTransaction(db,async tx=>{
-      const ref=doc(db,'redeem_codes',codeDoc.id);
-      const s2=await tx.get(ref); if(!s2.exists())throw new Error('Gone.');
-      const d=s2.data();
-      const np={pokemonId:d.pokemonId,name:d.name,level:d.level,exp:0,moves:d.moves,types:d.types,inTeam:false,capturedAt:new Date(),bonusStats:d.bonusStats,isSpecial:d.isSpecial||false,isShiny:d.isShiny||false};
-      tx.set(doc(collection(db,'users',currentUser.uid,'pokemon')),np);
-      d.stock===1?tx.delete(ref):tx.update(ref,{stock:increment(-1)});
-      tx.set(claimRef,{redeemedAt:serverTimestamp()});
-      redeemed=np;
-    });
+    const claimRef = doc(db, 'redeem_codes', codeDoc.id, 'claims', currentUser.uid);
+let redeemed;
+await runTransaction(db, async tx => {
+    // ✅ Check claim INSIDE transaction — prevents double-redeem on fast double-tap
+    const claimSnap = await tx.get(claimRef);
+    if (claimSnap.exists()) throw new Error('Already redeemed.');
+
+    const ref = doc(db, 'redeem_codes', codeDoc.id);
+    const s2 = await tx.get(ref); if (!s2.exists()) throw new Error('Gone.');
+    const d = s2.data();
+    const np = { pokemonId: d.pokemonId, name: d.name, level: d.level, exp: 0, moves: d.moves, types: d.types, inTeam: false, capturedAt: new Date(), bonusStats: d.bonusStats, isSpecial: d.isSpecial || false, isShiny: d.isShiny || false };
+    tx.set(doc(collection(db, 'users', currentUser.uid, 'pokemon')), np);
+    d.stock === 1 ? tx.delete(ref) : tx.update(ref, { stock: increment(-1) });
+    tx.set(claimRef, { redeemedAt: serverTimestamp() });
+    redeemed = np;
+});
     showReward(redeemed,'🎉 Code Redeemed!','Pokémon added to your collection!');
     invalidatePokeCache(); loadRedeem(); updateNav(true);
     return true;
@@ -1729,12 +1739,8 @@ async function cancelMyBid(auction, bid) {
       if (!aSnap.exists()) throw new Error("Auction no longer exists.");
       const aData = aSnap.data();
       
-      // 1. Calculate Refund (Coins + Fee if applicable)
-      const fee = auctionSettings.transactionFee || 0;
-      const refundAmount = bid.coins + (bid.pokemon?.length > 0 ? fee : 1000);
-      
-      // 2. Refund Coins
-      tx.update(uRef, { coins: increment(refundAmount) });
+      // 1. Refund exactly what was bid (coins only — Pokémon are restored separately below)
+tx.update(uRef, { coins: increment(bid.coins) });
       
       // 3. Restore Pokémon to User's Collection
       for (const p of (bid.pokemon || [])) {
@@ -2083,7 +2089,16 @@ onAuthStateChanged(auth, async(user)=>{
   document.getElementById('admin-add-code').onclick=()=>openRedeemModal();
   document.getElementById('admin-add-auction').onclick=()=>openAuctionPostModal();
   document.getElementById('open-redeem-modal-btn').onclick=()=>{document.getElementById('modal-redeem-code').value='';document.getElementById('redeem-input-modal').classList.remove('hidden');setTimeout(()=>document.getElementById('modal-redeem-code').focus(),100);};
-  document.getElementById('modal-redeem-submit').onclick=async()=>{const ok=await redeemByCode(document.getElementById('modal-redeem-code').value);if(ok)closeModal('redeem-input-modal');};
+ document.getElementById('modal-redeem-submit').onclick = async () => {
+    const btn = document.getElementById('modal-redeem-submit');
+    if (btn.disabled) return;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Redeeming...';
+    const ok = await redeemByCode(document.getElementById('modal-redeem-code').value);
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-gift"></i> Redeem!';
+    if (ok) closeModal('redeem-input-modal');
+};
   document.getElementById('modal-redeem-code').addEventListener('keypress',e=>{if(e.key==='Enter')document.getElementById('modal-redeem-submit').click();});
   document.getElementById('logout-btn').onclick=()=>signOut(auth).then(()=>window.location.href='index.html');
   switchTab('shop');

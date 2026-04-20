@@ -1657,14 +1657,13 @@ async function handlePlayerFaint(battle) {
     if (win && currentBattle) {
         const b = currentBattle;
         const userId = auth.currentUser.uid;
-        cachedNavData = null; // invalidate nav cache after any write
-        // === AUTO‑CATCH ON 5TH ENCOUNTER (ONCE PER SPECIES) ===
-
-        const recordRef = doc(db, "users", userId, "records", b.wild.pokemonId.toString());
+        cachedNavData = null; // invalidate nav cache after any 
+        
+         const recordRef = doc(db, "users", userId, "records", b.wild.pokemonId.toString());
         const recordSnap = await getDoc(recordRef);
         const encounterCount = recordSnap.exists() ? recordSnap.data().count : 0;
         const alreadyAutoCaught = recordSnap.exists() && recordSnap.data().autoCaught5th === true;
-
+        // === AUTO‑CATCH ON 5TH ENCOUNTER (ONCE PER SPECIES) ===
         if (encounterCount >= 5 && !alreadyAutoCaught) {
             const recordRef = doc(db, "users", userId, "records", b.wild.pokemonId.toString());
             const recordSnap = await getDoc(recordRef);
@@ -2342,7 +2341,7 @@ async function runTurn(selectedMove) {
         });
     }
 
-   async function trackRecord(id, name) {
+async function trackRecord(id, name) {
     try {
         const userId = auth.currentUser.uid;
         await updateUserTotalEncounters(userId, 1);
@@ -2359,7 +2358,6 @@ async function runTurn(selectedMove) {
         return 0;
     }
 }
-
 
     async function isSpeciesOwned(pokemonId) {
         return ownedPokemonIds.has(pokemonId);
@@ -2812,18 +2810,18 @@ function openMapEditModal(map = null) {
                     <div style="display: flex; gap: 8px; margin-bottom: 8px;">
                         <input type="text" id="pokemon-search" placeholder="Search by name or ID..." style="flex:1;">
                         <button type="button" id="add-pokemon-btn" class="btn btn-primary btn-small">Add</button>
+
                     </div>
 
-                      <!-- Batch import: comma-separated IDs -->
+                     <!-- Batch import: comma-separated IDs -->
     <div style="margin-bottom: 12px;">
         <label style="font-size:0.8rem;">Batch add (comma-separated IDs)</label>
         <div style="display: flex; gap: 8px;">
             <textarea id="batch-pokemon-ids" placeholder="e.g., 1,4,7,25,39&#10;or 793,794,795,796,797,798,799,803,804,805,806" rows="2" style="flex:1; font-size:0.8rem;"></textarea>
             <button type="button" id="batch-add-btn" class="btn btn-outline btn-small" style="align-self:flex-end;">Add Batch</button>
-            <button type="button" id="delete-all-btn" class="btn btn-danger btn-small" style="align-self:flex-end; background: var(--danger); color: white;">Delete All</button>
-            </div>
+             <button type="button" id="delete-all-btn" class="btn btn-danger btn-small" style="align-self:flex-end; background: var(--danger); color: white;">Delete All</button>
+        </div>
     </div>
-
                     <div id="special-pokemon-tags" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;"></div>
                     <input type="hidden" id="special-pokemon-list" value="${(mapData.specialPokemonList || []).join(',')}">
                 </div>
@@ -2834,6 +2832,20 @@ function openMapEditModal(map = null) {
             </div>
         </div>
     `;
+
+    // Delete All button
+const deleteAllBtn = modal.querySelector('#delete-all-btn');
+deleteAllBtn.onclick = async () => {
+    if (specialIds.length === 0) {
+        alert("The list is already empty.");
+        return;
+    }
+    if (confirm(`Are you sure you want to remove ALL ${specialIds.length} special Pokémon from this map?`)) {
+        specialIds = [];
+        await renderSpecialTags();
+        batchTextarea.value = ''; // also clear batch textarea
+        alert("All special Pokémon removed.");
+    }
 
 
     // Batch add button
@@ -2866,21 +2878,6 @@ batchAddBtn.onclick = async () => {
         alert(`Added ${added} new Pokémon.`);
     } else {
         alert("All those IDs were already in the list.");
-    }
-};
-
-// Delete All button
-const deleteAllBtn = modal.querySelector('#delete-all-btn');
-deleteAllBtn.onclick = async () => {
-    if (specialIds.length === 0) {
-        alert("The list is already empty.");
-        return;
-    }
-    if (confirm(`Are you sure you want to remove ALL ${specialIds.length} special Pokémon from this map?`)) {
-        specialIds = [];
-        await renderSpecialTags();
-        batchTextarea.value = ''; // also clear batch textarea
-        alert("All special Pokémon removed.");
     }
 };
 
@@ -2943,7 +2940,7 @@ deleteAllBtn.onclick = async () => {
             tile.title = classes[i];
             previewGrid.appendChild(tile);
         }
-    }
+    }}
     
     // When tile classes change, rebuild the color pickers
     classInput.addEventListener('input', () => {

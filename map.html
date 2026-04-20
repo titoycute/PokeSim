@@ -1659,7 +1659,13 @@ async function handlePlayerFaint(battle) {
         const userId = auth.currentUser.uid;
         cachedNavData = null; // invalidate nav cache after any write
         // === AUTO‑CATCH ON 5TH ENCOUNTER (ONCE PER SPECIES) ===
-        if (b.wild.encounterCount === 5) {
+
+        const recordRef = doc(db, "users", userId, "records", b.wild.pokemonId.toString());
+        const recordSnap = await getDoc(recordRef);
+        const encounterCount = recordSnap.exists() ? recordSnap.data().count : 0;
+        const alreadyAutoCaught = recordSnap.exists() && recordSnap.data().autoCaught5th === true;
+
+        if (encounterCount >= 5 && !alreadyAutoCaught) {
             const recordRef = doc(db, "users", userId, "records", b.wild.pokemonId.toString());
             const recordSnap = await getDoc(recordRef);
             const alreadyAutoCaught = recordSnap.exists() && recordSnap.data().autoCaught5th === true;
@@ -2336,28 +2342,21 @@ async function runTurn(selectedMove) {
         });
     }
 
-    async function trackRecord(id, name) {
+   async function trackRecord(id, name) {
     try {
         const userId = auth.currentUser.uid;
         await updateUserTotalEncounters(userId, 1);
         const recordRef = doc(db, "users", userId, "records", id.toString());
-        const snap = await getDoc(recordRef);
-        let newCount = 1;
-        let autoCaught5th = false;
-        if (snap.exists()) {
-            newCount = (snap.data().count || 0) + 1;
-            autoCaught5th = snap.data().autoCaught5th === true;
-        }
+        // Blind write using increment (0 Reads)
         await setDoc(recordRef, {
             name: name,
-            count: newCount,
-            pokemonId: parseInt(id),
-            autoCaught5th: autoCaught5th
+            count: increment(1),
+            pokemonId: parseInt(id)
         }, { merge: true });
-        return newCount;
+        return 0; 
     } catch (err) {
         console.error("Error saving record:", err);
-        return 1;
+        return 0;
     }
 }
 
@@ -2814,6 +2813,17 @@ function openMapEditModal(map = null) {
                         <input type="text" id="pokemon-search" placeholder="Search by name or ID..." style="flex:1;">
                         <button type="button" id="add-pokemon-btn" class="btn btn-primary btn-small">Add</button>
                     </div>
+
+                      <!-- Batch import: comma-separated IDs -->
+    <div style="margin-bottom: 12px;">
+        <label style="font-size:0.8rem;">Batch add (comma-separated IDs)</label>
+        <div style="display: flex; gap: 8px;">
+            <textarea id="batch-pokemon-ids" placeholder="e.g., 1,4,7,25,39&#10;or 793,794,795,796,797,798,799,803,804,805,806" rows="2" style="flex:1; font-size:0.8rem;"></textarea>
+            <button type="button" id="batch-add-btn" class="btn btn-outline btn-small" style="align-self:flex-end;">Add Batch</button>
+            <button type="button" id="delete-all-btn" class="btn btn-danger btn-small" style="align-self:flex-end; background: var(--danger); color: white;">Delete All</button>
+            </div>
+    </div>
+
                     <div id="special-pokemon-tags" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;"></div>
                     <input type="hidden" id="special-pokemon-list" value="${(mapData.specialPokemonList || []).join(',')}">
                 </div>
@@ -2824,6 +2834,57 @@ function openMapEditModal(map = null) {
             </div>
         </div>
     `;
+
+
+    // Batch add button
+const batchAddBtn = modal.querySelector('#batch-add-btn');
+const batchTextarea = modal.querySelector('#batch-pokemon-ids');
+
+batchAddBtn.onclick = async () => {
+    const raw = batchTextarea.value.trim();
+    if (!raw) return;
+    
+    // Split by comma, trim, keep only numbers
+    const ids = raw.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+    if (ids.length === 0) {
+        alert("No valid IDs found. Use comma-separated numbers, e.g., 1,4,7");
+        return;
+    }
+    
+    // Add only unique IDs not already in specialIds
+    let added = 0;
+    for (const id of ids) {
+        if (!specialIds.includes(id)) {
+            specialIds.push(id);
+            added++;
+        }
+    }
+    
+    if (added > 0) {
+        await renderSpecialTags(); // refresh the tags
+        batchTextarea.value = ''; // clear the textarea
+        alert(`Added ${added} new Pokémon.`);
+    } else {
+        alert("All those IDs were already in the list.");
+    }
+};
+
+// Delete All button
+const deleteAllBtn = modal.querySelector('#delete-all-btn');
+deleteAllBtn.onclick = async () => {
+    if (specialIds.length === 0) {
+        alert("The list is already empty.");
+        return;
+    }
+    if (confirm(`Are you sure you want to remove ALL ${specialIds.length} special Pokémon from this map?`)) {
+        specialIds = [];
+        await renderSpecialTags();
+        batchTextarea.value = ''; // also clear batch textarea
+        alert("All special Pokémon removed.");
+    }
+};
+
+
 
     document.body.appendChild(modal);
 

@@ -1759,7 +1759,7 @@ async function handlePlayerFaint(battle) {
 
         
         // === NORMAL WIN REWARDS (XP, coins, evolution) ===
-        let gainXP = Math.floor(b.wild.level * 15);
+        let gainXP = Math.floor(b.wild.level * 23);
         let coins = Math.floor(b.wild.level * 7);
         let leveledUp = false;
         const monRef = doc(db, "users", userId, "pokemon", b.player.id);

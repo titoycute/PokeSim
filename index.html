@@ -1615,10 +1615,17 @@ body.dark-theme #info-overlay .modal {
     let totalDeletes = parseInt(localStorage.getItem('pokesim_deletes') || '0');
     let forceRefreshRecords = false;
     const READ_LIMIT = 500, WRITE_LIMIT = 200, DELETE_LIMIT = 200;
+    let ownedPokemonIds = new Set();          // stores owned species IDs (number)
+    let encounterCountsCache = new Map();     // stores { pokemonId: count }
+    let encounterCacheTimestamp = 0;
+    const ENCOUNTER_CACHE_TTL = 60000; 
+
 
     function trackRead(count = 1) { totalReads += count; localStorage.setItem('pokesim_reads', totalReads); }
     function trackWrite(count = 1) { totalWrites += count; localStorage.setItem('pokesim_writes', totalWrites); }
     function trackDelete(count = 1) { totalDeletes += count; localStorage.setItem('pokesim_deletes', totalDeletes); }
+
+
 
     setTimeout(() => {
         const fields = document.getElementById('auth-fields');
@@ -2475,60 +2482,64 @@ async function updateNavDisplay(forceRefresh = false) {
         return newIdx;
     }
 
-    async function resolveBattle(win) {
-        isProcessing = true;
-        toggleBattleUI(true);
-        if (win && currentBattle) {
-            const b = currentBattle;
-            const userId = auth.currentUser.uid;
-            if (b.wild.encounterCount >= 5) {
-    const recordRef = doc(db, "users", userId, "records", b.wild.pokemonId.toString());
-    const recordSnap = await getDoc(recordRef);
-    const alreadyAutoCaught = recordSnap.exists() && recordSnap.data().autoCaught5th === true;
-    
-    if (!alreadyAutoCaught) {
-        const newPokemon = {
-            pokemonId: b.wild.pokemonId,
-            name: b.wild.name,
-            level: b.wild.level,
-            exp: 0,
-            moves: b.wild.moves,
-            types: b.wild.types,
-            inTeam: false,
-            capturedAt: new Date(),
-            isShiny: b.wild.isShiny
-        };
-        await addDoc(collection(db, "users", userId, "pokemon"), newPokemon);
-        await updateUserTotalLevels(userId, b.wild.level);
-        await updateDoc(recordRef, { autoCaught5th: true });
+async function resolveBattle(win) {
+    isProcessing = true;
+    toggleBattleUI(true);
+    if (win && currentBattle) {
+        const b = currentBattle;
+        const userId = auth.currentUser.uid;
+
+        const recordRef = doc(db, "users", userId, "records", b.wild.pokemonId.toString());
+        const recordSnap = await getDoc(recordRef);
+        trackRead();
+        const encounterCount = recordSnap.exists() ? recordSnap.data().count : 0;
+        const alreadyAutoCaught = recordSnap.exists() && recordSnap.data().autoCaught5th === true;
+
+        if (encounterCount >= 5 && !alreadyAutoCaught) {
+            addBattleLog(`🎉 This is your 5th encounter with ${b.wild.name.toUpperCase()}! It automatically joins your team!`);
+            const newPokemon = {
+                pokemonId: b.wild.pokemonId,
+                name: b.wild.name,
+                level: b.wild.level,
+                exp: 0,
+                moves: b.wild.moves,
+                types: b.wild.types,
+                inTeam: false,
+                capturedAt: new Date(),
+                isShiny: b.wild.isShiny
+            };
+            await addDoc(collection(db, "users", userId, "pokemon"), newPokemon);
+            ownedPokemonIds.add(b.wild.pokemonId);
+            await updateUserTotalLevels(userId, b.wild.level);
+            await updateDoc(recordRef, { autoCaught5th: true });
+            invalidateTeamCache();
+            showBattleSummary('catch');
+            return;  // stop here – no XP/coins
+        }
+
+        // Normal win rewards
+        let gainXP = Math.floor(b.wild.level * 30);
+        let coins = Math.floor(b.wild.level * 10);
+        let leveledUp = false;
+        const monRef = doc(db, "users", userId, "pokemon", b.player.id);
+        let curExp = b.player.exp || 0;
+        let newExp = curExp + gainXP;
+        let newLvl = b.player.level;
+        while (newExp >= getExpNeededForNextLevel(newLvl)) {
+            newExp -= getExpNeededForNextLevel(newLvl);
+            newLvl++;
+            leveledUp = true;
+            await checkEvolution(b.player.id, newLvl, b.player.pokemonId);
+        }
+        if (leveledUp) await updateUserTotalLevels(userId, (newLvl - b.player.level));
+        await updateDoc(monRef, { exp: newExp, level: newLvl });
+        await updateDoc(doc(db, "users", userId), { coins: increment(coins) });
         invalidateTeamCache();
-        showBattleSummary('catch');
-        return;
+        showBattleSummary('win', { xp: gainXP, coins: coins, leveledUp: leveledUp });
+        refreshTeamView();
+        updateNavDisplay();
     }
 }
-            let gainXP = Math.floor(b.wild.level * 30);
-            let coins = Math.floor(b.wild.level * 10);
-            let leveledUp = false;
-            const monRef = doc(db, "users", userId, "pokemon", b.player.id);
-            let curExp = b.player.exp || 0;
-            let newExp = curExp + gainXP;
-            let newLvl = b.player.level;
-            while(newExp >= getExpNeededForNextLevel(newLvl)) {
-                newExp -= getExpNeededForNextLevel(newLvl);
-                newLvl++;
-                leveledUp = true;
-                await checkEvolution(b.player.id, newLvl, b.player.pokemonId);
-            }
-            if (leveledUp) await updateUserTotalLevels(userId, (newLvl - b.player.level));
-            await updateDoc(monRef, { exp: newExp, level: newLvl });
-            await updateDoc(doc(db, "users", userId), { coins: increment(coins) });
-            invalidateTeamCache();
-            showBattleSummary('win', { xp: gainXP, coins: coins, leveledUp: leveledUp });
-            refreshTeamView();
-            updateNavDisplay();
-        }
-    }
-
     async function checkEvolution(id,lvl,apiId) {
         try {
             const s = await cachedFetch(`https://pokeapi.co/api/v2/pokemon-species/${apiId}`);
@@ -2826,7 +2837,11 @@ async function updateNavDisplay(forceRefresh = false) {
             const isSpecial = isLegendary || isMythical || isParadox;
             const generation = getGeneration(species.generation?.url);
 
-            const [owned, encounterCount] = await Promise.all([isSpeciesOwned(wildId), getEncounterCount(wildId)]);
+            const owned = ownedPokemonIds.has(wildId);
+let encounterCount = encounterCountsCache.get(wildId);
+if (encounterCount === undefined) {
+    encounterCount = await getEncounterCount(wildId); // will read once and cache
+}
             const allTypes = ['normal','fire','water','electric','grass','ice','fighting','poison','ground','flying','psychic','bug','rock','ghost','dragon','dark','steel','fairy'];
             const wildTypes = wild.types.map(t => t.type.name);
             const weaknesses = allTypes.filter(t => getTypeEffectiveness(t, wildTypes) === 2);
@@ -3194,6 +3209,7 @@ window.addEventListener('keydown', (e) => {
                     isShiny: b.wild.isShiny
                 };
                 await addDoc(collection(db, "users", auth.currentUser.uid, "pokemon"), newPokemon);
+                ownedPokemonIds.add(b.wild.pokemonId);
                 trackWrite();
                 await updateUserTotalLevels(auth.currentUser.uid, b.wild.level);
                 invalidateTeamCache();
@@ -3389,34 +3405,42 @@ window.addEventListener('keydown', (e) => {
         }, 1000);
     }
 
-    async function trackRecord(id, name) {
-    // Ensure pending count includes existing Firestore count
-    if (!pendingRecordUpdates[id]) {
-        const existing = await getEncounterCount(id); // reads Firestore
-        pendingRecordUpdates[id] = { name, count: existing };
-    }
-    pendingRecordUpdates[id].count++;
-    await updateUserTotalEncounters(auth.currentUser.uid, 1);
-    if (Object.keys(pendingRecordUpdates).length >= 5) flushRecordUpdates();
-    return pendingRecordUpdates[id].count;
+async function trackRecord(id, name) {
+    const userId = auth.currentUser.uid;
+    // Increment total encounters (write only)
+    await updateDoc(doc(db, "users", userId), { totalEncounters: increment(1) });
+    const recordRef = doc(db, "users", userId, "records", id.toString());
+    await setDoc(recordRef, {
+        name: name,
+        count: increment(1),
+        pokemonId: parseInt(id)
+    }, { merge: true });
+    trackWrite();
+    // Update local cache
+    const current = encounterCountsCache.get(id) || 0;
+    encounterCountsCache.set(id, current + 1);
+    encounterCacheTimestamp = Date.now();
 }
 
     async function isSpeciesOwned(pokemonId) {
-        try {
-            const q = query(collection(db, "users", auth.currentUser.uid, "pokemon"), where("pokemonId", "==", pokemonId));
-            const snap = await getDocs(q);
-            return !snap.empty;
-        } catch(e) { console.warn("isSpeciesOwned failed", e); return false; }
-    }
+          return ownedPokemonIds.has(pokemonId);
+}
 
-    async function getEncounterCount(pokemonId) {
-        try {
-            const docRef = doc(db, "users", auth.currentUser.uid, "records", pokemonId.toString());
-            const snap = await getDoc(docRef);
-            return snap.exists() ? snap.data().count : 0;
-        } catch(e) { console.warn("getEncounterCount failed", e); return 0; }
+ async function getEncounterCount(pokemonId) {
+    // Use cache if fresh
+    const now = Date.now();
+    if (encounterCountsCache.has(pokemonId) && (now - encounterCacheTimestamp) < ENCOUNTER_CACHE_TTL) {
+        return encounterCountsCache.get(pokemonId);
     }
-
+    // Otherwise read from Firestore (rare)
+    const docRef = doc(db, "users", auth.currentUser.uid, "records", pokemonId.toString());
+    const snap = await getDoc(docRef);
+    trackRead();
+    const count = snap.exists() ? snap.data().count : 0;
+    encounterCountsCache.set(pokemonId, count);
+    encounterCacheTimestamp = now;
+    return count;
+}
     async function flushRecordUpdates() {
         if(Object.keys(pendingRecordUpdates).length===0) return;
         const batch=writeBatch(db);
@@ -4412,83 +4436,107 @@ async function releasePokemon(id,name) {
     document.getElementById('close-trainer-modal').onclick = async () => { if (pendingUser) { await signOut(auth); } document.getElementById('trainer-starter-modal').classList.add('hidden'); location.reload(); };
 
     onAuthStateChanged(auth, async (user) => {
-        console.log("1. Auth state changed. User:", user ? user.uid : "none");
-        if (user) {
-            console.log("2. User logged in, fetching user doc...");
-            const uDoc = await getDoc(doc(db, "users", user.uid));
-            trackRead();
-            const data = uDoc.data();
-            console.log("3. User data:", data);
-            document.getElementById('auth-screen').classList.add('hidden');
-            if (!data || !data.hasStarter) {
-                console.log("4. No starter, showing modal");
-                pendingUser = user;
-                const modal = document.getElementById('trainer-starter-modal');
-                const nameInput = document.getElementById('trainer-name-input');
-                nameInput.value = "";
-                window.selectedStarter = null;
-                document.getElementById('confirm-trainer-starter').disabled = true;
-                await loadStartersModal('starter-grid-modal');
-                modal.classList.remove('hidden');
-                return;
-            }
-            if (data.active === false) {
-                console.log("5. Account deactivated, showing overlay");
-                // Show the deactivated overlay instead of logging out
-                document.getElementById('auth-screen').classList.add('hidden');
-                document.getElementById('deactivated-overlay').classList.remove('hidden');
-                document.getElementById('logout-deactivated').onclick = async () => {
-                    await signOut(auth);
-                    window.location.reload();
-                };
-                return;
-            }
-             const merkadoLink = document.getElementById('merkado-link');
-                if (merkadoLink) {
-                    if ((data?.totalLevels || 0) >= 100) {
-                        merkadoLink.style.display = 'inline-block';
-                    } else {
-                        merkadoLink.style.display = 'none';
-                    }
-                }
-            const pokemonSnap = await getDocs(collection(db, "users", user.uid, "pokemon"));
-            const batch = writeBatch(db);
-            let needUpdate = false;
-            pokemonSnap.forEach(docSnap => { if (!docSnap.data().bonusStats) { batch.update(docSnap.ref, { bonusStats: { atk: false, def: false, spd: false } }); needUpdate = true; } });
-            if (needUpdate) { await batch.commit(); trackWrite(); }
-            document.getElementById('game-screen').classList.remove('hidden');
-            activePokemonId = data.activePokemonId || null;
-            if (activePokemonId) {
-                const a = await getDoc(doc(db, "users", user.uid, "pokemon", activePokemonId));
-                trackRead();
-                if (a.exists()) cachedActivePokemon = { id: a.id, ...a.data() };
-            }
-            isAdmin = (data?.role === 'admin');
-            await loadDefaultMap();
-
-            // Restore saved position from Firestore
-            if (data?.lastMapX !== undefined && data?.lastMapId === currentMap?.id) {
-                playerPos.x = Math.min(49, Math.max(0, data.lastMapX));
-                playerPos.y = Math.min(49, Math.max(0, data.lastMapY));
-                renderPlayer();
-            } else {
-                playerPos = { x: 25, y: 25 };
-                renderPlayer();
-            }
-
-            refreshTeamView();
-            playMainMusic();
-            updateNavDisplay();
-            document.getElementById('change-name-btn').onclick = changeTrainerName;
-            if (isAdmin) document.getElementById('admin-link').style.display = 'inline-block';
-            console.log("6. Starting game...");
-        } else {
-            document.getElementById('auth-screen').classList.remove('hidden');
-            document.getElementById('game-screen').classList.add('hidden');
-            if (bgMusic) bgMusic.pause();
-            if (battleMusic) battleMusic.pause();
+    console.log("1. Auth state changed. User:", user ? user.uid : "none");
+    if (user) {
+        console.log("2. User logged in, fetching user doc...");
+        const uDoc = await getDoc(doc(db, "users", user.uid));
+        trackRead();
+        const data = uDoc.data();
+        console.log("3. User data:", data);
+        document.getElementById('auth-screen').classList.add('hidden');
+        
+        if (!data || !data.hasStarter) {
+            console.log("4. No starter, showing modal");
+            pendingUser = user;
+            const modal = document.getElementById('trainer-starter-modal');
+            const nameInput = document.getElementById('trainer-name-input');
+            nameInput.value = "";
+            window.selectedStarter = null;
+            document.getElementById('confirm-trainer-starter').disabled = true;
+            await loadStartersModal('starter-grid-modal');
+            modal.classList.remove('hidden');
+            return;
         }
-    });
+        
+        if (data.active === false) {
+            console.log("5. Account deactivated, showing overlay");
+            document.getElementById('auth-screen').classList.add('hidden');
+            document.getElementById('deactivated-overlay').classList.remove('hidden');
+            document.getElementById('logout-deactivated').onclick = async () => {
+                await signOut(auth);
+                window.location.reload();
+            };
+            return;
+        }
+        
+        // Merkado link
+        const merkadoLink = document.getElementById('merkado-link');
+        if (merkadoLink) {
+            merkadoLink.style.display = (data?.totalLevels || 0) >= 100 ? 'inline-block' : 'none';
+        }
+        
+        // Fetch all Pokémon once (for bonusStats migration AND ownedPokemonIds)
+        const pokemonSnap = await getDocs(collection(db, "users", user.uid, "pokemon"));
+        trackRead(pokemonSnap.size);
+        
+        // Migrate missing bonusStats (write once)
+        const batch = writeBatch(db);
+        let needUpdate = false;
+        pokemonSnap.forEach(docSnap => {
+            if (!docSnap.data().bonusStats) {
+                batch.update(docSnap.ref, { bonusStats: { atk: false, def: false, spd: false } });
+                needUpdate = true;
+            }
+        });
+        if (needUpdate) {
+            await batch.commit();
+            trackWrite();
+        }
+        
+        // Populate ownedPokemonIds Set (0 reads in battles after this)
+        ownedPokemonIds.clear();
+        pokemonSnap.forEach(docSnap => {
+            const p = docSnap.data();
+            ownedPokemonIds.add(p.pokemonId);
+        });
+        
+        document.getElementById('game-screen').classList.remove('hidden');
+        activePokemonId = data.activePokemonId || null;
+        
+        if (activePokemonId) {
+            const a = await getDoc(doc(db, "users", user.uid, "pokemon", activePokemonId));
+            trackRead();
+            if (a.exists()) cachedActivePokemon = { id: a.id, ...a.data() };
+        }
+        
+        isAdmin = (data?.role === 'admin');
+        await loadDefaultMap();
+        
+        // Restore saved position
+        if (data?.lastMapX !== undefined && data?.lastMapId === currentMap?.id) {
+            playerPos.x = Math.min(49, Math.max(0, data.lastMapX));
+            playerPos.y = Math.min(49, Math.max(0, data.lastMapY));
+            renderPlayer();
+        } else {
+            playerPos = { x: 25, y: 25 };
+            renderPlayer();
+        }
+        
+        refreshTeamView();
+        playMainMusic();
+        updateNavDisplay();
+        document.getElementById('change-name-btn').onclick = changeTrainerName;
+        if (isAdmin) document.getElementById('admin-link').style.display = 'inline-block';
+        console.log("6. Starting game...");
+        
+    } else {
+        // User not logged in
+        document.getElementById('auth-screen').classList.remove('hidden');
+        document.getElementById('game-screen').classList.add('hidden');
+        if (bgMusic) bgMusic.pause();
+        if (battleMusic) battleMusic.pause();
+    }
+});
 
     document.getElementById('login-btn').onclick = () => signInWithEmailAndPassword(auth, email.value, password.value).catch(e=>alert(e.message));
     document.getElementById('logout-btn').onclick = () => signOut(auth).then(()=>location.reload());

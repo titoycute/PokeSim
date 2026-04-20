@@ -2526,28 +2526,49 @@ async function trackRecord(id, name) {
         document.getElementById('map-grid').style.transform = `translate(${275 - playerPos.x * 50}px, ${175 - playerPos.y * 50}px)`;
     }
 
- function updatePlayerLabel() {
+function updatePlayerLabel() {
     // Trainer name
     const nameLabel = document.getElementById('player-name-label');
     if (nameLabel && cachedTrainerName) nameLabel.textContent = cachedTrainerName;
 
-    // Active Pokémon companion sprite
+    // Active Pokémon companion sprite – now using Showdown sprites
     const companion = document.getElementById('player-companion');
     if (companion && cachedActivePokemon?.pokemonId) {
         const id = cachedActivePokemon.pokemonId;
+        const name = cachedActivePokemon.name?.toLowerCase() || '';
         const isShiny = cachedActivePokemon.isShiny || false;
-        const spriteUrl = isShiny
-            ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/${id}.png`
-            : `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
+        
+        let spriteUrl;
+        if (isShiny) {
+            // Shiny Showdown front sprite (companion faces forward)
+            spriteUrl = `https://play.pokemonshowdown.com/sprites/ani-shiny/${name}.gif`;
+        } else {
+            // Normal Showdown front sprite
+            spriteUrl = `https://play.pokemonshowdown.com/sprites/ani/${name}.gif`;
+        }
+        
         companion.src = spriteUrl;
         companion.style.display = 'block';
-        // ✅ Remove the broken left/top assignments – CSS already handles positioning
+        companion.style.width = '48px';
+        companion.style.height = '48px';
+        companion.style.objectFit = 'contain';
+        
+        // Fallback to official artwork if Showdown sprite fails
         companion.onerror = () => {
-            companion.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
+            const fallbackUrl = isShiny
+                ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/shiny/${id}.png`
+                : `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
+            companion.src = fallbackUrl;
+            companion.onerror = () => {
+                companion.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
+            };
         };
     }
 }
-    // ========== REFACTORED MOVEMENT (local only, save on encounter) ==========
+
+
+
+// ========== REFACTORED MOVEMENT (local only, save on encounter) ==========
  async function savePlayerPositionToFirestore() {
     if (!auth.currentUser) return;
     const userRef = doc(db, "users", auth.currentUser.uid);

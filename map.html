@@ -583,7 +583,59 @@ body.dark-theme #map-info-modal .btn-primary:hover {
         #map-viewport { width: 600px; height: 400px; border: 4px solid var(--primary); border-radius: 20px; overflow: hidden; position: relative; background: var(--dirt); box-shadow: 0 12px 24px rgba(0,0,0,0.1); flex-shrink: 0; }
         #map-grid { display: grid; grid-template-columns: repeat(50, 50px); position: absolute; top: 0; left: 0; z-index: 1; transition: transform 0.15s ease-out; }
         .tile { width: 50px; height: 50px; border: 1px solid rgba(0,0,0,0.05); }
-        #player { position: absolute; width: 60px; height: 60px; top: 170px; left: 270px; z-index: 999; background-size: contain; background-repeat: no-repeat; background-position: center; pointer-events: none; filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.2)); }
+        #player {
+    position: absolute;
+    width: 60px;
+    height: auto;               /* ← was: 60px */
+    top: 170px;
+    left: 270px;
+    z-index: 999;
+    pointer-events: none;
+    overflow: visible;          /* ← ADD THIS */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+        #player-sprite-img {
+            width: 60px;
+            height: 60px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.3));
+            flex-shrink: 0;
+        }
+        #player-companion {
+            position: absolute;
+            bottom: 0px;
+            right: -30px;
+            width: 32px;
+            height: 32px;
+            object-fit: contain;
+            image-rendering: pixelated;
+            filter: drop-shadow(1px 1px 2px rgba(0,0,0,0.4));
+            animation: companionBob 1.2s ease-in-out infinite;
+        }
+        @keyframes companionBob {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-3px); }
+        }
+        #player-name-label {
+            background: rgba(0,0,0,0.65);
+            color: #fff;
+            font-size: 8px;
+            font-weight: bold;
+            padding: 1px 5px;
+            border-radius: 8px;
+            white-space: nowrap;
+            margin-top: 1px;
+            max-width: 80px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            letter-spacing: 0.3px;
+            line-height: 1.4;
+            pointer-events: none;
+        }
 
         /* Battle Area */
         #battle-area {
@@ -1094,7 +1146,11 @@ body.dark-theme #map-info-modal .btn-primary:hover {
             <div class="map-wrapper">
                 <div id="map-viewport">
                     <div id="map-grid"></div>
-                    <div id="player"></div>
+                    <div id="player">
+                        <div id="player-sprite-img"></div>
+                        <img id="player-companion" src="" alt="" style="display:none; position:absolute; width:50px; height:50px;">
+                        <div id="player-name-label"></div>
+                    </div>
                 </div>
             </div>
             <div id="battle-area" class="hidden">
@@ -1205,6 +1261,7 @@ body.dark-theme #map-info-modal .btn-primary:hover {
     let encounterCountsCache = new Map();
     let encounterCacheTimestamp = 0;
     const ENCOUNTER_CACHE_TTL = 60000;
+    let cachedTrainerName = '';
 
         // Shiny bonus: +15% max HP
     function getMaxHp(level, isShiny) {
@@ -1715,9 +1772,19 @@ async function handlePlayerFaint(battle) {
             leveledUp = true;
             await checkEvolution(b.player.id, newLvl, b.player.pokemonId);
         }
-        if (leveledUp) await updateUserTotalLevels(userId, (newLvl - b.player.level));
-        await updateDoc(monRef, { exp: newExp, level: newLvl });
-        await updateDoc(doc(db, "users", userId), { coins: increment(coins) });
+        // Batch: write Pokémon XP/level + user coins in one round trip
+        const batch = writeBatch(db);
+        if (leveledUp) {
+            batch.update(monRef, { exp: newExp, level: newLvl });
+            batch.update(doc(db, "users", userId), {
+                coins: increment(coins),
+                totalLevels: increment(newLvl - b.player.level)
+            });
+        } else {
+            batch.update(monRef, { exp: newExp, level: newLvl });
+            batch.update(doc(db, "users", userId), { coins: increment(coins) });
+        }
+        await batch.commit();
         invalidateTeamCache();
         showBattleSummary('win', { xp: gainXP, coins: coins, leveledUp: leveledUp });
         updateNavDisplay();
@@ -1726,8 +1793,8 @@ async function handlePlayerFaint(battle) {
 
     async function checkEvolution(id, lvl, apiId) {
         try {
-            const s = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${apiId}`).then(r => r.json());
-            const e = await fetch(s.evolution_chain.url).then(r => r.json());
+            const s = await cachedFetch(`https://pokeapi.co/api/v2/pokemon-species/${apiId}`);
+            const e = await cachedFetch(s.evolution_chain.url);
             let stage = e.chain;
             let next = null;
             while (stage && stage.species.name !== s.name) stage = stage.evolves_to[0];
@@ -1737,19 +1804,26 @@ async function handlePlayerFaint(battle) {
             }
             if (next) {
                 const oldName = s.name.toUpperCase();
-                const np = await fetch(`https://pokeapi.co/api/v2/pokemon/${next}`).then(r => r.json());
+                const np = await cachedFetch(`https://pokeapi.co/api/v2/pokemon/${next}`);
                 const newName = np.name.toUpperCase();
                 const newMoves = await getMoveDetails(np.moves.slice(0, 4));
+                // Single Firestore read for bonusStats/isShiny
                 const existingSnap = await getDoc(doc(db, "users", auth.currentUser.uid, "pokemon", id));
-                const bonusStats = existingSnap.data().bonusStats || { atk: false, def: false, spd: false };
+                const existingData = existingSnap.data();
                 await updateDoc(doc(db, "users", auth.currentUser.uid, "pokemon", id), {
                     name: np.name,
                     pokemonId: np.id,
                     types: np.types.map(t => t.type.name),
                     moves: newMoves,
-                    bonusStats: bonusStats,
-                    isShiny: existingSnap.data().isShiny || false
+                    bonusStats: existingData.bonusStats || { atk: false, def: false, spd: false },
+                    isShiny: existingData.isShiny || false
                 });
+                // Update companion sprite if this is the active Pokémon
+                if (cachedActivePokemon && cachedActivePokemon.id === id) {
+                    cachedActivePokemon.pokemonId = np.id;
+                    cachedActivePokemon.name = np.name;
+                    updatePlayerLabel();
+                }
                 invalidateTeamCache();
                 showEvoModal(np.id, oldName, newName);
                 return true;
@@ -1907,10 +1981,12 @@ async function handlePlayerFaint(battle) {
     }
 
     async function getTrainerName() {
-    const user = auth.currentUser;
-    if (!user) return "Unknown";
-    const userDoc = await getDoc(doc(db, "users", user.uid));
-    return userDoc.data()?.trainerName || user.email.split('@')[0];
+        if (cachedTrainerName) return cachedTrainerName;
+        const user = auth.currentUser;
+        if (!user) return "Unknown";
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        cachedTrainerName = userDoc.data()?.trainerName || user.email.split('@')[0];
+        return cachedTrainerName;
     }
 
 async function attemptCatch() {
@@ -2142,6 +2218,12 @@ async function attemptSwitch() {
     const newIdx = b.playerTeam.findIndex(p => p.id === selected.id);
     b.activePokemonIndex = newIdx;
     b.player = b.playerTeam[newIdx];
+    // Update companion sprite to reflect switched-in Pokémon
+    if (cachedActivePokemon) {
+        cachedActivePokemon.pokemonId = b.player.pokemonId;
+        cachedActivePokemon.isShiny = b.player.isShiny;
+        updatePlayerLabel();
+    }
     renderBattleUI();
     addBattleLog(`Go! ${b.player.name.toUpperCase()}!`);
 
@@ -2349,13 +2431,14 @@ async function runTurn(selectedMove) {
 async function trackRecord(id, name) {
     try {
         const userId = auth.currentUser.uid;
-        await updateDoc(doc(db, "users", userId), { totalEncounters: increment(1) });
-        const recordRef = doc(db, "users", userId, "records", id.toString());
-        await setDoc(recordRef, {
+        const batch = writeBatch(db);
+        batch.update(doc(db, "users", userId), { totalEncounters: increment(1) });
+        batch.set(doc(db, "users", userId, "records", id.toString()), {
             name: name,
             count: increment(1),
             pokemonId: parseInt(id)
         }, { merge: true });
+        await batch.commit();
         // Update local cache
         const current = encounterCountsCache.get(id) || 0;
         encounterCountsCache.set(id, current + 1);
@@ -2417,8 +2500,32 @@ async function trackRecord(id, name) {
 }
 
     function renderPlayer() {
-        document.getElementById('player').style.backgroundImage = `url(${TRAINER_GIF})`;
+        const spriteEl = document.getElementById('player-sprite-img');
+        if (spriteEl) spriteEl.style.backgroundImage = `url(${TRAINER_GIF})`;
         document.getElementById('map-grid').style.transform = `translate(${275 - playerPos.x * 50}px, ${175 - playerPos.y * 50}px)`;
+    }
+
+    function updatePlayerLabel() {
+        // Trainer name
+        const nameLabel = document.getElementById('player-name-label');
+        if (nameLabel && cachedTrainerName) nameLabel.textContent = cachedTrainerName;
+
+        // Active Pokémon companion sprite
+        const companion = document.getElementById('player-companion');
+        if (companion && cachedActivePokemon?.pokemonId) {
+            const id = cachedActivePokemon.pokemonId;
+            const isShiny = cachedActivePokemon.isShiny || false;
+            const spriteUrl = isShiny
+                ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/${id}.png`
+                : `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
+            companion.src = spriteUrl;
+            companion.style.display = 'block';
+            companion.style.left  = (BORDER + PLAYER_LEFT + SPRITE_W + 2) + 'px';
+companion.style.top   = (BORDER + PLAYER_TOP + (SPRITE_H - compSize) / 2) + 'px';
+            companion.onerror = () => {
+                companion.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
+            };
+        }
     }
 
     // ========== REFACTORED MOVEMENT (local only, save on encounter) ==========
@@ -2455,7 +2562,10 @@ function savePlayerPositionLocal() {
         playerPos.y = ny;
         // Save position locally after every step
         savePlayerPositionLocal();
-        if (dx !== 0) document.getElementById('player').style.transform = dx < 0 ? 'scaleX(-1)' : 'scaleX(1)';
+        if (dx !== 0) {
+            const spriteEl = document.getElementById('player-sprite-img');
+            if (spriteEl) spriteEl.style.transform = dx < 0 ? 'scaleX(-1)' : 'scaleX(1)';
+        }
         renderPlayer();
         if (!encounterCooldown && mapData[ny][nx] !== 'dirt' && Math.random() < 0.15) {
             // No Firebase save here anymore – just start battle
@@ -3166,6 +3276,7 @@ function escapeHtml(str) {
     document.getElementById('game-screen').classList.remove('hidden');
     updateNavDisplay();
     await generateMapFromTheme(map);
+    updatePlayerLabel();
     
     // Restore saved position – try localStorage first, then Firebase as fallback
     const savedLocal = localStorage.getItem('pokesim_last_position');
@@ -3275,6 +3386,7 @@ window.addEventListener('keydown', (e) => {
             userTotalLevel = data?.totalLevels || 0;
             isAdmin = data?.role === 'admin';
             activePokemonId = data?.activePokemonId || null;
+            cachedTrainerName = data?.trainerName || user.email.split('@')[0];
             if (!activePokemonId) {
                 alert("You need to choose a starter Pokémon first!");
                 window.location.href = 'index.html';

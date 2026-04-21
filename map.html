@@ -721,10 +721,12 @@ body.dark-theme #map-info-modal .btn-primary:hover {
             cursor: pointer;
         }
         .catch-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .map-controls-t { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 15px auto; }
-        .arrow-row { display: flex; justify-content: center; gap: 15px; }
-        .arrow-up, .arrow-down, .arrow-left, .arrow-right { width: 60px; padding: 10px; border-radius: 40px; font-weight: bold; background: var(--primary); color: white; border: none; cursor: pointer; transition: 0.2s; font-size: 1.2rem; }
-
+        .map-controls-t { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 15px auto; width: fit-content; }
+        .arrow-row { display: contents; }
+        .arrow-up, .arrow-down, .arrow-left, .arrow-right { width: 60px; padding: 10px; border-radius: 16px; font-weight: bold; background: var(--primary); color: white; border: none; cursor: pointer; transition: 0.2s; font-size: 1.2rem; }
+        .arrow-diagonal { width: 60px; padding: 10px; border-radius: 16px; font-weight: bold; background: var(--primary); color: white; border: none; cursor: pointer; transition: 0.2s; font-size: 1rem; opacity: 0.7; }
+        .arrow-diagonal:hover { opacity: 1; filter: brightness(1.1); }
+        .arrow-center-blank { width: 60px; padding: 10px; background: transparent; border: none; opacity: 0.15; font-size: 1rem; color: var(--text-light); cursor: default; pointer-events: none; }
         .overlay {
             position: fixed;
             top: 0;
@@ -773,7 +775,7 @@ body.dark-theme #map-info-modal .btn-primary:hover {
             .btl-sprite { width: 80px; height: 80px; }
             .stat-box { width: 180px; padding: 8px 12px; }
             .move-btn { padding: 8px 10px; font-size: 0.75rem; }
-            .arrow-up, .arrow-down, .arrow-left, .arrow-right { width: 50px; padding: 8px; font-size: 1rem; }
+            .arrow-up, .arrow-down, .arrow-left, .arrow-right, .arrow-diagonal, .arrow-center-blank { width: 50px; padding: 8px; font-size: 0.9rem; }
         }
 
         #preview-weaknesses .type-badge {
@@ -977,6 +979,7 @@ body.dark-theme #map-info-modal .btn-primary:hover {
             <img id="preview-sprite" class="encounter-sprite" src="" alt="">
             <div id="preview-name" class="encounter-name"></div>
             <div id="preview-badges" class="encounter-badges"></div>
+            <div id="preview-bonus-stats" style="margin: 6px 0; display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;"></div>
             <div id="preview-level-hp" style="margin: 8px 0; font-size: 0.95rem; font-weight: bold; background: rgba(0,0,0,0.06); border-radius: 20px; padding: 5px 14px; display: inline-block;"></div>
             <div id="preview-weaknesses" style="margin: 10px 0; font-size: 0.9rem;"></div>
             <div id="preview-capture-status" style="margin: 5px 0; font-size: 0.9rem;"></div>
@@ -1182,9 +1185,21 @@ body.dark-theme #map-info-modal .btn-primary:hover {
                     </div>
                 </div>
             </div>
-            <div class="map-controls-t">
-                <div class="arrow-row"><button class="btn btn-primary arrow-up">▲</button></div>
-                <div class="arrow-row middle"><button class="btn btn-primary arrow-left">◀</button><button class="btn btn-primary arrow-down">▼</button><button class="btn btn-primary arrow-right">▶</button></div>
+           <div class="map-controls-t">
+                <!-- Row 1: NW, N, NE -->
+                <button class="arrow-diagonal" onclick="movePlayer(-1,-1)" title="North-West">↖</button>
+                <button class="btn btn-primary arrow-up" title="North">▲</button>
+                <button class="arrow-diagonal" onclick="movePlayer(1,-1)" title="North-East">↗</button>
+                <!-- Row 2: W, center, E -->
+                <button class="btn btn-primary arrow-left" title="West">◀</button>
+                <button class="arrow-center-blank" style="padding:0; background:transparent; border:none; cursor:default; pointer-events:none; display:flex; align-items:center; justify-content:center;">
+                    <img src="PokeSim_Icon.png" alt="" style="width:40px; height:40px; object-fit:contain; opacity:0.5;">
+                </button>
+                <button class="btn btn-primary arrow-right" title="East">▶</button>
+                <!-- Row 3: SW, S, SE -->
+                <button class="arrow-diagonal" onclick="movePlayer(-1,1)" title="South-West">↙</button>
+                <button class="btn btn-primary arrow-down" title="South">▼</button>
+                <button class="arrow-diagonal" onclick="movePlayer(1,1)" title="South-East">↘</button>
             </div>
         </div>
     </div>
@@ -2717,8 +2732,16 @@ rawMoves = baseData.moves;
             const wildMaxHp = getMaxHp(wildLevel, isShiny);
 
             document.getElementById('encounter-preview').classList.remove('hidden');
-             document.getElementById('preview-level-hp').innerHTML = `⚡ Level ${wildLevel} &nbsp;|&nbsp; ❤️ HP: ${wildMaxHp}`;
-            const count = await trackRecord(wildId, wildData.name);
+            document.getElementById('preview-level-hp').innerHTML = `⚡ Level ${wildLevel} &nbsp;|&nbsp; ❤️ HP: ${wildMaxHp}`;
+            // Bonus stats warning
+            const bonusDiv = document.getElementById('preview-bonus-stats');
+            let bonusHtml = '';
+            if (wildBonus.atk) bonusHtml += `<span style="background:#ff6b6b;color:white;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:bold;">⚔️ +ATK <small style="opacity:0.85;">+25% Attack</small></span>`;
+            if (wildBonus.def) bonusHtml += `<span style="background:#4dabf7;color:white;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:bold;">🛡️ +DEF <small style="opacity:0.85;">+25% Defense</small></span>`;
+            if (wildBonus.spd) bonusHtml += `<span style="background:#69db7c;color:white;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:bold;">🏃 +SPD <small style="opacity:0.85;">+25% Speed</small></span>`;
+            bonusDiv.innerHTML = bonusHtml;
+           
+             const count = await trackRecord(wildId, wildData.name);
 
             setTimeout(async () => {
                 document.getElementById('encounter-preview').classList.add('hidden');

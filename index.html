@@ -1203,6 +1203,7 @@ body.dark-theme #info-overlay .modal {
     line-height: 1.4;
     pointer-events: none;
 }
+
 </style>
 </head>
 <body>
@@ -1283,7 +1284,7 @@ body.dark-theme #info-overlay .modal {
     </button>
 </div>
             <br>
-            <p>📅 <strong>Last Updated:</strong> April 15, 2026</p>
+            <p>📅 <strong>Last Updated:</strong> April 21, 2026</p>
             <p>👨‍💻 <strong>Created by:</strong> Tootzkie Custodio</p>
             <button id="check-update">Check for update</button>
             <hr style="margin: 15px 0;">
@@ -1633,8 +1634,7 @@ body.dark-theme #info-overlay .modal {
     <footer>
         <div class="support-section">
                 <p>☕ Enjoying the game? <a href="support.html">Buy me a coffee</a> to support further development!</p>
-            
-            <p>📅 <strong><a href="updates.html">Last Updated:</a></strong> April 15, 2026</p>
+            <p>📅 <strong><a href="updates.html">Last Updated:</a></strong> April 21, 2026</p>
             </div>
             <div class="install-container hidden" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--border);">
     <p>📱 Play PokeSim anywhere, add me to your app!</p>
@@ -3202,68 +3202,93 @@ if (encounterCount === undefined) {
         }
     }
 
-    function renderBattleUI() {
-        const b = currentBattle;
-        if (!b) return;
-        if (b.wild.isShiny) {
-            loadImageWithFallback(document.getElementById('e-sprite-btl'), getShinyBattleSpriteUrl(b.wild.name, b.wild.pokemonId, 'front'));
-        } else {
-            loadImageWithFallback(document.getElementById('e-sprite-btl'), getBattleSpriteUrl(b.wild.pokemonId, 'front'));
-        }
-        document.getElementById('e-sprite-btl').onclick=()=>showInfo(b.wild.pokemonId);
-        if (b.player.isShiny) {
-            loadImageWithFallback(document.getElementById('p-sprite-btl'), getShinyBattleSpriteUrl(b.player.name, b.player.pokemonId, 'back'));
-        } else {
-            loadImageWithFallback(document.getElementById('p-sprite-btl'), getBattleSpriteUrl(b.player.pokemonId, 'back'));
-        }
-        document.getElementById('p-sprite-btl').onclick=()=>showInfo(b.player.pokemonId);
-        let wildName = b.wild.name.toUpperCase();
-        let wildBonusIcons = '';
-        if (b.wild.isShiny) wildName = '✨SHINY ' + wildName;
-        if (b.wild.bonusStats?.atk) wildBonusIcons += '⚔️';
-        if (b.wild.bonusStats?.def) wildBonusIcons += '🛡️';
-        if (b.wild.bonusStats?.spd) wildBonusIcons += '🏃';
-        if (b.wild.isSpecial) wildName = '⭐ ' + wildName;
-        document.getElementById('e-name').innerHTML = `${wildName} ${wildBonusIcons}`;
-        document.getElementById('e-lvl').innerText="Lvl "+b.wild.level;
-        document.getElementById('e-hp-fill').style.width = (b.wild.currentHp / b.wild.maxHp * 100) + "%";
-        document.getElementById('e-types-icons').innerHTML = generateTypeBadges(b.wild.types);
-        let playerBonusIcons = '';
-        if (b.player.isShiny) playerBonusIcons += ' ✨SHINY ';
-        if (b.player.bonusStats?.atk) playerBonusIcons += '⚔️';
-        if (b.player.bonusStats?.def) playerBonusIcons += '🛡️';
-        if (b.player.bonusStats?.spd) playerBonusIcons += '🏃';
-        document.getElementById('p-name').innerHTML = `${b.player.name.toUpperCase()} ${playerBonusIcons}`;
-        document.getElementById('p-lvl').innerText="Lvl "+b.player.level;
-        document.getElementById('p-hp-fill').style.width = (b.player.currentHp / b.player.maxHp * 100) + "%";
-        document.getElementById('p-types-icons').innerHTML = generateTypeBadges(b.player.types);
+  function renderBattleUI() {
+    if (!currentBattle) return;
+    const b = currentBattle;
+
+    // ----- Enemy Sprite -----
+    const enemySprite = document.getElementById('e-sprite-btl');
+    enemySprite.classList.remove('gmax-sprite', 'legendary-sprite', 'mythical-sprite', 'mega-sprite', 'ub-sprite');
+    if (b.wild.specialCategory) enemySprite.classList.add(`${b.wild.specialCategory}-sprite`);
+    if (b.wild.isShiny) {
+        loadImageWithFallback(enemySprite, getShinyBattleSpriteUrl(b.wild.name, b.wild.pokemonId, 'front'));
+    } else {
+        loadImageWithFallback(enemySprite, getBattleSpriteUrl(b.wild.pokemonId, 'front'));
+    }
+    enemySprite.onclick = () => showInfo(b.wild.pokemonId);
+
+    // ----- Player Sprite -----
+    const playerSprite = document.getElementById('p-sprite-btl');
+    if (b.player.isShiny) {
+        loadImageWithFallback(playerSprite, getShinyBattleSpriteUrl(b.player.name, b.player.pokemonId, 'back'));
+    } else {
+        loadImageWithFallback(playerSprite, getBattleSpriteUrl(b.player.pokemonId, 'back'));
+    }
+    playerSprite.onclick = () => showInfo(b.player.pokemonId);
+
+    // ----- Enemy Stat Box (new layout) -----
+    const enemyStatBox = document.querySelector('#battle-area .enemy-side .stat-box');
+    if (enemyStatBox) {
+        const shinyIcon = b.wild.isShiny ? '✨ ' : '';
+        let bonusIcons = '';
+        if (b.wild.bonusStats?.atk) bonusIcons += '⚔️';
+        if (b.wild.bonusStats?.def) bonusIcons += '🛡️';
+        if (b.wild.bonusStats?.spd) bonusIcons += '🏃';
+        const specialBadge = b.wild.specialBadge ? b.wild.specialBadge.split(' ')[0] + ' ' : '';
+        const displayName = specialBadge + b.wild.name.toUpperCase();
+        const hpPercent = (b.wild.currentHp / b.wild.maxHp) * 100;
+        enemyStatBox.innerHTML = `
+            <div><strong>${shinyIcon}${displayName}</strong> | Lv.${b.wild.level} ${bonusIcons}</div>
+            <div>${generateTypeBadges(b.wild.types)}</div>
+            <div class="hp-bar"><div class="hp-fill" style="width: ${hpPercent}%; background: var(--success);"></div></div>
+            <div style="font-size:0.7rem; margin-top:4px;">❤️ HP: ${b.wild.currentHp}/${b.wild.maxHp}</div>
+        `;
+    }
+
+    // ----- Player Stat Box (new layout) -----
+    const playerStatBox = document.querySelector('#battle-area .player-side .stat-box');
+    if (playerStatBox) {
+        const shinyIcon = b.player.isShiny ? '✨ ' : '';
+        let bonusIcons = '';
+        if (b.player.bonusStats?.atk) bonusIcons += '⚔️';
+        if (b.player.bonusStats?.def) bonusIcons += '🛡️';
+        if (b.player.bonusStats?.spd) bonusIcons += '🏃';
+        const hpPercent = (b.player.currentHp / b.player.maxHp) * 100;
         const neededXP = getExpNeededForNextLevel(b.player.level);
         const currentXP = b.player.exp || 0;
         const xpPercent = Math.floor((currentXP / neededXP) * 100);
-        document.getElementById('p-xp-text').innerHTML = `XP: ${currentXP}/${neededXP} (${xpPercent}%)`;
-        const typeToId = { normal:1, fighting:2, flying:3, poison:4, ground:5, rock:6, bug:7, ghost:8, steel:9, fire:10, water:11, grass:12, electric:13, psychic:14, ice:15, dragon:16, dark:17, fairy:18 };
-        const movesDiv = document.getElementById('battle-moves');
-        movesDiv.innerHTML = "";
-        b.player.moves.forEach(m => {
-            const btn = document.createElement('button');
-            btn.className = "move-btn";
-            btn.style.backgroundColor = getTypeColor(m.type);
-            const typeId = typeToId[m.type];
-            const iconUrl = typeId ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/types/generation-viii/sword-shield/small/${typeId}.png` : null;
-            const fallbackEmoji = TYPE_ICONS[m.type] || '⚙️';
-            btn.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
-                    ${iconUrl ? `<img class="move-icon" src="${iconUrl}" alt="${m.type}" onerror="this.onerror=null; this.style.display='none'; this.parentElement.querySelector('.move-icon-fallback').style.display='inline-block';" style="width: 32px; height: 32px; object-fit: contain;">` : ''}
-                    <span class="move-icon-fallback" style="display: ${iconUrl ? 'none' : 'inline-block'};">${fallbackEmoji}</span>
-                    <span class="move-name">${m.name.toUpperCase()}</span>
-                    <span class="move-power">${m.power}</span>
-                </div>
-            `;
-            btn.onclick = () => runTurn(m);
-            movesDiv.appendChild(btn);
-        });
+        playerStatBox.innerHTML = `
+            <div><strong>${shinyIcon}${b.player.name.toUpperCase()}</strong> | Lv.${b.player.level} ${bonusIcons}</div>
+            <div>${generateTypeBadges(b.player.types)}</div>
+            <div class="hp-bar"><div class="hp-fill" style="width: ${hpPercent}%; background: var(--success);"></div></div>
+            <div style="font-size:0.7rem; margin-top:4px;">❤️ HP: ${b.player.currentHp}/${b.player.maxHp}</div>
+            <div style="font-size:0.7rem; margin-top:2px;">⭐ XP: ${currentXP}/${neededXP} (${xpPercent}%)</div>
+        `;
     }
 
+    // ----- Move Buttons (unchanged) -----
+    const typeToId = { normal:1, fighting:2, flying:3, poison:4, ground:5, rock:6, bug:7, ghost:8, steel:9, fire:10, water:11, grass:12, electric:13, psychic:14, ice:15, dragon:16, dark:17, fairy:18 };
+    const movesDiv = document.getElementById('battle-moves');
+    movesDiv.innerHTML = "";
+    b.player.moves.forEach(m => {
+        const btn = document.createElement('button');
+        btn.className = "move-btn";
+        btn.style.backgroundColor = getTypeColor(m.type);
+        const typeId = typeToId[m.type];
+        const iconUrl = typeId ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/types/generation-viii/sword-shield/small/${typeId}.png` : null;
+        const fallbackEmoji = TYPE_ICONS[m.type] || '⚙️';
+        btn.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
+                ${iconUrl ? `<img class="move-icon" src="${iconUrl}" alt="${m.type}" onerror="this.onerror=null; this.style.display='none'; this.parentElement.querySelector('.move-icon-fallback').style.display='inline-block';" style="width: 32px; height: 32px; object-fit: contain;">` : ''}
+                <span class="move-icon-fallback" style="display: ${iconUrl ? 'none' : 'inline-block'};">${fallbackEmoji}</span>
+                <span class="move-name">${m.name.toUpperCase()}</span>
+                <span class="move-power">${m.power}</span>
+            </div>
+        `;
+        btn.onclick = () => runTurn(m);
+        movesDiv.appendChild(btn);
+    });
+}
     // ---------- Mobile Navigation Toggle ----------
 const navToggle = document.getElementById('nav-toggle');
 const navCollapsible = document.getElementById('nav-collapsible');
@@ -3764,10 +3789,9 @@ async function trackRecord(id, name) {
     typesDiv.innerHTML = "";
 
 
-    if (type === 'win') {
+   if (type === 'win') {
     header.innerText = "YOU'VE WON!";
     header.style.color = "var(--success)";
-    // Use shiny sprite if player's Pokémon is shiny
     if (b.player.isShiny) {
         loadImageWithFallback(sprite, getShinyBattleSpriteUrl(b.player.name, b.player.pokemonId, 'front'));
     } else {
@@ -3782,32 +3806,46 @@ async function trackRecord(id, name) {
     name.innerHTML = `${displayName} ${pIcons}`;
     info.innerText = `Level ${b.player.level}`;
     typesDiv.innerHTML = generateTypeBadges(b.player.types);
-    
+
+    // Build breakdown with sprites (same as before)
     let breakdownHtml = '<div style="margin-top: 10px;"><strong>Experience gained:</strong><ul style="margin: 5px 0 0 20px; text-align: left; list-style: none; padding-left: 0;">';
-if (data.breakdown && data.breakdown.length) {
-    for (const item of data.breakdown) {
-        // Get sprite URL using the stored pokemonId
-        const spriteUrl = getStaticSpriteUrl(item.pokemonId)[0];
-        breakdownHtml += `
-            <li style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-                <img src="${spriteUrl}" style="width: 24px; height: 24px; object-fit: contain; image-rendering: pixelated;" 
-                     onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${item.pokemonId}.png'">
-                <span><strong>${item.name}</strong> → +${item.xpGained} XP</span>
-            </li>
-        `;
+    if (data.breakdown && data.breakdown.length) {
+        for (const item of data.breakdown) {
+            const spriteUrl = getStaticSpriteUrl(item.pokemonId)[0];
+            breakdownHtml += `
+                <li style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                    <img src="${spriteUrl}" style="width: 24px; height: 24px; object-fit: contain; image-rendering: pixelated;" 
+                         onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${item.pokemonId}.png'">
+                    <span><strong>${item.name}</strong> → +${item.xpGained} XP</span>
+                </li>
+            `;
+        }
+    } else {
+        breakdownHtml += `<li>No breakdown available</li>`;
     }
-} else {
-    breakdownHtml += `<li>No breakdown available</li>`;
-}
-breakdownHtml += '</ul></div>';
-    
+    breakdownHtml += '</ul></div>';
+
     details.innerHTML = `
         <div>Total Experience: +${data.xp}</div>
-       
         ${breakdownHtml}
         <div>Coins Earned: ₱${data.coins}</div>
         ${data.leveledUp ? '<div>⭐ A Pokémon leveled up! ⭐</div>' : ''}
     `;
+
+    // ✨ ADD GLOW ANIMATION (each row lights up one after another)
+    setTimeout(() => {
+        const xpRows = document.querySelectorAll('#summary-details li');
+        xpRows.forEach((row, idx) => {
+            setTimeout(() => {
+                row.style.transition = 'background-color 0.3s ease';
+                row.style.backgroundColor = '#008000';
+                row.style.borderRadius = '8px';
+                setTimeout(() => {
+                    row.style.backgroundColor = '';
+                }, 800);
+            }, idx * 150);
+        });
+    }, 100);
 }
     else if (type === 'catch') {
         header.innerText = "SUCCESSFULLY CAPTURED!";

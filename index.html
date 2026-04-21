@@ -288,9 +288,11 @@ html, body {
     .tile { width: 50px; height: 50px; border: 1px solid rgba(0,0,0,0.05); }
     .tile.grass { background: var(--grass); }
     #player { position: absolute; width: 60px; height: 60px; top: 170px; left: 270px; z-index: 999; background-size: contain; background-repeat: no-repeat; background-position: center; pointer-events: none; filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.2)); }
-    .arrow-controls { display: flex; flex-direction: column; align-items: center; gap: 15px; margin: 20px auto; }
-    .arrow-up-wrapper { display: flex; justify-content: center; }
-    .arrow-middle { display: flex; gap: 20px; justify-content: center; }
+   .arrow-controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 20px auto; width: fit-content; }
+    .arrow-up-wrapper { display: contents; }
+    .arrow-middle { display: contents; }
+    .arrow-btn.diagonal { font-size: 1.3rem; opacity: 0.75; }
+    .arrow-btn.diagonal:hover { opacity: 1; }
     /* Enhanced Arrow Buttons – Uiverse inspired */
 .arrow-btn {
     width: 70px;
@@ -1241,6 +1243,8 @@ body.dark-theme #info-overlay .modal {
             <img id="preview-sprite" class="encounter-sprite" src="" alt="">
             <div id="preview-name" class="encounter-name"></div>
             <div id="preview-badges" class="encounter-badges"></div>
+            <div id="preview-bonus-stats" style="margin: 6px 0; display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;"></div>
+            <div id="preview-level-hp" style="margin: 8px 0; font-size: 0.95rem; font-weight: bold; background: rgba(0,0,0,0.06); border-radius: 20px; padding: 5px 14px; display: inline-block;"></div>
             <div id="preview-weaknesses" style="margin: 10px 0; font-size: 0.9rem;"></div>
             <div id="preview-capture-status" style="margin: 5px 0; font-size: 0.9rem;"></div>
             <div id="preview-encounter-count" style="margin: 5px 0; font-size: 0.9rem;"></div>
@@ -1552,16 +1556,22 @@ body.dark-theme #info-overlay .modal {
             </div>
         </div>
     </div>
-    <div class="arrow-controls">
-    <div class="arrow-up-wrapper">
-        <button class="arrow-btn arrow-up" onclick="window.movePlayer(0,-1)">▲</button>
+   <div class="arrow-controls">
+        <!-- Row 1: NW, N, NE -->
+        <button class="arrow-btn diagonal" onclick="window.movePlayer(-1,-1)" title="North-West">↖</button>
+        <button class="arrow-btn arrow-up"  onclick="window.movePlayer(0,-1)"  title="North">▲</button>
+        <button class="arrow-btn diagonal" onclick="window.movePlayer(1,-1)"  title="North-East">↗</button>
+        <!-- Row 2: W, [center empty], E -->
+        <button class="arrow-btn arrow-left"  onclick="window.movePlayer(-1,0)" title="West">◀</button>
+        <button class="arrow-center-blank" style="padding:0; background:transparent; border:none; cursor:default; pointer-events:none; display:flex; align-items:center; justify-content:center;">
+                    <img src="PokeSim_Icon.png" alt="" style="width:40px; height:40px; object-fit:contain; opacity:0.5;">
+                </button>
+        <button class="arrow-btn arrow-right" onclick="window.movePlayer(1,0)"  title="East">▶</button>
+        <!-- Row 3: SW, S, SE -->
+        <button class="arrow-btn diagonal" onclick="window.movePlayer(-1,1)"  title="South-West">↙</button>
+        <button class="arrow-btn arrow-down"  onclick="window.movePlayer(0,1)"  title="South">▼</button>
+        <button class="arrow-btn diagonal" onclick="window.movePlayer(1,1)"   title="South-East">↘</button>
     </div>
-    <div class="arrow-middle">
-        <button class="arrow-btn arrow-left" onclick="window.movePlayer(-1,0)">◀</button>
-        <button class="arrow-btn arrow-down" onclick="window.movePlayer(0,1)">▼</button>
-        <button class="arrow-btn arrow-right" onclick="window.movePlayer(1,0)">▶</button>
-    </div>
-</div>
 </div>
 
 <!-- Battle Summary Modal -->
@@ -1661,7 +1671,7 @@ body.dark-theme #info-overlay .modal {
     import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, updateDoc, deleteDoc, writeBatch, increment, query, where, serverTimestamp, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
     const POWER_PRICE_MULTIPLIER = 35;
-    const SHINY_RATE = 8192; 
+    const SHINY_RATE = 4096;
     const firebaseConfig = { apiKey: "AIzaSyDkCE0wBrsQ1s-7zplvTtWOSE28ISaCFfQ", authDomain: "pokesim-7f9b7.firebaseapp.com", projectId: "pokesim-7f9b7", storageBucket: "pokesim-7f9b7.firebasestorage.app", messagingSenderId: "1087100425430", appId: "1:1087100425430:web:9558a79ee5330d4a792577" };
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
@@ -1784,7 +1794,7 @@ body.dark-theme #info-overlay .modal {
                 });
                 const batchResults = await Promise.all(batchPromises);
                 for (const move of batchResults) if (move) moveDetails.push(move);
-                console.log(`Loaded ${moveDetails.length}/${totalMoves} moves...`);
+                //console.log(`Loaded ${moveDetails.length}/${totalMoves} moves...`);
             }
             moveDatabase = moveDetails.filter(m => m.power > 0 && m.accuracy > 0);
             isMoveDatabaseLoaded = true;
@@ -2579,8 +2589,8 @@ async function resolveBattle(win) {
         }
 
         // Normal win rewards
-        let gainXP = Math.floor(b.wild.level * 23);
-        let coins = Math.floor(b.wild.level * 7);
+        let gainXP = Math.floor(b.wild.level * 30);
+        let coins = Math.floor(b.wild.level * 10);
         let leveledUp = false;
         const monRef = doc(db, "users", userId, "pokemon", b.player.id);
         let curExp = b.player.exp || 0;
@@ -3015,6 +3025,8 @@ if (encounterCount === undefined) {
             const pn = document.getElementById('preview-name');
             const badgesDiv = document.getElementById('preview-badges');
             const card = document.getElementById('encounter-card');
+            
+
             if (isShiny) {
     loadImageWithFallback(ps, getShinyBattleSpriteUrl(wild.name, wildId, 'front'));
     pn.innerText = '✨ SHINY ' + wild.name.toUpperCase();
@@ -3033,9 +3045,19 @@ if (encounterCount === undefined) {
             if (isMythical) badgesHtml += `<span class="special-badge">✨ MYTHICAL</span>`;
             if (isParadox) badgesHtml += `<span class="special-badge">🌀 PARADOX</span>`;
             badgesDiv.innerHTML = badgesHtml;
+
+            
             if (isSpecial) card.classList.add('special'); else card.classList.remove('special');
             preview.classList.remove('hidden');
-
+            // Bonus stats warning
+            const bonusDiv = document.getElementById('preview-bonus-stats');
+            let bonusHtml = '';
+            if (wildBonus.atk) bonusHtml += `<span style="background:#ff6b6b;color:white;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:bold;">⚔️ +ATK <small style="opacity:0.85;">+25% Attack</small></span>`;
+            if (wildBonus.def) bonusHtml += `<span style="background:#4dabf7;color:white;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:bold;">🛡️ +DEF <small style="opacity:0.85;">+25% Defense</small></span>`;
+            if (wildBonus.spd) bonusHtml += `<span style="background:#69db7c;color:white;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:bold;">🏃 +SPD <small style="opacity:0.85;">+25% Speed</small></span>`;
+            bonusDiv.innerHTML = bonusHtml;
+            document.getElementById('preview-level-hp').innerHTML = `⚡ Lv. ${wildLevel} &nbsp;|&nbsp; ❤️ HP: ${wildLevel * 25}`;
+             
             setTimeout(async () => {
                 preview.classList.add('hidden');
                 const selectedPokemon = await showPreBattleSelectModal(team);
@@ -4601,13 +4623,13 @@ async function releasePokemon(id,name) {
     document.getElementById('close-trainer-modal').onclick = async () => { if (pendingUser) { await signOut(auth); } document.getElementById('trainer-starter-modal').classList.add('hidden'); location.reload(); };
 
 onAuthStateChanged(auth, async (user) => {
-    console.log("1. Auth state changed. User:", user ? user.uid : "none");
+    //console.log("1. Auth state changed. User:", user ? user.uid : "none");
     if (user) {
-        console.log("2. User logged in, fetching user doc...");
+       // console.log("2. User logged in, fetching user doc...");
         const uDoc = await getDoc(doc(db, "users", user.uid));
         trackRead();
         const data = uDoc.data();
-        console.log("3. User data:", data);
+       // console.log("3. User data:", data);
         
         // ✅ ADD: Store trainer name for the label
         cachedTrainerName = data?.trainerName || user.email.split('@')[0];
@@ -4700,7 +4722,7 @@ onAuthStateChanged(auth, async (user) => {
         updateNavDisplay();
         document.getElementById('change-name-btn').onclick = changeTrainerName;
         if (isAdmin) document.getElementById('admin-link').style.display = 'inline-block';
-        console.log("6. Starting game...");
+        console.log("Starting game...");
         
     } else {
         // User not logged in
@@ -4731,7 +4753,9 @@ onAuthStateChanged(auth, async (user) => {
     let deferredPrompt;
     const installContainers = document.querySelectorAll('.install-container');
     const installBtns = document.querySelectorAll('.btn-install-app');
-    window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; installContainers.forEach(container => container.classList.remove('hidden')); console.log('beforeinstallprompt fired: App is installable'); });
+    window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; installContainers.forEach(container => container.classList.remove('hidden')); 
+    //console.log('beforeinstallprompt fired: App is installable');
+     });
     installBtns.forEach(btn => { btn.addEventListener('click', async () => { if (!deferredPrompt) { alert("Installation prompt not ready. If you're on iOS, use the Share menu."); return; } deferredPrompt.prompt(); const { outcome } = await deferredPrompt.userChoice; if (outcome === 'accepted') console.log('User accepted the install prompt'); deferredPrompt = null; installContainers.forEach(container => container.classList.add('hidden')); }); });
     window.addEventListener('appinstalled', () => { installContainers.forEach(container => container.classList.add('hidden')); deferredPrompt = null; console.log('PWA was installed'); });
 // ========== DARK MODE TOGGLE ==========

@@ -1279,7 +1279,7 @@ body.dark-theme #map-info-modal .btn-primary:hover {
     const ENCOUNTER_CACHE_TTL = 3000000;
     let cachedTrainerName = '';
     let cachedMaps = null;
-
+    const XP_SCALE_EXPONENT = 0.5;   // 0 = equal share, 0.5 = sqrt scaling, 1 = linear
         // Shiny bonus: +15% max HP
     function getMaxHp(level, isShiny) {
         let base = level * 25;
@@ -1726,7 +1726,7 @@ async function handlePlayerFaint(battle) {
     return newIdx;
 }
 
-  async function resolveBattle(win) {
+async function resolveBattle(win) {
     if (currentTurnTimeout) clearTimeout(currentTurnTimeout);
     isProcessing = true;
     toggleBattleUI(true);
@@ -1744,7 +1744,6 @@ async function handlePlayerFaint(battle) {
         // === AUTO‑CATCH ON 5TH ENCOUNTER (ONCE PER SPECIES) ===
         if (encounterCount >= 5 && !alreadyAutoCaught) {
             addBattleLog(`🎉 This is your 5th encounter with ${b.wild.name.toUpperCase()}! It automatically joins your team!`);
-
             const trainerName = await getTrainerName();
             const newPokemon = {
                 pokemonId: b.wild.pokemonId,
@@ -1760,49 +1759,122 @@ async function handlePlayerFaint(battle) {
                 bonusStats: b.wild.bonusStats,
                 isShiny: b.wild.isShiny
             };
-
             await addDoc(collection(db, "users", userId, "pokemon"), newPokemon);
             ownedPokemonIds.add(b.wild.pokemonId);
             await updateUserTotalLevels(userId, b.wild.level);
-            // Use the same recordRef – no second read
             await updateDoc(recordRef, { autoCaught5th: true });
             invalidateTeamCache();
-            cachedNavData = null;
             showBattleSummary('catch');
             return; // stop – no XP/coins
         }
 
+        // ---- Normal win: distribute XP among participants ----
+        const totalBaseXP = Math.floor(b.wild.level * 30);
+        const coins = Math.floor(b.wild.level * 10);
+        const participants = Array.from(b.participants); // Set of IDs that entered battle
 
-        
-        // === NORMAL WIN REWARDS (XP, coins, evolution) ===
-        let gainXP = Math.floor(b.wild.level * 30);
-        let coins = Math.floor(b.wild.level * 10);
-        let leveledUp = false;
-        const monRef = doc(db, "users", userId, "pokemon", b.player.id);
-        let curExp = b.player.exp || 0;
-        let newExp = curExp + gainXP;
-        let newLvl = b.player.level;
-        while (newExp >= getExpNeededForNextLevel(newLvl)) {
-            newExp -= getExpNeededForNextLevel(newLvl);
-            newLvl++;
-            leveledUp = true;
-           await checkEvolution(b.player.id, newLvl, b.player.pokemonId, b.player.bonusStats, b.player.isShiny);
+        // Fallback (should never happen)
+        if (participants.length === 0) participants.push(b.player.id);
+
+        // 1. Gather current data for all participants
+        const participantData = [];
+        for (const pid of participants) {
+            const pokemon = b.playerTeam.find(p => p.id === pid);
+            if (pokemon) {
+                participantData.push({
+                    id: pid,
+                    name: pokemon.name,
+                    level: pokemon.level,
+                    exp: pokemon.exp || 0,
+                    pokemonId: pokemon.pokemonId
+                });
+            } else {
+                // Fallback: read from Firestore (rare)
+                const snap = await getDoc(doc(db, "users", userId, "pokemon", pid));
+                if (snap.exists()) {
+                    const d = snap.data();
+                    participantData.push({
+                        id: pid,
+                        name: d.name,
+                        level: d.level,
+                        exp: d.exp || 0,
+                        pokemonId: d.pokemonId
+                    });
+                }
+            }
         }
-        // Batch: write Pokémon XP/level + user coins in one round trip
+
+        // 2. Compute weights based on level difference
+        const wildLvl = b.wild.level;
+        let totalWeight = 0;
+        const weights = [];
+        for (const p of participantData) {
+            let w = Math.pow(wildLvl / p.level, XP_SCALE_EXPONENT);
+            w = Math.min(5, Math.max(0.2, w)); // clamp
+            weights.push(w);
+            totalWeight += w;
+        }
+
+        // 3. Calculate XP shares
+        const shares = [];
+        for (let i = 0; i < participantData.length; i++) {
+            let share = Math.floor(totalBaseXP * weights[i] / totalWeight);
+            shares.push(share);
+        }
+        // Distribute any remainder (due to flooring) to the first participant
+        const distributed = shares.reduce((a, b) => a + b, 0);
+        const remainder = totalBaseXP - distributed;
+        if (remainder > 0) shares[0] += remainder;
+
+        // 4. Build XP breakdown for summary (include pokemonId for sprite)
+        const xpBreakdown = participantData.map((p, idx) => ({
+            name: p.name.toUpperCase(),
+            xpGained: shares[idx],
+            pokemonId: p.pokemonId
+        }));
+
+        // 5. Batch updates for all participants + coins
         const batch = writeBatch(db);
-        if (leveledUp) {
+        const userRef = doc(db, "users", userId);
+        batch.update(userRef, { coins: increment(coins) });
+
+        const pendingEvolutions = [];
+        let anyLevelUp = false;
+
+        for (let i = 0; i < participantData.length; i++) {
+            const p = participantData[i];
+            let newExp = p.exp + shares[i];
+            let newLvl = p.level;
+            let leveledUp = false;
+            while (newExp >= getExpNeededForNextLevel(newLvl)) {
+                newExp -= getExpNeededForNextLevel(newLvl);
+                newLvl++;
+                leveledUp = true;
+                anyLevelUp = true;
+            }
+            const monRef = doc(db, "users", userId, "pokemon", p.id);
             batch.update(monRef, { exp: newExp, level: newLvl });
-            batch.update(doc(db, "users", userId), {
-                coins: increment(coins),
-                totalLevels: increment(newLvl - b.player.level)
-            });
-        } else {
-            batch.update(monRef, { exp: newExp, level: newLvl });
-            batch.update(doc(db, "users", userId), { coins: increment(coins) });
+            if (leveledUp) {
+                pendingEvolutions.push({ id: p.id, newLvl, apiId: p.pokemonId });
+            }
         }
+
         await batch.commit();
+
+        // 6. Trigger evolutions after batch (each does its own Firestore write)
+        for (const evo of pendingEvolutions) {
+            await checkEvolution(evo.id, evo.newLvl, evo.apiId);
+        }
+
+        // 7. Update caches and show summary
         invalidateTeamCache();
-        showBattleSummary('win', { xp: gainXP, coins: coins, leveledUp: leveledUp });
+        showBattleSummary('win', {
+            xp: totalBaseXP,
+            coins: coins,
+            leveledUp: anyLevelUp,
+            participants: participants.length,
+            breakdown: xpBreakdown
+        });
         updateNavDisplay(true);
     }
 }
@@ -1932,28 +2004,66 @@ async function handlePlayerFaint(battle) {
         typesDiv.innerHTML = "";
 
         if (type === 'win') {
-            header.innerText = "YOU'VE WON!";
-            header.style.color = "var(--success)";
-            if (b.player.isShiny) {
-                loadImageWithFallback(sprite, getShinyBattleSpriteUrl(b.player.name, b.player.pokemonId, 'front'));
-            } else {
-                loadImageWithFallback(sprite, getBattleSpriteUrl(b.player.pokemonId, 'front'));
-            }
-            let pIcons = '';
-            let displayName = b.player.name.toUpperCase();
-            if (b.player.isShiny) displayName = '✨ SHINY ' + displayName;
-            if (b.player.bonusStats?.atk) pIcons += '⚔️';
-            if (b.player.bonusStats?.def) pIcons += '🛡️';
-            if (b.player.bonusStats?.spd) pIcons += '🏃';
-            name.innerHTML = `${displayName} ${pIcons}`;
-            info.innerText = `Level ${b.player.level}`;
-            typesDiv.innerHTML = generateTypeBadges(b.player.types);
-            details.innerHTML = `
-                <div style="display:flex; justify-content:space-between;"><span>Experience Gain:</span> <strong>+${data.xp}</strong></div>
-                <div style="display:flex; justify-content:space-between;"><span>Coins Earned:</span> <strong>₱${data.coins}</strong></div>
-                ${data.leveledUp ? `<div style="color:var(--success); font-weight:bold; margin-top:5px; text-align:center;">⭐ LEVEL UP! ⭐</div>` : ''}
-            `;
-        } else if (type === 'catch') {
+    header.innerText = "YOU'VE WON!";
+    header.style.color = "var(--success)";
+    if (b.player.isShiny) {
+        loadImageWithFallback(sprite, getShinyBattleSpriteUrl(b.player.name, b.player.pokemonId, 'front'));
+    } else {
+        loadImageWithFallback(sprite, getBattleSpriteUrl(b.player.pokemonId, 'front'));
+    }
+    let pIcons = '';
+    let displayName = b.player.name.toUpperCase();
+    if (b.player.isShiny) displayName = '✨ SHINY ' + displayName;
+    if (b.player.bonusStats?.atk) pIcons += '⚔️';
+    if (b.player.bonusStats?.def) pIcons += '🛡️';
+    if (b.player.bonusStats?.spd) pIcons += '🏃';
+    name.innerHTML = `${displayName} ${pIcons}`;
+    info.innerText = `Level ${b.player.level}`;
+    typesDiv.innerHTML = generateTypeBadges(b.player.types);
+
+    // Build breakdown with sprites
+    // Build breakdown with sprites (your existing code)
+let breakdownHtml = '<div style="margin-top: 10px;"><strong>Experience gained:</strong><ul style="margin: 5px 0 0 20px; text-align: left; list-style: none; padding-left: 0;">';
+if (data.breakdown && data.breakdown.length) {
+    for (const item of data.breakdown) {
+        const spriteUrl = getStaticSpriteUrl(item.pokemonId)[0];
+        breakdownHtml += `
+            <li style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                <img src="${spriteUrl}" style="width: 24px; height: 24px; object-fit: contain; image-rendering: pixelated;" 
+                     onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${item.pokemonId}.png'">
+                <span><strong>${item.name}</strong> → +${item.xpGained} XP</span>
+            </li>
+        `;
+    }
+} else {
+    breakdownHtml += `<li>No breakdown available</li>`;
+}
+breakdownHtml += '</ul></div>';
+
+details.innerHTML = `
+    <div>Total Experience: +${data.xp}</div>
+    
+    ${breakdownHtml}
+    <div>Coins Earned: ₱${data.coins}</div>
+    ${data.leveledUp ? '<div>⭐ A Pokémon leveled up! ⭐</div>' : ''}
+`;
+
+// ✨ Add animation effect after modal is visible
+setTimeout(() => {
+    const xpRows = document.querySelectorAll('#summary-details li');
+    xpRows.forEach((row, idx) => {
+        setTimeout(() => {
+            row.style.transition = 'background-color 0.5s ease';
+            row.style.backgroundColor = '#008000';
+            row.style.borderRadius = '8px';
+            // Keep highlight for 3 seconds, then fade
+            setTimeout(() => {
+                row.style.backgroundColor = '';
+            }, 3000);
+        }, idx * 500); // 0.5s gap between rows
+    });
+}, 100);
+} else if (type === 'catch') {
             header.innerText = "SUCCESSFULLY CAPTURED!";
             header.style.color = "var(--primary)";
             if (b.wild.isShiny) {
@@ -2250,11 +2360,12 @@ async function attemptSwitch() {
         }
         return;
     }
-
-    // User selected a Pokémon – perform the switch
+    b.participants.add(selected.id);
     const newIdx = b.playerTeam.findIndex(p => p.id === selected.id);
     b.activePokemonIndex = newIdx;
     b.player = b.playerTeam[newIdx];
+
+   
     // Update companion sprite to reflect switched-in Pokémon
     if (cachedActivePokemon) {
         cachedActivePokemon.pokemonId = b.player.pokemonId;
@@ -2397,73 +2508,94 @@ async function runTurn(selectedMove) {
         if (btn) btn.disabled = false;
     }
 
-    function renderBattleUI() {
-        if (!currentBattle) return;
-        const b = currentBattle;
-        const enemySprite = document.getElementById('e-sprite-btl');
-        enemySprite.classList.remove('gmax-sprite', 'legendary-sprite', 'mythical-sprite', 'mega-sprite', 'ub-sprite');
-        if (b.wild.specialCategory) enemySprite.classList.add(`${b.wild.specialCategory}-sprite`);
-        if (b.wild.isShiny) {
-            loadImageWithFallback(enemySprite, getShinyBattleSpriteUrl(b.wild.name, b.wild.pokemonId, 'front'));
-        } else {
-            loadImageWithFallback(enemySprite, getBattleSpriteUrl(b.wild.pokemonId, 'front'));
-        }
-        enemySprite.onclick = () => showInfo(b.wild.pokemonId);
-        const playerSprite = document.getElementById('p-sprite-btl');
-        if (b.player.isShiny) {
-            loadImageWithFallback(playerSprite, getShinyBattleSpriteUrl(b.player.name, b.player.pokemonId, 'back'));
-        } else {
-            loadImageWithFallback(playerSprite, getBattleSpriteUrl(b.player.pokemonId, 'back'));
-        }
-        playerSprite.onclick = () => showInfo(b.player.pokemonId);
-        let wildName = b.wild.name.toUpperCase();
-        let wildBonusIcons = '';
-        if (b.wild.isShiny) wildName = '✨ SHINY ' + wildName;
-        if (b.wild.bonusStats?.atk) wildBonusIcons += '⚔️';
-        if (b.wild.bonusStats?.def) wildBonusIcons += '🛡️';
-        if (b.wild.bonusStats?.spd) wildBonusIcons += '🏃';
-        if (b.wild.specialBadge) wildName = b.wild.specialBadge.split(' ')[0] + ' ' + wildName;
-        document.getElementById('e-name').innerHTML = `${wildName} ${wildBonusIcons}`;
-        document.getElementById('e-lvl').innerText = "Lvl " + b.wild.level;
-        document.getElementById('e-hp-fill').style.width = (b.wild.currentHp / b.wild.maxHp * 100) + "%";
-        document.getElementById('e-hp-text').innerHTML = `HP: ${b.wild.currentHp}/${b.wild.maxHp}`;
-        document.getElementById('e-types-icons').innerHTML = generateTypeBadges(b.wild.types);
-        let playerBonusIcons = '';
-        if (b.player.isShiny) playerBonusIcons += ' ✨ SHINY';
-        if (b.player.bonusStats?.atk) playerBonusIcons += '⚔️';
-        if (b.player.bonusStats?.def) playerBonusIcons += '🛡️';
-        if (b.player.bonusStats?.spd) playerBonusIcons += '🏃';
-        document.getElementById('p-name').innerHTML = `${b.player.name.toUpperCase()} ${playerBonusIcons}`;
-        document.getElementById('p-lvl').innerText = "Lvl " + b.player.level;
-        document.getElementById('p-hp-fill').style.width = (b.player.currentHp / b.player.maxHp * 100) + "%";
-        document.getElementById('p-hp-text').innerHTML = `HP: ${b.player.currentHp}/${b.player.maxHp}`;
-        document.getElementById('p-types-icons').innerHTML = generateTypeBadges(b.player.types);
+function renderBattleUI() {
+    if (!currentBattle) return;
+    const b = currentBattle;
+
+    // ----- Enemy Sprite -----
+    const enemySprite = document.getElementById('e-sprite-btl');
+    enemySprite.classList.remove('gmax-sprite', 'legendary-sprite', 'mythical-sprite', 'mega-sprite', 'ub-sprite');
+    if (b.wild.specialCategory) enemySprite.classList.add(`${b.wild.specialCategory}-sprite`);
+    if (b.wild.isShiny) {
+        loadImageWithFallback(enemySprite, getShinyBattleSpriteUrl(b.wild.name, b.wild.pokemonId, 'front'));
+    } else {
+        loadImageWithFallback(enemySprite, getBattleSpriteUrl(b.wild.pokemonId, 'front'));
+    }
+    enemySprite.onclick = () => showInfo(b.wild.pokemonId);
+
+    // ----- Player Sprite -----
+    const playerSprite = document.getElementById('p-sprite-btl');
+    if (b.player.isShiny) {
+        loadImageWithFallback(playerSprite, getShinyBattleSpriteUrl(b.player.name, b.player.pokemonId, 'back'));
+    } else {
+        loadImageWithFallback(playerSprite, getBattleSpriteUrl(b.player.pokemonId, 'back'));
+    }
+    playerSprite.onclick = () => showInfo(b.player.pokemonId);
+
+    // ----- Enemy Stat Box (new layout) -----
+    const enemyStatBox = document.querySelector('#battle-area .enemy-side .stat-box');
+    if (enemyStatBox) {
+        const shinyIcon = b.wild.isShiny ? '✨ ' : '';
+        let bonusIcons = '';
+        if (b.wild.bonusStats?.atk) bonusIcons += '⚔️';
+        if (b.wild.bonusStats?.def) bonusIcons += '🛡️';
+        if (b.wild.bonusStats?.spd) bonusIcons += '🏃';
+        const specialBadge = b.wild.specialBadge ? b.wild.specialBadge.split(' ')[0] + ' ' : '';
+        const displayName = specialBadge + b.wild.name.toUpperCase();
+        const hpPercent = (b.wild.currentHp / b.wild.maxHp) * 100;
+        enemyStatBox.innerHTML = `
+            <div><strong>${shinyIcon}${displayName}</strong> | Lv.${b.wild.level} ${bonusIcons}</div>
+            <div>${generateTypeBadges(b.wild.types)}</div>
+            <div class="hp-bar"><div class="hp-fill" style="width: ${hpPercent}%; background: var(--success);"></div></div>
+            <div style="font-size:0.7rem; margin-top:4px;">❤️ HP: ${b.wild.currentHp}/${b.wild.maxHp}</div>
+        `;
+    }
+
+    // ----- Player Stat Box (new layout) -----
+    const playerStatBox = document.querySelector('#battle-area .player-side .stat-box');
+    if (playerStatBox) {
+        const shinyIcon = b.player.isShiny ? '✨ ' : '';
+        let bonusIcons = '';
+        if (b.player.bonusStats?.atk) bonusIcons += '⚔️';
+        if (b.player.bonusStats?.def) bonusIcons += '🛡️';
+        if (b.player.bonusStats?.spd) bonusIcons += '🏃';
+        const hpPercent = (b.player.currentHp / b.player.maxHp) * 100;
         const neededXP = getExpNeededForNextLevel(b.player.level);
         const currentXP = b.player.exp || 0;
         const xpPercent = Math.floor((currentXP / neededXP) * 100);
-        document.getElementById('p-xp-text').innerHTML = `XP: ${currentXP}/${neededXP} (${xpPercent}%)`;
-        const typeToId = { normal:1, fighting:2, flying:3, poison:4, ground:5, rock:6, bug:7, ghost:8, steel:9, fire:10, water:11, grass:12, electric:13, psychic:14, ice:15, dragon:16, dark:17, fairy:18 };
-        const movesDiv = document.getElementById('battle-moves');
-        movesDiv.innerHTML = "";
-        b.player.moves.forEach(m => {
-            const btn = document.createElement('button');
-            btn.className = "move-btn";
-            btn.style.backgroundColor = getTypeColor(m.type);
-            const typeId = typeToId[m.type];
-            const iconUrl = typeId ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/types/generation-viii/sword-shield/small/${typeId}.png` : null;
-            const fallbackEmoji = TYPE_ICONS[m.type] || '⚙️';
-            btn.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
-                    ${iconUrl ? `<img class="move-icon" src="${iconUrl}" alt="${m.type}" onerror="this.onerror=null; this.style.display='none'; this.parentElement.querySelector('.move-icon-fallback').style.display='inline-block';" style="width: 32px; height: 32px; object-fit: contain;">` : ''}
-                    <span class="move-icon-fallback" style="display: ${iconUrl ? 'none' : 'inline-block'};">${fallbackEmoji}</span>
-                    <span class="move-name">${m.name.toUpperCase()}</span>
-                    <span class="move-power">${m.power}</span>
-                </div>
-            `;
-            btn.onclick = () => runTurn(m);
-            movesDiv.appendChild(btn);
-        });
+        playerStatBox.innerHTML = `
+            <div><strong>${shinyIcon}${b.player.name.toUpperCase()}</strong> | Lv.${b.player.level} ${bonusIcons}</div>
+            <div>${generateTypeBadges(b.player.types)}</div>
+            <div class="hp-bar"><div class="hp-fill" style="width: ${hpPercent}%; background: var(--success);"></div></div>
+            <div style="font-size:0.7rem; margin-top:4px;">❤️ HP: ${b.player.currentHp}/${b.player.maxHp}</div>
+            <div style="font-size:0.7rem; margin-top:2px;">⭐ XP: ${currentXP}/${neededXP} (${xpPercent}%)</div>
+        `;
     }
+
+    // ----- Move Buttons (unchanged) -----
+    const typeToId = { normal:1, fighting:2, flying:3, poison:4, ground:5, rock:6, bug:7, ghost:8, steel:9, fire:10, water:11, grass:12, electric:13, psychic:14, ice:15, dragon:16, dark:17, fairy:18 };
+    const movesDiv = document.getElementById('battle-moves');
+    movesDiv.innerHTML = "";
+    b.player.moves.forEach(m => {
+        const btn = document.createElement('button');
+        btn.className = "move-btn";
+        btn.style.backgroundColor = getTypeColor(m.type);
+        const typeId = typeToId[m.type];
+        const iconUrl = typeId ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/types/generation-viii/sword-shield/small/${typeId}.png` : null;
+        const fallbackEmoji = TYPE_ICONS[m.type] || '⚙️';
+        btn.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
+                ${iconUrl ? `<img class="move-icon" src="${iconUrl}" alt="${m.type}" onerror="this.onerror=null; this.style.display='none'; this.parentElement.querySelector('.move-icon-fallback').style.display='inline-block';" style="width: 32px; height: 32px; object-fit: contain;">` : ''}
+                <span class="move-icon-fallback" style="display: ${iconUrl ? 'none' : 'inline-block'};">${fallbackEmoji}</span>
+                <span class="move-name">${m.name.toUpperCase()}</span>
+                <span class="move-power">${m.power}</span>
+            </div>
+        `;
+        btn.onclick = () => runTurn(m);
+        movesDiv.appendChild(btn);
+    });
+}
+
 
 async function trackRecord(id, name) {
     try {
@@ -2759,7 +2891,8 @@ rawMoves = baseData.moves;
                 currentBattle = {
                     playerTeam: team,
                     activePokemonIndex: activeIndex,
-                    player: team[activeIndex],
+                     player: team[activeIndex],
+                    participants: new Set([selectedPokemon.id]),  
                     wild: {
                         pokemonId: wildId,
                         name: wildData.name,

@@ -1204,6 +1204,173 @@ body.dark-theme #info-overlay .modal {
     pointer-events: none;
 }
 
+/* ── COLLECTION FILTER BAR ── */
+.coll-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    padding: 10px 14px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    margin-bottom: 16px;
+}
+.coll-filter-bar label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-right: 4px;
+}
+.filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 2px solid var(--border);
+    background: transparent;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.15s;
+    color: var(--text-light);
+    user-select: none;
+}
+.filter-chip input[type=checkbox] { display: none; }
+.filter-chip:hover { border-color: var(--primary); color: var(--primary); }
+.filter-chip.active-chip { border-color: currentColor; }
+.filter-chip.chip-shiny.active-chip  { background: #fff9e6; color: #b7791f; border-color: #f6d860; }
+.filter-chip.chip-atk.active-chip    { background: #fff5f5; color: #c53030; border-color: #ff6b6b; }
+.filter-chip.chip-def.active-chip    { background: #ebf8ff; color: #2b6cb0; border-color: #4dabf7; }
+.filter-chip.chip-spd.active-chip    { background: #f0fff4; color: #276749; border-color: #69db7c; }
+.coll-count-badge {
+    margin-left: auto;
+    font-size: 0.75rem;
+    color: var(--text-light);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* ── ENHANCED POKEMON CARD ── */
+.poke-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.18s, box-shadow 0.18s;
+    position: relative;
+}
+.poke-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+.poke-card.is-shiny { border-color: #ecc94b; background: linear-gradient(to bottom, #fffff0, var(--card-bg)); }
+.poke-card.is-active { outline: 3px solid var(--primary); outline-offset: -1px; }
+.poke-card-header {
+    padding: 16px 16px 10px;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+}
+.poke-card-img-wrap {
+    background: #f8fafc;
+    border-radius: 14px;
+    width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: 0.15s;
+}
+body.dark-theme .poke-card-img-wrap { background: #1e2230; }
+.poke-card-img-wrap:hover { transform: scale(1.07); }
+.poke-card-img-wrap img { width: 72px; height: 72px; object-fit: contain; image-rendering: pixelated; }
+.poke-card-info { flex: 1; min-width: 0; }
+.poke-card-name {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--text-dark);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.poke-card-level {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 5px;
+}
+.poke-card-types { display: flex; gap: 4px; flex-wrap: wrap; margin: 5px 0; }
+.poke-card-bonus {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    margin-top: 5px;
+}
+.bonus-pill {
+    font-size: 0.62rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 20px;
+    color: white;
+}
+.bonus-pill.atk { background: #ff6b6b; }
+.bonus-pill.def { background: #4dabf7; }
+.bonus-pill.spd { background: #69db7c; color: #1a4731; }
+.poke-card-xp { padding: 0 16px 10px; }
+.poke-card-xp-bar {
+    background: #e2e8f0;
+    height: 5px;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 3px;
+}
+.poke-card-xp-fill { height: 100%; background: var(--primary); border-radius: 10px; transition: width 0.3s; }
+.poke-card-xp-text { font-size: 0.62rem; color: var(--text-light); }
+.poke-card-moves {
+    padding: 0 16px 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+.poke-card-move-pill {
+    font-size: 0.6rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 20px;
+    color: white;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.2);
+}
+.poke-card-captured {
+    padding: 0 16px 8px;
+    font-size: 0.65rem;
+    color: var(--text-light);
+}
+.poke-card-footer {
+    padding: 10px 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-top: auto;
+}
+.poke-card-corner-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 0.6rem;
+    font-weight: 700;
+}
+.badge-shiny { background: #ffd700; color: #333; }
+.badge-active { background: var(--success); color: white; }
+
 </style>
 </head>
 <body>
@@ -1611,20 +1778,41 @@ body.dark-theme #info-overlay .modal {
 
 <!-- Update Collection View -->
 <div id="view-collection" class="list-container hidden">
-    <div class="flex-between" style="margin-bottom: 20px; align-items: center; gap: 10px;">
+    <div class="flex-between" style="margin-bottom: 14px; align-items: center; gap: 10px; flex-wrap: wrap;">
         <h2>My Collection</h2>
-        <div style="display: flex; gap: 10px; flex: 1; justify-content: flex-end;">
-            <input type="text" id="coll-search" placeholder="Search collection..." style="margin:0; max-width: 200px; padding: 8px 12px;">
-            <select id="coll-sort" style="padding: 8px; border-radius: 16px; border: 1px solid var(--border);">
-                <option value="level-desc">Level (High-Low)</option>
-                <option value="level-asc">Level (Low-High)</option>
-                <option value="id-asc">ID (#1-20000)</option>
-                <option value="name-asc">Name (A-Z)</option>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            <input type="text" id="coll-search" placeholder="🔍 Search name or #ID..." style="margin:0; max-width: 180px; padding: 8px 12px; border-radius: 40px; border: 1px solid var(--border); font-size: 0.85rem;">
+            <select id="coll-sort" style="padding: 8px 12px; border-radius: 40px; border: 1px solid var(--border); font-size: 0.82rem; background: var(--card-bg); color: var(--text-dark);">
+                <option value="level-desc">⬆ Level High→Low</option>
+                <option value="level-asc">⬇ Level Low→High</option>
+                <option value="id-asc">🔢 ID #1→Last</option>
+                <option value="name-asc">🔤 Name A→Z</option>
             </select>
         </div>
     </div>
-    <div id="coll-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px;"></div>
-</div>  <div id="view-records" class="list-container hidden"><h2>Pokédex Records</h2><div id="records-list"></div></div>
+
+    <!-- Filter chips -->
+    <div class="coll-filter-bar">
+        <label>Filter:</label>
+        <label class="filter-chip chip-shiny" id="chip-shiny">
+            <input type="checkbox" id="filter-shiny"> ✨ Shiny Only
+        </label>
+        <label class="filter-chip chip-atk" id="chip-atk">
+            <input type="checkbox" id="filter-atk"> ⚔️ +ATK
+        </label>
+        <label class="filter-chip chip-def" id="chip-def">
+            <input type="checkbox" id="filter-def"> 🛡️ +DEF
+        </label>
+        <label class="filter-chip chip-spd" id="chip-spd">
+            <input type="checkbox" id="filter-spd"> 🏃 +SPD
+        </label>
+        <span class="coll-count-badge" id="coll-count">0 Pokémon</span>
+    </div>
+
+    <div id="coll-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px;"></div>
+</div>
+</div>  
+<div id="view-records" class="list-container hidden"><h2>Pokédex Records</h2><div id="records-list"></div></div>
     </div>
 
     <audio id="bg-music" src="music1.mp3" loop preload="auto"></audio>
@@ -1635,7 +1823,7 @@ body.dark-theme #info-overlay .modal {
         <div class="support-section">
                 <p>☕ Enjoying the game? <a href="support.html">Buy me a coffee</a> to support further development!</p>
         
-                <br>
+                
                 <p>📅 <strong><a href="updates.html">Last Updated:</a></strong> April 21, 2026</p>
         </div>
             <div class="install-container hidden" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--border);">
@@ -3910,16 +4098,44 @@ async function trackRecord(id, name) {
     document.getElementById('coll-search').addEventListener('input', refreshTeamView);
     document.getElementById('coll-sort').addEventListener('change', refreshTeamView);
 
+    // Filter chip toggle logic
+    ['filter-shiny','filter-atk','filter-def','filter-spd'].forEach(id => {
+        document.getElementById(id).addEventListener('change', (e) => {
+            const chipMap = { 'filter-shiny':'chip-shiny', 'filter-atk':'chip-atk', 'filter-def':'chip-def', 'filter-spd':'chip-spd' };
+            const chip = document.getElementById(chipMap[id]);
+            if (e.target.checked) chip.classList.add('active-chip');
+            else chip.classList.remove('active-chip');
+            refreshTeamView();
+        });
+    });
+
     async function refreshTeamView() {
         const user = auth.currentUser;
         if (!user) return;
         const allPokemon = await getAllPokemon();
         let team = allPokemon.filter(p => p.inTeam);
         let collectionList = allPokemon.filter(p => !p.inTeam);
+
+        // Search filter
         const searchTerm = document.getElementById('coll-search').value.toLowerCase();
         if (searchTerm) {
-            collectionList = collectionList.filter(p => p.name.toLowerCase().includes(searchTerm) || p.pokemonId.toString().includes(searchTerm));
+            collectionList = collectionList.filter(p =>
+                p.name.toLowerCase().includes(searchTerm) ||
+                p.pokemonId.toString().includes(searchTerm)
+            );
         }
+
+        // Checkbox filters
+        if (document.getElementById('filter-shiny').checked)
+            collectionList = collectionList.filter(p => p.isShiny);
+        if (document.getElementById('filter-atk').checked)
+            collectionList = collectionList.filter(p => p.bonusStats?.atk);
+        if (document.getElementById('filter-def').checked)
+            collectionList = collectionList.filter(p => p.bonusStats?.def);
+        if (document.getElementById('filter-spd').checked)
+            collectionList = collectionList.filter(p => p.bonusStats?.spd);
+
+        // Sort
         const sortVal = document.getElementById('coll-sort').value;
         collectionList.sort((a, b) => {
             if (sortVal === 'level-desc') return b.level - a.level;
@@ -3928,6 +4144,10 @@ async function trackRecord(id, name) {
             if (sortVal === 'name-asc') return a.name.localeCompare(b.name);
             return 0;
         });
+
+        // Update count badge
+        const countBadge = document.getElementById('coll-count');
+        if (countBadge) countBadge.textContent = `${collectionList.length} Pokémon`;
         const teamContainer = document.getElementById('team-list');
         const teamCountLabel = document.getElementById('team-count');
         teamContainer.innerHTML = "";
@@ -3942,130 +4162,106 @@ async function trackRecord(id, name) {
 
 async function createPokemonCard(p, isTeam, teamSize) {
     const div = document.createElement('div');
-    div.style = `border: 1px solid var(--border); border-radius: 20px; padding: 15px; display: flex; flex-direction: column; gap: 10px; transition: transform 0.2s; position: relative; ${isTeam && activePokemonId === p.id ? 'outline: 2px solid var(--primary);' : ''}`;
+    const isActive = isTeam && activePokemonId === p.id;
+    div.className = `poke-card${p.isShiny ? ' is-shiny' : ''}${isActive ? ' is-active' : ''}`;
+
     const expNeeded = getExpNeededForNextLevel(p.level);
-    const prog = Math.floor(((p.exp || 0) / expNeeded) * 100);
-    
-    // Choose sprite URL based on shiny status
-    let spriteUrl;
-    if (p.isShiny) {
-        spriteUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/shiny/${p.pokemonId}.png`;
-    } else {
-        spriteUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${p.pokemonId}.png`;
-    }
-    // Fallback if the shiny artwork doesn't exist (some Pokémon may not have it)
+    const prog = Math.min(100, Math.floor(((p.exp || 0) / expNeeded) * 100));
+
+    const spriteUrl = p.isShiny
+        ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/shiny/${p.pokemonId}.png`
+        : `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${p.pokemonId}.png`;
     const fallbackUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.pokemonId}.png`;
-    
-    let bonusIcons = '';
-    if (p.bonusStats?.atk) bonusIcons += '⚔️';
-    if (p.bonusStats?.def) bonusIcons += '🛡️';
-    if (p.bonusStats?.spd) bonusIcons += '🏃';
-    let shinyHtml = '';
-    if (p.isShiny) shinyHtml = '<span class="shiny-badge">✨ SHINY</span>';
-    const typeBadges = p.types.map(t => `<span class="type-badge" style="background: ${getTypeColor(t)}; font-size: 0.6rem;">${t.toUpperCase()}</span>`).join('');
-    
+
+    const typeBadges = (p.types || []).map(t =>
+        `<span class="type-badge" style="background:${getTypeColor(t)};font-size:0.6rem;">${t.toUpperCase()}</span>`
+    ).join('');
+
+    // Bonus stat pills with description
+    let bonusPills = '';
+    if (p.bonusStats?.atk) bonusPills += `<span class="bonus-pill atk">⚔️ +ATK <span style="font-weight:400;opacity:0.85;">+25% Atk</span></span>`;
+    if (p.bonusStats?.def) bonusPills += `<span class="bonus-pill def">🛡️ +DEF <span style="font-weight:400;opacity:0.85;">+25% Def</span></span>`;
+    if (p.bonusStats?.spd) bonusPills += `<span class="bonus-pill spd">🏃 +SPD <span style="font-weight:400;opacity:0.85;">+25% Spd</span></span>`;
+
+    const movePills = (p.moves || []).map(m =>
+        `<span class="poke-card-move-pill" style="background:${getTypeColor(m.type)}">${m.name.toUpperCase()}</span>`
+    ).join('');
+
+    const capturedText = p.capturedAt
+        ? `📍 ${p.capturedOnMap || 'Unknown'} · ${new Date(p.capturedAt.seconds ? p.capturedAt.seconds * 1000 : p.capturedAt).toLocaleDateString()}`
+        : '';
+
     div.innerHTML = `
-        <div style="display: flex; gap: 15px; align-items: center;">
-            <img id="card-img-${p.id}" src="${spriteUrl}" style="width: 70px; height: 70px; cursor:pointer;" onerror="this.onerror=null; this.src='${fallbackUrl}';" onclick="window.showInfo(${p.pokemonId})">
-            <div style="flex: 1;">
-                <div style="display: flex; justify-content: space-between;">
-                    <div class="pokemon-name">
-                        <span>${p.name.toUpperCase()} ${bonusIcons}</span>
-                        ${shinyHtml}
-                    </div>
-                    <span style="font-size: 0.8rem; font-weight: bold; color: var(--primary);">Lv. ${p.level}</span>
-                </div>
-                <div style="margin-bottom: 5px;">${typeBadges}</div>
-                <div class="hp-bar" style="height: 6px; background: #eee; border-radius: 10px;">
-                    <div style="width: ${prog}%; height: 100%; background: var(--primary); border-radius: 10px;"></div>
-                </div>
-                <small style="font-size: 0.65rem; color: #999;">XP: ${p.exp || 0}/${expNeeded} (${prog}%)</small>
+        ${p.isShiny ? '<span class="poke-card-corner-badge badge-shiny">✨ SHINY</span>' : ''}
+        ${isActive ? '<span class="poke-card-corner-badge badge-active" style="right:${p.isShiny ? "72px" : "10px"}">⚡ ACTIVE</span>' : ''}
+
+        <div class="poke-card-header">
+            <div class="poke-card-img-wrap" onclick="window.showInfo(${p.pokemonId})">
+                <img src="${spriteUrl}" onerror="this.onerror=null;this.src='${fallbackUrl}';" alt="${p.name}">
+            </div>
+            <div class="poke-card-info">
+                <div class="poke-card-name">${p.name.toUpperCase()}</div>
+                <div class="poke-card-level">Lv. ${p.level} &nbsp;·&nbsp; #${p.pokemonId}</div>
+                <div class="poke-card-types">${typeBadges}</div>
+                ${bonusPills ? `<div class="poke-card-bonus">${bonusPills}</div>` : ''}
             </div>
         </div>
-        <div style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px;">
-            ${p.moves.map(m => `<span style="font-size: 0.6rem; padding: 2px 6px; border: 1px solid #ddd; border-radius: 10px;">${m.name.toUpperCase()}</span>`).join('')}
+
+        <div class="poke-card-xp">
+            <div class="poke-card-xp-bar"><div class="poke-card-xp-fill" style="width:${prog}%"></div></div>
+            <div class="poke-card-xp-text">XP: ${p.exp || 0} / ${expNeeded} (${prog}%)</div>
         </div>
-        <div class="mon-buttons" style="display: flex; gap: 5px; justify-content: space-between; margin-top: auto; padding-top: 10px; border-top: 1px solid #f0f0f0;">
-            <button class="btn btn-small btn-outline" id="edit-${p.id}">Moves</button>
-            <div style="display: flex; gap: 5px;">
+
+        <div class="poke-card-moves">${movePills}</div>
+
+        ${capturedText ? `<div class="poke-card-captured">${capturedText}</div>` : ''}
+
+        <div class="poke-card-footer mon-buttons">
+            <button class="btn btn-small btn-outline" id="edit-${p.id}">✏️ Moves</button>
+            <div style="display:flex;gap:5px;margin-left:auto;flex-wrap:wrap;">
                 ${isTeam ? `
-                    ${activePokemonId !== p.id ? `<button class="btn btn-small btn-primary" id="act-${p.id}">Active</button>` : '<span class="active-badge" style="margin:0">ACTIVE</span>'}
-                    <button class="btn btn-small btn-outline" id="mov-${p.id}">📦</button>
+                    ${!isActive ? `<button class="btn btn-small btn-primary" id="act-${p.id}">⚡ Active</button>` : ''}
+                    <button class="btn btn-small btn-outline" id="mov-${p.id}" title="Move to Collection">📦</button>
                 ` : `
                     <button class="btn btn-small btn-primary" ${teamSize >= 6 ? 'disabled' : ''} id="add-${p.id}">+ Team</button>
                 `}
-                <button class="btn btn-small btn-danger" id="rel-${p.id}">🗑️</button>
+                <button class="btn btn-small btn-danger" id="rel-${p.id}" title="Release">🗑️</button>
             </div>
         </div>
     `;
 
-    const acts = div.querySelector('.mon-buttons');
-    if (!acts) {
-        console.error("Could not find .mon-buttons element");
-        return div;
-    }
-
+    // Wire up buttons
     div.querySelector(`#edit-${p.id}`).onclick = () => openMoveEditor(p.id, p.name, p.pokemonId, p.moves, p.level);
+    div.querySelector(`#rel-${p.id}`).onclick = () => releasePokemon(p.id, p.name);
 
     if (isTeam) {
         const actBtn = div.querySelector(`#act-${p.id}`);
         if (actBtn) actBtn.onclick = () => setActivePokemon(p.id);
         const movBtn = div.querySelector(`#mov-${p.id}`);
-        if (movBtn) {
-            movBtn.onclick = async () => {
-                if (teamSize <= 1) { alert("Must have at least one Pokémon in team."); return; }
-                await updateDoc(doc(db, "users", auth.currentUser.uid, "pokemon", p.id), { inTeam: false });
-                if (activePokemonId === p.id) {}
-                trackWrite();
-                invalidateTeamCache();
-                refreshTeamView();
-            };
-        }
-        const evoBtn = document.createElement('button');
-        evoBtn.className = 'btn btn-outline btn-small';
-        evoBtn.textContent = '🔄 Evolve';
-        evoBtn.style.background = '#fef9e3';
-        evoBtn.style.color = '#b45309';
-        evoBtn.onclick = async (e) => {
-            e.stopPropagation();
-            await attemptEvolution(p.id, p.pokemonId);
+        if (movBtn) movBtn.onclick = async () => {
+            if (teamSize <= 1) { alert("Must have at least one Pokémon in team."); return; }
+            await updateDoc(doc(db, "users", auth.currentUser.uid, "pokemon", p.id), { inTeam: false });
+            trackWrite(); invalidateTeamCache(); refreshTeamView();
         };
-        acts.appendChild(evoBtn);
     } else {
         const addBtn = div.querySelector(`#add-${p.id}`);
-        if (addBtn) {
-            addBtn.onclick = async () => {
-                if (teamSize >= 6) { alert("Team is full!"); return; }
-                await updateDoc(doc(db, "users", auth.currentUser.uid, "pokemon", p.id), { inTeam: true });
-                trackWrite();
-                invalidateTeamCache();
-                refreshTeamView();
-            };
-        }
-        const moveBtn = document.createElement('button');
-        moveBtn.className = 'btn btn-outline btn-small';
-        moveBtn.textContent = '✏️ Moves';
-        moveBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            openMoveEditor(p.id);
-        });
-        acts.appendChild(moveBtn);
-        const evoBtn = document.createElement('button');
-        evoBtn.className = 'btn btn-outline btn-small';
-        evoBtn.textContent = '🔄 Evolve';
-        evoBtn.style.background = '#fef9e3';
-        evoBtn.style.color = '#b45309';
-        evoBtn.onclick = async (e) => {
-            e.stopPropagation();
-            await attemptEvolution(p.id, p.pokemonId);
+        if (addBtn) addBtn.onclick = async () => {
+            if (teamSize >= 6) { alert("Team is full!"); return; }
+            await updateDoc(doc(db, "users", auth.currentUser.uid, "pokemon", p.id), { inTeam: true });
+            trackWrite(); invalidateTeamCache(); refreshTeamView();
         };
-        acts.appendChild(evoBtn);
     }
 
-    div.querySelector(`#rel-${p.id}`).onclick = () => releasePokemon(p.id, p.name);
+    // Evolve button (both team and collection)
+    const evoBtn = document.createElement('button');
+    evoBtn.className = 'btn btn-outline btn-small';
+    evoBtn.innerHTML = '🔄 Evolve';
+    evoBtn.style.cssText = 'background:#fef9e3;color:#b45309;';
+    evoBtn.onclick = async (e) => { e.stopPropagation(); await attemptEvolution(p.id, p.pokemonId); };
+    div.querySelector('.mon-buttons').appendChild(evoBtn);
+
     return div;
-}
-// ========== SPECIAL EVOLUTION HELPERS (MEGA, PRIMAL, G-MAX) ==========
+}// ========== SPECIAL EVOLUTION HELPERS (MEGA, PRIMAL, G-MAX) ==========
 const formIdCache = {};
 
 async function getPokemonIdByFormName(formName) {

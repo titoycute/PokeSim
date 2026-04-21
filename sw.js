@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pokesim-v1.6.1.7';   // increment when you change assets or sprite caching logic
+const CACHE_NAME = 'pokesim-v1.6.1.8';   // increment when you change assets or sprite caching logic
 const assets = [
   'index.html',
   'map.html',

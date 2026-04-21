@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Support PokeSim | Buy Me a Coffee</title>
+    <title>Support PokeSim | Fuel the Adventure ☕</title>
     <style>
         * {
             margin: 0;
@@ -13,166 +13,283 @@
         }
 
         :root {
-            --bg: #f0f2f5;
-            --card-bg: #ffffff;
-            --primary: #3b4cca;
-            --primary-dark: #00238f;
-            --accent: #ffde00;
-            --text-dark: #2d3748;
-            --text-light: #5a6e8a;
-            --border: #e2e8f0;
-            --success: #48bb78;
-            --danger: #f56565;
+            --bg: #0a0f1e;
+            --card-bg: rgba(255, 255, 255, 0.1);
+            --primary: #ffde00;
+            --primary-dark: #ffb800;
+            --accent: #ff7675;
+            --text-dark: #ffffff;
+            --text-light: #d1d5db;
+            --border: rgba(255, 255, 255, 0.2);
+            --success: #4cd964;
+            --danger: #ff5e5e;
+            --glow: rgba(255, 222, 0, 0.6);
         }
 
         body {
-            background: var(--bg);
+            background: linear-gradient(135deg, #0a0f1e 0%, #1a1e2c 50%, #0f172a 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+            animation: bgShift 10s ease infinite alternate;
+        }
+
+        @keyframes bgShift {
+            0% { background: linear-gradient(135deg, #0a0f1e 0%, #1a1e2c 50%, #0f172a 100%); }
+            100% { background: linear-gradient(135deg, #1a1e2c 0%, #2a2f3e 50%, #1a1e2c 100%); }
+        }
+
+        /* Floating particles */
+        .particle {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .particle span {
+            position: absolute;
+            background: rgba(255, 222, 0, 0.3);
+            border-radius: 50%;
+            animation: floatUp 6s infinite linear;
+        }
+        @keyframes floatUp {
+            0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 0.8; }
+            90% { opacity: 0.8; }
+            100% { transform: translateY(-100px) rotate(360deg); opacity: 0; }
         }
 
         .support-card {
-            max-width: 500px;
+            max-width: 550px;
             width: 100%;
             background: var(--card-bg);
-            border-radius: 32px;
-            box-shadow: 0 20px 35px -10px rgba(0,0,0,0.2);
+            backdrop-filter: blur(15px);
+            border-radius: 48px;
+            box-shadow: 0 25px 45px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1);
             overflow: hidden;
             text-align: center;
-            border: 1px solid var(--border);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            z-index: 2;
+            position: relative;
+        }
+        .support-card:hover {
+            transform: scale(1.02);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 222, 0, 0.3);
         }
 
         .header {
-            background: linear-gradient(135deg, var(--primary-dark), #1e2a6e);
-            padding: 30px 20px;
+            background: linear-gradient(135deg, rgba(59, 76, 202, 0.9), rgba(0, 35, 143, 0.9));
+            padding: 35px 20px;
             color: white;
+            position: relative;
+            overflow: hidden;
         }
-
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,222,0,0.2) 0%, transparent 70%);
+            animation: rotateGlow 12s linear infinite;
+        }
+        @keyframes rotateGlow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
         .header h1 {
-            font-size: 1.8rem;
+            font-size: 2rem;
             margin-bottom: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
+            gap: 12px;
+            position: relative;
+            z-index: 1;
         }
-
         .header p {
-            font-size: 0.9rem;
-            opacity: 0.9;
-        }
-
-        .content {
-            padding: 30px 25px;
+            font-size: 0.95rem;
+            opacity: 0.95;
+            position: relative;
+            z-index: 1;
         }
 
         .coffee-icon {
-            font-size: 4rem;
-            margin-bottom: 20px;
+            font-size: 5rem;
+            margin-bottom: 15px;
+            animation: bounceCoffee 1.2s infinite ease-in-out;
+            display: inline-block;
+            filter: drop-shadow(0 8px 15px rgba(0,0,0,0.3));
+        }
+        @keyframes bounceCoffee {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-10px) rotate(5deg); }
         }
 
-        .qr-code {
-            background: #f8fafc;
-            border-radius: 20px;
-            padding: 20px;
-            margin: 20px 0;
-            border: 1px solid var(--border);
+        .content {
+            padding: 35px 25px;
         }
 
-        .qr-placeholder {
-            width: 150px;
-            height: 150px;
-            background: #e2e8f0;
-            margin: 0 auto 10px;
-            border-radius: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.8rem;
-            color: var(--text-light);
-        }
-
-        .gcash-number {
-            background: #eef2ff;
-            padding: 12px;
-            border-radius: 48px;
-            font-size: 1.3rem;
+        .glow-number {
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            padding: 16px 20px;
+            border-radius: 60px;
+            font-size: 1.6rem;
             font-weight: bold;
             font-family: monospace;
-            letter-spacing: 2px;
-            margin: 15px 0;
-            color: var(--primary-dark);
+            letter-spacing: 3px;
+            margin: 20px 0;
+            color: #ffde00;
+            text-shadow: 0 0 8px #ffde00, 0 0 15px #ffb800;
+            box-shadow: 0 0 12px rgba(255, 222, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.1);
+            transition: 0.2s;
+            word-break: break-word;
+        }
+        .glow-number:hover {
+            transform: scale(1.02);
+            box-shadow: 0 0 25px rgba(255, 222, 0, 0.7);
         }
 
         .instruction {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 28px;
+            padding: 20px;
             margin: 20px 0;
+            text-align: left;
             color: var(--text-light);
-            line-height: 1.5;
+            line-height: 1.6;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+        }
+        .instruction strong {
+            color: #ffde00;
+            font-size: 1.1rem;
+        }
+        .instruction ol {
+            margin-top: 12px;
+            padding-left: 20px;
+        }
+        .instruction li {
+            margin: 8px 0;
         }
 
         .btn-back {
-            display: inline-block;
-            background: var(--primary);
-            color: white;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: linear-gradient(135deg, #ffde00, #ffb800);
+            color: #1a1e2c;
             text-decoration: none;
-            padding: 12px 30px;
-            border-radius: 40px;
+            padding: 14px 35px;
+            border-radius: 50px;
             font-weight: bold;
             margin-top: 20px;
             transition: 0.2s;
+            box-shadow: 0 4px 15px rgba(255, 222, 0, 0.4);
         }
-
         .btn-back:hover {
-            background: var(--primary-dark);
-            transform: translateY(-2px);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(255, 222, 0, 0.5);
+            background: linear-gradient(135deg, #ffea6a, #ffcc22);
         }
 
         .footer-note {
             font-size: 0.7rem;
             color: var(--text-light);
-            margin-top: 20px;
+            margin-top: 25px;
             padding-top: 20px;
-            border-top: 1px solid var(--border);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .impact-text {
+            background: rgba(255, 222, 0, 0.15);
+            border-radius: 40px;
+            padding: 10px 15px;
+            margin: 20px 0;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #ffde00;
+            animation: pulseText 1.5s infinite;
+        }
+        @keyframes pulseText {
+            0% { text-shadow: 0 0 0px #ffde00; }
+            50% { text-shadow: 0 0 8px #ffde00; }
+            100% { text-shadow: 0 0 0px #ffde00; }
         }
     </style>
 </head>
 <body>
+    <div class="particle" id="particles"></div>
     <div class="support-card">
         <div class="header">
+            <div class="coffee-icon">☕</div>
             <h1>
-                <span>☕</span> Support PokeSim
+                <span>✨</span> Support PokeSim <span>✨</span>
             </h1>
-            <p>Help keep the game alive and ad‑free</p>
+            <p>Keep the adventure alive – ad‑free, server‑strong, and feature‑rich!</p>
         </div>
         <div class="content">
-            <div class="coffee-icon">❤️</div>
-            <p style="font-size: 1.1rem; font-weight: 600;">Your support means a lot!</p>
-            <div class="gcash-number">0966 651 7133</div>
+            <div class="impact-text">
+                💪 Your donation directly fuels new maps, events, and faster updates!
+            </div>
+            <p style="font-size: 1.1rem; font-weight: 600; color: #ffde00;">💛 Be a Legendary Supporter 💛</p>
+            <div class="glow-number">0966 651 7133</div>
             <div class="instruction">
-                <strong>How to support:</strong><br>
-                1. Open GCash app<br>
-                2. Tap "Send Money" → "Send to Other"<br>
-                3. Enter number <strong>0966 651 7133</strong><br>
-                   T*** A*****<br>
-                4. Enter any amount (even a small coffee helps!)<br>
-                5. Add a note: "PokeSim"<br>
-                6. Confirm and send 🎉
-            </div>
-            <div class="qr-code">
-                <div class="qr-placeholder">
-                    📱 Scan with GCash
+                <strong>📱 How to send your support (GCash):</strong>
+                <ol>
+                    <li>Open GCash app → <strong>Send Money</strong> → <strong>Send to Other</strong></li>
+                    <li>Enter number: <strong>0966 651 7133</strong> (T*** A****)</li>
+                    <li>Enter any amount – every coffee counts! ☕</li>
+                    <li>Add a note: <strong>"PokeSim"</strong> + your <strong>trainer name</strong> (optional but nice!)</li>
+                    <li>Confirm and send 🎉 You're awesome!</li>
+                </ol>
+                <div style="margin-top: 12px; font-size:0.85rem; background: rgba(0,0,0,0.3); padding: 8px; border-radius: 20px; text-align:center;">
+                    ⚡ <strong>Special perk:</strong> Every supporter gets a <strong>shiny bonus</strong> in the next community event!
                 </div>
-                <div style="font-size: 0.75rem; color: var(--text-light);">GCash QR Code (if available)</div>
             </div>
-            <a href="index.html" class="btn-back">← Back to Game</a>
+            <a href="index.html" class="btn-back">← Return to Perlas ng Silanganan</a>
             <div class="footer-note">
-                * 100% of donations go towards server costs and new features.<br>
-                Thank you for being awesome! 💙
+                🌟 100% of donations go directly to server costs, new features, and community events.<br>
+                Your support keeps PokeSim free, ad‑free, and constantly evolving. Thank you, Trainer! 💙
             </div>
         </div>
     </div>
+
+    <script>
+        // Create floating particles for extra "wow"
+        function createParticles() {
+            const container = document.getElementById('particles');
+            const particleCount = 40;
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('span');
+                const size = Math.random() * 8 + 3;
+                particle.style.width = size + 'px';
+                particle.style.height = size + 'px';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 10 + 's';
+                particle.style.animationDuration = Math.random() * 5 + 4 + 's';
+                particle.style.opacity = Math.random() * 0.4 + 0.2;
+                particle.style.background = `rgba(255, 222, ${Math.random() * 100 + 100}, ${Math.random() * 0.5 + 0.2})`;
+                container.appendChild(particle);
+            }
+        }
+        createParticles();
+
+        // Optional: dynamic year or greeting
+        const now = new Date();
+        const footer = document.querySelector('.footer-note');
+        if (footer) {
+            footer.innerHTML += `<br>❤️ PokeSim · ${now.getFullYear()} ❤️`;
+        }
+    </script>
 </body>
 </html>

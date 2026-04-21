@@ -1634,8 +1634,10 @@ body.dark-theme #info-overlay .modal {
     <footer>
         <div class="support-section">
                 <p>☕ Enjoying the game? <a href="support.html">Buy me a coffee</a> to support further development!</p>
-            <p>📅 <strong><a href="updates.html">Last Updated:</a></strong> April 21, 2026</p>
-            </div>
+        
+                <br>
+                <p>📅 <strong><a href="updates.html">Last Updated:</a></strong> April 21, 2026</p>
+        </div>
             <div class="install-container hidden" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--border);">
     <p>📱 Play PokeSim anywhere, add me to your app!</p>
     <button class="btn btn-success btn-install-app" style="margin-top: 10px; width: 100%; max-width: 250px;">
@@ -3227,44 +3229,51 @@ if (encounterCount === undefined) {
     playerSprite.onclick = () => showInfo(b.player.pokemonId);
 
     // ----- Enemy Stat Box (new layout) -----
-    const enemyStatBox = document.querySelector('#battle-area .enemy-side .stat-box');
-    if (enemyStatBox) {
-        const shinyIcon = b.wild.isShiny ? '✨ ' : '';
-        let bonusIcons = '';
-        if (b.wild.bonusStats?.atk) bonusIcons += '⚔️';
-        if (b.wild.bonusStats?.def) bonusIcons += '🛡️';
-        if (b.wild.bonusStats?.spd) bonusIcons += '🏃';
-        const specialBadge = b.wild.specialBadge ? b.wild.specialBadge.split(' ')[0] + ' ' : '';
-        const displayName = specialBadge + b.wild.name.toUpperCase();
-        const hpPercent = (b.wild.currentHp / b.wild.maxHp) * 100;
-        enemyStatBox.innerHTML = `
-            <div><strong>${shinyIcon}${displayName}</strong> | Lv.${b.wild.level} ${bonusIcons}</div>
-            <div>${generateTypeBadges(b.wild.types)}</div>
-            <div class="hp-bar"><div class="hp-fill" style="width: ${hpPercent}%; background: var(--success);"></div></div>
-            <div style="font-size:0.7rem; margin-top:4px;">❤️ HP: ${b.wild.currentHp}/${b.wild.maxHp}</div>
-        `;
-    }
+    // ----- Enemy Stat Box -----
+const enemyStatBox = document.querySelector('#battle-area .enemy-side .stat-box');
+if (enemyStatBox) {
+    const shinyIcon = b.wild.isShiny ? '✨ ' : '';
+    let bonusIcons = '';
+    if (b.wild.bonusStats?.atk) bonusIcons += '⚔️';
+    if (b.wild.bonusStats?.def) bonusIcons += '🛡️';
+    if (b.wild.bonusStats?.spd) bonusIcons += '🏃';
+    const specialBadge = b.wild.specialBadge || '';
+    const hpPercent = (b.wild.currentHp / b.wild.maxHp) * 100;
+    
+    enemyStatBox.innerHTML = `
+        <div><strong>${shinyIcon}${b.wild.name.toUpperCase()}</strong> | Lv.${b.wild.level}</div>
+        ${specialBadge ? `<div style="font-size:0.7rem; margin-top:2px;">${specialBadge}</div>` : ''}
+        ${bonusIcons ? `<div style="font-size:0.9rem; margin-top:2px;">${bonusIcons}</div>` : ''}
+        <div>${generateTypeBadges(b.wild.types)}</div>
+        <div class="hp-bar"><div class="hp-fill" style="width: ${hpPercent}%; background: var(--success);"></div></div>
+        <div style="font-size:0.7rem; margin-top:4px;">❤️ HP: ${b.wild.currentHp}/${b.wild.maxHp}</div>
+    `;
+}
 
-    // ----- Player Stat Box (new layout) -----
-    const playerStatBox = document.querySelector('#battle-area .player-side .stat-box');
-    if (playerStatBox) {
-        const shinyIcon = b.player.isShiny ? '✨ ' : '';
-        let bonusIcons = '';
-        if (b.player.bonusStats?.atk) bonusIcons += '⚔️';
-        if (b.player.bonusStats?.def) bonusIcons += '🛡️';
-        if (b.player.bonusStats?.spd) bonusIcons += '🏃';
-        const hpPercent = (b.player.currentHp / b.player.maxHp) * 100;
-        const neededXP = getExpNeededForNextLevel(b.player.level);
-        const currentXP = b.player.exp || 0;
-        const xpPercent = Math.floor((currentXP / neededXP) * 100);
-        playerStatBox.innerHTML = `
-            <div><strong>${shinyIcon}${b.player.name.toUpperCase()}</strong> | Lv.${b.player.level} ${bonusIcons}</div>
-            <div>${generateTypeBadges(b.player.types)}</div>
-            <div class="hp-bar"><div class="hp-fill" style="width: ${hpPercent}%; background: var(--success);"></div></div>
-            <div style="font-size:0.7rem; margin-top:4px;">❤️ HP: ${b.player.currentHp}/${b.player.maxHp}</div>
-            <div style="font-size:0.7rem; margin-top:2px;">⭐ XP: ${currentXP}/${neededXP} (${xpPercent}%)</div>
-        `;
-    }
+// ----- Player Stat Box -----
+const playerStatBox = document.querySelector('#battle-area .player-side .stat-box');
+if (playerStatBox) {
+    const shinyIcon = b.player.isShiny ? '✨ ' : '';
+    let bonusIcons = '';
+    if (b.player.bonusStats?.atk) bonusIcons += '⚔️';
+    if (b.player.bonusStats?.def) bonusIcons += '🛡️';
+    if (b.player.bonusStats?.spd) bonusIcons += '🏃';
+    const specialBadge = b.player.specialBadge || ''; // players normally don't have these, but for completeness
+    const hpPercent = (b.player.currentHp / b.player.maxHp) * 100;
+    const neededXP = getExpNeededForNextLevel(b.player.level);
+    const currentXP = b.player.exp || 0;
+    const xpPercent = Math.floor((currentXP / neededXP) * 100);
+    
+    playerStatBox.innerHTML = `
+        <div><strong>${shinyIcon}${b.player.name.toUpperCase()}</strong> | Lv.${b.player.level}</div>
+        ${specialBadge ? `<div style="font-size:0.7rem; margin-top:2px;">${specialBadge}</div>` : ''}
+        ${bonusIcons ? `<div style="font-size:0.9rem; margin-top:2px;">${bonusIcons}</div>` : ''}
+        <div>${generateTypeBadges(b.player.types)}</div>
+        <div class="hp-bar"><div class="hp-fill" style="width: ${hpPercent}%; background: var(--success);"></div></div>
+        <div style="font-size:0.7rem; margin-top:4px;">❤️ HP: ${b.player.currentHp}/${b.player.maxHp}</div>
+        <div style="font-size:0.7rem; margin-top:2px;">⭐ XP: ${currentXP}/${neededXP} (${xpPercent}%)</div>
+    `;
+}
 
     // ----- Move Buttons (unchanged) -----
     const typeToId = { normal:1, fighting:2, flying:3, poison:4, ground:5, rock:6, bug:7, ghost:8, steel:9, fire:10, water:11, grass:12, electric:13, psychic:14, ice:15, dragon:16, dark:17, fairy:18 };
@@ -3816,7 +3825,7 @@ async function trackRecord(id, name) {
                 <li style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
                     <img src="${spriteUrl}" style="width: 24px; height: 24px; object-fit: contain; image-rendering: pixelated;" 
                          onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${item.pokemonId}.png'">
-                    <span><strong>${item.name}</strong> → +${item.xpGained} XP</span>
+                    <span><strong>${item.name}</strong>  +${item.xpGained} XP</span>
                 </li>
             `;
         }
@@ -3827,8 +3836,9 @@ async function trackRecord(id, name) {
 
     details.innerHTML = `
         <div>Total Experience: +${data.xp}</div>
-        ${breakdownHtml}
         <div>Coins Earned: ₱${data.coins}</div>
+        ${breakdownHtml}
+        
         ${data.leveledUp ? '<div>⭐ A Pokémon leveled up! ⭐</div>' : ''}
     `;
 

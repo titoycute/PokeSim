@@ -1,6 +1,7 @@
-const CACHE_NAME = 'pokesim-v1.6.1.8'   // ← change this version number on every deploy
+const CACHE_NAME = 'pokesim-v1.6.1.7';   // increment when you change assets or sprite caching logic
 const assets = [
   'index.html',
+  'map.html',
   'manifest.json',
   'favicon.ico',
   'PokeSim_Pokemon.png',
@@ -12,18 +13,24 @@ const assets = [
   'music4.mp3'
 ];
 
-// Install: cache assets and force activation
+// Patterns for external sprite URLs that should be cached
+const SPRITE_PATTERNS = [
+  'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/',
+  'https://play.pokemonshowdown.com/sprites/',
+  'https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/'
+];
+
+// Install: cache static assets
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
       return cache.addAll(assets);
     })
   );
-  // Force the new service worker to take over immediately
   self.skipWaiting();
 });
 
-// Activate: clean up old caches and claim all clients
+// Activate: clean up old caches
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys => {
@@ -32,33 +39,72 @@ self.addEventListener('activate', e => {
       );
     })
   );
-  // Take control of all pages without needing a refresh
   e.waitUntil(clients.claim());
 });
 
-// Fetch: try network first, fallback to cache
+// Fetch: cache static assets and sprite images
 self.addEventListener('fetch', e => {
-  e.respondWith(
-    fetch(e.request)
-      .then(response => {
-        // If network request succeeds, store a copy in the cache
-        const responseClone = response.clone();
-        caches.open(CACHE_NAME).then(cache => {
-          cache.put(e.request, responseClone);
+  const request = e.request;
+
+  // Skip non-GET requests
+  if (request.method !== 'GET') {
+    e.respondWith(fetch(request));
+    return;
+  }
+
+  const url = new URL(request.url);
+  const isSameOrigin = url.origin === self.location.origin;
+
+  // 1. Cache external sprite images (Pokémon sprites)
+  if (SPRITE_PATTERNS.some(pattern => request.url.startsWith(pattern))) {
+    e.respondWith(
+      caches.match(request).then(cachedResponse => {
+        if (cachedResponse) {
+          return cachedResponse; // serve from cache
+        }
+        // Fetch from network and cache for future
+        return fetch(request).then(networkResponse => {
+          if (networkResponse.ok) {
+            const clone = networkResponse.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
+          }
+          return networkResponse;
+        }).catch(() => {
+          // Fallback: maybe return a placeholder? (optional)
+          return new Response('Sprite not available', { status: 404 });
         });
-        return response;
       })
-      .catch(() => {
-        // Network failed – serve from cache
-        return caches.match(e.request);
-      })
-  );
+    );
+    return;
+  }
+
+  // 2. For same-origin requests (your own files): network first, fallback to cache
+  if (isSameOrigin) {
+    e.respondWith(
+      fetch(request)
+        .then(response => {
+          // Cache a clone of the response for offline use
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(request, responseClone);
+          });
+          return response;
+        })
+        .catch(() => {
+          // Network failed – serve from cache
+          return caches.match(request);
+        })
+    );
+    return;
+  }
+
+  // 3. For all other external requests (PokeAPI JSON, Firebase, etc.) – just fetch, no caching
+  e.respondWith(fetch(request));
 });
 
-// Listen for messages from the page
+// Listen for version requests from the page
 self.addEventListener('message', event => {
   if (event.data && event.data.type === 'GET_VERSION') {
-    // Send back the cache version
     event.ports[0].postMessage({ version: CACHE_NAME });
   }
 });

@@ -2031,7 +2031,7 @@ if (data.breakdown && data.breakdown.length) {
             <li style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
                 <img src="${spriteUrl}" style="width: 24px; height: 24px; object-fit: contain; image-rendering: pixelated;" 
                      onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${item.pokemonId}.png'">
-                <span><strong>${item.name}</strong> → +${item.xpGained} XP</span>
+                <span><strong>${item.name}</strong>  +${item.xpGained} XP</span>
             </li>
         `;
     }
@@ -2042,9 +2042,9 @@ breakdownHtml += '</ul></div>';
 
 details.innerHTML = `
     <div>Total Experience: +${data.xp}</div>
-    
-    ${breakdownHtml}
     <div>Coins Earned: ₱${data.coins}</div>
+    ${breakdownHtml}
+    
     ${data.leveledUp ? '<div>⭐ A Pokémon leveled up! ⭐</div>' : ''}
 `;
 
@@ -2540,11 +2540,13 @@ function renderBattleUI() {
         if (b.wild.bonusStats?.atk) bonusIcons += '⚔️';
         if (b.wild.bonusStats?.def) bonusIcons += '🛡️';
         if (b.wild.bonusStats?.spd) bonusIcons += '🏃';
-        const specialBadge = b.wild.specialBadge ? b.wild.specialBadge.split(' ')[0] + ' ' : '';
-        const displayName = specialBadge + b.wild.name.toUpperCase();
+        const specialBadge = b.wild.specialBadge || '';
         const hpPercent = (b.wild.currentHp / b.wild.maxHp) * 100;
+
         enemyStatBox.innerHTML = `
-            <div><strong>${shinyIcon}${displayName}</strong> | Lv.${b.wild.level} ${bonusIcons}</div>
+            <div><strong>${shinyIcon}${b.wild.name.toUpperCase()}</strong> | Lv.${b.wild.level}</div>
+            ${specialBadge ? `<div style="font-size:0.7rem; margin-top:2px;">${specialBadge}</div>` : ''}
+            ${bonusIcons ? `<div style="font-size:0.9rem; margin-top:2px;">${bonusIcons}</div>` : ''}
             <div>${generateTypeBadges(b.wild.types)}</div>
             <div class="hp-bar"><div class="hp-fill" style="width: ${hpPercent}%; background: var(--success);"></div></div>
             <div style="font-size:0.7rem; margin-top:4px;">❤️ HP: ${b.wild.currentHp}/${b.wild.maxHp}</div>
@@ -2559,12 +2561,16 @@ function renderBattleUI() {
         if (b.player.bonusStats?.atk) bonusIcons += '⚔️';
         if (b.player.bonusStats?.def) bonusIcons += '🛡️';
         if (b.player.bonusStats?.spd) bonusIcons += '🏃';
+        const specialBadge = b.player.specialBadge || ''; // players don't usually have special badges, but for consistency
         const hpPercent = (b.player.currentHp / b.player.maxHp) * 100;
         const neededXP = getExpNeededForNextLevel(b.player.level);
         const currentXP = b.player.exp || 0;
         const xpPercent = Math.floor((currentXP / neededXP) * 100);
+
         playerStatBox.innerHTML = `
-            <div><strong>${shinyIcon}${b.player.name.toUpperCase()}</strong> | Lv.${b.player.level} ${bonusIcons}</div>
+            <div><strong>${shinyIcon}${b.player.name.toUpperCase()}</strong> | Lv.${b.player.level}</div>
+            ${specialBadge ? `<div style="font-size:0.7rem; margin-top:2px;">${specialBadge}</div>` : ''}
+            ${bonusIcons ? `<div style="font-size:0.9rem; margin-top:2px;">${bonusIcons}</div>` : ''}
             <div>${generateTypeBadges(b.player.types)}</div>
             <div class="hp-bar"><div class="hp-fill" style="width: ${hpPercent}%; background: var(--success);"></div></div>
             <div style="font-size:0.7rem; margin-top:4px;">❤️ HP: ${b.player.currentHp}/${b.player.maxHp}</div>
@@ -2595,7 +2601,6 @@ function renderBattleUI() {
         movesDiv.appendChild(btn);
     });
 }
-
 
 async function trackRecord(id, name) {
     try {

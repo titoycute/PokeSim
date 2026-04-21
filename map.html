@@ -977,6 +977,7 @@ body.dark-theme #map-info-modal .btn-primary:hover {
             <img id="preview-sprite" class="encounter-sprite" src="" alt="">
             <div id="preview-name" class="encounter-name"></div>
             <div id="preview-badges" class="encounter-badges"></div>
+            <div id="preview-level-hp" style="margin: 8px 0; font-size: 0.95rem; font-weight: bold; background: rgba(0,0,0,0.06); border-radius: 20px; padding: 5px 14px; display: inline-block;"></div>
             <div id="preview-weaknesses" style="margin: 10px 0; font-size: 0.9rem;"></div>
             <div id="preview-capture-status" style="margin: 5px 0; font-size: 0.9rem;"></div>
             <div id="preview-encounter-count" style="margin: 5px 0; font-size: 0.9rem;"></div>
@@ -1759,8 +1760,8 @@ async function handlePlayerFaint(battle) {
 
         
         // === NORMAL WIN REWARDS (XP, coins, evolution) ===
-        let gainXP = Math.floor(b.wild.level * 23);
-        let coins = Math.floor(b.wild.level * 7);
+        let gainXP = Math.floor(b.wild.level * 30);
+        let coins = Math.floor(b.wild.level * 10);
         let leveledUp = false;
         const monRef = doc(db, "users", userId, "pokemon", b.player.id);
         let curExp = b.player.exp || 0;
@@ -2673,7 +2674,8 @@ rawMoves = baseData.moves;
             else if (isLegendary) { specialCategory = 'legendary'; specialBadge = '⭐ LEGENDARY'; }
             else if (isMythical) { specialCategory = 'mythical'; specialBadge = '✨ MYTHICAL'; }
 
-            const isShiny = Math.random() < 1 / SHINY_RATE;
+            const mapShinyRate = currentMap?.shinyRate || SHINY_RATE;
+            const isShiny = Math.random() < 1 / mapShinyRate;
 
             const ps = document.getElementById('preview-sprite');
             ps.classList.remove('gmax-sprite', 'legendary-sprite', 'mythical-sprite', 'mega-sprite', 'ub-sprite');
@@ -2702,8 +2704,7 @@ rawMoves = baseData.moves;
             document.getElementById('preview-weaknesses').innerHTML = weaknesses.length > 0 ? `<strong>Weaknesses:</strong> ${weaknesses.map(t => `<span class="type-badge" style="background: ${getTypeColor(t)};">${t.toUpperCase()}</span>`).join(' ')}` : `<strong>Weaknesses:</strong> None (or neutral)`;
             document.getElementById('preview-capture-status').innerHTML = owned ? `<span style="color: var(--success);">✓ Already captured</span>` : `<span style="color: var(--danger);">✗ Not yet captured</span>`;
             document.getElementById('preview-encounter-count').innerHTML = `📖 Encountered ${encounterCount} time${encounterCount !== 1 ? 's' : ''} before this battle.`;
-            document.getElementById('encounter-preview').classList.remove('hidden');
-
+            // Calculate level BEFORE showing preview so we can display it
             let wildLevel;
             const wildBonus = generateWildBonusStats();
             if (currentMap.specialLevelRange?.enabled) {
@@ -2713,6 +2714,10 @@ rawMoves = baseData.moves;
                 wildLevel = avgLevel + Math.floor(Math.random() * 21) - 10;
             }
             wildLevel = Math.max(1, wildLevel);
+            const wildMaxHp = getMaxHp(wildLevel, isShiny);
+
+            document.getElementById('encounter-preview').classList.remove('hidden');
+             document.getElementById('preview-level-hp').innerHTML = `⚡ Level ${wildLevel} &nbsp;|&nbsp; ❤️ HP: ${wildMaxHp}`;
             const count = await trackRecord(wildId, wildData.name);
 
             setTimeout(async () => {
@@ -2960,6 +2965,7 @@ function openMapEditModal(map = null) {
                 <div class="form-group"><label>Catch Rate (%)</label><input type="number" id="map-catch-rate" value="${mapData.catchRate || 45}" min="1" max="100"></div>
                 <div class="form-group"><label>Required XP % to Catch</label><input type="number" id="map-req-xp" value="${mapData.requiredExpPercent || 10}" min="1" max="100"></div>
                 <div class="form-group"><label>Catch XP Penalty (%)</label><input type="number" id="map-catch-penalty" value="${mapData.catchXpPenaltyPercent || 10}" min="1" max="100"></div>
+                  <div class="form-group"><label>✨ Shiny Rate (1 in N) — Admin Only</label><input type="number" id="map-shiny-rate" value="${mapData.shinyRate || 8192}" min="1" placeholder="e.g. 592 means 1/592 chance"></div>
                 <div class="form-group"><label>Pokémon ID Min</label><input type="number" id="map-pokemon-min" value="${mapData.pokemonMin}" min="1" max="20000"></div>
                 <div class="form-group"><label>Pokémon ID Max</label><input type="number" id="map-pokemon-max" value="${mapData.pokemonMax}" min="1" max="20000"></div>
                 <div class="form-group"><label>Map Image (filename from map1.png to map15.png)</label><input type="text" id="map-image" value="${mapData.imageUrl || 'map1.png'}"></div>
@@ -2992,14 +2998,6 @@ function openMapEditModal(map = null) {
                     <div style="display: flex; gap: 8px; margin-bottom: 8px;">
                         <input type="text" id="pokemon-search" placeholder="Search by name or ID..." style="flex:1;">
                         <button type="button" id="add-pokemon-btn" class="btn btn-primary btn-small">Add</button>
- <!-- Batch import: comma-separated IDs -->
-    <div style="margin-bottom: 12px;">
-        <label style="font-size:0.8rem;">Batch add (comma-separated IDs)</label>
-        <div style="display: flex; gap: 8px;">
-            <textarea id="batch-pokemon-ids" placeholder="e.g., 1,4,7,25,39&#10;or 793,794,795,796,797,798,799,803,804,805,806" rows="2" style="flex:1; font-size:0.8rem;"></textarea>
-            <button type="button" id="batch-add-btn" class="btn btn-outline btn-small" style="align-self:flex-end;">Add Batch</button>
-        </div>
-    </div>
                     </div>
 
                      <!-- Batch import: comma-separated IDs -->
@@ -3023,6 +3021,8 @@ function openMapEditModal(map = null) {
     `;
     
     // Delete All button
+
+    // Delete All button
 const deleteAllBtn = modal.querySelector('#delete-all-btn');
 deleteAllBtn.onclick = async () => {
     if (specialIds.length === 0) {
@@ -3032,9 +3032,12 @@ deleteAllBtn.onclick = async () => {
     if (confirm(`Are you sure you want to remove ALL ${specialIds.length} special Pokémon from this map?`)) {
         specialIds = [];
         await renderSpecialTags();
-        batchTextarea.value = ''; // also clear batch textarea
+        batchTextarea.value = '';
         alert("All special Pokémon removed.");
     }
+};   // ← ADD THIS CLOSING BRACE
+
+
 
 
     // Batch add button
@@ -3105,7 +3108,7 @@ batchAddBtn.onclick = async () => {
         }
         
         // Attach change events to color pickers
-        document.querySelectorAll('.tile-color-picker').forEach(picker => {
+        modal.querySelectorAll('.tile-color-picker').forEach(picker => {
             picker.addEventListener('input', (e) => {
                 const idx = parseInt(picker.dataset.index);
                 tileColorsArray[idx] = picker.value;
@@ -3241,37 +3244,66 @@ batchAddBtn.onclick = async () => {
     const cancelBtn = modal.querySelector('#cancel-map-btn');
     
     saveBtn.onclick = async () => {
-        // Collect tile colors from color pickers
-        const colorPickers = modal.querySelectorAll('.tile-color-picker');
-        const tileColors = Array.from(colorPickers).map(p => p.value);
-        
-        const newMap = {
-            name: modal.querySelector('#map-name').value.trim(),
-            description: modal.querySelector('#map-description').value.trim(),
-            generation: modal.querySelector('#map-generation').value.trim(),
-            requiredLevel: parseInt(modal.querySelector('#map-req-level').value) || 0,
-            catchRate: parseInt(modal.querySelector('#map-catch-rate').value) || 45,
-            requiredExpPercent: parseInt(modal.querySelector('#map-req-xp').value) || 10,
-            catchXpPenaltyPercent: parseInt(modal.querySelector('#map-catch-penalty').value) || 10,
-            pokemonMin: parseInt(modal.querySelector('#map-pokemon-min').value) || 1,
-            pokemonMax: parseInt(modal.querySelector('#map-pokemon-max').value) || 151,
-            imageUrl: modal.querySelector('#map-image').value.trim(),
-            tileClasses: classInput.value.split(',').map(s => s.trim()),
-            tileColors: tileColors,
-            specialLevelRange: {
-                enabled: modal.querySelector('#special-level-enabled').checked,
-                min: parseInt(modal.querySelector('#special-level-min').value) || 1,
-                max: parseInt(modal.querySelector('#special-level-max').value) || 100
-            },
-            specialPokemonList: specialIds
-        };
-        if (isNew) {
-            await addDoc(collection(db, "maps"), newMap);
-        } else {
-            await updateDoc(doc(db, "maps", map.id), newMap);
+        // Validate required fields
+        const mapName = modal.querySelector('#map-name').value.trim();
+        if (!mapName) {
+            alert('⚠️ Map name is required!');
+            modal.querySelector('#map-name').focus();
+            return;
         }
-        modal.remove();
-        loadMaps();
+
+        // Show loading state on button
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+        try {
+            const colorPickers = modal.querySelectorAll('.tile-color-picker');
+            const tileColors = Array.from(colorPickers).map(p => p.value);
+
+            const newMap = {
+                name: mapName,
+                description: modal.querySelector('#map-description').value.trim(),
+                generation: modal.querySelector('#map-generation').value.trim(),
+                requiredLevel: parseInt(modal.querySelector('#map-req-level').value) || 0,
+                catchRate: parseInt(modal.querySelector('#map-catch-rate').value) || 45,
+                requiredExpPercent: parseInt(modal.querySelector('#map-req-xp').value) || 10,
+                catchXpPenaltyPercent: parseInt(modal.querySelector('#map-catch-penalty').value) || 10,
+                shinyRate: parseInt(modal.querySelector('#map-shiny-rate').value) || 8192,
+                pokemonMin: parseInt(modal.querySelector('#map-pokemon-min').value) || 1,
+                pokemonMax: parseInt(modal.querySelector('#map-pokemon-max').value) || 151,
+                imageUrl: modal.querySelector('#map-image').value.trim(),
+                tileClasses: classInput.value.split(',').map(s => s.trim()),
+                tileColors: tileColors,
+                specialLevelRange: {
+                    enabled: modal.querySelector('#special-level-enabled').checked,
+                    min: parseInt(modal.querySelector('#special-level-min').value) || 1,
+                    max: parseInt(modal.querySelector('#special-level-max').value) || 100
+                },
+                specialPokemonList: specialIds
+            };
+
+            if (isNew) {
+                await addDoc(collection(db, "maps"), newMap);
+            } else {
+                await updateDoc(doc(db, "maps", map.id), newMap);
+            }
+
+            // ✅ Success
+            saveBtn.innerHTML = '<i class="fas fa-check"></i> Saved!';
+            saveBtn.style.background = 'var(--success)';
+            setTimeout(() => {
+                modal.remove();
+                loadMaps(true);
+            }, 800);
+
+        } catch (err) {
+            // ❌ Error
+            console.error('Save failed:', err);
+            alert('❌ Save failed: ' + (err.message || 'Unknown error. Check your connection.'));
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = 'Save';
+            saveBtn.style.background = '';
+        }
     };
     
     cancelBtn.onclick = () => modal.remove();
@@ -3280,7 +3312,7 @@ batchAddBtn.onclick = async () => {
     const specialFields = modal.querySelector('#special-level-fields');
     specialCheckbox.onchange = () => specialFields.style.display = specialCheckbox.checked ? 'block' : 'none';
 }
-}
+
 
 
 

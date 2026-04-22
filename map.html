@@ -1826,11 +1826,15 @@ async function resolveBattle(win) {
         const recordRef = doc(db, "users", userId, "records", b.wild.pokemonId.toString());
         const recordSnap = await getDoc(recordRef);
         const encounterCount = recordSnap.exists() ? recordSnap.data().count : 0;
-        const alreadyAutoCaught = recordSnap.exists() && recordSnap.data().autoCaught5th === true;
-
+      
         // === AUTO‑CATCH ON 5TH ENCOUNTER (ONCE PER SPECIES) ===
-        if (encounterCount >= 5 && !alreadyAutoCaught) {
-    addBattleLog(`🎉 This is your 5th encounter with ${b.wild.name.toUpperCase()}! It automatically joins your team!`);
+        // ── MAP‑CONFIGURABLE AUTO‑CATCH ──
+const autoCatchEnabled = currentMap?.autoCatchEnabled === true;
+const autoCatchThreshold = currentMap?.autoCatchThreshold || 5;
+const alreadyAutoCaught = recordSnap.exists() && (recordSnap.data().autoCaught === true || recordSnap.data().autoCaught5th === true);
+
+if (autoCatchEnabled && encounterCount >= autoCatchThreshold && !alreadyAutoCaught) {
+    addBattleLog(`🎉 ${b.wild.name.toUpperCase()} has been encountered ${encounterCount} times on this map! It automatically joins your team!`);
     const trainerName = await getTrainerName();
     const newPokemon = {
         pokemonId: b.wild.pokemonId,
@@ -1842,19 +1846,18 @@ async function resolveBattle(win) {
         inTeam: false,
         capturedAt: new Date(),
         capturedBy: trainerName,
-        capturedOnMap: currentMap?.name || "Somewhere inPokeSim",
+        capturedOnMap: currentMap?.name || "Unknown Map",
         bonusStats: b.wild.bonusStats,
         isShiny: b.wild.isShiny
     };
     await addDoc(collection(db, "users", userId, "pokemon"), newPokemon);
     ownedPokemonIds.add(b.wild.pokemonId);
     await updateUserTotalLevels(userId, b.wild.level);
-    await updateDoc(recordRef, { autoCaught5th: true });
+    await updateDoc(recordRef, { autoCaught: true });
     invalidateTeamCache();
     showBattleSummary('catch');
     return;
 }
-
         // ---- Normal win: distribute XP among participants ----
         const totalBaseXP = Math.floor(b.wild.level * 30);
         const coins = Math.floor(b.wild.level * 10);
@@ -2865,19 +2868,31 @@ function savePlayerPositionLocal() {
                 return;
             }
 
-            let wildId;
-            if (currentMap.specialPokemonList?.length > 0 && Math.random() < 0.5) {
-                wildId = currentMap.specialPokemonList[Math.floor(Math.random() * currentMap.specialPokemonList.length)];
-            } else {
-                let min = currentMap.pokemonMin || 1, max = currentMap.pokemonMax || 151;
-                let valid = false, attempts = 0;
-                while (!valid && attempts < 15) {
-                    wildId = Math.floor(Math.random() * (max - min + 1)) + min;
-                    if (!(wildId > 1025 && wildId < 10001)) valid = true;
-                    attempts++;
-                }
-                if (!valid) wildId = min;
-            }
+           let wildId;
+const hasSpecialList = currentMap.specialPokemonList && currentMap.specialPokemonList.length > 0;
+const rangeEnabled = (currentMap.pokemonMin > 0 && currentMap.pokemonMax > 0 && currentMap.pokemonMin < currentMap.pokemonMax);
+
+if (!rangeEnabled && hasSpecialList) {
+    // Min/Max both 0 (or invalid) → only special Pokémon
+    wildId = currentMap.specialPokemonList[Math.floor(Math.random() * currentMap.specialPokemonList.length)];
+} else if (rangeEnabled && hasSpecialList && Math.random() < 0.5) {
+    // Both range and special list exist – 50% chance from special list
+    wildId = currentMap.specialPokemonList[Math.floor(Math.random() * currentMap.specialPokemonList.length)];
+} else if (rangeEnabled) {
+    // Use the ID range
+    let min = currentMap.pokemonMin;
+    let max = currentMap.pokemonMax;
+    let valid = false, attempts = 0;
+    while (!valid && attempts < 15) {
+        wildId = Math.floor(Math.random() * (max - min + 1)) + min;
+        if (!(wildId > 1025 && wildId < 10001)) valid = true;
+        attempts++;
+    }
+    if (!valid) wildId = min;
+} else {
+    // No range and no special list – fallback to Kanto (1-151)
+    wildId = Math.floor(Math.random() * 151) + 1;
+}
            const wildData = await cachedFetch(`https://pokeapi.co/api/v2/pokemon/${wildId}`);
             let species = { id: wildId, is_legendary: false, is_mythical: false, generation: { url: "9" } };
             try {
@@ -3126,24 +3141,27 @@ rawMoves = baseData.moves;
             card.style.cursor = 'pointer';
             card.onclick = () => showMapPokemonList(map);
             card.innerHTML = `
-                <img src="${map.imageUrl || 'map1.png'}" alt="${map.name}" onerror="this.src='map1.png'">
-                <h3>${escapeHtml(map.name)}</h3>
-                <p style="font-weight: bold; color: var(--primary);">Gen ${map.generation || '?'}</p>
-                <p class="map-description" style="font-style: italic;">${map.description || ''}</p>
-                <div style="font-size: 0.75rem; color: var(--text-light); margin: 8px 0;">
-                    <div>🎯 Catch rate: ${map.catchRate || 45}% (max)</div>
-                    <div>📊 Need ${map.requiredExpPercent || 10}% XP progress to catch</div>
-                    <div>💸 Catch costs ${map.catchXpPenaltyPercent || 10}% of XP progress bar</div>
-                    <div style="font-size: 0.75rem; color: var(--text-light); margin: 4px 0;">
-                        ${map.specialLevelRange?.enabled ? `📈 Wild levels: ${map.specialLevelRange.min} – ${map.specialLevelRange.max}` : `📈 Wild levels: around your active Pokémon's level (±10, min 1)`}
-                    </div>
-                </div>
-                <p style="font-size: 0.75rem; color: var(--text-light);">Click card to view Pokémon list</p>
-                <p class="required ${unlocked ? 'unlocked' : 'locked'}">
-                    ${unlocked ? '✓ Available' : `🔒 Requires total level ${map.requiredLevel}`}
-                </p>
-                <button class="btn btn-primary explore-btn" data-map-id="${map.id}" ${!unlocked ? 'disabled' : ''} onclick="event.stopPropagation();">Explore</button>
-            `;
+    <img src="${map.imageUrl || 'map1.png'}" alt="${map.name}" onerror="this.src='map1.png'">
+    <h3>${escapeHtml(map.name)}</h3>
+    <p style="font-weight: bold; color: var(--primary);">Gen ${map.generation || '?'}</p>
+    <p class="map-description" style="font-style: italic;">${map.description || ''}</p>
+    <div style="font-size: 0.75rem; color: var(--text-light); margin: 8px 0;">
+        <div>🎯 Catch rate: ${map.catchRate || 45}% (max) ${(map.catchRate > 0) ? '✅ Active' : '❌ Disabled'}</div>
+    <div>📊 Need ${map.requiredExpPercent || 10}% XP progress to catch</div>
+    <div>💸 Catch costs ${map.catchXpPenaltyPercent || 10}% of XP progress bar</div>
+    ${map.autoCatchEnabled 
+        ? `<div>✨ Auto‑catch: ✅ ENABLED (after ${map.autoCatchThreshold || 5} encounters)</div>` 
+        : `<div>✨ Auto‑catch: ❌ DISABLED</div>`}
+    <div style="font-size: 0.75rem; color: var(--text-light); margin: 4px 0;">
+        <span class="map-meta-pill">🐾 ${(map.pokemonMin > 0 && map.pokemonMax > 0) ? `#${map.pokemonMin}–${map.pokemonMax}` : 'Special only'}</span>
+    </div>
+    </div>
+    <p style="font-size: 0.75rem; color: var(--text-light);">Click card to view Pokémon list</p>
+    <p class="required ${unlocked ? 'unlocked' : 'locked'}">
+        ${unlocked ? '✓ Available' : `🔒 Requires total level ${map.requiredLevel}`}
+    </p>
+    <button class="btn btn-primary explore-btn" data-map-id="${map.id}" ${!unlocked ? 'disabled' : ''} onclick="event.stopPropagation();">Explore</button>
+`;
             const exploreBtn = card.querySelector('.explore-btn');
             exploreBtn.onclick = (e) => {
                 e.stopPropagation();
@@ -3191,13 +3209,15 @@ function openMapEditModal(map = null) {
         catchRate: 45,
         requiredExpPercent: 10,
         catchXpPenaltyPercent: 10,
-        pokemonMin: 1,
-        pokemonMax: 151,
+        pokemonMin: 0,
+        pokemonMax: 0,
         imageUrl: 'map1.png',
         tileClasses: ['dirt', 'grass'],
         tileColors: ['#c2b280', '#78cd54'],
         specialLevelRange: { enabled: false, min: 1, max: 100 },
-        specialPokemonList: []
+        specialPokemonList: [],
+        autoCatchEnabled: false,           // ← add this
+        autoCatchThreshold: 5    
     };
 
     modal.innerHTML = `
@@ -3210,11 +3230,23 @@ function openMapEditModal(map = null) {
                 <div class="form-group"><label>Generation (I-IX)</label><input type="text" id="map-generation" value="${mapData.generation || 'I'}"></div>
                 <div class="form-group"><label>Required Total Level</label><input type="number" id="map-req-level" value="${mapData.requiredLevel}" min="0"></div>
                 <div class="form-group"><label>Catch Rate (%)</label><input type="number" id="map-catch-rate" value="${mapData.catchRate || 45}" min="1" max="100"></div>
+               <!-- Add after the catch penalty field -->
+<div class="form-group">
+    <label class="checkbox-label">
+        <input type="checkbox" id="map-auto-catch-enabled" ${mapData.autoCatchEnabled ? 'checked' : ''}>
+        ✨ Enable Auto‑Catch (automatically catch when encounter count reaches threshold)
+    </label>
+</div>
+<div class="form-group">
+    <label>Auto‑Catch Threshold (encounters)</label>
+    <input type="number" id="map-auto-catch-threshold" value="${mapData.autoCatchThreshold || 5}" min="1" max="100">
+    <small>Player must encounter this species N times (cumulative) to trigger auto‑catch on this map.</small>
+</div>
                 <div class="form-group"><label>Required XP % to Catch</label><input type="number" id="map-req-xp" value="${mapData.requiredExpPercent || 10}" min="1" max="100"></div>
                 <div class="form-group"><label>Catch XP Penalty (%)</label><input type="number" id="map-catch-penalty" value="${mapData.catchXpPenaltyPercent || 10}" min="1" max="100"></div>
                   <div class="form-group"><label>✨ Shiny Rate (1 in N) — Admin Only</label><input type="number" id="map-shiny-rate" value="${mapData.shinyRate || 8192}" min="1" placeholder="e.g. 592 means 1/592 chance"></div>
-                <div class="form-group"><label>Pokémon ID Min</label><input type="number" id="map-pokemon-min" value="${mapData.pokemonMin}" min="1" max="20000"></div>
-                <div class="form-group"><label>Pokémon ID Max</label><input type="number" id="map-pokemon-max" value="${mapData.pokemonMax}" min="1" max="20000"></div>
+                <div class="form-group"><label>Pokémon ID Min</label><input type="number" id="map-pokemon-min" value="${mapData.pokemonMin}" min="0" max="20000"></div>
+                <div class="form-group"><label>Pokémon ID Max</label><input type="number" id="map-pokemon-max" value="${mapData.pokemonMax}" min="0" max="20000"></div>
                 <div class="form-group"><label>Map Image (filename from map1.png to map15.png)</label><input type="text" id="map-image" value="${mapData.imageUrl || 'map1.png'}"></div>
                 
                 <!-- Tile Classes (comma separated) -->
@@ -3490,69 +3522,73 @@ batchAddBtn.onclick = async () => {
     const saveBtn = modal.querySelector('#save-map-btn');
     const cancelBtn = modal.querySelector('#cancel-map-btn');
     
-    saveBtn.onclick = async () => {
-        // Validate required fields
-        const mapName = modal.querySelector('#map-name').value.trim();
-        if (!mapName) {
-            alert('⚠️ Map name is required!');
-            modal.querySelector('#map-name').focus();
-            return;
+   saveBtn.onclick = async () => {
+    const mapName = modal.querySelector('#map-name').value.trim();
+    if (!mapName) {
+        alert('⚠️ Map name is required!');
+        modal.querySelector('#map-name').focus();
+        return;
+    }
+
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+    try {
+        const colorPickers = modal.querySelectorAll('.tile-color-picker');
+        const tileColors = Array.from(colorPickers).map(p => p.value);
+
+        let pokemonMinRaw = modal.querySelector('#map-pokemon-min').value.trim();
+        let pokemonMaxRaw = modal.querySelector('#map-pokemon-max').value.trim();
+        let pokemonMin = pokemonMinRaw === '' ? 0 : parseInt(pokemonMinRaw);
+        let pokemonMax = pokemonMaxRaw === '' ? 0 : parseInt(pokemonMaxRaw);
+        if (isNaN(pokemonMin)) pokemonMin = 0;
+        if (isNaN(pokemonMax)) pokemonMax = 0;
+
+        const newMap = {
+            name: mapName,
+            description: modal.querySelector('#map-description').value.trim(),
+            generation: modal.querySelector('#map-generation').value.trim(),
+            requiredLevel: parseInt(modal.querySelector('#map-req-level').value) || 0,
+            catchRate: parseInt(modal.querySelector('#map-catch-rate').value) || 45,
+            autoCatchEnabled: document.getElementById('map-auto-catch-enabled').checked,
+            autoCatchThreshold: parseInt(document.getElementById('map-auto-catch-threshold').value) || 5,
+            requiredExpPercent: parseInt(modal.querySelector('#map-req-xp').value) || 10,
+            catchXpPenaltyPercent: parseInt(modal.querySelector('#map-catch-penalty').value) || 10,
+            shinyRate: parseInt(modal.querySelector('#map-shiny-rate').value) || 8192,
+            pokemonMin: pokemonMin,
+            pokemonMax: pokemonMax,
+            imageUrl: modal.querySelector('#map-image').value.trim(),
+            tileClasses: classInput.value.split(',').map(s => s.trim()),
+            tileColors: tileColors,
+            specialLevelRange: {
+                enabled: modal.querySelector('#special-level-enabled').checked,
+                min: parseInt(modal.querySelector('#special-level-min').value) || 1,
+                max: parseInt(modal.querySelector('#special-level-max').value) || 100
+            },
+            specialPokemonList: specialIds
+        };
+
+        if (isNew) {
+            await addDoc(collection(db, "maps"), newMap);
+        } else {
+            await updateDoc(doc(db, "maps", map.id), newMap);
         }
 
-        // Show loading state on button
-        saveBtn.disabled = true;
-        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        saveBtn.innerHTML = '<i class="fas fa-check"></i> Saved!';
+        saveBtn.style.background = 'var(--success)';
+        setTimeout(() => {
+            modal.remove();
+            loadMaps(true);
+        }, 800);
 
-        try {
-            const colorPickers = modal.querySelectorAll('.tile-color-picker');
-            const tileColors = Array.from(colorPickers).map(p => p.value);
-
-            const newMap = {
-                name: mapName,
-                description: modal.querySelector('#map-description').value.trim(),
-                generation: modal.querySelector('#map-generation').value.trim(),
-                requiredLevel: parseInt(modal.querySelector('#map-req-level').value) || 0,
-                catchRate: parseInt(modal.querySelector('#map-catch-rate').value) || 45,
-                requiredExpPercent: parseInt(modal.querySelector('#map-req-xp').value) || 10,
-                catchXpPenaltyPercent: parseInt(modal.querySelector('#map-catch-penalty').value) || 10,
-                shinyRate: parseInt(modal.querySelector('#map-shiny-rate').value) || 8192,
-                pokemonMin: parseInt(modal.querySelector('#map-pokemon-min').value) || 1,
-                pokemonMax: parseInt(modal.querySelector('#map-pokemon-max').value) || 151,
-                imageUrl: modal.querySelector('#map-image').value.trim(),
-                tileClasses: classInput.value.split(',').map(s => s.trim()),
-                tileColors: tileColors,
-                specialLevelRange: {
-                    enabled: modal.querySelector('#special-level-enabled').checked,
-                    min: parseInt(modal.querySelector('#special-level-min').value) || 1,
-                    max: parseInt(modal.querySelector('#special-level-max').value) || 100
-                },
-                specialPokemonList: specialIds
-            };
-
-            if (isNew) {
-                await addDoc(collection(db, "maps"), newMap);
-            } else {
-                await updateDoc(doc(db, "maps", map.id), newMap);
-            }
-
-            // ✅ Success
-            saveBtn.innerHTML = '<i class="fas fa-check"></i> Saved!';
-            saveBtn.style.background = 'var(--success)';
-            setTimeout(() => {
-                modal.remove();
-                loadMaps(true);
-            }, 800);
-
-        } catch (err) {
-            // ❌ Error
-            console.error('Save failed:', err);
-            alert('❌ Save failed: ' + (err.message || 'Unknown error. Check your connection.'));
-            saveBtn.disabled = false;
-            saveBtn.innerHTML = 'Save';
-            saveBtn.style.background = '';
-        }
-    };
-    
+    } catch (err) {
+        console.error('Save failed:', err);
+        alert('❌ Save failed: ' + (err.message || 'Unknown error. Check your connection.'));
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = 'Save';
+        saveBtn.style.background = '';
+    }
+};
     cancelBtn.onclick = () => modal.remove();
     
     const specialCheckbox = modal.querySelector('#special-level-enabled');

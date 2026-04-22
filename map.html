@@ -2081,18 +2081,19 @@ if (autoCatchEnabled && encounterCount >= autoCatchThreshold && !alreadyAutoCaug
     let encounterCooldown = false;
 
     function endBattleCleanup() {
-        document.getElementById('battle-summary-modal').classList.add('hidden');
-        document.getElementById('battle-area').classList.add('hidden');
-        currentBattle = null;
-        isProcessing = false;
-        toggleBattleUI(false);
-        stopBattleMusic();
-        encounterCooldown = true;
-        setTimeout(() => {
-            encounterCooldown = false;
-            if (!currentBattle) addBattleLog("You are ready for another encounter.");
-        }, 5000);
-    }
+    invalidateTeamCache(); // ← ADD THIS LINE
+    document.getElementById('battle-summary-modal').classList.add('hidden');
+    document.getElementById('battle-area').classList.add('hidden');
+    currentBattle = null;
+    isProcessing = false;
+    toggleBattleUI(false);
+    stopBattleMusic();
+    encounterCooldown = true;
+    setTimeout(() => {
+        encounterCooldown = false;
+        if (!currentBattle) addBattleLog("You are ready for another encounter.");
+    }, 5000);
+}
 
     function showBattleSummary(type, data = {}) {
         const b = currentBattle;

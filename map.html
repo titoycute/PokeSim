@@ -1780,12 +1780,8 @@ async function showSwitchPokemonModal(availablePokemon, isForced = false) {
 }
 
 async function handlePlayerFaint(battle) {
-    // ✅ Snapshot the fainted ID before anything changes
     const faintedId = battle.player ? battle.player.id : null;
-
-    // ✅ Exclude the fainted Pokémon explicitly
     const available = battle.playerTeam.filter(p => p.currentHp > 0 && p.id !== faintedId);
-
     if (available.length === 0) {
         addBattleLog("All your Pokémon have fainted! You black out...");
         isProcessing = false;
@@ -1794,12 +1790,8 @@ async function handlePlayerFaint(battle) {
         endBattleCleanup();
         return null;
     }
-
     addBattleLog(`${battle.player.name.toUpperCase()} fainted! Choose your next Pokémon.`);
-
-    // isForced = true → Cancel button is hidden, player MUST pick
     const selected = await showSwitchPokemonModal(available, true);
-
     if (!selected) {
         isProcessing = false;
         toggleBattleUI(false);
@@ -1808,23 +1800,19 @@ async function handlePlayerFaint(battle) {
         return null;
     }
 
+    // ✅ ADD THIS LINE – register the new Pokémon as a participant
+    battle.participants.add(selected.id);
+
     const newIdx = battle.playerTeam.findIndex(p => p.id === selected.id);
     battle.activePokemonIndex = newIdx;
     battle.player = battle.playerTeam[newIdx];
     renderBattleUI();
     addBattleLog(`Go! ${battle.player.name.toUpperCase()}!`);
-
-    // ✅ Always unlock UI after forced faint-switch
     isProcessing = false;
     toggleBattleUI(false);
-    if (currentTurnTimeout) {
-        clearTimeout(currentTurnTimeout);
-        currentTurnTimeout = null;
-    }
-
+    if (currentTurnTimeout) clearTimeout(currentTurnTimeout);
     return newIdx;
 }
-
 async function resolveBattle(win) {
     if (currentTurnTimeout) clearTimeout(currentTurnTimeout);
     isProcessing = true;

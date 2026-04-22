@@ -3146,16 +3146,20 @@ rawMoves = baseData.moves;
     <p style="font-weight: bold; color: var(--primary);">Gen ${map.generation || '?'}</p>
     <p class="map-description" style="font-style: italic;">${map.description || ''}</p>
     <div style="font-size: 0.75rem; color: var(--text-light); margin: 8px 0;">
-        <div>🎯 Catch rate: ${map.catchRate || 45}% (max) ${(map.catchRate > 0) ? '✅ Active' : '❌ Disabled'}</div>
+    <div>🎯 Catch rate: ${map.catchRate || 45}% (max)</div>
     <div>📊 Need ${map.requiredExpPercent || 10}% XP progress to catch</div>
     <div>💸 Catch costs ${map.catchXpPenaltyPercent || 10}% of XP progress bar</div>
     ${map.autoCatchEnabled 
         ? `<div>✨ Auto‑catch: ✅ ENABLED (after ${map.autoCatchThreshold || 5} encounters)</div>` 
         : `<div>✨ Auto‑catch: ❌ DISABLED</div>`}
+    ${isAdmin ? `<div>✨ Shiny rate: 1/${map.shinyRate || 8192}</div>` : ''}
+    <div>📈 Wild levels: ${map.specialLevelRange?.enabled 
+        ? `${map.specialLevelRange.min} – ${map.specialLevelRange.max}` 
+        : `Around your active Pokémon's level (±10, min 1)`}</div>
     <div style="font-size: 0.75rem; color: var(--text-light); margin: 4px 0;">
-        <span class="map-meta-pill">🐾 ${(map.pokemonMin > 0 && map.pokemonMax > 0) ? `#${map.pokemonMin}–${map.pokemonMax}` : 'Special only'}</span>
+        <span class="map-meta-pill">Pokemon Dex 🐾 ${(map.pokemonMin > 0 && map.pokemonMax > 0) ? `#${map.pokemonMin}–${map.pokemonMax}` : 'Special only'}</span>
     </div>
-    </div>
+</div>
     <p style="font-size: 0.75rem; color: var(--text-light);">Click card to view Pokémon list</p>
     <p class="required ${unlocked ? 'unlocked' : 'locked'}">
         ${unlocked ? '✓ Available' : `🔒 Requires total level ${map.requiredLevel}`}

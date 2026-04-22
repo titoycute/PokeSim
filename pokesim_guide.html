@@ -3,16 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>PokeSim | How to Play (Complete Guide)</title>
+    <title>PokeSim | How to Play</title>
     <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
     <style>
+        /* ────────────── RESET & BASE (matches index.html exactly) ────────────── */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
             font-family: 'Segoe UI', 'Inter', system-ui, sans-serif;
         }
+        body {
+            background: var(--bg);
+            min-height: 100vh;
+            color: var(--text-dark);
+            transition: background 0.2s, color 0.2s;
+        }
 
+        /* ────────────── CSS VARIABLES LIGHT (matches index.html exactly) ────────────── */
         :root {
             --bg: #f0f2f5;
             --card-bg: #ffffff;
@@ -22,455 +32,838 @@
             --text-dark: #2d3748;
             --text-light: #5a6e8a;
             --border: #e2e8f0;
+            --success: #48bb78;
+            --danger: #f56565;
         }
 
-        body {
-            background: var(--bg);
-            min-height: 100vh;
-            color: var(--text-dark);
-            padding: 20px;
+        /* ────────────── DARK THEME (matches index.html exactly) ────────────── */
+        body.dark-theme {
+            --bg: #1a1e2c;
+            --card-bg: #2d2f3e;
+            --primary: #6c5ce7;
+            --primary-dark: #5a4ad1;
+            --accent: #ff7675;
+            --text-dark: #e2e8f0;
+            --text-light: #a0aec0;
+            --border: #3d4050;
+            --success: #4cd964;
+            --danger: #ff5e5e;
         }
 
-        .container {
+        /* ────────────── CARD-NAV (matches index.html exactly) ────────────── */
+        .card-nav {
+            background: transparent;
+            padding: 12px 5%;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
             max-width: 1200px;
             margin: 0 auto;
-            background: var(--card-bg);
-            border-radius: 32px;
-            padding: 40px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            border: 1px solid var(--border);
+            width: 100%;
+            overflow-x: hidden;
+        }
+        .nav-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            width: 100%;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 800;
+            font-size: 1.5rem;
+            color: var(--primary-dark);
+            flex-shrink: 0;
+        }
+        .logo img { height: 40px; width: auto; border-radius: 12px; }
+
+        .hamburger {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            width: 30px;
+            height: 24px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            z-index: 1100;
+            flex-shrink: 0;
+            margin-left: auto;
+        }
+        .hamburger span {
+            width: 100%;
+            height: 3px;
+            background: var(--text-dark);
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+        .hamburger.open span:nth-child(1) { transform: translateY(10px) rotate(45deg); }
+        .hamburger.open span:nth-child(2) { opacity: 0; }
+        .hamburger.open span:nth-child(3) { transform: translateY(-10px) rotate(-45deg); }
+
+        .nav-collapsible {
+            transition: max-height 0.4s ease-out, opacity 0.2s ease;
+            overflow: hidden;
+            width: 100%;
+        }
+        @media (min-width: 769px) {
+            .nav-collapsible { max-height: none !important; opacity: 1 !important; }
+            .hamburger { display: none !important; }
+        }
+        @media (max-width: 768px) {
+            .nav-collapsible { max-height: 0; opacity: 0; }
+            .nav-collapsible.open { max-height: 500px; opacity: 1; }
+            .hamburger { display: flex; }
         }
 
-        h1 {
-            font-size: 2rem;
-            color: var(--primary-dark);
-            margin-bottom: 8px;
+        .nav-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 8px 12px;
+            margin-bottom: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            width: 100%;
+            box-sizing: border-box;
+            overflow-x: auto;
+        }
+        .nav-card:last-child { margin-bottom: 0; }
+
+        .nav-row {
+            display: flex;
+            gap: 12px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            white-space: nowrap;
+            scrollbar-width: thin;
+            padding: 6px 0;
+            -webkit-overflow-scrolling: touch;
+            flex-wrap: nowrap;
+            align-items: center;
+        }
+        .nav-row::-webkit-scrollbar { height: 4px; }
+        .nav-row::-webkit-scrollbar-track { background: var(--border); border-radius: 4px; }
+        .nav-row::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 4px; }
+
+        .nav-link, .nav-item {
+            flex: 0 0 auto;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            padding: 6px 12px;
+            border-radius: 40px;
+            transition: 0.2s;
+            color: var(--text-dark);
+            font-size: 0.9rem;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .nav-link:hover, .nav-item:hover { background: #eef2ff; color: var(--primary); }
+
+        .guide-link { background: var(--primary) !important; color: white !important; }
+        .guide-link:hover { background: var(--primary-dark) !important; transform: translateY(-1px); }
+
+        #theme-toggle {
+            flex: 0 0 auto;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 40px;
+            padding: 4px 12px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: var(--text-dark);
+            white-space: nowrap;
+        }
+
+        .dark-theme .nav-card { box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+        .dark-theme .nav-link:hover, .dark-theme .nav-item:hover { background: #2d2f3e; color: var(--primary); }
+
+        @media (max-width: 600px) {
+            .nav-card { padding: 6px 10px; }
+            .nav-link, .nav-item { padding: 4px 10px; font-size: 0.8rem; }
+        }
+
+        /* ────────────── TYPE BADGES (matches index.html) ────────────── */
+        .type-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 16px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            margin: 0 2px;
+            color: white;
+            text-shadow: 0 1px 1px rgba(0,0,0,0.2);
+        }
+
+        /* ────────────── GUIDE PAGE LAYOUT ────────────── */
+        .guide-wrapper {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 24px 5% 40px;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+            transition: 0.2s;
+        }
+        .back-link:hover { color: var(--primary-dark); text-decoration: underline; }
+
+        /* Hero banner */
+        .guide-hero {
+            background: linear-gradient(135deg, var(--primary-dark) 0%, #1a2fa0 55%, var(--primary) 100%);
+            border-radius: 28px;
+            padding: 32px 36px;
+            margin-bottom: 28px;
+            position: relative;
+            overflow: hidden;
+        }
+        .guide-hero::before {
+            content: '';
+            position: absolute;
+            top: -40px; right: -40px;
+            width: 200px; height: 200px;
+            border-radius: 50%;
+            background: rgba(255,222,0,0.12);
+            pointer-events: none;
+        }
+        body.dark-theme .guide-hero {
+            background: linear-gradient(135deg, #1a1e2c 0%, #2a2f50 55%, #3d3060 100%);
+        }
+        .guide-hero h1 {
+            font-size: clamp(1.3rem, 4vw, 2rem);
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 10px;
             display: flex;
             align-items: center;
             gap: 12px;
             flex-wrap: wrap;
+            position: relative;
+            z-index: 1;
         }
-
-        h1 i {
-            font-size: 2rem;
-            color: var(--primary);
+        .guide-hero p {
+            /* WHITE text so it's readable on the dark hero background */
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 0.97rem;
+            line-height: 1.65;
+            max-width: 680px;
+            position: relative;
+            z-index: 1;
         }
-
-        .back-link {
+        .guide-hero .hero-badge {
             display: inline-block;
+            background: var(--accent);
+            color: #333;
+            font-weight: 800;
+            font-size: 0.72rem;
+            padding: 3px 12px;
+            border-radius: 20px;
+            margin-top: 12px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* TOC */
+        .toc {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 20px 24px;
             margin-bottom: 24px;
-            color: var(--primary);
-            text-decoration: none;
-            font-weight: 500;
-            transition: 0.2s;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         }
-
-        .back-link:hover {
-            text-decoration: underline;
-            color: var(--primary-dark);
-        }
-
-        .sub {
+        .toc h3 {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
             color: var(--text-light);
-            border-left: 4px solid var(--accent);
-            padding-left: 16px;
-            margin: 16px 0 32px 0;
-            font-size: 1.1rem;
+            margin-bottom: 14px;
+            font-weight: 700;
         }
+        .toc-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+            gap: 6px;
+        }
+        .toc-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 12px;
+            border-radius: 12px;
+            text-decoration: none;
+            color: var(--text-dark);
+            font-size: 0.82rem;
+            font-weight: 600;
+            transition: 0.15s;
+            border: 1px solid transparent;
+        }
+        .toc-item:hover { background: #eef2ff; border-color: var(--primary); color: var(--primary); }
+        body.dark-theme .toc-item:hover { background: #2d2f3e; }
 
+        /* Section cards — same feel as list-container in index.html */
         .guide-section {
-            margin-bottom: 40px;
-            padding-bottom: 24px;
-            border-bottom: 1px solid var(--border);
+            background: var(--card-bg);
+            border-radius: 24px;
+            padding: 28px 32px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+            scroll-margin-top: 20px;
         }
-
-        .guide-section:last-child {
-            border-bottom: none;
-            margin-bottom: 0;
-            padding-bottom: 0;
-        }
-
         .guide-section h2 {
-            font-size: 1.5rem;
+            font-size: 1.3rem;
+            font-weight: 800;
             color: var(--primary-dark);
             margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border);
             display: flex;
             align-items: center;
             gap: 10px;
         }
-
-        .guide-section h2 i {
-            font-size: 1.4rem;
-        }
-
         .guide-section p {
-            line-height: 1.6;
-            margin-bottom: 12px;
+            line-height: 1.7;
+            color: var(--text-dark);
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+        }
+        .guide-section p:last-child { margin-bottom: 0; }
+        .guide-section ul, .guide-section ol { margin: 10px 0 10px 22px; }
+        .guide-section li {
+            line-height: 1.7;
+            margin-bottom: 6px;
+            font-size: 0.93rem;
             color: var(--text-dark);
         }
+        .guide-section li strong { color: var(--primary-dark); }
 
-        .guide-section ul, .guide-section ol {
-            margin: 12px 0 12px 24px;
-            line-height: 1.6;
-        }
-
-        .guide-section li {
-            margin-bottom: 6px;
-        }
-
+        /* Boxes */
         .tip-box {
             background: #fef9e3;
-            border-left: 4px solid var(--accent);
-            padding: 16px 20px;
-            border-radius: 16px;
-            margin: 16px 0;
+            border-left: 4px solid #ffde00;
+            padding: 14px 18px;
+            border-radius: 0 14px 14px 0;
+            margin: 14px 0 4px;
+            font-size: 0.88rem;
+            line-height: 1.6;
+            color: var(--text-dark);
         }
+        .tip-box strong { color: #92400e; }
+        body.dark-theme .tip-box { background: #2a2210; border-left-color: #f59e0b; }
+        body.dark-theme .tip-box strong { color: #fbbf24; }
 
-        .tip-box strong {
-            color: #b45309;
-        }
-
-        .bonus-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            margin: 15px 0;
-        }
-        .bonus-card {
-            background: #f1f5f9;
-            border-radius: 20px;
-            padding: 10px 16px;
-            text-align: center;
-            flex: 1;
-            min-width: 100px;
-        }
-        .bonus-card i {
-            font-size: 1.5rem;
-        }
-
-        /* Type badge styles */
-        .type-badge {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: bold;
-            color: white;
-            text-shadow: 0 1px 1px rgba(0,0,0,0.2);
-            white-space: nowrap;
-        }
-        .type-normal { background: #A8A77A; }
-        .type-fire { background: #EE8130; }
-        .type-water { background: #6390F0; }
-        .type-electric { background: #F7D02C; color: #333; text-shadow: none; }
-        .type-grass { background: #7AC74C; }
-        .type-ice { background: #96D9D6; color: #333; }
-        .type-fighting { background: #C22E28; }
-        .type-poison { background: #A33EA1; }
-        .type-ground { background: #E2BF65; color: #333; }
-        .type-flying { background: #A98FF3; }
-        .type-psychic { background: #F95587; }
-        .type-bug { background: #A6B91A; }
-        .type-rock { background: #B6A136; }
-        .type-ghost { background: #735797; }
-        .type-dragon { background: #6F35FC; }
-        .type-dark { background: #705746; }
-        .type-steel { background: #B7B7CE; color: #333; }
-        .type-fairy { background: #D685AD; }
-
-        /* Effectiveness table – blue only */
-        .type-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-            font-size: 0.8rem;
-            background: #fff;
-            border-radius: 20px;
-            overflow-x: auto;
-            display: block;
-        }
-        .type-table th, .type-table td {
-            border: 1px solid var(--border);
-            padding: 8px 4px;
-            text-align: center;
-            vertical-align: middle;
-        }
-        .type-table th {
-            background: var(--primary-dark);
-            color: white;
-            font-weight: bold;
-            padding: 10px 4px;
-        }
-        .type-table td:first-child, .type-table th:first-child {
+        .info-box {
             background: #eef2ff;
-            font-weight: bold;
-            text-align: center;
+            border-left: 4px solid var(--primary);
+            padding: 14px 18px;
+            border-radius: 0 14px 14px 0;
+            margin: 14px 0 4px;
+            font-size: 0.88rem;
+            line-height: 1.6;
+            color: var(--text-dark);
         }
-        /* Blue scale for effectiveness */
-        .eff-2 {
-            background: #1e3a8a;
-            color: white;
-            font-weight: bold;
-        }
-        .eff-0-5 {
-            background: #3b82f6;
-            color: white;
-        }
-        .eff-0 {
-            background: #93c5fd;
-            color: #1e3a8a;
-        }
+        body.dark-theme .info-box { background: #1e2040; }
 
-        @media (max-width: 768px) {
-            .container {
-                padding: 24px;
-            }
-            h1 {
-                font-size: 1.5rem;
-            }
-            .guide-section h2 {
-                font-size: 1.2rem;
-            }
-            .type-table {
-                font-size: 0.65rem;
-            }
-            .type-table th, .type-table td {
-                padding: 6px 2px;
-            }
-            .type-badge {
-                padding: 2px 6px;
-                font-size: 0.6rem;
-            }
+        .warning-box {
+            background: #fff1f2;
+            border-left: 4px solid var(--danger);
+            padding: 14px 18px;
+            border-radius: 0 14px 14px 0;
+            margin: 14px 0 4px;
+            font-size: 0.88rem;
+            line-height: 1.6;
+            color: var(--text-dark);
         }
+        body.dark-theme .warning-box { background: #2a1015; }
 
-        .footer-note {
-            margin-top: 32px;
-            padding-top: 20px;
+        /* Type grid */
+        .type-grid { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
+        .type-normal   { background: #A8A77A; }
+        .type-fire     { background: #EE8130; }
+        .type-water    { background: #6390F0; }
+        .type-electric { background: #F7D02C; color: #333 !important; text-shadow: none !important; }
+        .type-grass    { background: #7AC74C; }
+        .type-ice      { background: #96D9D6; color: #333 !important; text-shadow: none !important; }
+        .type-fighting { background: #C22E28; }
+        .type-poison   { background: #A33EA1; }
+        .type-ground   { background: #E2BF65; color: #333 !important; text-shadow: none !important; }
+        .type-flying   { background: #A98FF3; }
+        .type-psychic  { background: #F95587; }
+        .type-bug      { background: #A6B91A; }
+        .type-rock     { background: #B6A136; }
+        .type-ghost    { background: #735797; }
+        .type-dragon   { background: #6F35FC; }
+        .type-dark     { background: #705746; }
+        .type-steel    { background: #B7B7CE; color: #333 !important; text-shadow: none !important; }
+        .type-fairy    { background: #D685AD; }
+
+        /* Stat pills */
+        .pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+        .pill { display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px; border-radius: 40px; font-size: 0.82rem; font-weight: 700; }
+        .pill-atk { background: #fff1f2; color: #c0392b; border: 1px solid #fca5a5; }
+        .pill-def { background: #eef2ff; color: #3730a3; border: 1px solid #a5b4fc; }
+        .pill-spd { background: #f0fdf4; color: #166534; border: 1px solid #86efac; }
+        .pill-shiny { background: #fefce8; color: #854d0e; border: 1px solid #fde047; }
+        body.dark-theme .pill-atk { background: #3a1015; color: #f87171; border-color: #7f1d1d; }
+        body.dark-theme .pill-def { background: #1e2040; color: #a5b4fc; border-color: #3730a3; }
+        body.dark-theme .pill-spd { background: #0f2a1a; color: #86efac; border-color: #166534; }
+        body.dark-theme .pill-shiny { background: #2a2210; color: #fde047; border-color: #854d0e; }
+
+        /* Feature grid */
+        .feature-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; margin: 16px 0; }
+        .feature-card { background: #f8fafc; border: 1px solid var(--border); border-radius: 16px; padding: 14px 16px; transition: 0.2s; }
+        .feature-card:hover { transform: translateY(-2px); box-shadow: 0 6px 14px rgba(0,0,0,0.08); }
+        body.dark-theme .feature-card { background: #1e2230; }
+        .feature-card .fc-icon { font-size: 1.4rem; margin-bottom: 6px; }
+        .feature-card .fc-title { font-weight: 800; font-size: 0.85rem; color: var(--primary-dark); margin-bottom: 4px; }
+        .feature-card .fc-desc { font-size: 0.78rem; color: var(--text-light); line-height: 1.5; }
+
+        /* Evolution chain */
+        .evo-chain { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 14px 0; padding: 14px 18px; background: #f8fafc; border-radius: 16px; border: 1px solid var(--border); }
+        body.dark-theme .evo-chain { background: #1e2230; }
+        .evo-node { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 68px; }
+        .evo-node .evo-name { font-size: 0.7rem; font-weight: 800; color: var(--primary-dark); text-align: center; }
+        .evo-node .evo-level { font-size: 0.63rem; color: var(--text-light); }
+        .evo-node .evo-sprite { font-size: 1.8rem; }
+        .evo-arrow { font-size: 1.2rem; color: var(--text-light); }
+        .evo-node-special { border: 1.5px dashed #f59e0b; background: rgba(251,191,36,0.08); border-radius: 12px; padding: 8px; }
+        .evo-node-special .evo-name { color: #92400e; }
+        body.dark-theme .evo-node-special { background: rgba(251,191,36,0.06); }
+        body.dark-theme .evo-node-special .evo-name { color: #fbbf24; }
+
+        /* Controls diagram */
+        .controls-diagram { display: grid; grid-template-columns: repeat(3, 52px); gap: 6px; margin: 14px 0; }
+        .ctrl-btn { width: 52px; height: 52px; background: #f1f5f9; border: 1px solid var(--border); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: bold; color: var(--primary); }
+        .ctrl-btn.center { background: #eef2ff; border-color: var(--primary); font-size: 0.6rem; color: var(--primary-dark); text-align: center; padding: 4px; line-height: 1.3; }
+        .ctrl-btn.diagonal { opacity: 0.6; font-size: 0.9rem; }
+        body.dark-theme .ctrl-btn { background: #1e2230; }
+        body.dark-theme .ctrl-btn.center { background: #2a2f50; }
+
+        /* Key badges */
+        .key-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+        .key-badge { display: inline-flex; align-items: center; gap: 6px; background: #f1f5f9; border: 1px solid var(--border); border-radius: 8px; padding: 4px 12px; font-size: 0.8rem; font-weight: 700; font-family: monospace; color: var(--text-dark); }
+        .key-badge span { font-family: 'Segoe UI', system-ui, sans-serif; font-weight: 600; color: var(--text-light); }
+        body.dark-theme .key-badge { background: #1e2230; }
+
+        /* Cost table */
+        .cost-table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 0.85rem; }
+        .cost-table th { background: #eef2ff; color: var(--primary-dark); padding: 9px 14px; text-align: left; font-weight: 800; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px; }
+        .cost-table td { padding: 9px 14px; border-bottom: 1px solid var(--border); color: var(--text-dark); }
+        .cost-table tr:last-child td { border-bottom: none; }
+        .cost-table tr:hover td { background: #f8fafc; }
+        body.dark-theme .cost-table th { background: #1e2040; }
+        body.dark-theme .cost-table tr:hover td { background: #1e2230; }
+
+        /* Footer — same as index.html */
+        footer {
             text-align: center;
+            padding: 16px;
             font-size: 0.8rem;
             color: var(--text-light);
+            background: rgba(255,255,255,0.8);
+            margin-top: 40px;
             border-top: 1px solid var(--border);
         }
+        body.dark-theme footer { background: rgba(30,35,50,0.8); }
+        footer a { color: var(--primary); text-decoration: none; }
+        footer a:hover { text-decoration: underline; }
+
+        @media (max-width: 640px) {
+            .guide-section { padding: 20px 18px; }
+            .guide-hero { padding: 24px 20px; }
+            .toc { padding: 16px 18px; }
+            .toc-grid { grid-template-columns: 1fr 1fr; }
+            .feature-grid { grid-template-columns: 1fr 1fr; }
+            .guide-wrapper { padding: 16px 4% 32px; }
+        }
     </style>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
-<div class="container">
+
+<!-- ── NAV matches index.html card-nav ── -->
+<nav class="card-nav">
+    <div class="nav-header">
+        <div class="logo">
+            <img src="PokeSim Word.png" alt="PokeSim" onerror="this.style.display='none'">
+            PokeSim
+        </div>
+        <button id="nav-toggle" class="hamburger" aria-label="Menu">
+            <span></span><span></span><span></span>
+        </button>
+    </div>
+
+    <div id="nav-collapsible" class="nav-collapsible">
+        <div class="nav-card">
+            <div class="nav-row">
+                <a href="index.html" class="nav-link">🏠 Back to Game</a>
+                <a href="pokesim_guide.html" class="nav-link guide-link"><i class="fas fa-book-open"></i> How to Play</a>
+                <a href="ranking.html" class="nav-link">🏆 Global Ranking</a>
+                <a href="updates.html" class="nav-link">📢 Updates</a>
+                <button id="theme-toggle">🌙</button>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ── MAIN ── -->
+<div class="guide-wrapper">
+
     <a href="index.html" class="back-link"><i class="fas fa-arrow-left"></i> Back to Game</a>
 
-    <h1>
-        <i class="fas fa-book-open"></i>
-        PokeSim Complete Guide
-    </h1>
-    <div class="sub">
-        Everything you need to know – from type matchups to bonus stats, auto‑capture, and more!
+    <!-- Hero -->
+    <div class="guide-hero">
+        <h1><i class="fas fa-book-open"></i> How to Play PokeSim</h1>
+        <p>Your complete guide to catching, training, and battling Pokémon. From your first step in the tall grass to unlocking Mega Evolutions — everything you need to know is right here.</p>
+        <span class="hero-badge">✨ Gen 1–9 | 1,000+ Pokémon</span>
     </div>
 
-    <!-- ========== MAP & EXPLORATION ========== -->
-    <div class="guide-section">
-        <h2><i class="fas fa-map-marked-alt"></i> 1. Map & Exploration</h2>
-        <p>The game world is a <strong>50×50 tile grid</strong>. Use the arrow keys or on‑screen buttons to move your trainer.</p>
+    <!-- TOC -->
+    <div class="toc">
+        <h3>📋 Contents</h3>
+        <div class="toc-grid">
+            <a href="#map"       class="toc-item">🗺️ Map & Exploration</a>
+            <a href="#battle"    class="toc-item">⚔️ Battles</a>
+            <a href="#catching"  class="toc-item">🎯 Catching Pokémon</a>
+            <a href="#leveling"  class="toc-item">📈 Leveling & XP</a>
+            <a href="#evolution" class="toc-item">🔄 Evolution</a>
+            <a href="#bonus"     class="toc-item">⭐ Bonus Stats</a>
+            <a href="#shiny"     class="toc-item">✨ Shiny Pokémon</a>
+            <a href="#moves"     class="toc-item">💥 Move Editor</a>
+            <a href="#team"      class="toc-item">👥 Team & Collection</a>
+            <a href="#records"   class="toc-item">📖 Pokédex Records</a>
+            <a href="#ranking"   class="toc-item">🏆 Rankings</a>
+            <a href="#ui"        class="toc-item">🧭 Navigation & UI</a>
+            <a href="#pwa"       class="toc-item">📱 Install App</a>
+        </div>
+    </div>
+
+    <!-- MAP -->
+    <div class="guide-section" id="map">
+        <h2><i class="fas fa-map-marked-alt"></i> Map & Exploration</h2>
+        <p>PokeSim features a <strong>50×50 tile map</strong> where you roam freely as your trainer. Move using the on-screen arrow pad or your keyboard.</p>
         <ul>
-            <li><strong>🌿 Grass tiles</strong> – Every step has a chance to trigger a wild Pokémon encounter.</li>
-            <li><strong>🏜️ Dirt tiles</strong> – Safe zones, no encounters.</li>
-            <li><strong>🗺️ Different maps</strong> – Each map has its own catch rate, required trainer level, and Pokémon pool (IDs 1–20000+).</li>
-            <li><strong>⭐ Special spawns</strong> – Some maps include legendary, mythical, or Paradox Pokémon as rare encounters.</li>
+            <li><strong>Dirt tiles</strong> — Safe ground, no wild encounters.</li>
+            <li><strong>Tall grass tiles</strong> — Every step has a chance to trigger a wild Pokémon encounter!</li>
         </ul>
+        <p style="margin-top:14px;"><strong>Controls:</strong></p>
+        <div style="display:flex;align-items:flex-start;gap:24px;flex-wrap:wrap;margin-top:8px;">
+            <div class="controls-diagram">
+                <div class="ctrl-btn diagonal">↖</div>
+                <div class="ctrl-btn">▲</div>
+                <div class="ctrl-btn diagonal">↗</div>
+                <div class="ctrl-btn">◀</div>
+                <div class="ctrl-btn center">Poke<br>Sim</div>
+                <div class="ctrl-btn">▶</div>
+                <div class="ctrl-btn diagonal">↙</div>
+                <div class="ctrl-btn">▼</div>
+                <div class="ctrl-btn diagonal">↘</div>
+            </div>
+            <div>
+                <p style="font-size:0.85rem;margin-bottom:8px;"><strong>Keyboard shortcuts:</strong></p>
+                <div class="key-row">
+                    <span class="key-badge">↑ / W <span>North</span></span>
+                    <span class="key-badge">↓ / S <span>South</span></span>
+                    <span class="key-badge">← / A <span>West</span></span>
+                    <span class="key-badge">→ / D <span>East</span></span>
+                </div>
+                <p style="font-size:0.82rem;margin-top:8px;color:var(--text-light);">Diagonal buttons also available for faster movement.</p>
+            </div>
+        </div>
         <div class="tip-box">
-            <strong><i class="fas fa-lightbulb"></i> Tip:</strong> Your trainer level (sum of all your Pokémon’s levels) must meet the map’s requirement to explore it. Higher level maps offer stronger wild Pokémon!
+            <strong>💡 Tip:</strong> Your active Pokémon walks beside you as a companion sprite! Wild Pokémon depend on the <strong>Pokémon ID range</strong> configured for the current map.
         </div>
     </div>
 
-    <!-- ========== BATTLES & TYPE EFFECTIVENESS (WITH COLORED TYPES) ========== -->
-    <div class="guide-section">
-        <h2><i class="fas fa-fist-raised"></i> 2. Battles & Type Effectiveness</h2>
-        <p>When you step on grass, a turn‑based battle begins. You choose one of your active Pokémon’s four moves to attack.</p>
-
-        <h3>🔥 Type Effectiveness – Attack vs. Defense</h3>
-        <p>The table below shows how effective each <strong>attack type</strong> (left column) is against each <strong>defense type</strong> (top row).<br>
-        <span style="background:#1e3a8a; color:white; padding:2px 8px; border-radius:12px;">2×</span> = Super effective &nbsp;&nbsp;
-        <span style="background:#3b82f6; color:white; padding:2px 8px; border-radius:12px;">0.5×</span> = Not very effective &nbsp;&nbsp;
-        <span style="background:#93c5fd; color:#1e3a8a; padding:2px 8px; border-radius:12px;">0×</span> = No effect</p>
-
-        <div style="overflow-x: auto;">
-            <table class="type-table">
-                <thead>
-                    <tr>
-                        <th>Attack \ Defense</th>
-                        <th><span class="type-badge type-normal">Normal</span></th>
-                        <th><span class="type-badge type-fire">Fire</span></th>
-                        <th><span class="type-badge type-water">Water</span></th>
-                        <th><span class="type-badge type-electric">Electric</span></th>
-                        <th><span class="type-badge type-grass">Grass</span></th>
-                        <th><span class="type-badge type-ice">Ice</span></th>
-                        <th><span class="type-badge type-fighting">Fighting</span></th>
-                        <th><span class="type-badge type-poison">Poison</span></th>
-                        <th><span class="type-badge type-ground">Ground</span></th>
-                        <th><span class="type-badge type-flying">Flying</span></th>
-                        <th><span class="type-badge type-psychic">Psychic</span></th>
-                        <th><span class="type-badge type-bug">Bug</span></th>
-                        <th><span class="type-badge type-rock">Rock</span></th>
-                        <th><span class="type-badge type-ghost">Ghost</span></th>
-                        <th><span class="type-badge type-dragon">Dragon</span></th>
-                        <th><span class="type-badge type-dark">Dark</span></th>
-                        <th><span class="type-badge type-steel">Steel</span></th>
-                        <th><span class="type-badge type-fairy">Fairy</span></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr><td><span class="type-badge type-normal">Normal</span></td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td class="eff-0-5">0.5</td><td class="eff-0">0</td><td>1</td><td>1</td><td class="eff-0-5">0.5</td><td>1</td></tr>
-                    <tr><td><span class="type-badge type-fire">Fire</span></td><td>1</td><td class="eff-0-5">0.5</td><td class="eff-0-5">0.5</td><td>1</td><td class="eff-2">2</td><td class="eff-2">2</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td class="eff-2">2</td><td class="eff-0-5">0.5</td><td>1</td><td class="eff-0-5">0.5</td><td>1</td><td class="eff-2">2</td><td>1</td></tr>
-                    <tr><td><span class="type-badge type-water">Water</span></td><td>1</td><td class="eff-2">2</td><td class="eff-0-5">0.5</td><td>1</td><td class="eff-0-5">0.5</td><td>1</td><td>1</td><td>1</td><td class="eff-2">2</td><td>1</td><td>1</td><td>1</td><td class="eff-2">2</td><td>1</td><td class="eff-0-5">0.5</td><td>1</td><td>1</td><td>1</td></tr>
-                    <tr><td><span class="type-badge type-electric">Electric</span></td><td>1</td><td>1</td><td class="eff-2">2</td><td class="eff-0-5">0.5</td><td class="eff-0-5">0.5</td><td>1</td><td>1</td><td>1</td><td class="eff-0">0</td><td class="eff-2">2</td><td>1</td><td>1</td><td>1</td><td>1</td><td class="eff-0-5">0.5</td><td>1</td><td>1</td><td>1</td></tr>
-                    <tr><td><span class="type-badge type-grass">Grass</span></td><td>1</td><td class="eff-0-5">0.5</td><td class="eff-2">2</td><td>1</td><td class="eff-0-5">0.5</td><td>1</td><td>1</td><td class="eff-0-5">0.5</td><td class="eff-2">2</td><td class="eff-0-5">0.5</td><td>1</td><td class="eff-0-5">0.5</td><td class="eff-2">2</td><td>1</td><td class="eff-0-5">0.5</td><td>1</td><td class="eff-0-5">0.5</td><td>1</td></tr>
-                    <tr><td><span class="type-badge type-ice">Ice</span></td><td>1</td><td class="eff-0-5">0.5</td><td class="eff-0-5">0.5</td><td>1</td><td class="eff-2">2</td><td class="eff-0-5">0.5</td><td>1</td><td>1</td><td class="eff-2">2</td><td class="eff-2">2</td><td>1</td><td>1</td><td>1</td><td>1</td><td class="eff-2">2</td><td>1</td><td class="eff-0-5">0.5</td><td>1</td></tr>
-                    <tr><td><span class="type-badge type-fighting">Fighting</span></td><td class="eff-2">2</td><td>1</td><td>1</td><td>1</td><td>1</td><td class="eff-2">2</td><td>1</td><td class="eff-0-5">0.5</td><td>1</td><td class="eff-0-5">0.5</td><td class="eff-0-5">0.5</td><td class="eff-0-5">0.5</td><td class="eff-2">2</td><td class="eff-0">0</td><td>1</td><td class="eff-2">2</td><td class="eff-2">2</td><td class="eff-0-5">0.5</td></tr>
-                    <tr><td><span class="type-badge type-poison">Poison</span></td><td>1</td><td>1</td><td>1</td><td>1</td><td class="eff-2">2</td><td>1</td><td>1</td><td class="eff-0-5">0.5</td><td class="eff-0-5">0.5</td><td>1</td><td>1</td><td>1</td><td class="eff-0-5">0.5</td><td class="eff-0-5">0.5</td><td>1</td><td>1</td><td class="eff-0">0</td><td class="eff-2">2</td></tr>
-                    <tr><td><span class="type-badge type-ground">Ground</span></td><td>1</td><td class="eff-2">2</td><td>1</td><td class="eff-2">2</td><td class="eff-0-5">0.5</td><td>1</td><td>1</td><td class="eff-2">2</td><td>1</td><td class="eff-0">0</td><td>1</td><td class="eff-0-5">0.5</td><td class="eff-2">2</td><td>1</td><td>1</td><td>1</td><td class="eff-2">2</td><td>1</td></tr>
-                    <tr><td><span class="type-badge type-flying">Flying</span></td><td>1</td><td>1</td><td>1</td><td class="eff-0-5">0.5</td><td class="eff-2">2</td><td>1</td><td class="eff-2">2</td><td>1</td><td>1</td><td>1</td><td>1</td><td class="eff-2">2</td><td class="eff-0-5">0.5</td><td>1</td><td>1</td><td>1</td><td class="eff-0-5">0.5</td><td>1</td></tr>
-                    <tr><td><span class="type-badge type-psychic">Psychic</span></td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td class="eff-2">2</td><td class="eff-2">2</td><td>1</td><td>1</td><td class="eff-0-5">0.5</td><td>1</td><td>1</td><td>1</td><td>1</td><td class="eff-0">0</td><td class="eff-0-5">0.5</td><td>1</td></tr>
-                    <tr><td><span class="type-badge type-bug">Bug</span></td><td>1</td><td class="eff-0-5">0.5</td><td>1</td><td>1</td><td class="eff-2">2</td><td>1</td><td class="eff-0-5">0.5</td><td class="eff-0-5">0.5</td><td>1</td><td class="eff-0-5">0.5</td><td class="eff-2">2</td><td>1</td><td>1</td><td class="eff-0-5">0.5</td><td>1</td><td class="eff-2">2</td><td class="eff-0-5">0.5</td><td class="eff-0-5">0.5</td></tr>
-                    <tr><td><span class="type-badge type-rock">Rock</span></td><td>1</td><td class="eff-2">2</td><td>1</td><td>1</td><td>1</td><td class="eff-2">2</td><td class="eff-0-5">0.5</td><td>1</td><td class="eff-0-5">0.5</td><td class="eff-2">2</td><td>1</td><td class="eff-2">2</td><td>1</td><td>1</td><td>1</td><td>1</td><td class="eff-0-5">0.5</td><td>1</td></tr>
-                    <tr><td><span class="type-badge type-ghost">Ghost</span></td><td class="eff-0">0</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td class="eff-2">2</td><td>1</td><td>1</td><td class="eff-2">2</td><td>1</td><td class="eff-0-5">0.5</td><td>1</td><td>1</td></tr>
-                    <tr><td><span class="type-badge type-dragon">Dragon</span></td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td class="eff-2">2</td><td>1</td><td class="eff-0-5">0.5</td><td class="eff-0">0</td></tr>
-                    <tr><td><span class="type-badge type-dark">Dark</span></td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td class="eff-0-5">0.5</td><td>1</td><td>1</td><td>1</td><td class="eff-2">2</td><td>1</td><td>1</td><td class="eff-2">2</td><td>1</td><td class="eff-0-5">0.5</td><td>1</td><td class="eff-0-5">0.5</td></tr>
-                    <tr><td><span class="type-badge type-steel">Steel</span></td><td>1</td><td class="eff-0-5">0.5</td><td class="eff-0-5">0.5</td><td class="eff-0-5">0.5</td><td>1</td><td class="eff-2">2</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td class="eff-2">2</td><td>1</td><td>1</td><td>1</td><td class="eff-0-5">0.5</td><td class="eff-2">2</td></tr>
-                    <tr><td><span class="type-badge type-fairy">Fairy</span></td><td>1</td><td class="eff-0-5">0.5</td><td>1</td><td>1</td><td>1</td><td>1</td><td class="eff-2">2</td><td class="eff-0-5">0.5</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td class="eff-2">2</td><td class="eff-2">2</td><td class="eff-0-5">0.5</td><td>1</td></tr>
-                </tbody>
-            </table>
+    <!-- BATTLES -->
+    <div class="guide-section" id="battle">
+        <h2><i class="fas fa-fist-raised"></i> Battles & Type Effectiveness</h2>
+        <p>Walking through tall grass triggers a wild Pokémon encounter. A turn-based battle begins — choose one of your moves each turn.</p>
+        <p><strong>Speed determines who attacks first.</strong> A Pokémon's level acts as its base speed (modified by Bonus Stats).</p>
+        <p style="margin-top:12px;"><strong>Type effectiveness:</strong></p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0;">
+            <div style="background:#f0fdf4;border-radius:12px;padding:9px 14px;font-size:0.85rem;border:1px solid #bbf7d0;"><strong style="color:#166534;">2× Super Effective</strong> — double damage</div>
+            <div style="background:#fff7ed;border-radius:12px;padding:9px 14px;font-size:0.85rem;border:1px solid #fed7aa;"><strong style="color:#c2410c;">0.5× Not Very Effective</strong> — half</div>
+            <div style="background:#f8fafc;border-radius:12px;padding:9px 14px;font-size:0.85rem;border:1px solid var(--border);"><strong>0× No Effect</strong></div>
         </div>
+        <div class="type-grid">
+            <span class="type-badge type-normal">Normal</span><span class="type-badge type-fire">Fire</span><span class="type-badge type-water">Water</span><span class="type-badge type-electric">Electric</span><span class="type-badge type-grass">Grass</span><span class="type-badge type-ice">Ice</span><span class="type-badge type-fighting">Fighting</span><span class="type-badge type-poison">Poison</span><span class="type-badge type-ground">Ground</span><span class="type-badge type-flying">Flying</span><span class="type-badge type-psychic">Psychic</span><span class="type-badge type-bug">Bug</span><span class="type-badge type-rock">Rock</span><span class="type-badge type-ghost">Ghost</span><span class="type-badge type-dragon">Dragon</span><span class="type-badge type-dark">Dark</span><span class="type-badge type-steel">Steel</span><span class="type-badge type-fairy">Fairy</span>
+        </div>
+        <p style="margin-top:12px;"><strong>Battle actions:</strong></p>
+        <ul>
+            <li><strong>Move buttons (or keys 1–4)</strong> — Use one of up to 4 moves.</li>
+            <li><strong>🎯 Catch</strong> — Attempt to catch the wild Pokémon.</li>
+            <li><strong>🔄 Switch Pokémon</strong> — Swap to another team member. Cancelling gives the wild Pokémon a free attack.</li>
+            <li><strong>🏃 Takas Na! (Escape)</strong> — Flee. Failure means the wild Pokémon attacks.</li>
+        </ul>
+        <div class="info-box">
+            <strong>ℹ️ Multi-Pokémon XP:</strong> All Pokémon that entered battle via switching share XP. Weaker Pokémon receive a larger share.
+        </div>
+        <div class="tip-box">
+            <strong>💡 Tip:</strong> Check <strong>Weaknesses</strong> in the encounter preview before battle — plan your moves accordingly!
+        </div>
+    </div>
 
-        <h3>⚔️ Attack & Defense Bonuses (Wild & Owned Pokémon)</h3>
-        <p>Every wild Pokémon can have <strong>bonus stats</strong> that make battles more dynamic:</p>
-        <div class="bonus-grid">
-            <div class="bonus-card"><i class="fas fa-fist-raised"></i><br><strong>⚔️ ATK+</strong><br>Deals 25% more damage</div>
-            <div class="bonus-card"><i class="fas fa-shield-alt"></i><br><strong>🛡️ DEF+</strong><br>Takes 25% less damage</div>
-            <div class="bonus-card"><i class="fas fa-running"></i><br><strong>🏃 SPD+</strong><br>Acts first in battle</div>
+    <!-- CATCHING -->
+    <div class="guide-section" id="catching">
+        <h2><i class="fas fa-circle"></i> Catching Pokémon</h2>
+        <p>Weakening a wild Pokémon increases your catch chance. The lower its HP, the higher the rate — up to the map's catch cap.</p>
+        <table class="cost-table">
+            <thead><tr><th>Condition</th><th>Effect</th></tr></thead>
+            <tbody>
+                <tr><td>🔴 Active Pokémon level ≤ 10</td><td>Cannot catch — need a stronger Pokémon</td></tr>
+                <tr><td>📊 XP below map threshold</td><td>Must reach required XP % first</td></tr>
+                <tr><td>💰 Catch cost</td><td>Deducts a % of your active Pokémon's current XP</td></tr>
+                <tr><td>❤️ Wild HP at ~1%</td><td>Highest catch chance (up to map's cap)</td></tr>
+                <tr><td>❤️ Wild HP at 100%</td><td>Minimum 5% catch chance</td></tr>
+            </tbody>
+        </table>
+        <p><strong>Auto-Capture (5th Encounter):</strong> Defeat the same species 5 times and on the 5th victory it <em>automatically joins your collection</em> — free, no cost!</p>
+        <div class="warning-box"><strong>⚠️ Important:</strong> A failed catch still costs XP and the wild Pokémon gets a free counter-attack. Weaken it first!</div>
+        <div class="tip-box"><strong>💡 Tip:</strong> The catch chance display shows the exact % and XP cost in real time above the Catch button.</div>
+    </div>
+
+    <!-- LEVELING -->
+    <div class="guide-section" id="leveling">
+        <h2><i class="fas fa-chart-line"></i> Leveling & Experience</h2>
+        <p>Defeating wild Pokémon earns XP for all participants. XP is weighted — weaker Pokémon relative to the wild one earn a bigger share.</p>
+        <ul>
+            <li><strong>Base XP per battle:</strong> Wild level × 30</li>
+            <li><strong>Coins earned:</strong> Wild level × 10 per win</li>
+            <li><strong>Max HP:</strong> Level × 25</li>
+            <li><strong>XP to next level:</strong> Current level × 300</li>
+        </ul>
+        <div class="info-box">
+            <strong>ℹ️ Total Level (Trainer Rank):</strong> Sum of all Pokémon levels in team + collection. Used for Global Ranking and unlocking the <strong>🛒 Merkado</strong> at total level 100.
+        </div>
+        <div class="tip-box"><strong>💡 Tip:</strong> Switch in lower-level Pokémon during battle so they share XP and grow faster.</div>
+    </div>
+
+    <!-- EVOLUTION -->
+    <div class="guide-section" id="evolution">
+        <h2><i class="fas fa-sync-alt"></i> Evolution</h2>
+        <p>Pokémon evolve when reaching certain levels — <strong>automatically</strong> after a level-up in battle, or <strong>manually</strong> via the <strong>🔄 Evolve</strong> button on any Pokémon card.</p>
+        <p style="margin-top:10px;"><strong>Info Panel Evolution Line:</strong> Clicking any sprite opens its info showing the <strong>full evolution line</strong> from the root — no matter which form you clicked.</p>
+        <div class="evo-chain">
+            <div class="evo-node"><span class="evo-sprite">🐱</span><span class="evo-name">LITLEO</span><span class="evo-level">Start</span></div>
+            <span class="evo-arrow">→</span>
+            <div class="evo-node"><span class="evo-sprite">🦁</span><span class="evo-name">PYROAR</span><span class="evo-level">Lv. 35</span></div>
+            <span class="evo-arrow">+</span>
+            <div class="evo-node evo-node-special"><span class="evo-sprite">🦁</span><span class="evo-name">PYROAR MALE</span><span class="evo-level">Male Form</span></div>
+        </div>
+        <div class="evo-chain">
+            <div class="evo-node"><span class="evo-sprite">🌱</span><span class="evo-name">BULBASAUR</span><span class="evo-level">Start</span></div>
+            <span class="evo-arrow">→</span>
+            <div class="evo-node"><span class="evo-sprite">🌿</span><span class="evo-name">IVYSAUR</span><span class="evo-level">Lv. 16</span></div>
+            <span class="evo-arrow">→</span>
+            <div class="evo-node"><span class="evo-sprite">🌺</span><span class="evo-name">VENUSAUR</span><span class="evo-level">Lv. 32</span></div>
+            <span class="evo-arrow">+</span>
+            <div class="evo-node evo-node-special"><span class="evo-sprite">🌺</span><span class="evo-name">MEGA VENUSAUR</span><span class="evo-level">Mega Evo</span></div>
+        </div>
+        <ul style="margin-top:12px;">
+            <li><strong>Mega Evolution</strong> — Lv. 200+</li>
+            <li><strong>Primal Reversion</strong> — Lv. 300+ (Kyogre / Groudon)</li>
+            <li><strong>Gigantamax</strong> — Lv. 500+</li>
+            <li><strong>Gender Forms</strong> — Male/Female variants shown as alternate forms</li>
+        </ul>
+        <div class="info-box"><strong>ℹ️</strong> Clicking Litleo, Pyroar, Pyroar-Male, or Venusaur-Mega in the info panel always shows the <strong>complete evolution line</strong> from the base species.</div>
+        <div class="tip-box"><strong>💡 Tip:</strong> Evolution preserves Bonus Stats, Shiny status, and capture info. If multiple targets exist, a selection screen lets you choose.</div>
+    </div>
+
+    <!-- BONUS STATS -->
+    <div class="guide-section" id="bonus">
+        <h2>⭐ Bonus Stats</h2>
+        <p>Wild Pokémon can spawn with hidden <strong>Bonus Stats</strong> — permanent passive buffs assigned randomly at encounter, preserved through evolution and team changes.</p>
+        <div class="pill-row">
+            <span class="pill pill-atk">⚔️ +ATK &nbsp;<span style="font-weight:400;">+25% Attack Damage</span></span>
+            <span class="pill pill-def">🛡️ +DEF &nbsp;<span style="font-weight:400;">Reduces damage taken by 25%</span></span>
+            <span class="pill pill-spd">🏃 +SPD &nbsp;<span style="font-weight:400;">+25% Speed (acts first more often)</span></span>
+        </div>
+        <table class="cost-table">
+            <thead><tr><th>Bonus Tier</th><th>Chance</th></tr></thead>
+            <tbody>
+                <tr><td>⚔️🛡️🏃 All three stats</td><td>~1%</td></tr>
+                <tr><td>Any two stats</td><td>~10%</td></tr>
+                <tr><td>Any one stat</td><td>~19%</td></tr>
+                <tr><td>No bonus stats</td><td>~70%</td></tr>
+            </tbody>
+        </table>
+        <div class="tip-box"><strong>💡 Tip:</strong> Use the Collection filters (⚔️ / 🛡️ / 🏃) to find your strongest Pokémon. Triple-bonus is extremely rare — keep it!</div>
+    </div>
+
+    <!-- SHINY -->
+    <div class="guide-section" id="shiny">
+        <h2>✨ Shiny Pokémon</h2>
+        <p>Every wild Pokémon has a tiny chance of appearing as a <strong>Shiny</strong> — an alternate coloration. Purely cosmetic but highly prized.</p>
+        <div class="pill-row">
+            <span class="pill pill-shiny">✨ SHINY &nbsp;<span style="font-weight:400;">1 in 4,096 chance per encounter</span></span>
         </div>
         <ul>
-            <li><strong>Single bonus</strong> – 35% chance (one of ATK/DEF/SPD).</li>
-            <li><strong>Double bonus</strong> – 10% chance (two stats).</li>
-            <li><strong>Triple bonus</strong> – 3% chance (all three stats!).</li>
-            <li><strong>No bonus</strong> – 52% chance.</li>
+            <li>Shiny Pokémon display a <strong>✨ SHINY</strong> badge on their card.</li>
+            <li>In battle they use <strong>alternate shiny sprites</strong> (animated or official artwork).</li>
+            <li>Shiny status is <strong>preserved through evolution</strong>.</li>
+            <li>The encounter preview announces <strong>✨ SHINY [NAME]!</strong> when you find one.</li>
         </ul>
-        <p>When you catch a Pokémon, it keeps its bonus stats! Train them wisely.</p>
-
-        <h3>⏱️ Turn Order – Speed Matters</h3>
-        <p>The faster Pokémon attacks first. Speed is based on <strong>level + SPD bonus</strong>. If speeds are equal, the turn is random.</p>
-
-        <h3>💥 Damage Calculation</h3>
-        <p><code>Damage = (Move Power ÷ 5) × (Attacker Level ÷ 2) × Type Effectiveness</code><br>
-        Then modified by: <strong>ATK+ (×1.25)</strong> if attacker has it, and <strong>DEF+ (×0.75)</strong> if defender has it.</p>
-        <div class="tip-box">
-            <strong><i class="fas fa-lightbulb"></i> Strategy tip:</strong> Use super effective moves, and keep Pokémon with ATK+ and SPD+ as your main attackers. DEF+ tanks are great for catching tough wilds.
-        </div>
+        <div class="tip-box"><strong>💡 Tip:</strong> Even if you already own that species, catch the shiny — it's stored separately in your collection!</div>
     </div>
 
-    <!-- ========== CATCHING & AUTO-CAPTURE ========== -->
-    <div class="guide-section">
-        <h2><i class="fas fa-pokeball"></i> 3. Catching Pokémon</h2>
-        <p>Weaken a wild Pokémon, then press the <strong>Catch</strong> button. Your chance increases as its HP drops.</p>
+    <!-- MOVES -->
+    <div class="guide-section" id="moves">
+        <h2><i class="fas fa-bolt"></i> Move Editor & Customization</h2>
+        <p>Each Pokémon can have up to <strong>4 damaging moves</strong>. Customize via the <strong>✏️ Moves</strong> button on any card.</p>
         <ul>
-            <li><strong>Catch cost:</strong> You pay a percentage (default 10%) of the <strong>total XP needed for your active Pokémon’s next level</strong>. Example: If your Pokémon needs 1000 XP to level up, you lose 100 XP when you attempt a catch (win or lose).</li>
-            <li><strong>Catch rate:</strong> Max 45% (map dependent), minimum 5%. Lower HP = higher chance.</li>
-            <li><strong>Auto‑capture rule:</strong> If you encounter the <strong>same species 5 times</strong> (tracked in your Pokédex records), the 5th encounter will be <strong>automatically added to your collection</strong> when you defeat it – no catch attempt needed!</li>
+            <li><strong>Cost formula:</strong> Added Power × 35 coins. You only pay for <em>added</em> total power.</li>
+            <li>Replacing weaker with stronger costs the power difference × 35.</li>
+            <li>Reducing power or no net change — <strong>no cost</strong> (no refunds).</li>
         </ul>
-        <div class="tip-box">
-            <strong><i class="fas fa-lightbulb"></i> Tip:</strong> Save your catch attempts for rare or shiny Pokémon. For common ones, just defeat them 5 times to auto‑capture.
+        <table class="cost-table">
+            <thead><tr><th>Example</th><th>Cost</th></tr></thead>
+            <tbody>
+                <tr><td>Replace 40-power with 80-power move</td><td>40 × 35 = ₱1,400</td></tr>
+                <tr><td>Replace 100-power with 60-power move</td><td>₱0 (no refund)</td></tr>
+                <tr><td>Fill empty slot with 60-power move</td><td>60 × 35 = ₱2,100</td></tr>
+            </tbody>
+        </table>
+        <p style="margin-top:4px;">The editor shows level-up moves first (up to 5 levels ahead), then falls back to all learnable moves for that species.</p>
+        <div class="key-row" style="margin-top:12px;">
+            <span class="key-badge">1 <span>Move 1 in battle</span></span>
+            <span class="key-badge">2 <span>Move 2</span></span>
+            <span class="key-badge">3 <span>Move 3</span></span>
+            <span class="key-badge">4 <span>Move 4</span></span>
         </div>
+        <div class="tip-box"><strong>💡 Tip:</strong> Type coverage (moves of different types) lets you hit more opponents for super effective damage.</div>
     </div>
 
-    <!-- ========== SHINY POKÉMON ========== -->
-    <div class="guide-section">
-        <h2><i class="fas fa-star"></i> 4. Shiny Pokémon</h2>
-        <p><strong>✨ Shiny Pokémon</strong> are extremely rare alternate‑colored versions. In PokeSim, the shiny rate is <strong>1 in 4096</strong> (same as modern main series games).</p>
+    <!-- TEAM -->
+    <div class="guide-section" id="team">
+        <h2><i class="fas fa-users"></i> Team & Collection</h2>
+        <p>Your Pokémon are split into your active <strong>Team</strong> (up to 6) and your <strong>Collection</strong> (unlimited storage).</p>
+        <div class="feature-grid">
+            <div class="feature-card"><div class="fc-icon">⚡</div><div class="fc-title">Set Active</div><div class="fc-desc">One Pokémon leads battles and walks beside you on the map.</div></div>
+            <div class="feature-card"><div class="fc-icon">📦</div><div class="fc-title">Move to Collection</div><div class="fc-desc">Move a team member to your storage box.</div></div>
+            <div class="feature-card"><div class="fc-icon">➕</div><div class="fc-title">Add to Team</div><div class="fc-desc">Pull from collection into your team (max 6).</div></div>
+            <div class="feature-card"><div class="fc-icon">🗑️</div><div class="fc-title">Release</div><div class="fc-desc">Permanently release a Pokémon. Cannot be undone!</div></div>
+            <div class="feature-card"><div class="fc-icon">✏️</div><div class="fc-title">Edit Moves</div><div class="fc-desc">Customize up to 4 moves. Costs coins for power upgrades.</div></div>
+            <div class="feature-card"><div class="fc-icon">🔄</div><div class="fc-title">Evolve</div><div class="fc-desc">Manually trigger evolution if level requirement is met.</div></div>
+        </div>
+        <p style="margin-top:14px;"><strong>Collection Filters & Sorting:</strong></p>
         <ul>
-            <li>Shiny wild Pokémon have a sparkling animation and a special badge.</li>
-            <li>When caught, they keep their shiny status – you’ll see the ✨ badge on your team and collection.</li>
-            <li>Shiny Pokémon do <strong>not</strong> have higher stats, but they are highly prestigious!</li>
+            <li>🔍 <strong>Search by name or Pokémon #</strong></li>
+            <li>✨ Filter: <strong>Shiny only</strong></li>
+            <li>⚔️ / 🛡️ / 🏃 Filter: <strong>Bonus ATK / DEF / SPD only</strong></li>
+            <li>Sort by: <strong>Level (High→Low / Low→High)</strong>, <strong>Pokédex ID</strong>, or <strong>Name A→Z</strong></li>
         </ul>
-        <div class="tip-box">
-            <strong><i class="fas fa-lightbulb"></i> Tip:</strong> Every encounter is a chance. Keep exploring – you never know when a shiny will appear!
-        </div>
+        <p style="margin-top:8px;">Each card shows <strong>capture metadata</strong>: trainer who caught it, map, and date.</p>
+        <div class="tip-box"><strong>💡 Tip:</strong> Keep at least 2–3 Pokémon in your team so you can switch during battle. If all faint, you lose!</div>
     </div>
 
-    <!-- ========== LEVELING & EVOLUTION ========== -->
-    <div class="guide-section">
-        <h2><i class="fas fa-chart-line"></i> 5. Leveling & Evolution</h2>
-        <p>Winning battles gives your Pokémon XP. When XP reaches the requirement (level × 300), the Pokémon levels up. Its HP and stats increase.</p>
-        <p><strong>Evolution:</strong> When a Pokémon reaches the required level (e.g., Charmander → Charmeleon at Lv.16), it evolves <strong>automatically</strong> right after battle. The evolution updates the Pokémon’s name, types, and moves.</p>
-        <div class="tip-box">
-            <strong><i class="fas fa-lightbulb"></i> Tip:</strong> Some Pokémon evolve only after reaching a high level. Keep training them – evolutions are huge power spikes!
-        </div>
+    <!-- RECORDS -->
+    <div class="guide-section" id="records">
+        <h2><i class="fas fa-book"></i> Pokédex Records</h2>
+        <p>Tracks every species you've encountered in battle — even without catching. Each entry shows the sprite, name, Pokédex #, types, encounter count, and an <strong>ℹ️ Info</strong> button with full stats, description, weaknesses, and the complete evolution line.</p>
+        <p>Search by name or ID. List loads 25 at a time for performance.</p>
+        <div class="tip-box"><strong>💡 Tip:</strong> Once you've encountered a species <strong>5 times</strong>, the next defeat auto-captures it for free!</div>
     </div>
 
-    <!-- ========== COINS & MOVE CUSTOMIZATION ========== -->
-    <div class="guide-section">
-        <h2><i class="fas fa-coins"></i> 6. Coins & Move Customization</h2>
-        <p>You earn <strong>coins</strong> from every victory (wild level × 5). Use coins to teach your Pokémon new moves.</p>
+    <!-- RANKING -->
+    <div class="guide-section" id="ranking">
+        <h2><i class="fas fa-trophy"></i> Global Ranking</h2>
+        <p>The <strong>Global Ranking</strong> page compares all trainers by:</p>
         <ul>
-            <li><strong>Move editor:</strong> Open any Pokémon’s card and click “Moves”. You can select up to 4 damaging moves from a list of all level‑up moves (or all moves if level‑up data is missing).</li>
-            <li><strong>Cost formula:</strong> You pay only for the <strong>increase in total move power</strong>. Each point of power costs <strong>35 coins</strong>.<br>
-                Example: Replacing a 40‑power move with a 90‑power move costs (90-40) × 35 = 1750 coins.</li>
-            <li><strong>No refunds:</strong> Lowering power is free, but you don’t get coins back.</li>
+            <li><strong>Total Levels</strong> — Sum of all Pokémon levels (team + collection).</li>
+            <li><strong>Total Encounters</strong> — Total wild Pokémon battled.</li>
         </ul>
-        <div class="tip-box">
-            <strong><i class="fas fa-lightbulb"></i> Tip:</strong> Save coins for high‑power moves (e.g., 120+). A well‑chosen move set can turn the tide in any battle.
-        </div>
+        <p>Change your trainer name using the ✏️ button in the nav — <strong>once per week</strong>.</p>
+        <div class="info-box"><strong>ℹ️ Merkado Unlock:</strong> Reach a <strong>Total Level of 100</strong> to unlock the 🛒 Merkado in the navigation bar.</div>
     </div>
 
-    <!-- ========== TEAM & COLLECTION MANAGEMENT ========== -->
-    <div class="guide-section">
-        <h2><i class="fas fa-users"></i> 7. Team & Collection</h2>
-        <p>Your <strong>Team</strong> holds up to 6 Pokémon that you use in battles. The first slot is your <strong>Active Pokémon</strong> – the one that leads every battle.</p>
+    <!-- UI -->
+    <div class="guide-section" id="ui">
+        <h2><i class="fas fa-cog"></i> Navigation & UI Settings</h2>
+        <div class="feature-grid">
+            <div class="feature-card"><div class="fc-icon">🌙</div><div class="fc-title">Dark / Light Mode</div><div class="fc-desc">Toggle between dark and light themes. Saved automatically.</div></div>
+            <div class="feature-card"><div class="fc-icon">🔊</div><div class="fc-title">Music Toggle</div><div class="fc-desc">Mute/unmute background and battle music.</div></div>
+            <div class="feature-card"><div class="fc-icon">+ / −</div><div class="fc-title">Zoom Controls</div><div class="fc-desc">Scale the game 50%–150%. Saved across sessions.</div></div>
+            <div class="feature-card"><div class="fc-icon">🚗</div><div class="fc-title">Byahe (Travel)</div><div class="fc-desc">Explore additional map areas.</div></div>
+            <div class="feature-card"><div class="fc-icon">🏆</div><div class="fc-title">Gym Battles</div><div class="fc-desc">Challenge Gym Leaders in structured battles.</div></div>
+            <div class="feature-card"><div class="fc-icon">ℹ️</div><div class="fc-title">About</div><div class="fc-desc">Shows daily Firestore read/write/delete usage.</div></div>
+        </div>
+        <div class="tip-box"><strong>💡 Tip:</strong> On mobile, the ☰ hamburger collapses all nav links into scrollable card rows.</div>
+    </div>
+
+    <!-- PWA -->
+    <div class="guide-section" id="pwa">
+        <h2><i class="fas fa-mobile-alt"></i> Install PokeSim as an App</h2>
+        <p>PokeSim is a <strong>Progressive Web App (PWA)</strong>. Install to your phone or desktop — no app store needed.</p>
         <ul>
-            <li><strong>Collection:</strong> All other caught Pokémon are stored here. You can search, sort, add them to your team, or release them.</li>
-            <li><strong>Move editing</strong> works for any Pokémon, even those in your collection.</li>
-            <li><strong>Releasing:</strong> Be careful – you cannot recover a released Pokémon. You can’t release your last team member.</li>
+            <li><strong>Android / Desktop Chrome:</strong> Tap <em>"Install App"</em> in the About section or footer.</li>
+            <li><strong>iOS (Safari):</strong> Share button → <em>Add to Home Screen</em>.</li>
+            <li><strong>Offline play:</strong> Many features work offline. Progress syncs on reconnect.</li>
+            <li><strong>Updates:</strong> Use <em>"Check for update"</em> in About to get the latest version.</li>
         </ul>
-        <div class="tip-box">
-            <strong><i class="fas fa-lightbulb"></i> Tip:</strong> Keep a diverse team with different types and bonus stats. Swap Pokémon in and out of your team before battles using the “📦” button.
-        </div>
+        <div class="tip-box"><strong>💡 Tip:</strong> Installed app gives full-screen mode, faster loads, and works without keeping a browser tab open.</div>
     </div>
 
-    <!-- ========== POKÉDEX RECORDS & GLOBAL RANKING ========== -->
-    <div class="guide-section">
-        <h2><i class="fas fa-trophy"></i> 8. Pokédex Records & Global Ranking</h2>
-        <p><strong>Encountered Pokémon (Records):</strong> Every wild Pokémon you meet is logged in your Pokédex. You can see its name, type, generation, category (Normal / Legendary / Mythical / Paradox), and how many times you’ve encountered it.</p>
-        <p><strong>Auto‑capture trigger:</strong> When the counter reaches 5 for a species, the next defeat = auto‑capture.</p>
-        <p><strong>Global Ranking:</strong> Compare your <strong>total trainer level</strong> (sum of all your Pokémon’s levels) and <strong>total encounters</strong> with other players. Climb the leaderboard by catching, training, and battling!</p>
-        <div class="tip-box">
-            <strong><i class="fas fa-lightbulb"></i> Tip:</strong> Check the Ranking page to see where you stand. The more you play, the higher you’ll go!
-        </div>
-    </div>
+</div><!-- end guide-wrapper -->
 
-    <!-- ========== MERKADO (LEVEL 100+ MARKET) ========== -->
-    <div class="guide-section">
-        <h2><i class="fas fa-store"></i> 9. Merkado – Level 100+ Market</h2>
-        <p>Once your <strong>trainer level reaches 100</strong>, the <strong>🛒 Merkado</strong> link appears in the navigation bar. Inside, you can buy rare items, special Pokémon, or other surprises (to be expanded in future updates).</p>
-        <div class="tip-box">
-            <strong><i class="fas fa-lightbulb"></i> Tip:</strong> Reach trainer level 100 by leveling up all your Pokémon – both in your team and collection count toward your total level!
-        </div>
-    </div>
+<footer>
+    <p><i class="fas fa-heart" style="color: var(--danger);"></i> Created by Tootzkie Custodio – enjoy your journey!</p>
+    <p style="font-size: 0.7rem; margin-top: 8px;">This is a fan-made game and is not affiliated with Nintendo, The Pokémon Company, or Game Freak.</p>
+    <p style="margin-top:8px;">
+        <a href="index.html">← Back to Game</a> &nbsp;|&nbsp;
+        <a href="ranking.html">🏆 Ranking</a> &nbsp;|&nbsp;
+        <a href="updates.html">📢 Updates</a>
+    </p>
+</footer>
 
-    <!-- ========== INSTALL AS APP (PWA) ========== -->
-    <div class="guide-section">
-        <h2><i class="fas fa-mobile-alt"></i> 10. Install PokeSim – Play Anywhere</h2>
-        <p>PokeSim is a Progressive Web App (PWA). You can install it on your phone or computer for an app‑like experience.</p>
-        <ul>
-            <li><strong>On Android / Chrome:</strong> Tap the “Install App” button in the About modal or footer, or use the browser’s “Add to Home screen” option.</li>
-            <li><strong>On iOS (Safari):</strong> Tap the Share button, then “Add to Home Screen”.</li>
-            <li>After installation, you can play <strong>offline/online</strong> – your progress will sync when you reconnect.</li>
-        </ul>
-        <div class="tip-box">
-            <strong><i class="fas fa-lightbulb"></i> Tip:</strong> Installing saves data and makes the game run faster. Look for the “Install PokeSim App” button!
-        </div>
-    </div>
+<script>
+    // ── HAMBURGER (same logic as index.html nav-toggle) ──
+    const navToggle = document.getElementById('nav-toggle');
+    const navCollapsible = document.getElementById('nav-collapsible');
+    navToggle.addEventListener('click', () => {
+        navToggle.classList.toggle('open');
+        navCollapsible.classList.toggle('open');
+    });
 
-    <div class="footer-note">
-        <p><i class="fas fa-heart" style="color: var(--danger);"></i> Created by Tootzkie Custodio – enjoy your journey!</p>
-        <p style="font-size: 0.7rem; margin-top: 8px;">This is a fan‑made game and is not affiliated with Nintendo, The Pokémon Company, or Game Freak. All Pokémon assets belong to their respective owners.</p>
-    </div>
-</div>
+    // ── DARK MODE (exact same logic as index.html) ──
+    const themeToggle = document.getElementById('theme-toggle');
+    const DARK_KEY = 'pokesim_dark_theme';
+
+    if (localStorage.getItem(DARK_KEY) === 'true') {
+        document.body.classList.add('dark-theme');
+        if (themeToggle) themeToggle.textContent = '☀️';
+    }
+
+    function toggleDarkTheme() {
+        if (document.body.classList.contains('dark-theme')) {
+            document.body.classList.remove('dark-theme');
+            localStorage.setItem(DARK_KEY, 'false');
+            if (themeToggle) themeToggle.textContent = '🌙';
+        } else {
+            document.body.classList.add('dark-theme');
+            localStorage.setItem(DARK_KEY, 'true');
+            if (themeToggle) themeToggle.textContent = '☀️';
+        }
+    }
+
+    if (themeToggle) {
+        themeToggle.addEventListener('click', toggleDarkTheme);
+    }
+</script>
 </body>
 </html>

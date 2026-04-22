@@ -7,6 +7,17 @@
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="manifest" href="manifest.json">
     <style>
+        body.dark-theme footer .support-section a {
+    color: var(--primary);
+}
+body.dark-theme footer .support-section a:hover {
+    color: var(--primary-dark);
+}
+body.dark-theme footer {
+    background: rgba(30, 35, 50, 0.9);
+    border-top-color: var(--border);
+    color: var(--text-light);
+}
         html, body {
     touch-action: pan-x pan-y;  /* allows panning but prevents pinch‑zoom */
 }
@@ -1743,30 +1754,30 @@ async function resolveBattle(win) {
 
         // === AUTO‑CATCH ON 5TH ENCOUNTER (ONCE PER SPECIES) ===
         if (encounterCount >= 5 && !alreadyAutoCaught) {
-            addBattleLog(`🎉 This is your 5th encounter with ${b.wild.name.toUpperCase()}! It automatically joins your team!`);
-            const trainerName = await getTrainerName();
-            const newPokemon = {
-                pokemonId: b.wild.pokemonId,
-                name: b.wild.name,
-                level: b.wild.level,
-                exp: 0,
-                moves: b.wild.moves,
-                types: b.wild.types,
-                inTeam: false,
-                capturedAt: new Date(),
-                capturedBy: trainerName,
-                capturedOnMap: currentMap?.name || "Unknown Map",
-                bonusStats: b.wild.bonusStats,
-                isShiny: b.wild.isShiny
-            };
-            await addDoc(collection(db, "users", userId, "pokemon"), newPokemon);
-            ownedPokemonIds.add(b.wild.pokemonId);
-            await updateUserTotalLevels(userId, b.wild.level);
-            await updateDoc(recordRef, { autoCaught5th: true });
-            invalidateTeamCache();
-            showBattleSummary('catch');
-            return; // stop – no XP/coins
-        }
+    addBattleLog(`🎉 This is your 5th encounter with ${b.wild.name.toUpperCase()}! It automatically joins your team!`);
+    const trainerName = await getTrainerName();
+    const newPokemon = {
+        pokemonId: b.wild.pokemonId,
+        name: b.wild.name,
+        level: b.wild.level,
+        exp: 0,
+        moves: b.wild.moves,
+        types: b.wild.types,
+        inTeam: false,
+        capturedAt: new Date(),
+        capturedBy: trainerName,
+        capturedOnMap: currentMap?.name || "Somewhere inPokeSim",
+        bonusStats: b.wild.bonusStats,
+        isShiny: b.wild.isShiny
+    };
+    await addDoc(collection(db, "users", userId, "pokemon"), newPokemon);
+    ownedPokemonIds.add(b.wild.pokemonId);
+    await updateUserTotalLevels(userId, b.wild.level);
+    await updateDoc(recordRef, { autoCaught5th: true });
+    invalidateTeamCache();
+    showBattleSummary('catch');
+    return;
+}
 
         // ---- Normal win: distribute XP among participants ----
         const totalBaseXP = Math.floor(b.wild.level * 30);
@@ -2144,31 +2155,30 @@ async function attemptCatch() {
         const hpPct = b.wild.currentHp / b.wild.maxHp;
         let catchChance = Math.min((currentMap.catchRate || 45) / 100, (1 - hpPct) * 0.8 + 0.05);
         if (Math.random() < catchChance) {
-            const trainerName = await getTrainerName();
-            const newPokemonRef = doc(collection(db, "users", auth.currentUser.uid, "pokemon"));
-            const newPokemon = {
-                pokemonId: b.wild.pokemonId,
-                name: b.wild.name,
-                level: b.wild.level,
-                exp: 0,
-                moves: b.wild.moves,
-                types: b.wild.types,
-                inTeam: false,
-                capturedAt: new Date(),
-                capturedBy: trainerName,
-                capturedOnMap: currentMap?.name || "Perlas ng Silanganan",
-                bonusStats: b.wild.bonusStats,
-                isShiny: b.wild.isShiny
-            };
-            batch.set(newPokemonRef, newPokemon);
-            batch.update(userRef, { totalLevels: increment(b.wild.level) });
-            ownedPokemonIds.add(b.wild.pokemonId);
-            invalidateTeamCache();
-            await batch.commit();
-            await savePlayerPositionToFirestore();
-            showBattleSummary('catch');
-            updateNavDisplay(true);
-        } else {
+    const trainerName = await getTrainerName();
+    const newPokemon = {
+        pokemonId: b.wild.pokemonId,
+        name: b.wild.name,
+        level: b.wild.level,
+        exp: 0,
+        moves: b.wild.moves,
+        types: b.wild.types,
+        inTeam: false,
+        capturedAt: new Date(),
+        capturedBy: trainerName,
+        capturedOnMap: currentMap?.name || "Somewhere in PokeSim",
+        bonusStats: b.wild.bonusStats,
+        isShiny: b.wild.isShiny
+    };
+    await addDoc(collection(db, "users", auth.currentUser.uid, "pokemon"), newPokemon);
+    ownedPokemonIds.add(b.wild.pokemonId);
+    await updateUserTotalLevels(auth.currentUser.uid, b.wild.level);
+    invalidateTeamCache();
+    await savePlayerPositionToFirestore();
+    showBattleSummary('catch');
+    refreshTeamView();
+    updateNavDisplay();
+}else {
             // If catch fails, we only committed the XP penalty – we need to commit that now
             await batch.commit();
             addBattleLog(`It broke free!`);

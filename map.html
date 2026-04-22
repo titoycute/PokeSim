@@ -946,6 +946,94 @@ body.dark-theme #map-info-modal .btn-primary:hover {
     50% { transform: scale(1.05); filter: drop-shadow(0 0 35px #ff88ff) drop-shadow(0 0 10px #aa22ff); }
 }
 
+/* Support Modal - Centered with backdrop */
+.support-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(5px);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeInBackdrop 0.3s ease-out;
+}
+.support-modal-content {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
+    padding: 40px 50px;
+    border-radius: 48px;
+    text-align: center;
+    max-width: 500px;
+    width: 85%;
+    box-shadow: 0 30px 50px rgba(0,0,0,0.4);
+    border: 2px solid rgba(255,255,255,0.3);
+    position: relative;
+    animation: modalPop 0.3s cubic-bezier(0.34, 1.2, 0.64, 1);
+}
+.support-modal-content i {
+    font-size: 4rem;
+    margin-bottom: 20px;
+    display: block;
+}
+.support-modal-content h2 {
+    font-size: 2rem;
+    margin: 10px 0;
+}
+.support-modal-content p {
+    font-size: 1rem;
+    margin: 15px 0;
+    opacity: 0.9;
+}
+.support-modal-close {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    background: rgba(0,0,0,0.3);
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.2s;
+}
+.support-modal-close:hover {
+    background: rgba(0,0,0,0.6);
+    transform: scale(1.1);
+}
+.support-modal-button {
+    background: white;
+    color: var(--primary-dark);
+    border: none;
+    padding: 12px 24px;
+    border-radius: 40px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 15px;
+    transition: 0.2s;
+}
+.support-modal-button:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+@keyframes fadeInBackdrop {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+@keyframes modalPop {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+}
+
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
@@ -3829,6 +3917,69 @@ async function cachedFetch(url) {
 window.addEventListener('beforeunload', () => {
     if (currentMap) savePlayerPositionLocal();
 });
+
+// ========== SUPPORT MODAL (centered, with backdrop) ==========
+(function setupSupportModal() {
+    if (sessionStorage.getItem('support_modal_shown')) return;
+
+    const THREE_MINUTES = 180000;  // 3 min delay
+    const DISPLAY_DURATION = 10000; // 10 sec auto-close (set to 15000 for 15 sec)
+
+    setTimeout(() => {
+        // Create overlay
+        const overlay = document.createElement('div');
+        overlay.className = 'support-modal-overlay';
+
+        // Create modal content
+        const modal = document.createElement('div');
+        modal.className = 'support-modal-content';
+        modal.innerHTML = `
+            <button class="support-modal-close">&times;</button>
+            <i class="fas fa-heart" style="color: #ff9999;"></i>
+            <h2>☕ Enjoying PokeSim?</h2>
+            <p>This game is created with love by <strong>Tootzkie Custodio</strong>.</p>
+            <p>If you're having fun, consider supporting the developer!</p>
+            <button class="support-modal-button">❤️ Support Now ❤️</button>
+            <small style="display: block; margin-top: 15px; font-size: 0.7rem;">This message will close automatically in ${DISPLAY_DURATION/1000} seconds</small>
+        `;
+
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+
+        let autoTimer;
+
+        function closeModal() {
+            if (autoTimer) clearTimeout(autoTimer);
+            overlay.remove();
+        }
+
+        // Close button
+        const closeBtn = modal.querySelector('.support-modal-close');
+        closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            closeModal();
+        });
+
+        // Support button opens new window
+        const supportBtn = modal.querySelector('.support-modal-button');
+        supportBtn.addEventListener('click', () => {
+            window.open('support.html', '_blank');
+            closeModal();
+        });
+
+        // Optional: clicking overlay backdrop also closes
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) closeModal();
+        });
+
+        // Auto-close after DISPLAY_DURATION
+        autoTimer = setTimeout(() => {
+            closeModal();
+        }, DISPLAY_DURATION);
+
+        sessionStorage.setItem('support_modal_shown', 'true');
+    }, THREE_MINUTES);
+})();
 </script>
 </body>
 </html>

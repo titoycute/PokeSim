@@ -1306,6 +1306,7 @@ body.dark-theme #map-info-modal .btn-primary:hover {
     <audio id="bg-music" src="music3.mp3" loop preload="auto"></audio>
     <audio id="battle-music" src="music2.mp3" loop preload="auto"></audio>
     <audio id="special-music" src="music4.mp3" loop preload="auto"></audio>
+    <audio id="victory-sound" src="mixkit-small-win-2020.wav" preload="auto"></audio>
 
 <footer>
     Created by Tootzkie Custodio <span id="app-version"></span>
@@ -1818,6 +1819,12 @@ async function resolveBattle(win) {
     isProcessing = true;
     toggleBattleUI(true);
     if (win && currentBattle) {
+
+         const victorySound = document.getElementById('victory-sound');
+        if (!isMuted && victorySound) {
+            victorySound.currentTime = 0;
+            victorySound.play().catch(e => console.log("Victory sound error:", e));
+        }
         const b = currentBattle;
         const userId = auth.currentUser.uid;
         cachedNavData = null;

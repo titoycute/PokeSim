@@ -262,23 +262,130 @@ html, body {
     #theme-toggle { background: var(--card-bg); border: 1px solid var(--border); border-radius: 40px; padding: 4px 12px; cursor: pointer; font-size: 0.9rem; }
 
     /* ────────────── AUTH SCREEN ────────────── */
-    #auth-screen {
-        height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: linear-gradient(135deg, var(--primary-dark), #790000);
-    }
-    .auth-card {
-        background: var(--card-bg);
-        padding: 40px;
-        border-radius: 24px;
-        width: 360px;
-        text-align: center;
-        box-shadow: 0 20px 35px -10px rgba(0,0,0,0.2);
-        border: 1px solid var(--border);
-        transition: all 0.3s ease;
-    }
+   /* Auth Screen with Galaxy / Star Effect */
+#auth-screen {
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #00238f, #790000);
+    background-attachment: fixed;
+}
+
+/* Animated stars layer */
+#auth-screen::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        radial-gradient(2px 2px at 20% 30%, #fff, rgba(0,0,0,0)),
+        radial-gradient(3px 3px at 60% 70%, #ffdd88, rgba(0,0,0,0)),
+        radial-gradient(1px 1px at 80% 20%, #fff, rgba(0,0,0,0)),
+        radial-gradient(2px 2px at 10% 85%, #ffaa66, rgba(0,0,0,0)),
+        radial-gradient(4px 4px at 95% 45%, #fff, rgba(0,0,0,0)),
+        radial-gradient(2px 2px at 40% 15%, #ffcc99, rgba(0,0,0,0)),
+        radial-gradient(3px 3px at 70% 90%, #fff, rgba(0,0,0,0)),
+        radial-gradient(1px 1px at 5% 50%, #ffdd99, rgba(0,0,0,0)),
+        radial-gradient(2px 2px at 50% 50%, #fff, rgba(0,0,0,0)),
+        radial-gradient(3px 3px at 85% 10%, #ffcc88, rgba(0,0,0,0));
+    background-size: 200px 200px;
+    background-repeat: repeat;
+    opacity: 0.6;
+    animation: starMove 40s linear infinite;
+    pointer-events: none;
+}
+
+/* Second layer of stars (larger, slower) */
+#auth-screen::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        radial-gradient(4px 4px at 30% 40%, #ffdd88, rgba(0,0,0,0)),
+        radial-gradient(2px 2px at 75% 65%, #fff, rgba(0,0,0,0)),
+        radial-gradient(5px 5px at 15% 20%, #ffaa66, rgba(0,0,0,0)),
+        radial-gradient(3px 3px at 90% 80%, #fff, rgba(0,0,0,0)),
+        radial-gradient(6px 6px at 45% 95%, #ffcc99, rgba(0,0,0,0));
+    background-size: 300px 300px;
+    background-repeat: repeat;
+    opacity: 0.4;
+    animation: starMoveSlow 60s linear infinite;
+    pointer-events: none;
+}
+
+/* Star movement animations */
+@keyframes starMove {
+    0% { background-position: 0 0; }
+    100% { background-position: 200px 200px; }
+}
+
+@keyframes starMoveSlow {
+    0% { background-position: 0 0; }
+    100% { background-position: -300px 300px; }
+}
+
+/* Pulsing glow effect on the gradient */
+#auth-screen {
+    animation: glowPulse 4s ease-in-out infinite;
+}
+
+@keyframes glowPulse {
+    0% { filter: brightness(1) saturate(1); }
+    50% { filter: brightness(1.1) saturate(1.2); }
+    100% { filter: brightness(1) saturate(1); }
+}
+
+/* Keep the auth card on top */
+.auth-card {
+    position: relative;
+    z-index: 10;
+    background: var(--card-bg);
+    padding: 40px;
+    border-radius: 24px;
+    width: 360px;
+    text-align: center;
+    box-shadow: 0 20px 35px -10px rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.2);
+    backdrop-filter: blur(2px);
+}
+
+/* Shooting star */
+.shooting-star {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 2;
+}
+.shooting-star::before {
+    content: '';
+    position: absolute;
+    top: 10%;
+    left: -100px;
+    width: 100px;
+    height: 2px;
+    background: linear-gradient(90deg, #fff, transparent);
+    border-radius: 50%;
+    animation: shoot 8s linear infinite;
+    opacity: 0;
+}
+@keyframes shoot {
+    0% { transform: translateX(0) translateY(0); opacity: 0; }
+    10% { opacity: 1; }
+    20% { transform: translateX(120vw) translateY(20vh); opacity: 0; }
+    100% { transform: translateX(120vw) translateY(20vh); opacity: 0; }
+}
     .auth-card img { width: 280px; height: auto; margin-bottom: 10px; border-radius: 20px; }
 
     /* ────────────── MAP COMPONENTS ────────────── */
@@ -1498,6 +1605,124 @@ body.dark-theme footer .support-section a {
 }
 body.dark-theme footer .support-section a:hover {
     color: var(--primary-dark);
+}
+/* Big centered support reminder */
+/* Support Modal - Centered with backdrop */
+.support-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(5px);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeInBackdrop 0.3s ease-out;
+}
+.support-modal-content {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
+    padding: 40px 50px;
+    border-radius: 48px;
+    text-align: center;
+    max-width: 500px;
+    width: 85%;
+    box-shadow: 0 30px 50px rgba(0,0,0,0.4);
+    border: 2px solid rgba(255,255,255,0.3);
+    position: relative;
+    animation: modalPop 0.3s cubic-bezier(0.34, 1.2, 0.64, 1);
+}
+.support-modal-content i {
+    font-size: 4rem;
+    margin-bottom: 20px;
+    display: block;
+}
+.support-modal-content h2 {
+    font-size: 2rem;
+    margin: 10px 0;
+}
+.support-modal-content p {
+    font-size: 1rem;
+    margin: 15px 0;
+    opacity: 0.9;
+}
+.support-modal-close {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    background: rgba(0,0,0,0.3);
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.2s;
+}
+.support-modal-close:hover {
+    background: rgba(0,0,0,0.6);
+    transform: scale(1.1);
+}
+.support-modal-button {
+    background: white;
+    color: var(--primary-dark);
+    border: none;
+    padding: 12px 24px;
+    border-radius: 40px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 15px;
+    transition: 0.2s;
+}
+.support-modal-button:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+@keyframes fadeInBackdrop {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+@keyframes modalPop {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+/* Shooting star */
+.shooting-star {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 2;
+}
+.shooting-star::before {
+    content: '';
+    position: absolute;
+    top: 10%;
+    left: -100px;
+    width: 100px;
+    height: 2px;
+    background: linear-gradient(90deg, #fff, transparent);
+    border-radius: 50%;
+    animation: shoot 8s linear infinite;
+    opacity: 0;
+}
+@keyframes shoot {
+    0% { transform: translateX(0) translateY(0); opacity: 0; }
+    10% { opacity: 1; }
+    20% { transform: translateX(120vw) translateY(20vh); opacity: 0; }
+    100% { transform: translateX(120vw) translateY(20vh); opacity: 0; }
 }
 </style>
 </head>
@@ -5670,6 +5895,69 @@ window.addEventListener('beforeunload', () => {
     if (currentMap) savePlayerPositionLocal();
 });
 
+// ========== SUPPORT REMINDER (3 minutes delay) ==========
+// ========== SUPPORT MODAL (centered, with backdrop) ==========
+(function setupSupportModal() {
+    if (sessionStorage.getItem('support_modal_shown')) return;
+
+    const THREE_MINUTES = 300000;  // 3 min delay
+    const DISPLAY_DURATION = 10000; // 10 sec auto-close (set to 15000 for 15 sec)
+
+    setTimeout(() => {
+        // Create overlay
+        const overlay = document.createElement('div');
+        overlay.className = 'support-modal-overlay';
+
+        // Create modal content
+        const modal = document.createElement('div');
+        modal.className = 'support-modal-content';
+        modal.innerHTML = `
+            <button class="support-modal-close">&times;</button>
+            <i class="fas fa-heart" style="color: #ff9999;"></i>
+            <h2>☕ Enjoying PokeSim?</h2>
+            <p>This game is created with love by <strong>Tootzkie Custodio</strong>.</p>
+            <p>If you're having fun, consider supporting the developer!</p>
+            <button class="support-modal-button">❤️ Support Now ❤️</button>
+            <small style="display: block; margin-top: 15px; font-size: 0.7rem;">This message will close automatically in ${DISPLAY_DURATION/1000} seconds</small>
+        `;
+
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+
+        let autoTimer;
+
+        function closeModal() {
+            if (autoTimer) clearTimeout(autoTimer);
+            overlay.remove();
+        }
+
+        // Close button
+        const closeBtn = modal.querySelector('.support-modal-close');
+        closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            closeModal();
+        });
+
+        // Support button opens new window
+        const supportBtn = modal.querySelector('.support-modal-button');
+        supportBtn.addEventListener('click', () => {
+            window.open('support.html', '_blank');
+            closeModal();
+        });
+
+        // Optional: clicking overlay backdrop also closes
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) closeModal();
+        });
+
+        // Auto-close after DISPLAY_DURATION
+        autoTimer = setTimeout(() => {
+            closeModal();
+        }, DISPLAY_DURATION);
+
+        sessionStorage.setItem('support_modal_shown', 'true');
+    }, THREE_MINUTES);
+})();
 </script>
 </body>
 </html>

@@ -1370,7 +1370,123 @@ body.dark-theme .poke-card-img-wrap { background: #1e2230; }
 }
 .badge-shiny { background: #ffd700; color: #333; }
 .badge-active { background: var(--success); color: white; }
+/* Dark mode: fix shiny card background */
+body.dark-theme .poke-card.is-shiny {
+    background: linear-gradient(to bottom, #2a2a2a, var(--card-bg)) !important;
+    border-color: #fbbf24;
+}
 
+/* Evolution modal enhancements */
+#evolution-modal .modal {
+    background: radial-gradient(circle at center, #2a2f3e 0%, #1a1e2c 100%);
+    border: 3px solid gold;
+    box-shadow: 0 0 40px rgba(255, 215, 0, 0.6);
+    animation: modalGlow 1.5s infinite alternate;
+}
+@keyframes modalGlow {
+    from { box-shadow: 0 0 20px rgba(255,215,0,0.4); border-color: #ffd700; }
+    to { box-shadow: 0 0 60px rgba(255,215,0,0.9); border-color: #ffaa00; }
+}
+
+#evo-sprite-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 30px;
+    flex-wrap: wrap;
+    margin: 30px 0;
+}
+#evo-old-sprite, #evo-new-sprite {
+    width: 150px;
+    height: 150px;
+    object-fit: contain;
+    filter: drop-shadow(0 0 10px gold);
+    transition: all 0.5s ease;
+}
+#evo-arrow {
+    font-size: 3rem;
+    animation: arrowPulse 0.6s infinite alternate;
+    text-shadow: 0 0 10px gold;
+}
+@keyframes arrowPulse {
+    from { transform: scale(1); opacity: 0.7; }
+    to { transform: scale(1.3); opacity: 1; }
+}
+
+.evolution-animate {
+    animation: evolutionFlash 0.2s infinite alternate;
+}
+@keyframes evolutionFlash {
+    from { filter: brightness(1) drop-shadow(0 0 5px gold); transform: scale(1); }
+    to { filter: brightness(2) drop-shadow(0 0 40px gold); transform: scale(1.15); }
+}
+.evo-final {
+    animation: evolutionBounce 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+@keyframes evolutionBounce {
+    0% { transform: scale(0) rotate(-10deg); opacity: 0; }
+    70% { transform: scale(1.2) rotate(2deg); }
+    100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+/* Dark mode: evolution modal background */
+body.dark-theme #evolution-modal .modal,
+body.dark-theme #evolution-confirm-modal .modal,
+body.dark-theme #evolution-select-modal .modal {
+    background: #1e1e2e !important;
+    background-image: none !important;
+    color: #e2e8f0;
+    border-color: #3d4050;
+}
+
+/* Dark mode: evolution modal text */
+body.dark-theme #evo-title,
+body.dark-theme #evo-text,
+body.dark-theme #confirm-old-name,
+body.dark-theme #confirm-new-name,
+body.dark-theme #confirm-requirements {
+    color: #e2e8f0;
+}
+
+/* Dark mode: evolution modal buttons */
+body.dark-theme #evo-continue-btn,
+body.dark-theme #confirm-evolution-yes,
+body.dark-theme #confirm-evolution-no {
+    background: #3b4cca;
+    color: white;
+}
+body.dark-theme #evo-continue-btn:hover,
+body.dark-theme #confirm-evolution-yes:hover {
+    background: #5a4ad1;
+}
+body.dark-theme #confirm-evolution-no {
+    background: #4a5568;
+}
+@keyframes evolutionGlow {
+    0% { filter: brightness(1) drop-shadow(0 0 0 gold); transform: scale(1); }
+    50% { filter: brightness(1.5) drop-shadow(0 0 20px gold); transform: scale(1.1); }
+    100% { filter: brightness(1) drop-shadow(0 0 0 gold); transform: scale(1); }
+}
+.evolution-animate {
+    animation: evolutionGlow 0.8s ease-in-out 3;
+}
+
+#evo-sprite-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 30px;
+    flex-wrap: wrap;
+    margin: 20px 0;
+}
+#evo-old-sprite, #evo-new-sprite {
+    width: 150px;
+    height: 150px;
+    object-fit: contain;
+}
+#evo-arrow {
+    font-size: 3rem;
+    margin: 0 10px;
+}
 </style>
 </head>
 <body>
@@ -1817,6 +1933,7 @@ body.dark-theme .poke-card-img-wrap { background: #1e2230; }
 
     <audio id="bg-music" src="music1.mp3" loop preload="auto"></audio>
     <audio id="battle-music" src="music2.mp3" loop preload="auto"></audio>
+    <audio id="evolution-sound" src="evolution.mp3" preload="auto"></audio>
 
 
     <footer>
@@ -2762,17 +2879,21 @@ async function resolveBattle(win) {
 
         if (encounterCount >= 5 && !alreadyAutoCaught) {
             addBattleLog(`🎉 This is your 5th encounter with ${b.wild.name.toUpperCase()}! It automatically joins your team!`);
-            const newPokemon = {
-                pokemonId: b.wild.pokemonId,
-                name: b.wild.name,
-                level: b.wild.level,
-                exp: 0,
-                moves: b.wild.moves,
-                types: b.wild.types,
-                inTeam: false,
-                capturedAt: new Date(),
-                isShiny: b.wild.isShiny
-            };
+           const trainerName = await getTrainerName();
+const newPokemon = {
+    pokemonId: b.wild.pokemonId,
+    name: b.wild.name,
+    level: b.wild.level,
+    exp: 0,
+    moves: b.wild.moves,
+    types: b.wild.types,
+    inTeam: false,
+    capturedAt: new Date(),
+    capturedBy: trainerName,
+    capturedOnMap: currentMap?.name || "Unknown Map",
+    bonusStats: b.wild.bonusStats,
+    isShiny: b.wild.isShiny
+};
             await addDoc(collection(db, "users", userId, "pokemon"), newPokemon);
             ownedPokemonIds.add(b.wild.pokemonId);
             await updateUserTotalLevels(userId, b.wild.level);
@@ -2916,73 +3037,130 @@ async function resolveBattle(win) {
         } catch(e) { console.error("Evo Error:",e); } return false;
     }
 
-    async function showInfo(id) {
-                const overlay = document.getElementById('loading-overlay');
-                overlay.classList.remove('hidden');
-                try {
-                    const [p, s] = await Promise.all([
-                        cachedFetch(`https://pokeapi.co/api/v2/pokemon/${id}`),
-                        cachedFetch(`https://pokeapi.co/api/v2/pokemon-species/${id}`)
-                    ]);         
-                    const desc = s.flavor_text_entries.find(e => e.language.name === 'en')?.flavor_text.replace(/\f/g, ' ') || 'No description available.';
-                    
-                    loadImageWithFallback(document.getElementById('info-img'), getBattleSpriteUrl(id, 'front'));
-                    document.getElementById('info-name').innerText = p.name.toUpperCase();
-                    document.getElementById('info-desc').innerText = `"${desc}"`;
-                    
-                    // Get types and display as colored badges
-                    const types = p.types.map(t => t.type.name);
-                    const typesBadgesHtml = types.map(t => `<span class="type-badge" style="background: ${getTypeColor(t)};">${t.toUpperCase()}</span>`).join(' ');
-                    document.getElementById('info-types').innerHTML = typesBadgesHtml;
-                    
-                    // Compute weaknesses
-                    const allTypes = ['normal','fire','water','electric','grass','ice','fighting','poison','ground','flying','psychic','bug','rock','ghost','dragon','dark','steel','fairy'];
-                    const weaknesses = allTypes.filter(t => getTypeEffectiveness(t, types) >= 2);
-                    const weaknessHtml = weaknesses.length 
-                        ? `<div style="margin-top: 8px;"><strong>Weak to:</strong> ${weaknesses.map(t => `<span class="type-badge" style="background: ${getTypeColor(t)};">${t.toUpperCase()}</span>`).join(' ')}</div>`
-                        : `<div style="margin-top: 8px;"><strong>Weak to:</strong> None (or neutral)</div>`;
-                    
-                    document.getElementById('info-stats').innerHTML = `
-                        Height: ${p.height / 10}m | Weight: ${p.weight / 10}kg
-                        ${weaknessHtml}
-                    `;
-                    
-                    // --- Fetch and display evolution chain ---
-                    const evolutionContainer = document.getElementById('info-evolution-list');
-                    if (evolutionContainer) {
-                        evolutionContainer.innerHTML = '<div style="text-align:center; padding:10px;">🌀 Loading evolution data...</div>';
-                        const stages = await fetchEvolutionChain(id);
-                        if (stages.length === 0) {
-                            evolutionContainer.innerHTML = '<div style="color:#999;">No evolution data available</div>';
-                        } else {
-                            evolutionContainer.innerHTML = stages.map((stage, idx) => {
-                                const spriteUrl = getBattleSpriteUrl(stage.id, 'front')[0];
-                                const typeBadges = stage.types.map(t => `<span class="type-badge" style="background: ${getTypeColor(t)};">${t.toUpperCase()}</span>`).join('');
-                                const levelText = stage.level ? `Lv. ${stage.level}` : (idx === 0 ? 'Start' : 'Final Stage');
-                                return `
-                                    <div style="text-align: center; width: 120px;">
-                                        <img src="${spriteUrl}" style="width: 96px; height: 96px; object-fit: contain; image-rendering: crisp-edges;"
-                                            onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${stage.id}.png'">
-                                        <div><strong>${stage.name.toUpperCase()}</strong></div>
-                                        <div style="font-size:0.7rem; margin:4px 0;">${typeBadges}</div>
-                                        <div style="font-size:0.7rem; color:var(--primary-dark);">${levelText}</div>
-                                    </div>
-                                    ${idx < stages.length-1 ? '<div style="font-size:1.5rem; align-self:center;">→</div>' : ''}
-                                `;
-                            }).join('');
-                        }
+  async function showInfo(id) {
+    const overlay = document.getElementById('loading-overlay');
+    overlay.classList.remove('hidden');
+    try {
+        // Fetch Pokémon and species data (with fallback)
+        let p, s;
+        try {
+            p = await cachedFetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
+        } catch (e) {
+            console.warn("Pokemon fetch failed, using fallback", e);
+            p = { name: `#${id}`, types: [], height: 0, weight: 0 };
+        }
+        try {
+            s = await cachedFetch(`https://pokeapi.co/api/v2/pokemon-species/${id}`);
+        } catch (e) {
+            console.warn("Species fetch failed, using fallback", e);
+            s = { flavor_text_entries: [] };
+        }
+
+        // Get description
+        let desc = s.flavor_text_entries?.find(e => e.language.name === 'en')?.flavor_text.replace(/\f/g, ' ') || 'No description available.';
+        const nameLower = p.name.toLowerCase();
+        if (nameLower.includes('-mega')) {
+            const baseName = nameLower.replace('-mega', '').replace('-x', '').replace('-y', '');
+            desc = `Mega Evolution of ${baseName.toUpperCase()}. ${desc}`;
+        } else if (nameLower.includes('-gmax')) {
+            const baseName = nameLower.replace('-gmax', '');
+            desc = `Gigantamax Form of ${baseName.toUpperCase()}. ${desc}`;
+        } else if (nameLower.includes('-primal')) {
+            const baseName = nameLower.replace('-primal', '');
+            desc = `Primal Reversion of ${baseName.toUpperCase()}. ${desc}`;
+        }
+
+        // Set image (with fallback)
+        loadImageWithFallback(document.getElementById('info-img'), getBattleSpriteUrl(id, 'front'));
+        document.getElementById('info-name').innerText = p.name.toUpperCase();
+        document.getElementById('info-desc').innerText = `"${desc}"`;
+
+        // Types
+        const types = p.types?.map(t => t.type.name) || [];
+        const typesBadgesHtml = types.map(t => `<span class="type-badge" style="background: ${getTypeColor(t)};">${t.toUpperCase()}</span>`).join(' ');
+        document.getElementById('info-types').innerHTML = typesBadgesHtml;
+
+        // Weaknesses
+        let weaknessHtml = '';
+        if (types.length) {
+            const allTypes = ['normal','fire','water','electric','grass','ice','fighting','poison','ground','flying','psychic','bug','rock','ghost','dragon','dark','steel','fairy'];
+            const weaknesses = allTypes.filter(t => getTypeEffectiveness(t, types) >= 2);
+            weaknessHtml = weaknesses.length
+                ? `<div style="margin-top: 8px;"><strong>Weak to:</strong> ${weaknesses.map(t => `<span class="type-badge" style="background: ${getTypeColor(t)};">${t.toUpperCase()}</span>`).join(' ')}</div>`
+                : `<div style="margin-top: 8px;"><strong>Weak to:</strong> None (or neutral)</div>`;
+        }
+        document.getElementById('info-stats').innerHTML = `
+            Height: ${(p.height || 0) / 10}m | Weight: ${(p.weight || 0) / 10}kg
+            ${weaknessHtml}
+        `;
+
+        // --- Evolution chain from BASE species (even for special forms) ---
+        const baseId = await getBaseSpeciesId(id);
+        const stages = await fetchEvolutionChain(baseId);
+        const evolutionContainer = document.getElementById('info-evolution-list');
+        evolutionContainer.innerHTML = '<div style="text-align:center; padding:10px;">🌀 Loading evolution data...</div>';
+        if (stages.length === 0) {
+            evolutionContainer.innerHTML = '<div style="color:#999;">No evolution data available</div>';
+        } else {
+            let html = '<div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; align-items: center;">';
+            for (let i = 0; i < stages.length; i++) {
+                const stage = stages[i];
+                const spriteUrl = getBattleSpriteUrl(stage.id, 'front')[0];
+                const typeBadges = stage.types.map(t => `<span class="type-badge" style="background: ${getTypeColor(t)};">${t.toUpperCase()}</span>`).join('');
+                const levelText = stage.level ? `Lv. ${stage.level}` : (i === 0 ? 'Start' : 'Evolves');
+                html += `
+                    <div style="text-align: center; width: 120px;">
+                        <img src="${spriteUrl}" style="width: 96px; height: 96px; object-fit: contain; image-rendering: crisp-edges;"
+                            onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${stage.id}.png'">
+                        <div><strong>${stage.name.toUpperCase()}</strong></div>
+                        <div style="font-size:0.7rem; margin:4px 0;">${typeBadges}</div>
+                        <div style="font-size:0.7rem; color:var(--primary-dark);">${levelText}</div>
+                    </div>
+                `;
+                // Add special forms (Mega, G-Max, Primal) for this stage
+                if (stage.specials.length) {
+                    html += `<div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; margin-left: 10px;">`;
+                    for (const special of stage.specials) {
+                        const specialSprite = getBattleSpriteUrl(special.id, 'front')[0];
+                        html += `
+                            <div style="text-align: center; width: 120px; border: 1px dashed gold; border-radius: 16px; padding: 8px; background: rgba(255,215,0,0.1);">
+                                <img src="${specialSprite}" style="width: 80px; height: 80px; object-fit: contain;"
+                                    onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${special.id}.png'">
+                                <div><strong>${special.displayName}</strong></div>
+                                <div style="font-size:0.6rem; color:#ffaa00;">${special.type}</div>
+                            </div>
+                        `;
                     }
-                    // --- End evolution chain ---
-                    
-                    document.getElementById('info-overlay').classList.remove('hidden');
-                } catch (err) {
-                    console.error("Failed to load Pokémon info:", err);
-                    alert("Could not load Pokémon details. Please try again later.");
-                } finally {
-                    overlay.classList.add('hidden');
+                    html += `</div>`;
                 }
+                if (i < stages.length - 1) html += '<div style="font-size:1.5rem; align-self:center;">→</div>';
             }
-    window.showInfo=showInfo;
+            html += '</div>';
+            evolutionContainer.innerHTML = html;
+        }
+
+        document.getElementById('info-overlay').classList.remove('hidden');
+    } catch (err) {
+        console.error("Failed to load Pokémon info:", err);
+        // Fallback modal
+        document.getElementById('info-name').innerText = `Pokémon #${id}`;
+        document.getElementById('info-desc').innerText = "Could not load details from PokeAPI. Please try again later.";
+        document.getElementById('info-types').innerHTML = '';
+        document.getElementById('info-stats').innerHTML = '';
+        document.getElementById('info-evolution-list').innerHTML = '<div style="color:#999;">Evolution data unavailable</div>';
+        loadImageWithFallback(document.getElementById('info-img'), getStaticSpriteUrl(id));
+        document.getElementById('info-overlay').classList.remove('hidden');
+    } finally {
+        overlay.classList.add('hidden');
+    }
+}
+            
+
+
+window.showInfo=showInfo;
+
+
+
 
     let currentMap = null;
     let isAdmin = false;
@@ -3664,73 +3842,83 @@ window.addEventListener('keydown', (e) => {
         if (btn) btn.disabled = false;
     }
 
-    async function attemptCatch() {
-        if (!currentBattle || isProcessing || !currentMap) return;
-        const b = currentBattle;
-        const btn = document.getElementById('catch-btn');
-        const requiredXPPercent = currentMap.requiredExpPercent || 10;
-        const penaltyPercent = (currentMap.catchXpPenaltyPercent || 10) / 100;
-        const expNeededTotal = b.player.level * 300;
-        const requiredXPNeeded = expNeededTotal * (requiredXPPercent / 100);
-        const currentXP = b.player.exp || 0;
-        if (b.player.level <= 10) { alert("Active Pokémon must be above level 10!"); return; }
-        if (currentXP < requiredXPNeeded) { alert(`Need at least ${requiredXPPercent}% XP progress to catch!`); return; }
-        isProcessing = true;
-        toggleBattleUI(true);
-        try {
-            const penalty = Math.floor(expNeededTotal * penaltyPercent);
-            const newExp = Math.max(0, currentXP - penalty);
-            const activeRef = doc(db, "users", auth.currentUser.uid, "pokemon", b.player.id);
-            await updateDoc(activeRef, { exp: newExp });
-            trackWrite();
-            b.player.exp = newExp;
-            if (cachedActivePokemon && cachedActivePokemon.id === b.player.id) cachedActivePokemon.exp = newExp;
-            addBattleLog(`Catch attempt! Cost: ${penalty} XP.`);
-            renderBattleUI();
-            const hpPct = b.wild.currentHp / b.wild.maxHp;
-            let catchChance = (1 - hpPct) * 0.8 + 0.05;
-            const maxCatch = (currentMap.catchRate || 45) / 100;
-            catchChance = Math.min(maxCatch, Math.max(0.05, catchChance));
-            if (Math.random() < catchChance) {
-                const newPokemon = {
-                    pokemonId: b.wild.pokemonId,
-                    name: b.wild.name,
-                    level: b.wild.level,
-                    exp: 0,
-                    moves: b.wild.moves,
-                    types: b.wild.types,
-                    inTeam: false,
-                    capturedAt: new Date(),
-                    bonusStats: b.wild.bonusStats,
-                    isShiny: b.wild.isShiny
-                };
-                await addDoc(collection(db, "users", auth.currentUser.uid, "pokemon"), newPokemon);
-                ownedPokemonIds.add(b.wild.pokemonId);
-                await updateUserTotalLevels(auth.currentUser.uid, b.wild.level);
-                invalidateTeamCache();
-                // ✅ Save position to Firebase on successful catch
-                await savePlayerPositionToFirestore();
-                showBattleSummary('catch');
-                refreshTeamView();
-                updateNavDisplay();
-            } else {
-                addBattleLog(`The wild ${b.wild.name} broke free!`);
-                setTimeout(() => {
-                    if (!currentBattle) return;
-                    const wM = b.wild.moves[Math.floor(Math.random() * b.wild.moves.length)];
-                    executeAttack(b.wild, b.player, wM, false);
-                    renderBattleUI();
-                    if (b.player.currentHp <= 0) handlePlayerFaint(b);
-                    else { isProcessing = false; toggleBattleUI(false); }
-                }, 1000);
-            }
-        } catch (err) {
-            console.error(err);
-            isProcessing = false;
-            toggleBattleUI(false);
-        }
+   async function attemptCatch() {
+    if (!currentBattle || isProcessing || !currentMap) return;
+    const b = currentBattle;
+    const requiredXPPercent = currentMap.requiredExpPercent || 10;
+    const penaltyPercent = (currentMap.catchXpPenaltyPercent || 10) / 100;
+    const expNeededTotal = b.player.level * 300;
+    const requiredXPNeeded = expNeededTotal * (requiredXPPercent / 100);
+    const currentXP = b.player.exp || 0;
+
+    if (b.player.level <= 10) {
+        alert("Active Pokémon must be above level 10!");
+        return;
+    }
+    if (currentXP < requiredXPNeeded) {
+        alert(`Need at least ${requiredXPPercent}% XP progress to catch!`);
+        return;
     }
 
+    isProcessing = true;
+    toggleBattleUI(true);
+    try {
+        const penalty = Math.floor(expNeededTotal * penaltyPercent);
+        const newExp = Math.max(0, currentXP - penalty);
+        const activeRef = doc(db, "users", auth.currentUser.uid, "pokemon", b.player.id);
+        await updateDoc(activeRef, { exp: newExp });
+        trackWrite();
+        b.player.exp = newExp;
+        if (cachedActivePokemon && cachedActivePokemon.id === b.player.id) cachedActivePokemon.exp = newExp;
+        addBattleLog(`Catch attempt! Cost: ${penalty} XP.`);
+        renderBattleUI();
+
+        const hpPct = b.wild.currentHp / b.wild.maxHp;
+        let catchChance = (1 - hpPct) * 0.8 + 0.05;
+        const maxCatch = (currentMap.catchRate || 45) / 100;
+        catchChance = Math.min(maxCatch, Math.max(0.05, catchChance));
+
+        if (Math.random() < catchChance) {
+            const trainerName = await getTrainerName();   // ✅ ADDED – fixes missing trainer
+            const newPokemon = {
+                pokemonId: b.wild.pokemonId,
+                name: b.wild.name,
+                level: b.wild.level,
+                exp: 0,
+                moves: b.wild.moves,
+                types: b.wild.types,
+                inTeam: false,
+                capturedAt: new Date(),
+                capturedBy: trainerName,
+                capturedOnMap: currentMap?.name || "Somewhere in PokeSim",
+                bonusStats: b.wild.bonusStats,
+                isShiny: b.wild.isShiny
+            };
+            await addDoc(collection(db, "users", auth.currentUser.uid, "pokemon"), newPokemon);
+            ownedPokemonIds.add(b.wild.pokemonId);
+            await updateUserTotalLevels(auth.currentUser.uid, b.wild.level);
+            invalidateTeamCache();
+            await savePlayerPositionToFirestore();
+            showBattleSummary('catch');
+            refreshTeamView();
+            updateNavDisplay();
+        } else {
+            addBattleLog(`The wild ${b.wild.name} broke free!`);
+            setTimeout(() => {
+                if (!currentBattle) return;
+                const wM = b.wild.moves[Math.floor(Math.random() * b.wild.moves.length)];
+                executeAttack(b.wild, b.player, wM, false);
+                renderBattleUI();
+                if (b.player.currentHp <= 0) handlePlayerFaint(b);
+                else { isProcessing = false; toggleBattleUI(false); }
+            }, 1000);
+        }
+    } catch (err) {
+        console.error(err);
+        isProcessing = false;
+        toggleBattleUI(false);
+    }
+}
     async function attemptEscape() {
         if (!currentBattle || isProcessing) return;
         isProcessing = true;
@@ -4187,9 +4375,13 @@ async function createPokemonCard(p, isTeam, teamSize) {
         `<span class="poke-card-move-pill" style="background:${getTypeColor(m.type)}">${m.name.toUpperCase()}</span>`
     ).join('');
 
-    const capturedText = p.capturedAt
-        ? `📍 ${p.capturedOnMap || 'Unknown'} · ${new Date(p.capturedAt.seconds ? p.capturedAt.seconds * 1000 : p.capturedAt).toLocaleDateString()}`
-        : '';
+    let capturedText = '';
+if (p.capturedAt) {
+    const date = new Date(p.capturedAt.seconds ? p.capturedAt.seconds * 1000 : p.capturedAt).toLocaleDateString();
+    const trainer = p.capturedBy || 'Unknown Trainer';
+    const map = p.capturedOnMap || 'Somewhere in PokeSim';
+    capturedText = `👤 ${trainer} · 📍 ${map} · 📅 ${date}`;
+}
 
     div.innerHTML = `
         ${p.isShiny ? '<span class="poke-card-corner-badge badge-shiny">✨ SHINY</span>' : ''}
@@ -4261,7 +4453,11 @@ async function createPokemonCard(p, isTeam, teamSize) {
     div.querySelector('.mon-buttons').appendChild(evoBtn);
 
     return div;
-}// ========== SPECIAL EVOLUTION HELPERS (MEGA, PRIMAL, G-MAX) ==========
+}
+
+// ========== SPECIAL EVOLUTION HELPERS (MEGA, PRIMAL, G-MAX) ==========
+
+
 const formIdCache = {};
 
 async function getPokemonIdByFormName(formName) {
@@ -4280,6 +4476,100 @@ async function getPokemonIdByFormName(formName) {
     }
 }
 
+async function getBaseSpeciesId(id) {
+    try {
+        // First, try fetching the pokemon directly to get the species URL
+        // This handles numeric IDs and named forms (e.g. "pyroar-female", "venusaur-mega")
+        let pokemonData;
+        try {
+            pokemonData = await cachedFetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
+        } catch (e) {
+            console.warn("Could not fetch pokemon data for", id, e);
+            return id; // fallback
+        }
+
+        // Get the species from the pokemon's own species link — most reliable way
+        const speciesUrl = pokemonData.species?.url;
+        if (!speciesUrl) return id;
+
+        const species = await cachedFetch(speciesUrl);
+
+        // Resolve the base species by following evolves_from_species up to the root
+        // (handles cases where the species itself is a mid-chain form)
+        return species.id;
+    } catch (e) {
+        console.warn("Could not get base species, using original ID", e);
+        return id;
+    }
+}
+async function getFullEvolutionTree(baseSpeciesId) {
+    // First, get the base Pokémon data (needed for the first stage)
+    const basePokemon = await cachedFetch(`https://pokeapi.co/api/v2/pokemon/${baseSpeciesId}`);
+    const baseSpecies = await cachedFetch(`https://pokeapi.co/api/v2/pokemon-species/${baseSpeciesId}`);
+    
+    // Helper to get special forms for a given species ID (Mega, G-Max, Primal)
+    async function getSpecialFormsForSpecies(speciesId) {
+        const specials = [];
+        try {
+            const speciesData = await cachedFetch(`https://pokeapi.co/api/v2/pokemon-species/${speciesId}`);
+            for (const variety of speciesData.varieties) {
+                const formName = variety.pokemon.name;
+                if (formName === speciesData.name) continue;
+                let specialType = null;
+                if (formName.includes('-mega')) specialType = 'Mega Evolution';
+                else if (formName.includes('-primal')) specialType = 'Primal Reversion';
+                else if (formName.includes('-gmax')) specialType = 'Gigantamax';
+                else continue;
+                const formData = await cachedFetch(`https://pokeapi.co/api/v2/pokemon-form/${formName}`);
+                const pokemonUrl = formData.pokemon.url;
+                const idMatch = pokemonUrl.match(/\/pokemon\/(\d+)/);
+                if (idMatch) {
+                    const pokeData = await cachedFetch(`https://pokeapi.co/api/v2/pokemon/${idMatch[1]}`);
+                    specials.push({
+                        name: formName,
+                        id: parseInt(idMatch[1]),
+                        type: specialType,
+                        displayName: formName.split('-').map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(' '),
+                        types: pokeData.types.map(t => t.type.name)
+                    });
+                }
+            }
+        } catch (e) { console.warn(e); }
+        return specials;
+    }
+
+    // Recursively walk evolution chain (from the base species)
+    const chain = await cachedFetch(baseSpecies.evolution_chain.url);
+    const stages = [];
+
+    async function walk(link, parentLevel = null) {
+        const currentName = link.species.name;
+        const currentId = await getPokemonIdFromName(currentName);
+        const currentData = await cachedFetch(`https://pokeapi.co/api/v2/pokemon/${currentId}`);
+        const types = currentData.types.map(t => t.type.name);
+        let minLevel = parentLevel;
+        if (parentLevel === null && link.evolution_details && link.evolution_details[0]) {
+            minLevel = link.evolution_details[0].min_level || null;
+        }
+        const stage = {
+            name: currentName,
+            id: currentId,
+            types: types,
+            level: minLevel,
+            specials: await getSpecialFormsForSpecies(currentId)
+        };
+        stages.push(stage);
+
+        for (const evo of link.evolves_to) {
+            const details = evo.evolution_details[0] || {};
+            await walk(evo, details.min_level || null);
+        }
+    }
+
+    // Start walking from the root of the chain
+    await walk(chain.chain);
+    return stages;
+}
 
 async function chooseSpecialEvolutionTarget(targets, pokemonName) {
     if (targets.length === 0) return null;
@@ -4310,7 +4600,10 @@ async function attemptEvolution(pokemonId, speciesId) {
         const snap = await getDoc(doc(db, "users", auth.currentUser.uid, "pokemon", pokemonId));
         if (snap.exists()) pokemon = { id: snap.id, ...snap.data() };
     }
-    if (!pokemon) { showToast("Pokémon not found!"); return; }
+    if (!pokemon) {
+        showToast("Pokémon not found!");
+        return;
+    }
 
     // 2. Gather all possible evolutions (normal + special)
     let normalTargets = await getAllEvolutionTargets(pokemon);
@@ -4318,48 +4611,27 @@ async function attemptEvolution(pokemonId, speciesId) {
 
     const allTargets = [
         ...normalTargets.map(t => ({ ...t, isSpecial: false })),
-        ...specialTargets.map(t => ({ ...t, isSpecial: true, met: true }))
+        ...specialTargets.map(t => ({ ...t, isSpecial: true, met: t.met }))
     ];
 
-    if (allTargets.length === 0) {
-        showToast(`${pokemon.name.toUpperCase()} has no further evolution.`);
-        return;
-    }
+   if (allTargets.length === 0) {
+    showNoEvolutionModal(pokemon.name);
+    return;
+}
 
-    // 3. If only one target and requirements are met, show confirmation modal first
-    const availableTargets = allTargets.filter(t => t.met);
-    if (availableTargets.length === 1 && allTargets.length === 1) {
-        const target = availableTargets[0];
-        
-        // Show confirmation modal
-        const confirmed = await showEvolutionConfirmation(pokemon, target);
-        if (!confirmed) {
-            showToast("Evolution cancelled.");
-            return;
-        }
-        
-        let targetData;
-        try {
-            const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${target.targetId}`);
-            targetData = await res.json();
-        } catch (e) {
-            showToast("Failed to load evolution data.");
-            return;
-        }
-        await performEvolution(pokemon, target.targetId, target.targetName, targetData);
-        return;
-    }
-
-    // 4. Show selection modal (multiple choices)
+    // 3. Show selection modal with selectable cards + Evolve button
     const modal = document.getElementById('evolution-select-modal');
     const grid = document.getElementById('evolution-options-grid');
     grid.innerHTML = '';
+
+    let selectedTarget = null;
 
     for (const target of allTargets) {
         const card = document.createElement('div');
         card.className = 'starter-card';
         card.style.opacity = target.met ? '1' : '0.6';
         card.style.cursor = target.met ? 'pointer' : 'not-allowed';
+        card.style.transition = 'all 0.2s';
 
         const img = document.createElement('img');
         loadImageWithFallback(img, getBattleSpriteUrl(target.targetId, 'front'));
@@ -4368,7 +4640,7 @@ async function attemptEvolution(pokemonId, speciesId) {
         card.appendChild(img);
 
         const nameDiv = document.createElement('div');
-        nameDiv.innerHTML = `<strong>${target.targetName.toUpperCase()}</strong>`;
+        nameDiv.innerHTML = `<strong>${(target.displayName || target.targetName).toUpperCase()}</strong>`;
         card.appendChild(nameDiv);
 
         const reqDiv = document.createElement('div');
@@ -4390,24 +4662,71 @@ async function attemptEvolution(pokemonId, speciesId) {
         card.appendChild(statusSpan);
 
         if (target.met) {
-            card.onclick = async () => {
-                modal.classList.add('hidden');
-                let targetData;
-                try {
-                    const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${target.targetId}`);
-                    targetData = await res.json();
-                } catch (e) {
-                    showToast("Failed to load evolution data.");
-                    return;
-                }
-                await performEvolution(pokemon, target.targetId, target.targetName, targetData);
+            card.onclick = () => {
+                // Remove highlight from all cards
+                document.querySelectorAll('#evolution-options-grid .starter-card').forEach(c => {
+                    c.style.border = '2px solid transparent';
+                    c.style.backgroundColor = '';
+                });
+                // Highlight selected card
+                card.style.border = '2px solid var(--primary)';
+                card.style.backgroundColor = 'rgba(59,76,202,0.15)';
+                selectedTarget = target;
+                // Enable evolve button
+                const evolveBtn = document.getElementById('confirm-evolution-select');
+                if (evolveBtn) evolveBtn.disabled = false;
             };
         }
 
         grid.appendChild(card);
     }
 
-    document.getElementById('cancel-evo-select').onclick = () => modal.classList.add('hidden');
+    // Add or get the Evolve button
+    let confirmBtn = document.getElementById('confirm-evolution-select');
+    if (!confirmBtn) {
+        confirmBtn = document.createElement('button');
+        confirmBtn.id = 'confirm-evolution-select';
+        confirmBtn.className = 'btn btn-primary';
+        confirmBtn.textContent = '✨ Evolve ✨';
+        confirmBtn.disabled = true;
+        confirmBtn.style.marginTop = '20px';
+        confirmBtn.style.width = '100%';
+        modal.querySelector('.modal').appendChild(confirmBtn);
+    } else {
+        confirmBtn.disabled = true;
+    }
+
+    confirmBtn.onclick = async () => {
+        if (!selectedTarget) {
+            showToast("Please select an evolution first.");
+            return;
+        }
+        modal.classList.add('hidden');
+        let targetData;
+        try {
+            let url = `https://pokeapi.co/api/v2/pokemon/${selectedTarget.targetId}`;
+            if (!selectedTarget.targetId) url = `https://pokeapi.co/api/v2/pokemon/${selectedTarget.targetName}`;
+            const res = await fetch(url);
+            if (!res.ok) throw new Error();
+            targetData = await res.json();
+        } catch (e) {
+            showToast("Failed to load evolution data. Check your connection.");
+            return;
+        }
+        await performEvolution(pokemon, selectedTarget.targetId, selectedTarget.targetName, targetData);
+        // Reset selection after evolution
+        selectedTarget = null;
+        confirmBtn.disabled = true;
+    };
+
+    // Cancel button resets selection
+    const cancelBtn = document.getElementById('cancel-evo-select');
+    cancelBtn.onclick = () => {
+        modal.classList.add('hidden');
+        if (confirmBtn) confirmBtn.disabled = true;
+        selectedTarget = null;
+    };
+
     modal.classList.remove('hidden');
 }
 
@@ -4472,112 +4791,108 @@ async function getAllEvolutionTargets(pokemon) {
     const targets = [];
 
     try {
-        const speciesRes = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${speciesId}`);
-        const species = await speciesRes.json();
-        const chainRes = await fetch(species.evolution_chain.url);
-        const chain = await chainRes.json();
+        const species = await cachedFetch(`https://pokeapi.co/api/v2/pokemon-species/${speciesId}`);
+        const chain = await cachedFetch(species.evolution_chain.url);
 
-        function collectTargets(chainLink) {
-            // If this link's species is our current Pokémon, look at its evolves_to
-            if (chainLink.species.name === species.name) {
+        // Helper to get special evolutions for a given Pokémon species (by name)
+        async function getSpecialFormsForSpecies(speciesName) {
+            const specials = [];
+            try {
+                const speciesRes = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${speciesName}`);
+                const spData = await speciesRes.json();
+                for (const variety of spData.varieties) {
+                    const formName = variety.pokemon.name;
+                    if (formName === speciesName) continue;
+                    let requiredLevel = null;
+                    let type = null;
+                    if (formName.includes('-mega')) {
+                        type = 'mega';
+                        requiredLevel = 200;
+                    } else if (formName.includes('-primal')) {
+                        type = 'primal';
+                        requiredLevel = 300;
+                    } else if (formName.includes('-gmax')) {
+                        type = 'gmax';
+                        requiredLevel = 500;
+                    } else {
+                        continue;
+                    }
+                    const targetId = await getPokemonIdByFormName(formName);
+                    if (targetId) {
+                        specials.push({
+                            targetName: formName,
+                            targetId: targetId,
+                            requiredLevel: requiredLevel,
+                            isSpecial: true,
+                            displayName: formName.split('-').map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(' '),
+                            met: level >= requiredLevel
+                        });
+                    }
+                }
+            } catch (e) { console.warn(e); }
+            return specials;
+        }
+
+        // Recursively collect all natural evolutions AND their special forms
+        async function collectAllEvolutions(chainLink, currentSpeciesName) {
+            if (chainLink.species.name === currentSpeciesName) {
                 for (const evo of chainLink.evolves_to) {
                     const details = evo.evolution_details[0] || {};
-                    
-                    // Determine the effective required level
-                    let requiredLevel = details.min_level || null;
-                    let hasSpecialRequirement = false;
-                    
-                    // Check for non‑level requirements
-                    if (details.item) hasSpecialRequirement = true;
-                    if (details.known_move) hasSpecialRequirement = true;
-                    if (details.min_happiness) hasSpecialRequirement = true;
-                    if (details.time_of_day) hasSpecialRequirement = true;
-                    if (details.gender) hasSpecialRequirement = true;
-                    if (details.location) hasSpecialRequirement = true;
-                    if (details.needs_overworld_rain) hasSpecialRequirement = true;
-                    if (details.turn_upside_down) hasSpecialRequirement = true;
-                    
-                    // If there's a special requirement and no level (or level is lower than 100), set to 100
-                    if (hasSpecialRequirement && (requiredLevel === null || requiredLevel < 100)) {
-                        requiredLevel = 100;
-                    }
-                    // If there's no level at all (e.g., trade evolutions), also set to 100
-                    if (requiredLevel === null) {
-                        requiredLevel = 100;
-                    }
-                    
+                    let requiredLevel = details.min_level || 100;
+                    if (!requiredLevel) requiredLevel = 100;
+                    const urlParts = evo.species.url.split('/');
+                    const targetId = parseInt(urlParts[urlParts.length - 2]);
                     targets.push({
                         targetName: evo.species.name,
-                        targetId: null, // will fetch later
+                        targetId: targetId,
                         requiredLevel: requiredLevel,
-                        originalDetails: details, // keep for reference
+                        isSpecial: false,
+                        displayName: evo.species.name.toUpperCase(),
                         met: level >= requiredLevel
                     });
-                    
-                    // Recursively collect further evolutions from the new form
-                    for (const nextEvo of evo.evolves_to) {
-                        collectTargets({ species: nextEvo.species, evolves_to: nextEvo.evolves_to });
+                    // Also add special forms of this evolution
+                    const specials = await getSpecialFormsForSpecies(evo.species.name);
+                    for (const sp of specials) {
+                        if (!targets.some(t => t.targetId === sp.targetId)) {
+                            targets.push(sp);
+                        }
                     }
+                    // Recurse into further evolutions
+                    await collectAllEvolutions(evo, evo.species.name);
                 }
+                return true;
             } else {
-                // Not our species yet, continue down
                 for (const evo of chainLink.evolves_to) {
-                    collectTargets(evo);
+                    if (await collectAllEvolutions(evo, currentSpeciesName)) return true;
                 }
+                return false;
             }
         }
 
-        collectTargets(chain.chain);
-
-        // Fetch target IDs and update requirement text for display
-        for (const t of targets) {
-            try {
-                const p = await fetch(`https://pokeapi.co/api/v2/pokemon/${t.targetName}`);
-                const pData = await p.json();
-                t.targetId = pData.id;
-            } catch (e) {
-                console.warn(`Could not fetch target ${t.targetName}`);
-                t.targetId = null;
-            }
-
-            // Build a human‑readable requirement string
-            let reqText = `Lv.${t.requiredLevel}`;
-            if (t.originalDetails && t.originalDetails.item && t.requiredLevel !== 100) {
-                // If original had an item but we didn't force level 100 (should not happen), show item
-                reqText = `${t.originalDetails.item.name} + Lv.${t.requiredLevel}`;
-            } else if (t.originalDetails && (t.originalDetails.min_happiness || t.originalDetails.known_move)) {
-                reqText = `Lv.${t.requiredLevel} (special)`;
-            }
-            t.displayRequirement = reqText;
-        }
-
+        await collectAllEvolutions(chain.chain, species.name);
         return targets;
     } catch (err) {
-        console.error("Error fetching evolution chain:", err);
+        console.error("Evolution chain error:", err);
         return [];
     }
 }
-// Helper: get special evolutions (Mega, Primal, G-Max) – already defined in your code
-// We'll merge them into the selection if they are available.
+
 async function getSpecialEvolutionTargets(pokemon) {
     const speciesId = pokemon.pokemonId;
     const level = pokemon.level;
     const targets = [];
 
     try {
-        // Fetch species data to get all varieties (forms)
         const speciesRes = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${speciesId}`);
         const species = await speciesRes.json();
 
-        // Loop through all varieties of this Pokémon
         for (const variety of species.varieties) {
-            const formName = variety.pokemon.name; // e.g., "charizard-mega-x"
-            if (formName === species.name) continue; // skip base form
+            const formName = variety.pokemon.name;
+            if (formName === species.name) continue;
 
-            let type = null;
             let requiredLevel = null;
+            let type = null;
 
-            // Detect special evolution types
             if (formName.includes('-mega')) {
                 type = 'mega';
                 requiredLevel = 200;
@@ -4588,35 +4903,67 @@ async function getSpecialEvolutionTargets(pokemon) {
                 type = 'gmax';
                 requiredLevel = 500;
             } else {
-                continue; // not a special form we handle
+                continue;
             }
 
-            // Only add if the Pokémon meets the level requirement
-            if (level >= requiredLevel) {
-                // Get the numeric ID of the form
-                const targetId = await getPokemonIdByFormName(formName);
-                if (targetId) {
-                    targets.push({
-                        targetId: targetId,
-                        targetName: formName.split('-').map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(' '),
-                        requiredLevel: requiredLevel,
-                        type: type,
-                        formName: formName,
-                        met: true   // we already checked level
-                    });
-                }
+            const targetId = await getPokemonIdByFormName(formName);
+            if (targetId) {
+                targets.push({
+                    targetId: targetId,
+                    targetName: formName,
+                    displayName: formName.split('-').map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(' '),
+                    requiredLevel: requiredLevel,
+                    type: type,
+                    formName: formName,
+                    met: level >= requiredLevel,
+                    isSpecial: true
+                });
             }
         }
     } catch (err) {
         console.error("Error fetching special evolution targets:", err);
     }
-
     return targets;
 }
 
+async function getFullEvolutionLine(pokemon) {
+    const targets = await getAllEvolutionTargets(pokemon);
+    // targets includes both normal and special evolutions.
+    // We need to group them by base species to show the tree.
+    // For display, we can just return a list of unique species (including specials)
+    const stages = [];
+    const seenIds = new Set();
+    // Add current Pokémon
+    const currentData = await cachedFetch(`https://pokeapi.co/api/v2/pokemon/${pokemon.pokemonId}`);
+    stages.push({
+        id: pokemon.pokemonId,
+        name: pokemon.name,
+        types: currentData.types.map(t => t.type.name),
+        level: null,
+        isCurrent: true,
+        specials: []
+    });
+    seenIds.add(pokemon.pokemonId);
+
+    for (const target of targets) {
+        if (seenIds.has(target.targetId)) continue;
+        seenIds.add(target.targetId);
+        const pokeData = await cachedFetch(`https://pokeapi.co/api/v2/pokemon/${target.targetId}`);
+        stages.push({
+            id: target.targetId,
+            name: target.targetName,
+            types: pokeData.types.map(t => t.type.name),
+            level: target.requiredLevel,
+            isSpecial: target.isSpecial || false,
+            displayName: target.displayName || target.targetName.toUpperCase(),
+            isCurrent: false
+        });
+    }
+    return stages;
+}// We'll merge them into the selection if they are available.
 // Fixed: performs the actual evolution update in Firestore and refreshes UI
   
-    async function performEvolution(pokemon, targetId, targetName, targetData) {
+async function performEvolution(pokemon, targetId, targetName, targetData) {
     const oldName = pokemon.name;
     const user = auth.currentUser;
     if (!user) return;
@@ -4628,8 +4975,11 @@ async function getSpecialEvolutionTargets(pokemon) {
     const arrowDiv = document.getElementById('evo-arrow');
     const loadingDiv = document.getElementById('evo-loading');
     const continueBtn = document.getElementById('evo-continue-btn');
+    const evoTitle = document.getElementById('evo-title');  // we'll reuse this for the messages
 
+    // Set the initial text
     oldNameSpan.innerText = oldName.toUpperCase();
+    evoTitle.innerText = `What? ${oldName.toUpperCase()} is evolving!`;
 
     // Load old sprite (shiny if applicable)
     if (pokemon.isShiny) {
@@ -4662,6 +5012,10 @@ async function getSpecialEvolutionTargets(pokemon) {
         loadingDiv.style.display = 'none';
         continueBtn.style.display = 'block';
 
+        // Update the modal title to the success message
+        const displayNewName = targetName.replace(/-mega/gi, '').replace(/-gmax/gi, '').toUpperCase();
+        evoTitle.innerText = `Congratulations! ${oldName.toUpperCase()} evolved into ${displayNewName}!`;
+
         continueBtn.onclick = async () => {
             modal.classList.add('hidden');
 
@@ -4688,14 +5042,36 @@ async function getSpecialEvolutionTargets(pokemon) {
 
             invalidateTeamCache();
             refreshTeamView();
-            updatePlayerLabel();     
+            updatePlayerLabel();
             if (cachedActivePokemon && cachedActivePokemon.id === pokemon.id) {
                 cachedActivePokemon = { ...cachedActivePokemon, ...updatedFields };
             }
 
-            showToast(`${oldName.toUpperCase()} evolved into ${targetName.toUpperCase()}!`);
+            // No alert – everything was in the modal
         };
     }, 1500);
+}
+
+function showNoEvolutionModal(pokemonName) {
+    // Check if a modal already exists, otherwise create a temporary one
+    let modal = document.getElementById('no-evolution-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'no-evolution-modal';
+        modal.className = 'overlay';
+        modal.innerHTML = `
+            <div class="modal" style="max-width: 350px; text-align: center;">
+                <h3 style="color: var(--primary-dark);">⛔ Cannot Evolve</h3>
+                <p style="margin: 20px 0;">${pokemonName.toUpperCase()} has no further evolution.</p>
+                <button class="btn btn-primary" id="close-no-evo-modal">Got it</button>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        document.getElementById('close-no-evo-modal').onclick = () => modal.classList.add('hidden');
+    } else {
+        modal.querySelector('p').innerText = `${pokemonName.toUpperCase()} has no further evolution.`;
+        modal.classList.remove('hidden');
+    }
 }
 
 async function releasePokemon(id,name) {
@@ -4873,34 +5249,101 @@ async function releasePokemon(id,name) {
     };
     let isSubmittingStarter = false;
 
-    async function fetchEvolutionChain(pokemonId) {
-        try {
-            const speciesRes = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${pokemonId}`);
-            const species = await speciesRes.json();
-            const chainRes = await fetch(species.evolution_chain.url);
-            const chain = await chainRes.json();
-            const stages = [];
-            let current = chain.chain;
-            while (current) {
-                const speciesName = current.species.name;
-                const speciesId = await getPokemonIdFromName(speciesName);
-                let minLevel = null;
-                if (current.evolution_details && current.evolution_details.length > 0) minLevel = current.evolution_details[0].min_level;
-                const pokemonData = await getCachedJson(`https://pokeapi.co/api/v2/pokemon/${speciesId}`, pokeDataCache);
-                const types = pokemonData.types.map(t => t.type.name);
-                stages.push({ id: speciesId, name: speciesName, types: types, level: minLevel });
-                if (current.evolves_to && current.evolves_to.length > 0) current = current.evolves_to[0];
-                else break;
-            }
-            return stages;
-        } catch (err) { console.error("Failed to fetch evolution chain:", err); return []; }
-    }
+async function fetchEvolutionChain(pokemonId) {
+    try {
+        const species = await cachedFetch(`https://pokeapi.co/api/v2/pokemon-species/${pokemonId}`);
+        const chain = await cachedFetch(species.evolution_chain.url);
+        const stages = [];
 
-    async function getPokemonIdFromName(name) {
-        const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${name}`);
-        const data = await res.json();
-        return data.id;
+        // Helper to get ALL notable forms for a given species name:
+        // Mega/Primal/GMax (shown as "special") AND gender variants (shown as variants)
+        async function getSpecialForms(speciesName) {
+            const specials = [];
+            try {
+                const spData = await cachedFetch(`https://pokeapi.co/api/v2/pokemon-species/${speciesName}`);
+                for (const variety of spData.varieties) {
+                    const formName = variety.pokemon.name;
+                    if (formName === speciesName) continue; // skip the base form itself
+
+                    let specialType = null;
+
+                    if (formName.includes('-mega'))        specialType = 'Mega Evolution';
+                    else if (formName.includes('-primal')) specialType = 'Primal Reversion';
+                    else if (formName.includes('-gmax'))   specialType = 'Gigantamax';
+                    else if (formName.endsWith('-male'))   specialType = 'Male Form';
+                    else if (formName.endsWith('-female')) specialType = 'Female Form';
+                    else continue; // skip other variants (alolan, galarian, etc.) from this panel
+
+                    try {
+                        // Use /pokemon/{formName} directly — simpler and more reliable than /pokemon-form/
+                        const formData = await cachedFetch(`https://pokeapi.co/api/v2/pokemon/${formName}`);
+                        specials.push({
+                            name: formName,
+                            id: formData.id,
+                            type: specialType,
+                            displayName: formName.split('-').map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ')
+                        });
+                    } catch (e) {
+                        console.warn(`Could not load form data for ${formName}`, e);
+                    }
+                }
+            } catch (e) {
+                console.warn(`Special forms for ${speciesName} failed`, e);
+            }
+            return specials;
+        }
+
+        // Recursively walk the evolution chain (handles all branches, e.g. Eevee)
+        async function walk(link, parentStage = null) {
+            const currentName = link.species.name;
+            const currentId = await getPokemonIdFromName(currentName);
+            if (!currentId) return;
+
+            const currentData = await cachedFetch(`https://pokeapi.co/api/v2/pokemon/${currentId}`);
+            const types = currentData.types.map(t => t.type.name);
+
+            // Evolution level requirement comes from the parent's chain details
+            let minLevel = null;
+            if (parentStage && parentStage.details) {
+                minLevel = parentStage.details.min_level || null;
+            }
+
+            const stage = {
+                name: currentName,
+                id: currentId,
+                types: types,
+                level: minLevel,
+                specials: []
+            };
+
+            // Attach all forms (Mega, gender variants, etc.) to this stage
+            stage.specials = await getSpecialForms(currentName);
+            stages.push(stage);
+
+            // Recurse into all evolutions from this node
+            for (const evo of link.evolves_to) {
+                const details = evo.evolution_details[0] || {};
+                await walk(evo, { details: details });
+            }
+        }
+
+        await walk(chain.chain);
+        return stages;
+    } catch (err) {
+        console.error("fetchEvolutionChain error:", err);
+        return [];
     }
+}
+
+async function getPokemonIdFromName(name) {
+    try {
+        const data = await cachedFetch(`https://pokeapi.co/api/v2/pokemon/${name}`);
+        return data.id;
+    } catch (e) {
+        console.warn(`Could not fetch ID for ${name}`, e);
+        return null;
+    }
+}
 
     document.getElementById('confirm-trainer-starter').onclick = async () => {
         if (isSubmittingStarter) return;

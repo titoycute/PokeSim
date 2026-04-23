@@ -1034,6 +1034,7 @@ body.dark-theme #map-info-modal .btn-primary:hover {
     to { opacity: 1; transform: scale(1); }
 }
 
+
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
@@ -1239,14 +1240,21 @@ body.dark-theme #map-info-modal .btn-primary:hover {
         <div style="background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 12px 5%; display: flex; justify-content: space-between; align-items: center;">
             <div class="logo"><img src="PokeSim Word.png" alt="PokeSim"></div>
             <div>
+                
                  <div id="level-display">⭐ Lv. <span id="trainer-level">0</span></div>
-                <button id="back-to-maps-btn" class="btn btn-outline"><i class="fas fa-arrow-left"></i> Change Map</button>
+                    
+                 <button id="back-to-maps-btn" class="btn btn-outline"><i class="fas fa-arrow-left"></i> Change Map</button>
                 <button id="volume-toggle" class="volume-btn" style="background: none; border: none; font-size: 1.2rem;">🔊</button>
+                
             </div>
+            
         </div>
         <div id="view-explore">
-             <h2 id="current-map-name" style="text-align: center; margin: 10px 0;"></h2>
-            <div class="map-wrapper">
+    <div style="text-align: center; margin: 10px 0;">
+        <h2 id="current-map-name" style="margin: 0;"></h2>
+        <div id="badge-effects-indicator" style="display: inline-block; font-size:0.7rem; background:rgba(0,0,0,0.5); border-radius:20px; padding:2px 12px; margin-top: 5px;"></div>
+    </div>
+    <div class="map-wrapper">
                 <div id="map-viewport">
                     <div id="map-grid"></div>
                     <div id="player">
@@ -1392,6 +1400,46 @@ body.dark-theme #map-info-modal .btn-primary:hover {
     let teamCacheTimestamp = 0;
     const TEAM_CACHE_TTL = 300000; // 5 minutes // 30 seconds
 
+let userBadgeEffects = [];
+
+async function loadUserBadgeEffects() {
+    if (!auth.currentUser) return [];
+    const userDoc = await getDoc(doc(db, "users", auth.currentUser.uid));
+    const badgeIds = userDoc.data()?.badges || [];
+    const effects = [];
+    for (const badgeId of badgeIds) {
+        const gymDoc = await getDoc(doc(db, "gyms", badgeId));
+        if (gymDoc.exists()) {
+            const gym = gymDoc.data();
+            if (gym.badgeEffect) {
+                effects.push(gym.badgeEffect);
+            }
+        }
+    }
+    
+   
+    
+    userBadgeEffects = effects;
+    
+    // ✅ Update the UI indicator after loading effects
+   
+    
+    return effects;
+}
+
+
+
+function getTotalBadgeBonus(effectType, targetType) {
+    let total = 0;
+    for (const effect of userBadgeEffects) {
+        if (effect.effectType === effectType && (effect.targetType === targetType || effect.targetType === '')) {
+            total += effect.bonusPercent;
+        }
+    }
+    return total;
+}
+
+
     function invalidateTeamCache() {
         cachedTeam = null;
         teamCacheTimestamp = 0;
@@ -1491,19 +1539,25 @@ body.dark-theme #map-info-modal .btn-primary:hover {
         return stats;
     }
 
-    function getEffectiveSpeed(pokemon) {
-        let speed = pokemon.level;
-        if (pokemon.bonusStats?.spd) speed = Math.floor(speed * 1.25);
-        return speed;
+  function getEffectiveSpeed(pokemon, isPlayer = true) {
+    let speed = pokemon.level;
+    if (pokemon.bonusStats?.spd) speed = Math.floor(speed * 1.25);
+    if (isPlayer) {
+        const spdBonus = getTotalBadgeBonus('spd', '');
+        if (spdBonus > 0) {
+            speed = Math.floor(speed * (1 + spdBonus / 100));
+        }
     }
+    return speed;
+}
 
-    function getFirstAttacker(player, wild) {
-        const playerSpeed = getEffectiveSpeed(player);
-        const wildSpeed = getEffectiveSpeed(wild);
-        if (playerSpeed > wildSpeed) return 'player';
-        if (wildSpeed > playerSpeed) return 'wild';
-        return Math.random() < 0.5 ? 'player' : 'wild';
-    }
+    function getFirstAttacker(player, wild, isPlayer = true) {
+    const playerSpeed = getEffectiveSpeed(player, isPlayer);
+    const wildSpeed = getEffectiveSpeed(wild, false);
+    if (playerSpeed > wildSpeed) return 'player';
+    if (wildSpeed > playerSpeed) return 'wild';
+    return Math.random() < 0.5 ? 'player' : 'wild';
+}
 
     function applyDamageModifiers(damage, attackerBonus, defenderBonus) {
         let multiplier = 1;
@@ -1512,29 +1566,40 @@ body.dark-theme #map-info-modal .btn-primary:hover {
         return Math.floor(damage * multiplier);
     }
 
-    function executeAttack(attacker, defender, move, isPlayerAttacking) {
+function executeAttack(attacker, defender, move, isPlayerAttacking) {
     let eff = getTypeEffectiveness(move.type, defender.types);
     let effText = "";
     if (eff === 2) effText = "It's super effective!";
     else if (eff === 0.5) effText = "It's not very effective...";
     else if (eff === 0) effText = "It doesn't affect the wild Pokémon!";
     
-    // STAB (Same Type Attack Bonus)
-    let stab = (attacker.types && attacker.types.includes(move.type)) ? 1.5 : 1;
-    let dmg = Math.floor((move.power / 5) * (attacker.level / 2) * eff * stab);
+    let dmg = Math.floor((move.power / 5) * (attacker.level / 2) * eff);
     if (dmg < 1 && eff > 0) dmg = 1;
     dmg = applyDamageModifiers(dmg, attacker.bonusStats, defender.bonusStats);
-    defender.currentHp = Math.max(0, defender.currentHp - dmg);
     
+    // Badge effects (only for player's Pokémon)
+    if (isPlayerAttacking) {
+        const atkBonus = getTotalBadgeBonus('atk', move.type);
+        if (atkBonus > 0) {
+            dmg = Math.floor(dmg * (1 + atkBonus / 100));
+            addBattleLog(`⚔️ Badge boost: +${atkBonus}% damage (${move.type})!`);
+        }
+    } else {
+        const defBonus = getTotalBadgeBonus('def', move.type);
+        if (defBonus > 0) {
+            dmg = Math.floor(dmg * (1 - defBonus / 100));
+            addBattleLog(`🛡️ Badge protection: -${defBonus}% damage from ${move.type} moves!`);
+        }
+    }
+    
+    defender.currentHp = Math.max(0, defender.currentHp - dmg);
     const sprite = isPlayerAttacking ? document.getElementById('e-sprite-btl') : document.getElementById('p-sprite-btl');
     if (sprite) {
         sprite.classList.remove('shake-effect');
         void sprite.offsetWidth;
         sprite.classList.add('shake-effect');
     }
-    
-    let stabText = (stab > 1) ? " (STAB)" : "";
-    addBattleLog(`${attacker.name.toUpperCase()} used ${move.name.toUpperCase()}! Deals ${dmg} dmg. ${effText}${stabText}`);
+    addBattleLog(`${attacker.name.toUpperCase()} used ${move.name.toUpperCase()}! Deals ${dmg} dmg. ${effText}`);
     return defender.currentHp <= 0;
 }
 
@@ -2513,7 +2578,7 @@ async function runTurn(selectedMove) {
         }
 
         const b = currentBattle;
-        const first = getFirstAttacker(b.player, b.wild);
+        const first = getFirstAttacker(b.player, b.wild, true);
         const getRandomMove = (pokemon) => {
             const available = pokemon.moves.filter(m => m.power > 0);
             if (!available.length) return { name: "Struggle", power: 50, type: "normal" };
@@ -3096,6 +3161,7 @@ rawMoves = baseData.moves;
         }
     }
 
+   
     // ========== MUSIC ==========
     function playMainMusic() {
         if (!isMuted) {
@@ -3215,6 +3281,24 @@ rawMoves = baseData.moves;
         });
     }
 
+ function updateBadgeEffectsDisplay() {
+    const el = document.getElementById('badge-effects-indicator');
+    if (!el) return;
+    if (!userBadgeEffects.length) {
+        el.style.display = 'none';
+        return;
+    }
+    el.style.display = 'inline-block';
+    const texts = userBadgeEffects.map(e => {
+        const typeText = e.targetType ? e.targetType.toUpperCase() : 'All';
+        if (e.effectType === 'atk') return `⚔️ +${e.bonusPercent}% ${typeText}`;
+        if (e.effectType === 'def') return `🛡️ -${e.bonusPercent}% ${typeText}`;
+        if (e.effectType === 'spd') return `🏃 +${e.bonusPercent}% Speed`;
+        return '';
+    }).filter(Boolean);
+    el.innerHTML = `Badge Effect: ${texts.join(' • ')}`;
+}
+    
 function openMapEditModal(map = null) {
     const modal = document.createElement('div');
     modal.className = 'overlay';
@@ -3777,7 +3861,8 @@ window.addEventListener('keydown', (e) => {
                 return;
             }
             cachedActivePokemon = { id: activePokemonId, ...activePokemonSnap.data() };
-         
+            await loadUserBadgeEffects();
+            updateBadgeEffectsDisplay();
             
             updateNavDisplay();
 

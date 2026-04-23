@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pokesim-v1.6.1.8';   // increment when you change assets or sprite caching logic
+const CACHE_NAME = 'pokesim-v1.7.1';   // increment version
 const assets = [
   'index.html',
   'map.html',
@@ -42,7 +42,7 @@ self.addEventListener('activate', e => {
   e.waitUntil(clients.claim());
 });
 
-// Fetch: cache static assets and sprite images
+// Fetch: cache static assets and sprite images (only status 200)
 self.addEventListener('fetch', e => {
   const request = e.request;
 
@@ -64,13 +64,14 @@ self.addEventListener('fetch', e => {
         }
         // Fetch from network and cache for future
         return fetch(request).then(networkResponse => {
-          if (networkResponse.ok) {
+          // ✅ Only cache complete responses (status 200)
+          if (networkResponse.status === 200) {
             const clone = networkResponse.clone();
             caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
           }
           return networkResponse;
         }).catch(() => {
-          // Fallback: maybe return a placeholder? (optional)
+          // Fallback
           return new Response('Sprite not available', { status: 404 });
         });
       })
@@ -83,11 +84,13 @@ self.addEventListener('fetch', e => {
     e.respondWith(
       fetch(request)
         .then(response => {
-          // Cache a clone of the response for offline use
-          const responseClone = response.clone();
-          caches.open(CACHE_NAME).then(cache => {
-            cache.put(request, responseClone);
-          });
+          // ✅ Only cache complete responses (status 200)
+          if (response.status === 200) {
+            const responseClone = response.clone();
+            caches.open(CACHE_NAME).then(cache => {
+              cache.put(request, responseClone);
+            });
+          }
           return response;
         })
         .catch(() => {

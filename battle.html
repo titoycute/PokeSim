@@ -789,7 +789,35 @@
                     <div class="form-group"><label>Badge Image (path in badges/ folder)</label><input type="text" id="gym-badge" placeholder="badges/boulder_badge.png"></div>
                     <label>Badge Name</label>
                     <input type="text" id="gym-badge-name" placeholder="e.g., Boulder Badge">
+
                 </div>
+                <div class="form-group">
+    <label>Badge Effect Type</label>
+    <select id="badge-effect-type">
+        <option value="">None</option>
+        <option value="atk">⚔️ Attack Boost</option>
+        <option value="def">🛡️ Defense Boost</option>
+        <option value="spd">🏃 Speed Boost</option>
+    </select>
+</div>
+<div class="form-group">
+    <label>Effect Target Type (Pokémon type)</label>
+    <select id="badge-effect-target-type">
+        <option value="">Any (all types)</option>
+        <option value="normal">Normal</option><option value="fire">Fire</option><option value="water">Water</option>
+        <option value="electric">Electric</option><option value="grass">Grass</option><option value="ice">Ice</option>
+        <option value="fighting">Fighting</option><option value="poison">Poison</option><option value="ground">Ground</option>
+        <option value="flying">Flying</option><option value="psychic">Psychic</option><option value="bug">Bug</option>
+        <option value="rock">Rock</option><option value="ghost">Ghost</option><option value="dragon">Dragon</option>
+        <option value="dark">Dark</option><option value="steel">Steel</option><option value="fairy">Fairy</option>
+    </select>
+    <small>If "Any", affects all types (e.g., universal damage boost or reduction).</small>
+</div>
+<div class="form-group">
+    <label>Bonus Percentage (%)</label>
+    <input type="number" id="badge-effect-bonus" value="5" min="1" max="50" step="1">
+    <small>e.g., 5 = 5% increase in damage (atk) or reduction in damage taken (def) or speed boost (spd).</small>
+</div>
                 <div class="form-group"><label>Gym Image (path in gym/ folder)</label><input type="text" id="gym-image" placeholder="gym/pewter.png"></div>
                 <div class="form-group"><label>Required Trainer Level</label><input type="number" id="gym-req-level" value="0" min="0"></div>
                 <div class="form-group"><label>XP Reward (total)</label><input type="number" id="gym-xp-reward" value="0" min="0" placeholder="0 = auto (sum of levels ×15)"></div>
@@ -957,7 +985,15 @@
             steel:{ice:2,rock:2,fairy:2,fire:0.5,water:0.5,electric:0.5,steel:0.5}, fairy:{fighting:2,dragon:2,dark:2,fire:0.5,poison:0.5,steel:0.5}
         };
         function getTypeEffectiveness(atkType, defTypes) { let m=1; for(let dt of defTypes) if(typeEffectiveness[atkType] && typeEffectiveness[atkType][dt]) m*=typeEffectiveness[atkType][dt]; return m; }
-
+        function getTotalBadgeBonus(effectType, targetType) {
+    let total = 0;
+    for (const effect of userBadgeEffects) {
+        if (effect.effectType === effectType && (effect.targetType === targetType || effect.targetType === '')) {
+            total += effect.bonusPercent;
+        }
+    }
+    return total;
+}
         // ---------- Cached data loading ----------
         const CACHE_EXPIRY_DAYS = 7;
         async function loadMoveDatabase() {
@@ -1096,6 +1132,33 @@
                     badgeContainer.appendChild(img);
                 }
             }
+
+            const effects = userBadgeEffects;
+if (effects.length) {
+    const effectTexts = effects.map(e => {
+        const typeText = e.targetType ? e.targetType.toUpperCase() : 'All';
+        if (e.effectType === 'atk') return `⚔️ +${e.bonusPercent}% ${typeText} damage`;
+        if (e.effectType === 'def') return `🛡️ -${e.bonusPercent}% ${typeText} damage taken`;
+        if (e.effectType === 'spd') return `🏃 +${e.bonusPercent}% Speed`;
+        return '';
+    }).filter(Boolean);
+    // Add a small div to trainer-card or badge container
+    let effectDiv = document.getElementById('badge-effects-display');
+    if (!effectDiv) {
+        effectDiv = document.createElement('div');
+        effectDiv.id = 'badge-effects-display';
+        effectDiv.style.marginTop = '8px';
+        effectDiv.style.fontSize = '0.7rem';
+        effectDiv.style.background = 'rgba(255,255,255,0.15)';
+        effectDiv.style.borderRadius = '20px';
+        effectDiv.style.padding = '4px 12px';
+        document.querySelector('.trainer-stats').appendChild(effectDiv);
+    }
+    effectDiv.innerHTML = `🏅 Badge Bonuses: ${effectTexts.join(' • ')}`;
+} else {
+    const effectDiv = document.getElementById('badge-effects-display');
+    if (effectDiv) effectDiv.remove();
+}
             let activePokemon = null;
             if (data?.activePokemonId) {
                 const pRef = doc(db, "users", currentUser.uid, "pokemon", data.activePokemonId);
@@ -1211,21 +1274,55 @@
         }
 
         // ---------- Battle logic ----------
-        function getEffectiveSpeed(p) { let s = p.level; if(p.bonusStats?.spd) s = Math.floor(s*1.25); return s; }
-        function getFirstAttacker(a,b) { const sa=getEffectiveSpeed(a), sb=getEffectiveSpeed(b); if(sa>sb) return 'player'; if(sb>sa) return 'opponent'; return Math.random()<0.5 ? 'player':'opponent'; }
-        function applyDamageModifiers(dmg, atkBonus, defBonus) { let m=1; if(atkBonus?.atk) m*=1.25; if(defBonus?.def) m*=0.75; return Math.floor(dmg*m); }
-        function executeAttack(attacker, defender, move, isPlayerAttacking) {
-            let eff = getTypeEffectiveness(move.type, defender.types);
-            let effText = eff===2 ? "Super effective!" : (eff===0.5 ? "Not very effective..." : (eff===0 ? "No effect!" : ""));
-            let dmg = Math.floor((move.power/5) * (attacker.level/2) * eff);
-            if(dmg<1 && eff>0) dmg=1;
-            dmg = applyDamageModifiers(dmg, attacker.bonusStats, defender.bonusStats);
-            defender.currentHp = Math.max(0, defender.currentHp - dmg);
-            const sprite = isPlayerAttacking ? document.getElementById('e-sprite-btl') : document.getElementById('p-sprite-btl');
-            if(sprite) { sprite.classList.remove('shake-effect'); void sprite.offsetWidth; sprite.classList.add('shake-effect'); }
-            addBattleLog(`${attacker.name.toUpperCase()} used ${move.name.toUpperCase()}! Deals ${dmg} dmg. ${effText}`);
-            return defender.currentHp <= 0;
+        function getEffectiveSpeed(pokemon, isPlayer = true) {
+    let speed = pokemon.level;
+    if (pokemon.bonusStats?.spd) speed = Math.floor(speed * 1.25);
+    if (isPlayer) {
+        const spdBonus = getTotalBadgeBonus('spd', '');
+        if (spdBonus > 0) {
+            speed = Math.floor(speed * (1 + spdBonus / 100));
         }
+    }
+    return speed;
+}
+function getFirstAttacker(player, opponent, isPlayer = true) {
+    const playerSpeed = getEffectiveSpeed(player, isPlayer);
+    const opponentSpeed = getEffectiveSpeed(opponent, false);
+    if (playerSpeed > opponentSpeed) return 'player';
+    if (opponentSpeed > playerSpeed) return 'opponent';
+    return Math.random() < 0.5 ? 'player' : 'opponent';
+}       
+function applyDamageModifiers(dmg, atkBonus, defBonus) { let m=1; if(atkBonus?.atk) m*=1.25; if(defBonus?.def) m*=0.75; return Math.floor(dmg*m); }
+        function executeAttack(attacker, defender, move, isPlayerAttacking) {
+    let eff = getTypeEffectiveness(move.type, defender.types);
+    let effText = eff===2 ? "Super effective!" : (eff===0.5 ? "Not very effective..." : (eff===0 ? "No effect!" : ""));
+    
+    let dmg = Math.floor((move.power/5) * (attacker.level/2) * eff);
+    if(dmg<1 && eff>0) dmg=1;
+    dmg = applyDamageModifiers(dmg, attacker.bonusStats, defender.bonusStats);
+    
+    // Badge effects (only for player)
+    if (isPlayerAttacking) {
+        const atkBonus = getTotalBadgeBonus('atk', move.type);
+        if (atkBonus > 0) {
+            dmg = Math.floor(dmg * (1 + atkBonus / 100));
+            addBattleLog(`⚔️ Badge boost: +${atkBonus}% damage (${move.type})!`);
+        }
+    } else {
+        const defBonus = getTotalBadgeBonus('def', move.type);
+        if (defBonus > 0) {
+            dmg = Math.floor(dmg * (1 - defBonus / 100));
+            addBattleLog(`🛡️ Badge protection: -${defBonus}% damage from ${move.type} moves!`);
+        }
+    }
+    
+    defender.currentHp = Math.max(0, defender.currentHp - dmg);
+    const sprite = isPlayerAttacking ? document.getElementById('e-sprite-btl') : document.getElementById('p-sprite-btl');
+    if(sprite) { sprite.classList.remove('shake-effect'); void sprite.offsetWidth; sprite.classList.add('shake-effect'); }
+    addBattleLog(`${attacker.name.toUpperCase()} used ${move.name.toUpperCase()}! Deals ${dmg} dmg. ${effText}`);
+    return defender.currentHp <= 0;
+}
+
         function addBattleLog(msg) { const log=document.getElementById('battle-log'); log.innerHTML+=`<div>> ${msg}</div>`; log.scrollTop=log.scrollHeight; }
 
         async function runTurn(selectedMove) {
@@ -1239,7 +1336,7 @@
                 const b = currentBattle;
                 const player = b.playerTeam[b.activePlayerIdx];
                 const opponent = b.opponentTeam[b.activeOpponentIdx];
-                const first = getFirstAttacker(player, opponent);
+                const first = getFirstAttacker(player, opponent, true);
                 const getRandomMove = (p) => { const avail = p.moves.filter(m => m.power > 0); if (!avail.length) return { name: "Struggle", power: 50, type: "normal" }; return avail[Math.floor(Math.random() * avail.length)]; };
                 const endTurn = () => { isProcessing = false; toggleBattleUI(false); currentTurnTimeout = null; };
                 if (first === 'player') {
@@ -1894,20 +1991,24 @@
         // ---------- Admin Gym Form ----------
         let currentEditingGymId = null;
         let tempTeam = [];
-        async function openGymForm(gym=null) {
-            currentEditingGymId = gym?.id || null;
-            document.getElementById('form-title').innerText = gym ? 'Edit Gym' : 'Create Gym';
-            document.getElementById('gym-name').value = gym?.name || '';
-            document.getElementById('gym-badge').value = gym?.badgeImage || 'badges/default.png';
-            document.getElementById('gym-badge-name').value = gym?.badgeName || '';
-            document.getElementById('gym-image').value = gym?.gymImage || 'gym/default.png';
-            document.getElementById('gym-req-level').value = gym?.requiredLevel || 0;
-            document.getElementById('gym-xp-reward').value = gym?.xpReward || 0;
-            document.getElementById('gym-coin-reward').value = gym?.coinReward || 0;
-            tempTeam = gym?.team ? JSON.parse(JSON.stringify(gym.team)) : [];
-            renderTeamEditor();
-            document.getElementById('gym-form-modal').classList.remove('hidden');
-        }
+async function openGymForm(gym=null) {
+    currentEditingGymId = gym?.id || null;
+    document.getElementById('form-title').innerText = gym ? 'Edit Gym' : 'Create Gym';
+    document.getElementById('gym-name').value = gym?.name || '';
+    document.getElementById('gym-badge').value = gym?.badgeImage || 'badges/default.png';
+    document.getElementById('gym-badge-name').value = gym?.badgeName || '';
+    document.getElementById('gym-image').value = gym?.gymImage || 'gym/default.png';
+    document.getElementById('gym-req-level').value = gym?.requiredLevel || 0;
+    document.getElementById('gym-xp-reward').value = gym?.xpReward || 0;
+    document.getElementById('gym-coin-reward').value = gym?.coinReward || 0;
+    // Load badge effect
+    document.getElementById('badge-effect-type').value = gym?.badgeEffect?.effectType || '';
+    document.getElementById('badge-effect-target-type').value = gym?.badgeEffect?.targetType || '';
+    document.getElementById('badge-effect-bonus').value = gym?.badgeEffect?.bonusPercent || 5;
+    tempTeam = gym?.team ? JSON.parse(JSON.stringify(gym.team)) : [];
+    renderTeamEditor();
+    document.getElementById('gym-form-modal').classList.remove('hidden');
+}
 
         document.getElementById('add-pokemon-btn').onclick = async () => {
             const btn = document.getElementById('add-pokemon-btn');
@@ -1953,21 +2054,25 @@
         }
 
         document.getElementById('save-gym-btn').onclick = async () => {
-            const name = document.getElementById('gym-name').value.trim();
-            if (!name) return alert('Gym name required');
-            const badgeImage = document.getElementById('gym-badge').value.trim();
-            const badgeName = document.getElementById('gym-badge-name').value.trim();
-            const gymImage = document.getElementById('gym-image').value.trim();
-            const requiredLevel = parseInt(document.getElementById('gym-req-level').value);
-            const xpReward = parseInt(document.getElementById('gym-xp-reward').value) || 0;
-            const coinReward = parseInt(document.getElementById('gym-coin-reward').value) || 0;
-            if (tempTeam.length === 0) return alert('At least one Pokémon required');
-            const gymData = { name, badgeImage, gymImage, requiredLevel, team: tempTeam, badgeName, xpReward, coinReward };
-            if (currentEditingGymId) await updateDoc(doc(db, "gyms", currentEditingGymId), gymData);
-            else await addDoc(collection(db, "gyms"), gymData);
-            document.getElementById('gym-form-modal').classList.add('hidden');
-            loadGyms();
-        };
+    const name = document.getElementById('gym-name').value.trim();
+    if (!name) return alert('Gym name required');
+    const badgeImage = document.getElementById('gym-badge').value.trim();
+    const badgeName = document.getElementById('gym-badge-name').value.trim();
+    const gymImage = document.getElementById('gym-image').value.trim();
+    const requiredLevel = parseInt(document.getElementById('gym-req-level').value);
+    const xpReward = parseInt(document.getElementById('gym-xp-reward').value) || 0;
+    const coinReward = parseInt(document.getElementById('gym-coin-reward').value) || 0;
+    const effectType = document.getElementById('badge-effect-type').value;
+    const targetType = document.getElementById('badge-effect-target-type').value;
+    const bonusPercent = parseInt(document.getElementById('badge-effect-bonus').value) || 0;
+    const badgeEffect = effectType ? { effectType, targetType, bonusPercent } : null;
+    if (tempTeam.length === 0) return alert('At least one Pokémon required');
+    const gymData = { name, badgeImage, gymImage, requiredLevel, team: tempTeam, badgeName, xpReward, coinReward, badgeEffect };
+    if (currentEditingGymId) await updateDoc(doc(db, "gyms", currentEditingGymId), gymData);
+    else await addDoc(collection(db, "gyms"), gymData);
+    document.getElementById('gym-form-modal').classList.add('hidden');
+    loadGyms();
+};
         document.getElementById('cancel-gym-btn').onclick = () => document.getElementById('gym-form-modal').classList.add('hidden');
 
         // ---------- Auth ----------
@@ -1986,6 +2091,7 @@
                 document.getElementById('admin-panel-toggle').onclick = () => { const panel = document.getElementById('admin-panel'); panel.classList.toggle('hidden'); if (!panel.classList.contains('hidden')) loadGyms(); };
                 document.getElementById('create-gym-btn').onclick = () => openGymForm();
                 await loadGyms();
+                await loadUserBadgeEffects();
                 await fetchPlayerTeam();
                 await updateTrainerCard();
             } else {
@@ -2047,6 +2153,23 @@ window.addEventListener('keydown', (e) => {
         }
     }
 });
+
+let userBadgeEffects = []; // array of { effectType, targetType, bonusPercent }
+
+async function loadUserBadgeEffects() {
+    if (!currentUser) return [];
+    const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+    const badgeIds = userDoc.data()?.badges || [];
+    const effects = [];
+    for (const badgeId of badgeIds) {
+        const gym = gymsCache.find(g => g.id === badgeId);
+        if (gym && gym.badgeEffect) {
+            effects.push(gym.badgeEffect);
+        }
+    }
+    userBadgeEffects = effects;
+    return effects;
+}
     </script>
     <audio id="gym-music" src="gym_bg.mp3" loop preload="auto"></audio>
 </body>

@@ -2397,26 +2397,32 @@ body.dark-theme footer .support-section a:hover {
         return Math.floor(damage * multiplier);
     }
 
-    function executeAttack(attacker, defender, move, isPlayerAttacking) {
-        let eff = getTypeEffectiveness(move.type, defender.types);
-        let effText = "";
-        if (eff === 2) effText = "It's super effective!";
-        else if (eff === 0.5) effText = "It's not very effective...";
-        else if (eff === 0) effText = "It doesn't affect the wild Pokémon!";
-        let dmg = Math.floor((move.power / 5) * (attacker.level / 2) * eff);
-        if (dmg < 1 && eff > 0) dmg = 1;
-        dmg = applyDamageModifiers(dmg, attacker.bonusStats, defender.bonusStats);
-        defender.currentHp = Math.max(0, defender.currentHp - dmg);
-        const sprite = isPlayerAttacking ? document.getElementById('e-sprite-btl') : document.getElementById('p-sprite-btl');
-        if (sprite) {
-            sprite.classList.remove('shake-effect');
-            void sprite.offsetWidth;
-            sprite.classList.add('shake-effect');
-        }
-        addBattleLog(`${attacker.name.toUpperCase()} used ${move.name.toUpperCase()}! Deals ${dmg} dmg. ${effText}`);
-        return defender.currentHp <= 0;
+ function executeAttack(attacker, defender, move, isPlayerAttacking) {
+    let eff = getTypeEffectiveness(move.type, defender.types);
+    let effText = "";
+    if (eff === 2) effText = "It's super effective!";
+    else if (eff === 0.5) effText = "It's not very effective...";
+    else if (eff === 0) effText = "It doesn't affect the wild Pokémon!";
+    
+    // STAB (Same Type Attack Bonus)
+    let stab = (attacker.types && attacker.types.includes(move.type)) ? 1.5 : 1;
+    
+    let dmg = Math.floor((move.power / 5) * (attacker.level / 2) * eff * stab);
+    if (dmg < 1 && eff > 0) dmg = 1;
+    dmg = applyDamageModifiers(dmg, attacker.bonusStats, defender.bonusStats);
+    
+    defender.currentHp = Math.max(0, defender.currentHp - dmg);
+    const sprite = isPlayerAttacking ? document.getElementById('e-sprite-btl') : document.getElementById('p-sprite-btl');
+    if (sprite) {
+        sprite.classList.remove('shake-effect');
+        void sprite.offsetWidth;
+        sprite.classList.add('shake-effect');
     }
-
+    
+    let stabText = (stab > 1) ? " (STAB)" : "";
+    addBattleLog(`${attacker.name.toUpperCase()} used ${move.name.toUpperCase()}! Deals ${dmg} dmg. ${effText}${stabText}`);
+    return defender.currentHp <= 0;
+}
     // ========== GAME GLOBALS ==========
     const pokeDataCache = {};
     const speciesDataCache = {};

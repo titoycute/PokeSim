@@ -2657,96 +2657,125 @@ async function updateNavDisplay(forceRefresh = false) {
         return all;
     }
 
-    // ========== MOVE EDITOR ==========
-    async function openMoveEditor(pokemonId, pokemonName, speciesId, currentMoves, pokemonLevel) {
-        currentEditingPokemon = { id: pokemonId, name: pokemonName, speciesId, currentMoves, level: pokemonLevel };
-        document.getElementById('move-pokemon-name').innerText = pokemonName;
-        const container = document.getElementById('move-list-container');
-        container.innerHTML = `<div style="text-align: center; padding: 20px;">🔄 Loading level‑up moves for ${pokemonName} (Lv. ${pokemonLevel})...</div>`;
-        document.getElementById('move-editor').classList.remove('hidden');
-
-        if (!isMoveDatabaseLoaded && !moveDatabaseLoading) await loadMoveDatabase();
-        if (!isMoveDatabaseLoaded) {
-            container.innerHTML = `<div style="text-align: center; padding: 20px;">⚠️ Move database still loading. Please wait a moment and try again.</div>`;
-            return;
+// Helper: For special forms (Mega, G-Max, Primal), return the base species ID for move learning
+async function getBaseSpeciesForMoveEdit(speciesId, pokemonName) {
+    const nameLower = pokemonName.toLowerCase();
+    let strippedName = nameLower;
+    const suffixes = ['-mega', '-gmax', '-primal', '-mega-x', '-mega-y', '-origin', '-eternamax'];
+    for (const suffix of suffixes) {
+        if (nameLower.endsWith(suffix)) {
+            strippedName = nameLower.slice(0, -suffix.length);
+            break;
         }
-
-        let moveOptions = [];
+    }
+    // If the name was stripped, fetch the base species by name
+    if (strippedName !== nameLower) {
         try {
-          
-
-            const pokeData = await cachedFetch(`https://pokeapi.co/api/v2/pokemon/${speciesId}`);
-            const levelUpMoves = [];
-            for (const moveEntry of pokeData.moves) {
-                const levelUpVersions = moveEntry.version_details.filter(vd => vd.learn_method.name === 'level-up');
-                if (levelUpVersions.length > 0) {
-                    const minLevel = Math.min(...levelUpVersions.map(v => v.level_learned_at));
-                    levelUpMoves.push({
-                        name: moveEntry.move.name,
-                        level: minLevel,
-                        url: moveEntry.move.url
-                    });
-                }
-            }
-            const uniqueMap = new Map();
-            for (const m of levelUpMoves) {
-                if (!uniqueMap.has(m.name) || uniqueMap.get(m.name).level > m.level) uniqueMap.set(m.name, m);
-            }
-            const uniqueMoves = Array.from(uniqueMap.values());
-            uniqueMoves.sort((a, b) => a.level - b.level);
-            const eligibleMoves = [];
-            for (const move of uniqueMoves) {
-                const dbMove = moveDatabase.find(dbMove => dbMove.name === move.name);
-                if (dbMove && dbMove.power > 0 && dbMove.accuracy > 0) {
-                    eligibleMoves.push({
-                        name: move.name,
-                        type: dbMove.type,
-                        power: dbMove.power,
-                        accuracy: dbMove.accuracy,
-                        level: move.level
-                    });
-                }
-            }
-            const PREVIEW_LEVELS = 5;
-            const maxLevel = pokemonLevel + PREVIEW_LEVELS;
-            const filtered = eligibleMoves.filter(m => m.level <= maxLevel);
-            if (filtered.length > 0) {
-                moveOptions = filtered.map(m => ({
-                    name: m.name,
-                    type: m.type,
-                    power: m.power,
-                    accuracy: m.accuracy
-                }));
-            }
-        } catch (err) {
-            console.warn("API level‑up fetch failed, falling back to move database:", err);
+            const data = await cachedFetch(`https://pokeapi.co/api/v2/pokemon/${strippedName}`);
+            return data.id;
+        } catch (e) {
+            // Fallback to original ID if name lookup fails
+            return speciesId;
         }
+    }
+    // Normal Pokémon – keep original ID
+    return speciesId;
+}
 
-        if (moveOptions.length === 0 && isMoveDatabaseLoaded) {
-            const speciesIdInt = parseInt(speciesId);
-            moveOptions = moveDatabase.filter(move => move.learners.includes(speciesIdInt)).map(move => ({
-                name: move.name,
-                type: move.type,
-                power: move.power,
-                accuracy: move.accuracy
-            }));
-            moveOptions.sort((a, b) => a.name.localeCompare(b.name));
-            container.innerHTML = `<div style="text-align: center; padding: 20px;">ℹ️ Showing all damaging moves (level‑up data unavailable)</div>`;
-        }
+    // ========== MOVE EDITOR ==========
+async function openMoveEditor(pokemonId, pokemonName, speciesId, currentMoves, pokemonLevel) {
+    currentEditingPokemon = { id: pokemonId, name: pokemonName, speciesId, currentMoves, level: pokemonLevel };
+    document.getElementById('move-pokemon-name').innerText = pokemonName;
+    const container = document.getElementById('move-list-container');
+    container.innerHTML = `<div style="text-align: center; padding: 20px;">🔄 Loading level‑up moves for ${pokemonName} (Lv. ${pokemonLevel})...</div>`;
+    document.getElementById('move-editor').classList.remove('hidden');
 
-        if (moveOptions.length === 0) {
-            let types = ['normal'];
-            try {
-               const p = await cachedFetch(`https://pokeapi.co/api/v2/pokemon/${speciesId}`);
-                types = p.types.map(t => t.type.name);
-            } catch(e) {}
-            moveOptions = generateFallbackMoveList(pokemonName, types);
-        }
-
-        renderMoveGrid(moveOptions, currentMoves);
+    if (!isMoveDatabaseLoaded && !moveDatabaseLoading) await loadMoveDatabase();
+    if (!isMoveDatabaseLoaded) {
+        container.innerHTML = `<div style="text-align: center; padding: 20px;">⚠️ Move database still loading. Please wait.</div>`;
+        return;
     }
 
-    function renderMoveGrid(moveList, currentMoves) {
+    let moveOptions = [];
+    let baseId = null;
+    try {
+        // ✅ Get base species ID for move learning
+        baseId = await getBaseSpeciesForMoveEdit(speciesId, pokemonName);
+        const pokeData = await cachedFetch(`https://pokeapi.co/api/v2/pokemon/${baseId}`);
+
+        const levelUpMoves = [];
+        for (const moveEntry of pokeData.moves) {
+            const levelUpVersions = moveEntry.version_details.filter(vd => vd.learn_method.name === 'level-up');
+            if (levelUpVersions.length > 0) {
+                const minLevel = Math.min(...levelUpVersions.map(v => v.level_learned_at));
+                levelUpMoves.push({
+                    name: moveEntry.move.name,
+                    level: minLevel,
+                    url: moveEntry.move.url
+                });
+            }
+        }
+        const uniqueMap = new Map();
+        for (const m of levelUpMoves) {
+            if (!uniqueMap.has(m.name) || uniqueMap.get(m.name).level > m.level) uniqueMap.set(m.name, m);
+        }
+        const uniqueMoves = Array.from(uniqueMap.values());
+        uniqueMoves.sort((a, b) => a.level - b.level);
+        const eligibleMoves = [];
+        for (const move of uniqueMoves) {
+            const dbMove = moveDatabase.find(dbMove => dbMove.name === move.name);
+            if (dbMove && dbMove.power > 0 && dbMove.accuracy > 0) {
+                eligibleMoves.push({
+                    name: move.name,
+                    type: dbMove.type,
+                    power: dbMove.power,
+                    accuracy: dbMove.accuracy,
+                    level: move.level
+                });
+            }
+        }
+        const PREVIEW_LEVELS = 5;
+        const maxLevel = pokemonLevel + PREVIEW_LEVELS;
+        const filtered = eligibleMoves.filter(m => m.level <= maxLevel);
+        if (filtered.length > 0) {
+            moveOptions = filtered.map(m => ({
+                name: m.name,
+                type: m.type,
+                power: m.power,
+                accuracy: m.accuracy
+            }));
+        }
+    } catch (err) {
+        console.warn("API level‑up fetch failed, falling back to move database:", err);
+    }
+
+    // ✅ FALLBACK: use baseId (if available) or fallback to original speciesId
+    if (moveOptions.length === 0 && isMoveDatabaseLoaded) {
+        const effectiveId = baseId || speciesId;   // ⭐ USE BASE ID
+        const speciesIdInt = parseInt(effectiveId);
+        moveOptions = moveDatabase.filter(move => move.learners.includes(speciesIdInt)).map(move => ({
+            name: move.name,
+            type: move.type,
+            power: move.power,
+            accuracy: move.accuracy
+        }));
+        moveOptions.sort((a, b) => a.name.localeCompare(b.name));
+        container.innerHTML = `<div style="text-align: center; padding: 20px;">ℹ️ Showing all damaging moves (level‑up data unavailable)</div>`;
+    }
+
+    if (moveOptions.length === 0) {
+        let types = ['normal'];
+        try {
+            const p = await cachedFetch(`https://pokeapi.co/api/v2/pokemon/${speciesId}`);
+            types = p.types.map(t => t.type.name);
+        } catch(e) {}
+        moveOptions = generateFallbackMoveList(pokemonName, types);
+    }
+
+    renderMoveGrid(moveOptions, currentMoves);
+}
+
+function renderMoveGrid(moveList, currentMoves) {
         const container = document.getElementById('move-list-container');
         const selectedMoves = [...currentMoves];
         const originalPowerSum = selectedMoves.reduce((sum, m) => sum + m.power, 0);

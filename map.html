@@ -1034,33 +1034,197 @@ body.dark-theme #map-info-modal .btn-primary:hover {
     to { opacity: 1; transform: scale(1); }
 }
 
+@media (max-width: 600px) {
+    #map-pokemon-grid {
+        grid-template-columns: repeat(2, 1fr) !important; /* 2 columns on small screens */
+    }
+}
 
+@media (max-width: 400px) {
+    #map-pokemon-grid {
+        grid-template-columns: 1fr !important; /* 1 column on very small screens */
+    }
+}
+
+/* Ensure the card fits well in the grid */
+#map-pokemon-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    align-content: start; /* Prevents stretching if there are only a few items */
+}
+
+/* Optional: Make the scrollbar look nicer */
+#map-pokemon-grid::-webkit-scrollbar {
+    width: 6px;
+}
+#map-pokemon-grid::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 10px;
+}
+
+@media (max-width: 375px) {
+    #map-pokemon-grid {
+        gap: 4px; /* Even tighter gap for very small phones */
+    }
+    .poke-card-name {
+        font-size: 0.65rem !important; /* Smaller text for narrow screens */
+    }
+    .poke-card-type {
+        font-size: 0.5rem !important;
+        padding: 1px 3px !important;
+    }
+}
+
+/* Capture Modal Specific Styles */
+.catch-success-glow {
+    background: radial-gradient(circle, rgba(255,222,0,0.4) 0%, rgba(255,255,255,0) 70%);
+    animation: rotateGlow 10s linear infinite;
+}
+
+@keyframes rotateGlow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.catch-pop-in {
+    animation: catchPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes catchPop {
+    0% { transform: scale(0); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.move-tag {
+    background: rgba(0,0,0,0.05);
+    border-radius: 10px;
+    padding: 4px 10px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    border-bottom: 2px solid rgba(0,0,0,0.1);
+}
+/* Stat Bonus Badges */
+.stat-badge-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: white;
+    text-shadow: 1px 1px 0px rgba(0,0,0,0.2);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.sb-atk { background: #ef4444; border-bottom: 3px solid #b91c1c; }
+.sb-def { background: #3b82f6; border-bottom: 3px solid #1d4ed8; }
+.sb-spd { background: #10b981; border-bottom: 3px solid #047857; }
+
+/* Section Header */
+.summary-section-title {
+    font-size: 0.65rem;
+    font-weight: bold;
+    color: var(--text-light);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+    margin-top: 12px;
+    display: block;
+    border-bottom: 1px solid var(--border);
+}
+
+.move-tag-colored {
+    border-radius: 8px;
+    padding: 6px 8px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    color: white;
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.4);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.sb-shiny { 
+    background: #ffde00; 
+    color: #333 !important; 
+    border-bottom: 3px solid #ca9500; 
+    text-shadow: none !important;
+}
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
 </head>
 <body>
 
     <!-- Overlays -->
-     <div id="map-info-modal" class="overlay hidden" onclick="this.classList.add('hidden')">
-    <div class="modal" style="max-width: 700px;" onclick="event.stopPropagation()">
-        <h2 id="map-info-title" style="color: var(--primary-dark); margin-bottom: 15px;">Possible Encounters</h2>
-        <div id="map-pokemon-list-container" style="max-height: 60vh; overflow-y: auto; border-radius: 16px; border: 1px solid var(--border);">
-            <table style="width: 100%; border-collapse: collapse;">
-                <thead style="position: sticky; top: 0; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
-                    <tr>
-                        <th style="padding: 12px; border-bottom: 2px solid var(--border);">Sprite</th>
-                        <th style="padding: 12px; border-bottom: 2px solid var(--border);">Name</th>
-                        <th style="padding: 12px; border-bottom: 2px solid var(--border);">Type</th>
-                    </tr>
-                </thead>
-                <tbody id="map-pokemon-table-body">
-                    <!-- Rows injected here -->
-                </tbody>
-            </table>
+    
+<!-- Updated Map Info Modal with Grid Layout -->
+<!-- Map Info Modal with Sticky Header/Footer -->
+<div id="map-info-modal" class="overlay hidden" onclick="this.classList.add('hidden')">
+    <div class="modal" style="
+        width: 98%; 
+        max-width: 500px; 
+        height: 85vh; /* Fixed height to allow internal scrolling */
+        padding: 0; 
+        display: flex; 
+        flex-direction: column; 
+        overflow: hidden; 
+        position: relative;
+    " onclick="event.stopPropagation()">
+        
+        <!-- 1. Floating Top-Right Close "X" -->
+        <button onclick="document.getElementById('map-info-modal').classList.add('hidden')" style="
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(0,0,0,0.1);
+            color: var(--text-dark);
+            font-size: 1.2rem;
+            cursor: pointer;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        ">&times;</button>
+
+        <!-- 2. Fixed Header -->
+        <div style="padding: 15px; border-bottom: 1px solid var(--border); background: var(--card-bg); z-index: 10;">
+            <h2 id="map-info-title" style="font-size: 1.1rem; text-align: center; margin: 0; padding-right: 30px;"></h2>
         </div>
-        <button class="btn btn-primary" style="margin-top: 20px; width: 100%;" onclick="document.getElementById('map-info-modal').classList.add('hidden')">Close List</button>
+        
+        <!-- 3. Scrollable Grid (The Middle) -->
+        <div id="map-pokemon-grid" style="
+            flex: 1; /* Takes up all available space */
+            overflow-y: auto; 
+            padding: 10px;
+            background: rgba(0,0,0,0.02);
+            -webkit-overflow-scrolling: touch; /* Smooth scroll for iOS */
+        ">
+            <!-- Cards fill this area -->
+        </div>
+
+        <!-- 4. Fixed Bottom Footer -->
+        <div style="padding: 10px; border-top: 1px solid var(--border); background: var(--card-bg);">
+            <button class="btn btn-primary" style="width: 100%; height: 45px; border-radius: 40px; font-weight: bold;" 
+                    onclick="document.getElementById('map-info-modal').classList.add('hidden')">
+                CLOSE LIST
+            </button>
+        </div>
     </div>
 </div>
+
+
+
     <div id="loading-overlay" class="overlay hidden"><div class="modal">
         <img id="loading-spinner" src="download.png" alt="Loading..." style="width: 64px; height: 64px; animation: spinBall 1s linear infinite;">
         <p id="load-status">Processing...</p></div></div>
@@ -1146,6 +1310,15 @@ body.dark-theme #map-info-modal .btn-primary:hover {
     </div>
     <!-- New landscape image -->
     <img src="Map_0.jpg" alt="Region overview" class="map-landscape">
+
+    <!-- Search Bar -->
+<div style="margin-bottom: 20px;">
+    <div style="position: relative; max-width: 500px; margin: 0 auto;">
+        <i class="fas fa-search" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--text-light);"></i>
+        <input type="text" id="map-search-input" placeholder="Search maps by name or generation..." 
+               style="width: 100%; padding: 12px 12px 12px 45px; border-radius: 40px; border: 1px solid var(--border); font-size: 1rem; background: var(--card-bg); color: var(--text-dark);">
+    </div>
+</div>
     <div id="map-list" class="map-grid"></div>
 </div>
 
@@ -1199,6 +1372,21 @@ body.dark-theme #map-info-modal .btn-primary:hover {
         </div>
 
         <button id="close-summary-btn" class="btn btn-primary" style="width: 100%; font-size: 1.1rem; padding: 12px;">Continue Adventure</button>
+    </div>
+</div>
+
+<!-- Badge Requirement Modal -->
+<div id="badge-warning-modal" class="overlay hidden">
+    <div class="modal" style="max-width: 400px; border: 3px solid #f56565;">
+        <i class="fas fa-lock" style="font-size: 3rem; color: #f56565; margin-bottom: 15px; display: block;"></i>
+        <h2 style="color: #2d3748; margin-bottom: 10px;">Access Denied</h2>
+        <p id="badge-warning-text" style="color: #4a5568; margin-bottom: 20px; font-size: 0.95rem;"></p>
+        
+        <div id="required-badges-display" style="display: flex; justify-content: center; gap: 15px; margin-bottom: 25px; flex-wrap: wrap;">
+            <!-- Badge images will be injected here -->
+        </div>
+
+        <button class="btn btn-danger" style="width: 100%;" onclick="document.getElementById('badge-warning-modal').classList.add('hidden')">Got it</button>
     </div>
 </div>
 
@@ -1399,6 +1587,11 @@ body.dark-theme #map-info-modal .btn-primary:hover {
     let cachedTeam = null;         // team array (Pokémon with inTeam = true)
     let teamCacheTimestamp = 0;
     const TEAM_CACHE_TTL = 300000; // 5 minutes // 30 seconds
+
+    let cachedBadges = new Map(); // key: badgeId, value: { name, image }
+let badgeCacheTimestamp = 0;
+const BADGE_CACHE_TTL = 3600000; // 1 hour
+
 
 let userBadgeEffects = [];
 
@@ -1734,56 +1927,39 @@ async function updateNavDisplay(forceRefresh = false) {
 
 
 
-    // --- Map Search Feature ---
-let currentSearchTerm = "";
+   
+async function getBadgeInfo(badgeIds) {
+    const cleanIds = (badgeIds || []).filter(id => id && id.trim() !== "");
+    if (cleanIds.length === 0) return [];
 
-function filterMaps() {
-    const term = currentSearchTerm.toLowerCase().trim();
-    if (!term) return maps;
-    return maps.filter(map => {
-        return (map.name && map.name.toLowerCase().includes(term)) ||
-               (map.generation && map.generation.toLowerCase().includes(term)) ||
-               (map.description && map.description.toLowerCase().includes(term)) ||
-               (map.requiredLevel && map.requiredLevel.toString().includes(term)) ||
-               (map.catchRate && map.catchRate.toString().includes(term));
-    });
+    const now = Date.now();
+    if (now - badgeCacheTimestamp > BADGE_CACHE_TTL) {
+        cachedBadges.clear();
+        badgeCacheTimestamp = now;
+    }
+
+    const badges = [];
+    for (const id of cleanIds) {
+        if (cachedBadges.has(id)) {
+            badges.push(cachedBadges.get(id));
+        } else {
+            try {
+                const gymDoc = await getDoc(doc(db, "gyms", id));
+                if (gymDoc.exists()) {
+                    const data = gymDoc.data();
+                    const bData = {
+                        id: id,
+                        name: data.badgeName || data.name || "Badge",
+                        image: data.badgeImage || 'https://via.placeholder.com/24?text=🏅'
+                    };
+                    cachedBadges.set(id, bData);
+                    badges.push(bData);
+                }
+            } catch (e) { console.error("Badge error:", e); }
+        }
+    }
+    return badges;
 }
-
-// Override or extend the existing renderMapCards to accept an array
-const originalRenderMapCards = renderMapCards;
-window.renderMapCards = function(mapArray = maps) {
-    const container = document.getElementById('map-list');
-    if (!container) return;
-    container.innerHTML = '';
-    if (mapArray.length === 0) {
-        container.innerHTML = '<p style="text-align:center; padding:40px;">No maps available. ' + (isAdmin ? 'Click "Add New Map" to create one.' : 'Please check back later.') + '</p>';
-        return;
-    }
-    for (const map of mapArray) {
-        // ... (copy your existing card creation loop from the original renderMapCards)
-        // Make sure to use map.name, map.generation etc.
-    }
-};
-
-// Attach event listeners after DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-    const searchInput = document.getElementById('map-search');
-    const clearBtn = document.getElementById('clear-search');
-    if (searchInput) {
-        searchInput.addEventListener('input', (e) => {
-            currentSearchTerm = e.target.value;
-            renderMapCards(filterMaps());
-        });
-    }
-    if (clearBtn) {
-        clearBtn.addEventListener('click', () => {
-            searchInput.value = '';
-            currentSearchTerm = '';
-            renderMapCards(maps);
-        });
-    }
-});
-
 
 async function showSwitchPokemonModal(availablePokemon, isForced = false) {
     return new Promise((resolve) => {
@@ -1943,8 +2119,10 @@ if (autoCatchEnabled && encounterCount >= autoCatchThreshold && !alreadyAutoCaug
     return;
 }
         // ---- Normal win: distribute XP among participants ----
-        const totalBaseXP = Math.floor(b.wild.level * 30);
-        const coins = Math.floor(b.wild.level * 10);
+        const xpMultiplier = currentMap?.xpMultiplier || 1.0;
+const coinMultiplier = currentMap?.coinMultiplier || 1.0;
+const totalBaseXP = Math.floor(b.wild.level * 30 * xpMultiplier);
+const coins = Math.floor(b.wild.level * 10 * coinMultiplier);
         const participants = Array.from(b.participants); // Set of IDs that entered battle
 
         // Fallback (should never happen)
@@ -2118,6 +2296,34 @@ if (autoCatchEnabled && encounterCount >= autoCatchThreshold && !alreadyAutoCaug
         };
     }
 
+async function showBadgeRequirementModal(map) {
+    const modal = document.getElementById('badge-warning-modal');
+    const textEl = document.getElementById('badge-warning-text');
+    const displayEl = document.getElementById('required-badges-display');
+    
+    // 1. Get real info for the badges required by THIS map
+    const badgeInfos = await getBadgeInfo(map.requiredBadgeIds);
+    
+    // 2. Set the text
+    if (map.requiredBadgesCount > 0 && badgeInfos.length > 0) {
+        textEl.innerHTML = `To enter <b>${map.name}</b>, you need at least <b>${map.requiredBadgesCount}</b> total badges, including one of the following:`;
+    } else if (badgeInfos.length > 0) {
+        textEl.innerHTML = `You need at least one of these specific badges to explore <b>${map.name}</b>:`;
+    } else {
+        textEl.innerHTML = `You need <b>${map.requiredBadgesCount}</b> gym badges to enter this area.`;
+    }
+
+    // 3. Show the badge icons and names
+    displayEl.innerHTML = badgeInfos.map(b => `
+        <div style="text-align: center; width: 80px;">
+            <img src="${b.image}" style="width: 50px; height: 50px; object-fit: contain; display: block; margin: 0 auto 5px;">
+            <span style="font-size: 0.7rem; font-weight: bold; color: var(--primary-dark); display: block; line-height: 1.1;">${b.name}</span>
+        </div>
+    `).join('');
+
+    modal.classList.remove('hidden');
+}
+
     async function showInfo(id) {
         const overlay = document.getElementById('loading-overlay');
         overlay.classList.remove('hidden');
@@ -2239,29 +2445,86 @@ setTimeout(() => {
     });
 }, 100);
 } else if (type === 'catch') {
-            header.innerText = "SUCCESSFULLY CAPTURED!";
-            header.style.color = "var(--primary)";
-            if (b.wild.isShiny) {
-                loadImageWithFallback(sprite, getShinyBattleSpriteUrl(b.wild.name, b.wild.pokemonId, 'front'));
-            } else {
-                loadImageWithFallback(sprite, getBattleSpriteUrl(b.wild.pokemonId, 'front'));
-            }
-            let wIcons = '';
-            let displayName = b.wild.name.toUpperCase();
-            if (b.wild.isShiny) displayName = '✨ SHINY ' + displayName;
-            if (b.wild.bonusStats?.atk) wIcons += '⚔️';
-            if (b.wild.bonusStats?.def) wIcons += '🛡️';
-            if (b.wild.bonusStats?.spd) wIcons += '🏃';
-            name.innerHTML = `${displayName} ${wIcons}`;
-            info.innerText = `Level ${b.wild.level}`;
-            typesDiv.innerHTML = generateTypeBadges(b.wild.types);
-            let movesHtml = b.wild.moves.map(m => `<span class="move-badge" style="background:${getTypeColor(m.type)}">${m.name.toUpperCase()}</span>`).join('');
-            details.innerHTML = `
-                <div style="font-weight:bold; margin-bottom:5px;">Moveset:</div>
-                <div style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:10px;">${movesHtml}</div>
-                <div style="font-size:0.8rem; color:var(--text-light); text-align:center;">Sent to your Collection!</div>
-            `;
-        } else if (type === 'defeat') {
+    header.innerText = "GOTCHA!";
+    header.style.color = "#ef4444";
+
+    const spriteContainer = document.getElementById('summary-sprite-container');
+    // REMOVED THE GLOW: Just a clean, solid radial background
+    spriteContainer.style.background = "radial-gradient(circle, #fff 0%, #f3f4f6 100%)";
+    spriteContainer.style.border = "4px solid #ef4444";
+    spriteContainer.style.position = "relative";
+    
+    // Ensure old glows are removed if they exist
+    const oldGlow = spriteContainer.querySelector('.catch-success-glow');
+    if (oldGlow) oldGlow.remove();
+
+    if (b.wild.isShiny) {
+        loadImageWithFallback(sprite, getShinyBattleSpriteUrl(b.wild.name, b.wild.pokemonId, 'front'));
+    } else {
+        loadImageWithFallback(sprite, getBattleSpriteUrl(b.wild.pokemonId, 'front'));
+    }
+    
+    sprite.className = "catch-pop-in";
+    sprite.style.imageRendering = "pixelated";
+    sprite.style.width = "110px";
+    sprite.style.height = "110px";
+    sprite.style.zIndex = "2";
+
+    // 1. Build the Stat & Shiny Bonuses HTML
+    let statBonusesHtml = "";
+    
+    // Add Shiny Attribute if the Pokemon is Shiny
+    if (b.wild.isShiny) {
+        statBonusesHtml += `<div class="stat-badge-pill sb-shiny">✨ SHINY</div>`;
+    }
+    
+    if (b.wild.bonusStats?.atk) statBonusesHtml += `<div class="stat-badge-pill sb-atk">⚔️ ATK +25%</div>`;
+    if (b.wild.bonusStats?.def) statBonusesHtml += `<div class="stat-badge-pill sb-def">🛡️ DEF +25%</div>`;
+    if (b.wild.bonusStats?.spd) statBonusesHtml += `<div class="stat-badge-pill sb-spd">🏃 SPD +25%</div>`;
+    
+    if (statBonusesHtml === "") {
+        statBonusesHtml = `<div style="font-size:0.75rem; color:var(--text-light); font-style:italic;">Standard Potential</div>`;
+    }
+
+    let wIcons = b.wild.isShiny ? '✨ ' : '';
+    name.innerHTML = `${wIcons}${b.wild.name.toUpperCase()}`;
+    info.innerHTML = `LEVEL ${b.wild.level} <span style="margin:0 5px; opacity:0.3;">•</span> <span style="color:#ef4444; font-weight:bold;">NEW REGISTRATION</span>`;
+    typesDiv.innerHTML = generateTypeBadges(b.wild.types);
+
+    // 2. Build Moveset with specific colors and icons
+    let movesHtml = b.wild.moves.map(m => {
+        const typeColor = getTypeColor(m.type);
+        // Fallback to gear emoji if type icon doesn't exist
+        const typeIcon = TYPE_ICONS[m.type] || '⚙️'; 
+        
+        return `
+            <div class="move-tag-colored" style="background: ${typeColor};">
+                <span style="font-size: 0.9rem;">${typeIcon}</span> 
+                <span>${m.name.toUpperCase()}</span>
+            </div>
+        `;
+    }).join('');
+
+    details.innerHTML = `
+        <!-- STAT BONUSES SECTION -->
+        <span class="summary-section-title">Special Traits & Potential</span>
+        <div style="display:flex; justify-content:center; gap:8px; flex-wrap:wrap; margin-bottom:15px; padding:10px; background:rgba(0,0,0,0.02); border-radius:12px;">
+            ${statBonusesHtml}
+        </div>
+
+        <!-- MOVESET SECTION -->
+        <span class="summary-section-title">Known Moves</span>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px;">
+            ${movesHtml}
+        </div>
+
+        <!-- FOOTER INFO -->
+        <div style="margin-top:20px; padding:8px; border:1px dashed var(--border); border-radius:12px; font-size:0.7rem; color:var(--text-light); text-align:center;">
+            Captured at <b>${currentMap?.name || 'Unknown Area'}</b>
+        </div>
+    `;
+}
+else if (type === 'defeat') {
             header.innerText = "DEFEATED!";
             header.style.color = "var(--danger)";
             if (b.wild.isShiny) {
@@ -3117,58 +3380,99 @@ rawMoves = baseData.moves;
         }
     }
 
-    async function showMapPokemonList(map) {
-        const modal = document.getElementById('map-info-modal');
-        const tableBody = document.getElementById('map-pokemon-table-body');
-        const title = document.getElementById('map-info-title');
-        title.innerText = `${map.name} - Pokémon List`;
-        tableBody.innerHTML = '<tr><td colspan="3" style="padding: 40px; text-align: center;">Loading Pokémon data......</td></tr>';
-        modal.classList.remove('hidden');
-        let idList = [];
-        for (let i = map.pokemonMin; i <= map.pokemonMax; i++) {
-            if (i > 1025 && i < 10001) continue;
-            idList.push(i);
-        }
-        if (map.specialPokemonList) {
-            map.specialPokemonList.forEach(id => { if (!idList.includes(id)) idList.push(id); });
-        }
-        idList.sort((a, b) => a - b);
-        const displayLimit = 150;
-        const listToLoad = idList.slice(0, displayLimit);
-        let html = '';
-        try {
-            const results = await Promise.all(listToLoad.map(async (id) => {
-                try {
-                    const data = await cachedFetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
-                    return {
-                        id: id,
-                        name: data.name.replace('-', ' '),
-                        types: data.types.map(t => t.type.name),
-                        sprite: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`
-                    };
-                } catch (e) { return null; }
-            }));
-            const filteredResults = results.filter(r => r !== null);
-            filteredResults.forEach(p => {
-                html += `
-                    <tr style="border-bottom: 1px solid var(--border); transition: 0.2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
-                        <td style="padding: 8px; text-align: center;"><img src="${p.sprite}" style="width: 50px; height: 50px; object-fit: contain;" onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png'"></td>
-                        <td style="padding: 8px; font-weight: bold; text-transform: capitalize;">${p.name} <br><small style="color: #999;">#${p.id}</small></td>
-                        <td style="padding: 8px;">${generateTypeBadges(p.types)}</td>
-                    </tr>
-                `;
-            });
-            if (idList.length > displayLimit) {
-                html += `<tr><td colspan="3" style="padding: 15px; text-align: center; font-size: 0.8rem; color: #999;">...and ${idList.length - displayLimit} more</td></tr>`;
-            }
-            tableBody.innerHTML = html;
-        } catch (err) {
-            tableBody.innerHTML = '<tr><td colspan="3" style="color: var(--danger); padding: 20px;">Failed to load Pokémon list.</td></tr>';
-        }
-    }
+async function showMapPokemonList(map) {
+    const modal = document.getElementById('map-info-modal');
+    const gridContainer = document.getElementById('map-pokemon-grid');
+    const title = document.getElementById('map-info-title');
+    
+    title.innerText = map.name;
+    gridContainer.innerHTML = '<div style="grid-column: 1/-1; padding: 30px; text-align: center; font-size: 0.8rem;">Loading...</div>';
+    modal.classList.remove('hidden');
 
-   
-    // ========== MUSIC ==========
+    let idList = [];
+    for (let i = map.pokemonMin; i <= map.pokemonMax; i++) {
+        if (i > 1025 && i < 10001) continue;
+        if (i > 0) idList.push(i);
+    }
+    if (map.specialPokemonList) {
+        map.specialPokemonList.forEach(id => { if (!idList.includes(id)) idList.push(id); });
+    }
+    
+    idList.sort((a, b) => a - b);
+    const listToLoad = idList.slice(0, 200); 
+    let html = '';
+
+    try {
+        const results = await Promise.all(listToLoad.map(async (id) => {
+            try {
+                const data = await cachedFetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
+                return {
+                    id: id,
+                    name: data.name,
+                    types: data.types.map(t => t.type.name),
+                    sprite: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`
+                };
+            } catch (e) { return null; }
+        }));
+
+        results.filter(r => r !== null).forEach(p => {
+            html += `
+                <div style="
+                    background: var(--card-bg);
+                    border: 1px solid var(--border);
+                    border-radius: 8px;
+                    padding: 5px 2px;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    min-width: 0; /* Prevents overflow */
+                ">
+                    <span style="font-size: 0.6rem; color: var(--text-light); font-family: monospace;">#${p.id}</span>
+                    
+                    <img src="${p.sprite}" style="width: 55px; height: 55px; image-rendering: pixelated;" 
+                         loading="lazy"
+                         onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png'">
+                    
+                    <div class="poke-card-name" style="
+                        font-weight: bold; 
+                        text-transform: capitalize; 
+                        font-size: 0.7rem; 
+                        color: var(--text-dark); 
+                        text-align: center;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        width: 95%;
+                        margin-bottom: 3px;
+                    ">
+                        ${p.name.split('-')[0]}
+                    </div>
+                    
+                    <div style="display: flex; justify-content: center; gap: 2px; width: 100%; flex-wrap: wrap;">
+                        ${p.types.map(t => `
+                            <span class="poke-card-type" style="
+                                background: ${getTypeColor(t)}; 
+                                color: white; 
+                                font-size: 0.55rem; 
+                                padding: 1px 4px; 
+                                border-radius: 4px; 
+                                font-weight: bold;
+                                text-transform: uppercase;
+                            ">${t.substring(0, 3)}</span>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        });
+
+        gridContainer.innerHTML = html || '<div style="grid-column:1/-1">Empty</div>';
+    } catch (err) {
+        gridContainer.innerHTML = '<div style="grid-column:1/-1">Error</div>';
+    }
+}
+
+// ========== MUSIC ==========
     function playMainMusic() {
         if (!isMuted) {
             battleMusic.pause();
@@ -3212,80 +3516,138 @@ rawMoves = baseData.moves;
     renderMapCards();
 }
 
-    function renderMapCards() {
-        const container = document.getElementById('map-list');
-        if (!container) return;
-        container.innerHTML = '';
-        if (maps.length === 0) {
-            container.innerHTML = '<p style="text-align:center; padding:40px;">No maps available. ' + (isAdmin ? 'Click "Add New Map" to create one.' : 'Please check back later.') + '</p>';
-            return;
-        }
-        for (const map of maps) {
-            const unlocked = userTotalLevel >= map.requiredLevel;
-            const card = document.createElement('div');
-            card.className = 'map-card';
-            card.style.cursor = 'pointer';
-            card.onclick = () => showMapPokemonList(map);
-            card.innerHTML = `
-    <img src="${map.imageUrl || 'map1.png'}" alt="${map.name}" onerror="this.src='map1.png'">
-    <h3>${escapeHtml(map.name)}</h3>
-    <p style="font-weight: bold; color: var(--primary);">Gen ${map.generation || '?'}</p>
-    <p class="map-description" style="font-style: italic;">${map.description || ''}</p>
-    <div style="font-size: 0.75rem; color: var(--text-light); margin: 8px 0;">
-    <div>🎯 Catch rate: ${map.catchRate || 45}% (max)</div>
-    <div>📊 Need ${map.requiredExpPercent || 10}% XP progress to catch</div>
-    <div>💸 Catch costs ${map.catchXpPenaltyPercent || 10}% of XP progress bar</div>
-    ${map.autoCatchEnabled 
-        ? `<div>✨ Auto‑catch: ✅ ENABLED (after ${map.autoCatchThreshold || 5} encounters)</div>` 
-        : `<div>✨ Auto‑catch: ❌ DISABLED</div>`}
-    ${isAdmin ? `<div>✨ Shiny rate: 1/${map.shinyRate || 8192}</div>` : ''}
-    <div>📈 Wild levels: ${map.specialLevelRange?.enabled 
-        ? `${map.specialLevelRange.min} – ${map.specialLevelRange.max}` 
-        : `Around your active Pokémon's level (±10, min 1)`}</div>
-    <div style="font-size: 0.75rem; color: var(--text-light); margin: 4px 0;">
-        <span class="map-meta-pill">Pokemon Dex 🐾 ${(map.pokemonMin > 0 && map.pokemonMax > 0) ? `#${map.pokemonMin}–${map.pokemonMax}` : 'Special only'}</span>
-    </div>
-</div>
-    <p style="font-size: 0.75rem; color: var(--text-light);">Click card to view Pokémon list</p>
-    <p class="required ${unlocked ? 'unlocked' : 'locked'}">
-        ${unlocked ? '✓ Available' : `🔒 Requires total level ${map.requiredLevel}`}
-    </p>
-    <button class="btn btn-primary explore-btn" data-map-id="${map.id}" ${!unlocked ? 'disabled' : ''} onclick="event.stopPropagation();">Explore</button>
-`;
-            const exploreBtn = card.querySelector('.explore-btn');
-            exploreBtn.onclick = (e) => {
-                e.stopPropagation();
-                if (unlocked) startGameWithMap(map);
-            };
-            if (isAdmin) {
-                const editBtn = document.createElement('button');
-                editBtn.className = 'admin-edit-btn';
-                editBtn.innerHTML = '<i class="fas fa-edit"></i>';
-                editBtn.onclick = (e) => { e.stopPropagation(); openMapEditModal(map); };
-                card.appendChild(editBtn);
-                const delBtn = document.createElement('button');
-                delBtn.className = 'admin-delete-btn';
-                delBtn.innerHTML = '<i class="fas fa-trash"></i>';
-                delBtn.onclick = async (e) => {
-                    e.stopPropagation();
-                    if (confirm(`Delete map "${map.name}"?`)) {
-                        await deleteDoc(doc(db, "maps", map.id));
-                        loadMaps();
-                    }
-                };
-                card.appendChild(delBtn);
-            }
-            container.appendChild(card);
-        }
-        document.querySelectorAll('.explore-btn').forEach(btn => {
-            btn.onclick = () => {
-                const mapId = btn.dataset.mapId;
-                const selected = maps.find(m => m.id === mapId);
-                if (selected && userTotalLevel >= selected.requiredLevel) startGameWithMap(selected);
-                else alert("You don't meet the level requirement for this map.");
-            };
-        });
+
+
+function renderMapCards() {
+    const container = document.getElementById('map-list');
+    const searchInput = document.getElementById('map-search-input');
+    const query = searchInput ? searchInput.value.toLowerCase().trim() : "";
+
+    if (!container) return;
+    container.innerHTML = '';
+
+    // Filter maps based on name or generation
+    const filteredMaps = maps.filter(map => {
+        const nameMatch = map.name.toLowerCase().includes(query);
+        const genMatch = map.generation && map.generation.toLowerCase().includes(query);
+        return nameMatch || genMatch;
+    });
+
+    if (filteredMaps.length === 0) {
+        container.innerHTML = `<p style="text-align:center; padding:40px; grid-column: 1/-1;">No maps found matching "${escapeHtml(query)}".</p>`;
+        return;
     }
+
+    for (const map of filteredMaps) {
+        const unlocked = userTotalLevel >= map.requiredLevel;
+        const hasBadgeRequirements = map.requiredBadgeIds && map.requiredBadgeIds.filter(id => id && id.trim() !== "").length > 0;
+
+        const card = document.createElement('div');
+        card.className = 'map-card';
+        card.style.cursor = 'pointer';
+        card.onclick = () => showMapPokemonList(map);
+        
+        card.innerHTML = `
+            <img src="${map.imageUrl || 'map1.png'}" alt="${map.name}" onerror="this.src='map1.png'">
+            <h3>${escapeHtml(map.name)}</h3>
+            <p style="font-weight: bold; color: var(--primary);">Gen ${map.generation || '?'}</p>
+            <p class="map-description" style="font-style: italic;">${map.description || ''}</p>
+            
+            <div style="font-size: 0.75rem; color: var(--text-light); margin: 8px 0; text-align: left;">
+                <div>🎯 Catch rate: ${map.catchRate || 45}% (max)</div>
+                <div>📊 Need ${map.requiredExpPercent || 10}% XP progress</div>
+                
+                ${map.autoCatchEnabled 
+                    ? `<div>✨ Auto‑catch: ✅ ENABLED (${map.autoCatchThreshold || 5})</div>` 
+                    : `<div>✨ Auto‑catch: ❌ DISABLED</div>`}
+                
+                ${isAdmin ? `<div style="color: #6c5ce7; font-weight: bold;">💎 Admin Shiny rate: 1/${map.shinyRate || 8192}</div>` : ''}
+                
+                <div>📈 Wild levels: ${map.specialLevelRange?.enabled 
+                    ? `${map.specialLevelRange.min} – ${map.specialLevelRange.max}` 
+                    : `Around active Pokémon (±10)`}</div>
+                
+                <div style="margin: 4px 0;">
+                    <span style="background: rgba(0,0,0,0.05); padding: 2px 6px; border-radius: 4px;">
+                        🐾 Dex: ${(map.pokemonMin > 0 || map.pokemonMax > 0) ? `#${map.pokemonMin}–${map.pokemonMax}` : 'Special only'}
+                    </span>
+                </div>
+
+                <div style="margin-top: 8px; border-top: 1px solid var(--border); padding-top: 8px;">
+                    ${map.requiredBadgesCount > 0 ? `<div>🏅 Requires <b>${map.requiredBadgesCount}</b> total badges</div>` : ''}
+                    ${hasBadgeRequirements ? `
+                        <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-top: 2px;">
+                            <span>🔰 Needed:</span>
+                            <span class="badge-images-container" style="display: inline-flex; align-items: center; gap: 2px;">
+                                <small style="opacity: 0.5;">Loading...</small>
+                            </span>
+                        </div>
+                    ` : ''}
+                </div>
+
+                <div style="margin-top: 8px; font-weight: 500;">💰 Rewards: ${((map.xpMultiplier || 1) * 100).toFixed(0)}% XP, ${((map.coinMultiplier || 1) * 100).toFixed(0)}% coins</div>
+            </div>
+
+            <div class="required ${unlocked ? 'unlocked' : 'locked'}">
+                ${unlocked ? '✓ Available' : `🔒 Requires level ${map.requiredLevel}`}
+            </div>
+            
+            <button class="btn btn-primary explore-btn" data-map-id="${map.id}" ${!unlocked ? 'disabled' : ''} style="width: 100%;" onclick="event.stopPropagation();">Explore</button>
+        `;
+        
+        // Handle Badge Images
+        const badgeContainer = card.querySelector('.badge-images-container');
+        if (badgeContainer && hasBadgeRequirements) {
+            (async () => {
+                const validIds = map.requiredBadgeIds.filter(id => id && id.trim() !== "");
+                const badgeInfos = await getBadgeInfo(validIds);
+                if (badgeContainer && document.body.contains(badgeContainer)) {
+                    if (badgeInfos.length > 0) {
+                        badgeContainer.innerHTML = badgeInfos.map(b => `
+                            <img src="${b.image}" title="${escapeHtml(b.name)}" 
+                                 style="width: 22px; height: 22px; object-fit: contain; filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.1));" 
+                                 onerror="this.src='https://via.placeholder.com/24?text=🏅'">
+                        `).join('');
+                    } else {
+                        badgeContainer.innerHTML = '<small>None</small>';
+                    }
+                }
+            })();
+        }
+        
+        const exploreBtn = card.querySelector('.explore-btn');
+        exploreBtn.onclick = (e) => {
+            e.stopPropagation();
+            if (unlocked) startGameWithMap(map);
+        };
+        
+        if (isAdmin) {
+            const editBtn = document.createElement('button');
+            editBtn.className = 'admin-edit-btn';
+            editBtn.innerHTML = '<i class="fas fa-edit"></i>';
+            editBtn.style.right = "40px";
+            editBtn.onclick = (e) => { e.stopPropagation(); openMapEditModal(map); };
+            card.appendChild(editBtn);
+
+            const delBtn = document.createElement('button');
+            delBtn.className = 'admin-delete-btn';
+            delBtn.innerHTML = '<i class="fas fa-trash"></i>';
+            delBtn.style.right = "10px";
+            delBtn.onclick = async (e) => {
+                e.stopPropagation();
+                if (confirm(`Delete map "${map.name}"?`)) {
+                    await deleteDoc(doc(db, "maps", map.id));
+                    loadMaps(true);
+                }
+            };
+            card.appendChild(delBtn);
+        }
+
+        container.appendChild(card);
+    }
+}
+
+
 
  function updateBadgeEffectsDisplay() {
     const el = document.getElementById('badge-effects-indicator');
@@ -3305,7 +3667,7 @@ rawMoves = baseData.moves;
     el.innerHTML = `Badge Effect: ${texts.join(' • ')}`;
 }
     
-function openMapEditModal(map = null) {
+async function openMapEditModal(map = null) {
     const modal = document.createElement('div');
     modal.className = 'overlay';
     const isNew = !map;
@@ -3324,78 +3686,83 @@ function openMapEditModal(map = null) {
         tileColors: ['#c2b280', '#78cd54'],
         specialLevelRange: { enabled: false, min: 1, max: 100 },
         specialPokemonList: [],
-        autoCatchEnabled: false,           // ← add this
-        autoCatchThreshold: 5    
+        autoCatchEnabled: false,
+        autoCatchThreshold: 5,
+        xpMultiplier: 1.0,
+        coinMultiplier: 1.0,
+        requiredBadgesCount: 0,
+        requiredBadgeIds: []
     };
 
     modal.innerHTML = `
         <div class="modal" style="max-width: 700px;">
             <h3>${isNew ? 'Create New Map' : 'Edit Map'}</h3>
             <div style="text-align: left; margin: 20px 0; max-height: 70vh; overflow-y: auto;">
-                <!-- Basic fields -->
                 <div class="form-group"><label>Map Name</label><input type="text" id="map-name" value="${escapeHtml(mapData.name)}"></div>
                 <div class="form-group"><label>Description</label><textarea id="map-description">${escapeHtml(mapData.description || '')}</textarea></div>
                 <div class="form-group"><label>Generation (I-IX)</label><input type="text" id="map-generation" value="${mapData.generation || 'I'}"></div>
                 <div class="form-group"><label>Required Total Level</label><input type="number" id="map-req-level" value="${mapData.requiredLevel}" min="0"></div>
                 <div class="form-group"><label>Catch Rate (%)</label><input type="number" id="map-catch-rate" value="${mapData.catchRate || 45}" min="1" max="100"></div>
-               <!-- Add after the catch penalty field -->
-<div class="form-group">
-    <label class="checkbox-label">
-        <input type="checkbox" id="map-auto-catch-enabled" ${mapData.autoCatchEnabled ? 'checked' : ''}>
-        ✨ Enable Auto‑Catch (automatically catch when encounter count reaches threshold)
-    </label>
-</div>
-<div class="form-group">
-    <label>Auto‑Catch Threshold (encounters)</label>
-    <input type="number" id="map-auto-catch-threshold" value="${mapData.autoCatchThreshold || 5}" min="1" max="100">
-    <small>Player must encounter this species N times (cumulative) to trigger auto‑catch on this map.</small>
-</div>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="map-auto-catch-enabled" ${mapData.autoCatchEnabled ? 'checked' : ''}>
+                        ✨ Enable Auto‑Catch (automatically catch when encounter count reaches threshold)
+                    </label>
+                </div>
+                <div class="form-group"><label>Auto‑Catch Threshold (encounters)</label><input type="number" id="map-auto-catch-threshold" value="${mapData.autoCatchThreshold || 5}" min="1" max="100"></div>
                 <div class="form-group"><label>Required XP % to Catch</label><input type="number" id="map-req-xp" value="${mapData.requiredExpPercent || 10}" min="1" max="100"></div>
                 <div class="form-group"><label>Catch XP Penalty (%)</label><input type="number" id="map-catch-penalty" value="${mapData.catchXpPenaltyPercent || 10}" min="1" max="100"></div>
-                  <div class="form-group"><label>✨ Shiny Rate (1 in N) — Admin Only</label><input type="number" id="map-shiny-rate" value="${mapData.shinyRate || 8192}" min="1" placeholder="e.g. 592 means 1/592 chance"></div>
+                
+                <!-- NEW: XP and Coin Multipliers -->
+                <div class="form-group"><label>XP Gain Multiplier (e.g., 1.5 = 150% XP)</label><input type="number" id="map-xp-multiplier" value="${mapData.xpMultiplier || 1.0}" step="0.1" min="0.1" max="5.0"></div>
+                <div class="form-group"><label>Coin Gain Multiplier (e.g., 0.8 = 80% coins)</label><input type="number" id="map-coin-multiplier" value="${mapData.coinMultiplier || 1.0}" step="0.1" min="0.1" max="5.0"></div>
+                
+                <!-- NEW: Badge requirements -->
+                <div class="form-group"><label>Minimum Badges Required (0 = no requirement)</label><input type="number" id="map-req-badge-count" value="${mapData.requiredBadgesCount || 0}" min="0"></div>
+                <div class="form-group">
+    <label>Required Badges (choose at least one)</label>
+    <div id="badge-checkboxes" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; max-height: 150px; overflow-y: auto; border: 1px solid var(--border); padding: 8px; border-radius: 12px;"></div>
+    <small>Player must have at least one of the selected badges (if any) AND meet the minimum badge count.</small>
+    <input type="hidden" id="map-req-badge-ids" value="${(mapData.requiredBadgeIds || []).join(',')}">
+</div>
+
+                <div class="form-group"><label>✨ Shiny Rate (1 in N) — Admin Only</label><input type="number" id="map-shiny-rate" value="${mapData.shinyRate || 8192}" min="1" placeholder="e.g. 592 means 1/592 chance"></div>
                 <div class="form-group"><label>Pokémon ID Min</label><input type="number" id="map-pokemon-min" value="${mapData.pokemonMin}" min="0" max="20000"></div>
                 <div class="form-group"><label>Pokémon ID Max</label><input type="number" id="map-pokemon-max" value="${mapData.pokemonMax}" min="0" max="20000"></div>
                 <div class="form-group"><label>Map Image (filename from map1.png to map15.png)</label><input type="text" id="map-image" value="${mapData.imageUrl || 'map1.png'}"></div>
                 
-                <!-- Tile Classes (comma separated) -->
                 <div class="form-group"><label>Tile Classes (comma‑separated, e.g., dirt,grass)</label><input type="text" id="map-tile-classes" value="${(mapData.tileClasses || ['dirt','grass']).join(',')}"></div>
                 
-                <!-- Dynamic Color Pickers (one per tile class) -->
                 <div class="form-group" id="color-pickers-container">
                     <label>Tile Colors</label>
                     <div id="color-pickers-list" style="margin-top: 8px;"></div>
                 </div>
                 
-                <!-- Live Tile Preview -->
                 <div class="form-group">
                     <label>Tile Preview</label>
                     <div id="tile-preview-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; width: 120px; margin-top: 8px;"></div>
                 </div>
                 
-                <!-- Special Level Range -->
                 <div class="form-group"><label><input type="checkbox" id="special-level-enabled" ${mapData.specialLevelRange?.enabled ? 'checked' : ''}> Enable special level range for wild Pokémon</label></div>
                 <div id="special-level-fields" style="display: ${mapData.specialLevelRange?.enabled ? 'block' : 'none'}; margin-left: 20px;">
                     <div class="form-group"><label>Min Level</label><input type="number" id="special-level-min" value="${mapData.specialLevelRange?.min || 1}"></div>
                     <div class="form-group"><label>Max Level</label><input type="number" id="special-level-max" value="${mapData.specialLevelRange?.max || 100}"></div>
                 </div>
                 
-                <!-- Searchable Pokémon Selector (with sprites) -->
                 <div class="form-group">
                     <label>Special Pokémon List (spawns in addition to range)</label>
                     <div style="display: flex; gap: 8px; margin-bottom: 8px;">
                         <input type="text" id="pokemon-search" placeholder="Search by name or ID..." style="flex:1;">
                         <button type="button" id="add-pokemon-btn" class="btn btn-primary btn-small">Add</button>
                     </div>
-
-                     <!-- Batch import: comma-separated IDs -->
-    <div style="margin-bottom: 12px;">
-        <label style="font-size:0.8rem;">Batch add (comma-separated IDs)</label>
-        <div style="display: flex; gap: 8px;">
-            <textarea id="batch-pokemon-ids" placeholder="e.g., 1,4,7,25,39&#10;or 793,794,795,796,797,798,799,803,804,805,806" rows="2" style="flex:1; font-size:0.8rem;"></textarea>
-            <button type="button" id="batch-add-btn" class="btn btn-outline btn-small" style="align-self:flex-end;">Add Batch</button>
-             <button type="button" id="delete-all-btn" class="btn btn-danger btn-small" style="align-self:flex-end; background: var(--danger); color: white;">Delete All</button>
-        </div>
-    </div>
+                    <div style="margin-bottom: 12px;">
+                        <label style="font-size:0.8rem;">Batch add (comma-separated IDs)</label>
+                        <div style="display: flex; gap: 8px;">
+                            <textarea id="batch-pokemon-ids" placeholder="e.g., 1,4,7,25,39&#10;or 793,794,795,796,797,798,799,803,804,805,806" rows="2" style="flex:1; font-size:0.8rem;"></textarea>
+                            <button type="button" id="batch-add-btn" class="btn btn-outline btn-small" style="align-self:flex-end;">Add Batch</button>
+                            <button type="button" id="delete-all-btn" class="btn btn-danger btn-small" style="align-self:flex-end; background: var(--danger); color: white;">Delete All</button>
+                        </div>
+                    </div>
                     <div id="special-pokemon-tags" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;"></div>
                     <input type="hidden" id="special-pokemon-list" value="${(mapData.specialPokemonList || []).join(',')}">
                 </div>
@@ -3406,79 +3773,17 @@ function openMapEditModal(map = null) {
             </div>
         </div>
     `;
-    
-    // Delete All button
-
-    // Delete All button
-const deleteAllBtn = modal.querySelector('#delete-all-btn');
-deleteAllBtn.onclick = async () => {
-    if (specialIds.length === 0) {
-        alert("The list is already empty.");
-        return;
-    }
-    if (confirm(`Are you sure you want to remove ALL ${specialIds.length} special Pokémon from this map?`)) {
-        specialIds = [];
-        await renderSpecialTags();
-        batchTextarea.value = '';
-        alert("All special Pokémon removed.");
-    }
-};   // ← ADD THIS CLOSING BRACE
-
-
-
-
-    // Batch add button
-const batchAddBtn = modal.querySelector('#batch-add-btn');
-const batchTextarea = modal.querySelector('#batch-pokemon-ids');
-
-batchAddBtn.onclick = async () => {
-    const raw = batchTextarea.value.trim();
-    if (!raw) return;
-    
-    // Split by comma, trim, keep only numbers
-    const ids = raw.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
-    if (ids.length === 0) {
-        alert("No valid IDs found. Use comma-separated numbers, e.g., 1,4,7");
-        return;
-    }
-    
-    // Add only unique IDs not already in specialIds
-    let added = 0;
-    for (const id of ids) {
-        if (!specialIds.includes(id)) {
-            specialIds.push(id);
-            added++;
-        }
-    }
-    
-    if (added > 0) {
-        await renderSpecialTags(); // refresh the tags
-        batchTextarea.value = ''; // clear the textarea
-        alert(`Added ${added} new Pokémon.`);
-    } else {
-        alert("All those IDs were already in the list.");
-    }
-};
-
-
-
-    document.body.appendChild(modal);
 
     // ========== TILE CLASSES & COLOR PICKERS ==========
     const classInput = modal.querySelector('#map-tile-classes');
     const colorListDiv = modal.querySelector('#color-pickers-list');
     const previewGrid = modal.querySelector('#tile-preview-grid');
-    
-    // Initial tile colors from mapData (or default)
     let tileColorsArray = [...(mapData.tileColors || ['#c2b280', '#78cd54'])];
     
-    // Function to rebuild color pickers based on current tile classes
     function rebuildColorPickers() {
         const classes = classInput.value.split(',').map(s => s.trim()).filter(s => s);
-        // Ensure tileColorsArray length matches classes
         while (tileColorsArray.length < classes.length) tileColorsArray.push('#888888');
         while (tileColorsArray.length > classes.length) tileColorsArray.pop();
-        
         colorListDiv.innerHTML = '';
         for (let i = 0; i < classes.length; i++) {
             const wrapper = document.createElement('div');
@@ -3493,8 +3798,6 @@ batchAddBtn.onclick = async () => {
             `;
             colorListDiv.appendChild(wrapper);
         }
-        
-        // Attach change events to color pickers
         modal.querySelectorAll('.tile-color-picker').forEach(picker => {
             picker.addEventListener('input', (e) => {
                 const idx = parseInt(picker.dataset.index);
@@ -3507,7 +3810,6 @@ batchAddBtn.onclick = async () => {
         updateTilePreview();
     }
     
-    // Update live preview (uses current classes and colors)
     function updateTilePreview() {
         const classes = classInput.value.split(',').map(s => s.trim());
         previewGrid.innerHTML = '';
@@ -3521,18 +3823,18 @@ batchAddBtn.onclick = async () => {
         }
     }
     
-    // When tile classes change, rebuild the color pickers
-    classInput.addEventListener('input', () => {
-        rebuildColorPickers();
-    });
-    rebuildColorPickers(); // initial build
+    classInput.addEventListener('input', () => { rebuildColorPickers(); });
+    rebuildColorPickers();
     
-    // ========== SPECIAL POKÉMON LIST (with sprites) ==========
+    // ========== SPECIAL POKÉMON LIST ==========
     let specialIds = [];
     const specialInput = modal.querySelector('#special-pokemon-list');
     const tagsContainer = modal.querySelector('#special-pokemon-tags');
     const searchInput = modal.querySelector('#pokemon-search');
     const addBtn = modal.querySelector('#add-pokemon-btn');
+    const batchTextarea = modal.querySelector('#batch-pokemon-ids');
+    const batchAddBtn = modal.querySelector('#batch-add-btn');
+    const deleteAllBtn = modal.querySelector('#delete-all-btn');
     
     const existingIds = specialInput.value ? specialInput.value.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n)) : [];
     existingIds.forEach(id => { if (!specialIds.includes(id)) specialIds.push(id); });
@@ -3610,7 +3912,62 @@ batchAddBtn.onclick = async () => {
         } catch (e) {}
         return [];
     }
-    
+
+async function loadBadgeCheckboxes(selectedIds) {
+    const container = document.getElementById('badge-checkboxes');
+    if (!container) return;
+    container.innerHTML = '<div style="width:100%; text-align:center;">Loading badges...</div>';
+    try {
+        const gymsSnapshot = await getDocs(collection(db, "gyms"));
+        const gyms = [];
+        gymsSnapshot.forEach(doc => {
+            const data = doc.data();
+            gyms.push({
+                id: doc.id,
+                badgeName: data.badgeName || data.name || doc.id,
+                badgeImage: data.badgeImage || 'https://via.placeholder.com/32?text=🏅' // fallback
+            });
+        });
+        if (gyms.length === 0) {
+            container.innerHTML = '<div style="width:100%; text-align:center; color: var(--text-light);">No gyms found in database.</div>';
+            return;
+        }
+        container.innerHTML = '';
+        gyms.forEach(gym => {
+            const isChecked = selectedIds.includes(gym.id);
+            const label = document.createElement('label');
+            label.style.display = 'inline-flex';
+            label.style.alignItems = 'center';
+            label.style.gap = '8px';
+            label.style.background = 'var(--card-bg)';
+            label.style.padding = '5px 12px';
+            label.style.borderRadius = '30px';
+            label.style.border = '1px solid var(--border)';
+            label.style.cursor = 'pointer';
+            label.style.transition = '0.2s';
+            label.innerHTML = `
+                <input type="checkbox" value="${gym.id}" ${isChecked ? 'checked' : ''} style="margin:0; width:18px; height:18px;">
+                <img src="${gym.badgeImage}" style="width: 28px; height: 28px; object-fit: contain;" onerror="this.src='https://via.placeholder.com/28?text=🏅'">
+                <span><strong>${escapeHtml(gym.badgeName)}</strong></span>
+            `;
+            label.querySelector('input').addEventListener('change', (e) => {
+                const hiddenInput = document.getElementById('map-req-badge-ids');
+                let current = hiddenInput.value ? hiddenInput.value.split(',') : [];
+                if (e.target.checked) {
+                    if (!current.includes(gym.id)) current.push(gym.id);
+                } else {
+                    current = current.filter(id => id !== gym.id);
+                }
+                hiddenInput.value = current.join(',');
+            });
+            container.appendChild(label);
+        });
+    } catch (err) {
+        console.error("Failed to load badges:", err);
+        container.innerHTML = '<div style="width:100%; text-align:center; color: var(--danger);">Error loading badges.</div>';
+    }
+}
+
     addBtn.onclick = async () => {
         const query = searchInput.value.trim();
         if (!query) return;
@@ -3626,86 +3983,123 @@ batchAddBtn.onclick = async () => {
         searchInput.value = '';
     };
     
+    batchAddBtn.onclick = async () => {
+        const raw = batchTextarea.value.trim();
+        if (!raw) return;
+        const ids = raw.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+        if (ids.length === 0) {
+            alert("No valid IDs found. Use comma-separated numbers, e.g., 1,4,7");
+            return;
+        }
+        let added = 0;
+        for (const id of ids) {
+            if (!specialIds.includes(id)) {
+                specialIds.push(id);
+                added++;
+            }
+        }
+        if (added > 0) {
+            await renderSpecialTags();
+            batchTextarea.value = '';
+            alert(`Added ${added} new Pokémon.`);
+        } else {
+            alert("All those IDs were already in the list.");
+        }
+    };
+    
+    deleteAllBtn.onclick = async () => {
+        if (specialIds.length === 0) {
+            alert("The list is already empty.");
+            return;
+        }
+        if (confirm(`Are you sure you want to remove ALL ${specialIds.length} special Pokémon from this map?`)) {
+            specialIds = [];
+            await renderSpecialTags();
+            batchTextarea.value = '';
+            alert("All special Pokémon removed.");
+        }
+    };
+    
+
+
     // ========== SAVE & CANCEL ==========
     const saveBtn = modal.querySelector('#save-map-btn');
     const cancelBtn = modal.querySelector('#cancel-map-btn');
     
-   saveBtn.onclick = async () => {
-    const mapName = modal.querySelector('#map-name').value.trim();
-    if (!mapName) {
-        alert('⚠️ Map name is required!');
-        modal.querySelector('#map-name').focus();
-        return;
-    }
-
-    saveBtn.disabled = true;
-    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-
-    try {
-        const colorPickers = modal.querySelectorAll('.tile-color-picker');
-        const tileColors = Array.from(colorPickers).map(p => p.value);
-
-        let pokemonMinRaw = modal.querySelector('#map-pokemon-min').value.trim();
-        let pokemonMaxRaw = modal.querySelector('#map-pokemon-max').value.trim();
-        let pokemonMin = pokemonMinRaw === '' ? 0 : parseInt(pokemonMinRaw);
-        let pokemonMax = pokemonMaxRaw === '' ? 0 : parseInt(pokemonMaxRaw);
-        if (isNaN(pokemonMin)) pokemonMin = 0;
-        if (isNaN(pokemonMax)) pokemonMax = 0;
-
-        const newMap = {
-            name: mapName,
-            description: modal.querySelector('#map-description').value.trim(),
-            generation: modal.querySelector('#map-generation').value.trim(),
-            requiredLevel: parseInt(modal.querySelector('#map-req-level').value) || 0,
-            catchRate: parseInt(modal.querySelector('#map-catch-rate').value) || 45,
-            autoCatchEnabled: document.getElementById('map-auto-catch-enabled').checked,
-            autoCatchThreshold: parseInt(document.getElementById('map-auto-catch-threshold').value) || 5,
-            requiredExpPercent: parseInt(modal.querySelector('#map-req-xp').value) || 10,
-            catchXpPenaltyPercent: parseInt(modal.querySelector('#map-catch-penalty').value) || 10,
-            shinyRate: parseInt(modal.querySelector('#map-shiny-rate').value) || 8192,
-            pokemonMin: pokemonMin,
-            pokemonMax: pokemonMax,
-            imageUrl: modal.querySelector('#map-image').value.trim(),
-            tileClasses: classInput.value.split(',').map(s => s.trim()),
-            tileColors: tileColors,
-            specialLevelRange: {
-                enabled: modal.querySelector('#special-level-enabled').checked,
-                min: parseInt(modal.querySelector('#special-level-min').value) || 1,
-                max: parseInt(modal.querySelector('#special-level-max').value) || 100
-            },
-            specialPokemonList: specialIds
-        };
-
-        if (isNew) {
-            await addDoc(collection(db, "maps"), newMap);
-        } else {
-            await updateDoc(doc(db, "maps", map.id), newMap);
+    saveBtn.onclick = async () => {
+        const mapName = modal.querySelector('#map-name').value.trim();
+        if (!mapName) {
+            alert('⚠️ Map name is required!');
+            modal.querySelector('#map-name').focus();
+            return;
         }
-
-        saveBtn.innerHTML = '<i class="fas fa-check"></i> Saved!';
-        saveBtn.style.background = 'var(--success)';
-        setTimeout(() => {
-            modal.remove();
-            loadMaps(true);
-        }, 800);
-
-    } catch (err) {
-        console.error('Save failed:', err);
-        alert('❌ Save failed: ' + (err.message || 'Unknown error. Check your connection.'));
-        saveBtn.disabled = false;
-        saveBtn.innerHTML = 'Save';
-        saveBtn.style.background = '';
-    }
-};
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        try {
+            const colorPickers = modal.querySelectorAll('.tile-color-picker');
+            const tileColors = Array.from(colorPickers).map(p => p.value);
+            let pokemonMinRaw = modal.querySelector('#map-pokemon-min').value.trim();
+            let pokemonMaxRaw = modal.querySelector('#map-pokemon-max').value.trim();
+            let pokemonMin = pokemonMinRaw === '' ? 0 : parseInt(pokemonMinRaw);
+            let pokemonMax = pokemonMaxRaw === '' ? 0 : parseInt(pokemonMaxRaw);
+            if (isNaN(pokemonMin)) pokemonMin = 0;
+            if (isNaN(pokemonMax)) pokemonMax = 0;
+            const newMap = {
+                name: mapName,
+                description: modal.querySelector('#map-description').value.trim(),
+                generation: modal.querySelector('#map-generation').value.trim(),
+                requiredLevel: parseInt(modal.querySelector('#map-req-level').value) || 0,
+                catchRate: parseInt(modal.querySelector('#map-catch-rate').value) || 45,
+                autoCatchEnabled: document.getElementById('map-auto-catch-enabled').checked,
+                autoCatchThreshold: parseInt(document.getElementById('map-auto-catch-threshold').value) || 5,
+                requiredExpPercent: parseInt(modal.querySelector('#map-req-xp').value) || 10,
+                catchXpPenaltyPercent: parseInt(modal.querySelector('#map-catch-penalty').value) || 10,
+                shinyRate: parseInt(modal.querySelector('#map-shiny-rate').value) || 8192,
+                pokemonMin: pokemonMin,
+                pokemonMax: pokemonMax,
+                imageUrl: modal.querySelector('#map-image').value.trim(),
+                tileClasses: classInput.value.split(',').map(s => s.trim()),
+                tileColors: tileColors,
+                specialLevelRange: {
+                    enabled: modal.querySelector('#special-level-enabled').checked,
+                    min: parseInt(modal.querySelector('#special-level-min').value) || 1,
+                    max: parseInt(modal.querySelector('#special-level-max').value) || 100
+                },
+                specialPokemonList: specialIds,
+                xpMultiplier: parseFloat(modal.querySelector('#map-xp-multiplier').value) || 1.0,
+                coinMultiplier: parseFloat(modal.querySelector('#map-coin-multiplier').value) || 1.0,
+                requiredBadgesCount: parseInt(modal.querySelector('#map-req-badge-count').value) || 0,
+                requiredBadgeIds: modal.querySelector('#map-req-badge-ids').value.split(',').map(s => s.trim()).filter(s => s)
+            };
+            if (isNew) {
+                await addDoc(collection(db, "maps"), newMap);
+            } else {
+                await updateDoc(doc(db, "maps", map.id), newMap);
+            }
+            saveBtn.innerHTML = '<i class="fas fa-check"></i> Saved!';
+            saveBtn.style.background = 'var(--success)';
+            setTimeout(() => {
+                modal.remove();
+                loadMaps(true);
+            }, 800);
+        } catch (err) {
+            console.error('Save failed:', err);
+            alert('❌ Save failed: ' + (err.message || 'Unknown error. Check your connection.'));
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = 'Save';
+            saveBtn.style.background = '';
+        }
+    };
+    
     cancelBtn.onclick = () => modal.remove();
     
     const specialCheckbox = modal.querySelector('#special-level-enabled');
     const specialFields = modal.querySelector('#special-level-fields');
     specialCheckbox.onchange = () => specialFields.style.display = specialCheckbox.checked ? 'block' : 'none';
+document.body.appendChild(modal); 
+const initialSelected = mapData.requiredBadgeIds || [];
+await loadBadgeCheckboxes(initialSelected);
 }
-
-
-
 
 function escapeHtml(str) {
         return str.replace(/[&<>]/g, function(m) {
@@ -3730,22 +4124,54 @@ function escapeHtml(str) {
     }
 }
 
-
-   async function startGameWithMap(map) {
+async function startGameWithMap(map) {
     if (!activePokemonId) {
         alert("You need a starter Pokémon! Please go to the main game first.");
         window.location.href = 'index.html';
         return;
     }
+    
+    // Check user data
+    const userDoc = await getDoc(doc(db, "users", auth.currentUser.uid));
+    const userData = userDoc.data();
+    const userBadges = userData?.badges || [];
+    const userBadgeCount = userBadges.length;
+
+    // --- ENTRANCE VALIDATION ---
+    let accessDenied = false;
+
+    // 1. Check Total Count
+    if (map.requiredBadgesCount > 0 && userBadgeCount < map.requiredBadgesCount) {
+        accessDenied = true;
+    }
+
+    // 2. Check Specific Badge IDs (At least one must match)
+    if (map.requiredBadgeIds && map.requiredBadgeIds.length > 0) {
+        // Filter out empty IDs just in case
+        const validReqIds = map.requiredBadgeIds.filter(id => id && id.trim() !== "");
+        if (validReqIds.length > 0) {
+            const hasRequired = validReqIds.some(badgeId => userBadges.includes(badgeId));
+            if (!hasRequired) accessDenied = true;
+        }
+    }
+
+    // If denied, show the new Modal instead of alert
+    if (accessDenied) {
+        showBadgeRequirementModal(map);
+        return;
+    }
+    
+    // --- START THE MAP IF ACCESS GRANTED ---
     document.getElementById('current-map-name').innerText = map.name;
     currentMap = map;
     document.getElementById('map-selection-container').classList.add('hidden');
     document.getElementById('game-screen').classList.remove('hidden');
+    
     updateNavDisplay();
     await generateMapFromTheme(map);
     updatePlayerLabel();
     
-    // Restore saved position – try localStorage first, then Firebase as fallback
+    // Rest of your position loading logic...
     const savedLocal = localStorage.getItem('pokesim_last_position');
     if (savedLocal) {
         try {
@@ -3759,19 +4185,13 @@ function escapeHtml(str) {
             }
         } catch(e) {}
     }
-    // Fallback to Firebase (for cross‑device sync)
-    const userDoc = await getDoc(doc(db, "users", auth.currentUser.uid));
-    const data = userDoc.data();
-    if (data?.lastMapX !== undefined && data?.lastMapId === map.id) {
-        playerPos.x = Math.min(49, Math.max(0, data.lastMapX));
-        playerPos.y = Math.min(49, Math.max(0, data.lastMapY));
-        renderPlayer();
-    } else {
-        playerPos = { x: 25, y: 25 };
-        renderPlayer();
-    }
+    
+    playerPos = { x: 25, y: 25 };
+    renderPlayer();
     playMainMusic();
 }
+
+
 // ========== KEYBOARD CONTROLS ==========
 
 // Helper: simulate a click on a move button by its position (1-based)
@@ -3895,6 +4315,11 @@ window.addEventListener('keydown', (e) => {
         }
     });
 
+
+    // Listener for the search bar
+document.getElementById('map-search-input')?.addEventListener('input', (e) => {
+    renderMapCards(); // Re-render every time the user types
+});
     document.getElementById('add-map-btn').onclick = () => openMapEditModal();
     document.querySelector('.arrow-up')?.addEventListener('click', () => movePlayer(0, -1));
     document.querySelector('.arrow-down')?.addEventListener('click', () => movePlayer(0, 1));

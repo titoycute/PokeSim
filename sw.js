@@ -2,6 +2,7 @@ const CACHE_NAME = 'pokesim-v1.7.1';   // increment version
 const assets = [
   'index.html',
   'map.html',
+  'pokesim_offline.html',
   'manifest.json',
   'favicon.ico',
   'PokeSim_Pokemon.png',
@@ -11,6 +12,14 @@ const assets = [
   'music2.mp3',
   'music3.mp3',
   'music4.mp3'
+];
+
+const urlsToCache = [
+  './',
+  'poke.html',
+  'PokeSim Word.png',
+  'your-css.css',
+  'your-js.js'
 ];
 
 // Patterns for external sprite URLs that should be cached
@@ -71,9 +80,14 @@ self.addEventListener('fetch', e => {
           }
           return networkResponse;
         }).catch(() => {
-          // Fallback
-          return new Response('Sprite not available', { status: 404 });
-        });
+  return caches.match(request).then(response => {
+    // If file exists in cache → use it
+    if (response) return response;
+
+    // If not → show fallback page
+    return caches.match('pokesim_offline.html');
+  });
+});
       })
     );
     return;
@@ -102,7 +116,17 @@ self.addEventListener('fetch', e => {
   }
 
   // 3. For all other external requests (PokeAPI JSON, Firebase, etc.) – just fetch, no caching
-  e.respondWith(fetch(request));
+  e.respondWith(
+  caches.match(request).then(cached => {
+    return cached || fetch(request).then(res => {
+      if (res.status === 200) {
+        const clone = res.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
+      }
+      return res;
+    }).catch(() => cached);
+  })
+);
 });
 
 // Listen for version requests from the page

@@ -30,8 +30,92 @@
             --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
         }
 
+        /* ══ LOGIN SCREEN ══ */
+        #login-screen {
+            position: fixed; inset: 0; z-index: 9000;
+            background: linear-gradient(135deg, #00238f 0%, #1a3aa8 40%, #3b4cca 70%, #2c3e9e 100%);
+            display: flex; align-items: center; justify-content: center;
+            transition: opacity 0.4s;
+        }
+        #login-screen.hidden { opacity: 0; pointer-events: none; }
+        .login-bg-orbs {
+            position: absolute; inset: 0; overflow: hidden; pointer-events: none;
+        }
+        .login-bg-orbs span {
+            position: absolute; border-radius: 50%;
+            background: rgba(255,222,0,0.07); animation: orbFloat 8s ease-in-out infinite;
+        }
+        .login-bg-orbs span:nth-child(1) { width: 400px; height: 400px; top: -100px; right: -100px; animation-delay: 0s; }
+        .login-bg-orbs span:nth-child(2) { width: 250px; height: 250px; bottom: -80px; left: -60px; animation-delay: 3s; }
+        .login-bg-orbs span:nth-child(3) { width: 180px; height: 180px; top: 50%; left: 10%; animation-delay: 5s; }
+        @keyframes orbFloat {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-20px) scale(1.05); }
+        }
+        .login-card {
+            position: relative; background: white; border-radius: 28px;
+            padding: 44px 44px 36px; width: 420px; max-width: calc(100vw - 32px);
+            box-shadow: 0 32px 80px rgba(0,0,60,0.35), 0 0 0 1px rgba(255,255,255,0.1);
+            animation: loginCardIn 0.5s cubic-bezier(.22,1,.36,1);
+        }
+        @keyframes loginCardIn {
+            from { opacity: 0; transform: translateY(32px) scale(0.96); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .login-logo {
+            display: flex; align-items: center; gap: 12px; margin-bottom: 28px;
+        }
+        .login-logo-ball {
+            width: 52px; height: 52px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), #5a6eea);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.6rem; box-shadow: 0 4px 14px rgba(59,76,202,0.4);
+        }
+        .login-logo-text h1 { font-size: 1.4rem; font-weight: 900; color: var(--primary-dark); letter-spacing: -0.5px; }
+        .login-logo-text p { font-size: 0.75rem; color: var(--text-light); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+        .login-divider { height: 1px; background: var(--border); margin-bottom: 24px; }
+        .login-greeting { font-size: 1rem; font-weight: 700; color: var(--text-dark); margin-bottom: 4px; }
+        .login-subtext { font-size: 0.8rem; color: var(--text-light); margin-bottom: 24px; }
+        .login-field { margin-bottom: 16px; }
+        .login-field label { display: block; font-size: 0.72rem; font-weight: 700; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+        .login-field-wrap { position: relative; }
+        .login-field-wrap i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-light); font-size: 0.9rem; }
+        .login-input {
+            width: 100%; padding: 12px 14px 12px 40px;
+            border: 1.5px solid var(--border); border-radius: 12px;
+            font-size: 0.9rem; background: #f8fafc; color: var(--text-dark);
+            transition: 0.2s; outline: none;
+        }
+        .login-input:focus { border-color: var(--primary); background: white; box-shadow: 0 0 0 3px rgba(59,76,202,0.1); }
+        .login-input.error { border-color: var(--danger); background: #fff5f5; }
+        .login-pw-toggle {
+            position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+            background: none; border: none; cursor: pointer; color: var(--text-light);
+            font-size: 0.9rem; padding: 4px; transition: 0.15s;
+        }
+        .login-pw-toggle:hover { color: var(--primary); }
+        .login-error {
+            background: #fff5f5; border: 1px solid #fed7d7; color: var(--danger);
+            border-radius: 10px; padding: 10px 14px; font-size: 0.82rem; font-weight: 600;
+            margin-bottom: 16px; display: none; align-items: center; gap: 8px;
+        }
+        .login-error.show { display: flex; }
+        .login-btn {
+            width: 100%; padding: 13px; border: none; border-radius: 12px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white; font-size: 0.95rem; font-weight: 700; cursor: pointer;
+            transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
+            box-shadow: 0 4px 14px rgba(59,76,202,0.35);
+        }
+        .login-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(59,76,202,0.45); }
+        .login-btn:active { transform: translateY(0); }
+        .login-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .login-footer { text-align: center; margin-top: 18px; font-size: 0.75rem; color: var(--text-light); }
+        .login-footer a { color: var(--primary); font-weight: 600; text-decoration: none; }
+
         /* ── LAYOUT ── */
         body { background: var(--bg); color: var(--text-dark); min-height: 100vh; display: flex; }
+        #admin-app { display: flex; width: 100%; }
 
         /* ── SIDEBAR ── */
         #sidebar {
@@ -53,6 +137,7 @@
             display: flex; align-items: center; gap: 12px; padding: 10px 16px; cursor: pointer;
             color: rgba(255,255,255,0.7); font-size: 0.85rem; font-weight: 500;
             border-radius: 10px; margin: 2px 8px; transition: all 0.15s; white-space: nowrap; border: none; background: none; width: calc(100% - 16px); text-align: left;
+            text-decoration: none;
         }
         .nav-item i { width: 18px; text-align: center; flex-shrink: 0; font-size: 0.95rem; }
         .nav-item:hover { background: var(--sidebar-hover); color: white; }
@@ -70,7 +155,7 @@
         .toggle-sidebar-btn:hover { background: rgba(255,255,255,0.15); color: white; }
 
         /* ── MAIN CONTENT ── */
-        #main { margin-left: 240px; min-height: 100vh; transition: margin-left 0.2s; }
+        #main { margin-left: 240px; min-height: 100vh; transition: margin-left 0.2s; width: 100%; }
         #sidebar.collapsed ~ #main { margin-left: 60px; }
 
         /* ── TOP BAR ── */
@@ -116,6 +201,23 @@
         .filter-tab.danger-tab.active { background: var(--danger); border-color: var(--danger); }
         .filter-tab .tab-count { background: rgba(255,255,255,0.3); border-radius: 20px; padding: 1px 7px; font-size: 0.7rem; margin-left: 4px; }
         .filter-tab:not(.active) .tab-count { background: #e2e8f0; color: var(--text-light); }
+
+        /* ── LIVE INDICATOR ── */
+        .live-dot {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 0.72rem; font-weight: 700; color: var(--success);
+            background: #f0fff4; border: 1px solid #c6f6d5;
+            border-radius: 20px; padding: 3px 10px;
+        }
+        .live-dot::before {
+            content: ''; width: 7px; height: 7px; border-radius: 50%;
+            background: var(--success); display: inline-block;
+            animation: livepulse 1.4s ease-in-out infinite;
+        }
+        @keyframes livepulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.7); }
+        }
 
         /* ── SEARCH BAR ── */
         .search-wrap { position: relative; margin-bottom: 14px; }
@@ -287,6 +389,18 @@
         .tile-colors-preview { display: flex; gap: 6px; margin-top: 6px; }
         .tile-color-dot { width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--border); }
 
+        /* ── SYNC STATUS BOX ── */
+        .sync-info-box {
+            background: #f8fafc; border: 1px solid var(--border); border-radius: 14px;
+            padding: 16px 18px; margin-bottom: 16px;
+        }
+        .sync-info-box .sync-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .sync-badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; }
+        .sync-badge.ok { background: #f0fff4; color: #276749; border: 1px solid #c6f6d5; }
+        .sync-badge.warn { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+        .sync-badge.err { background: #fff5f5; color: #c53030; border: 1px solid #fed7d7; }
+        #sync-status-text { font-size: 0.8rem; color: var(--text-light); margin-top: 6px; }
+
         /* ── ANIMATED SPRITE ── */
         #animated-sprite-modal .modal { max-width: 420px; }
 
@@ -331,6 +445,57 @@
 </head>
 <body>
 
+<!-- ════════════════════ LOGIN SCREEN ════════════════════ -->
+<div id="login-screen">
+    <div class="login-bg-orbs"><span></span><span></span><span></span></div>
+    <div class="login-card">
+        <div class="login-logo">
+            <div class="login-logo-ball">👑</div>
+            <div class="login-logo-text">
+                <h1>PokéSim</h1>
+                <p>Admin Panel</p>
+            </div>
+        </div>
+        <div class="login-divider"></div>
+        <div class="login-greeting">Welcome back, Admin</div>
+        <div class="login-subtext">Sign in to access the control panel.</div>
+
+        <div id="login-error" class="login-error">
+            <i class="fas fa-exclamation-circle"></i>
+            <span id="login-error-msg">Invalid email or password.</span>
+        </div>
+
+        <div class="login-field">
+            <label>Email Address</label>
+            <div class="login-field-wrap">
+                <i class="fas fa-envelope"></i>
+                <input type="email" id="login-email" class="login-input" placeholder="admin@pokesim.com" autocomplete="username">
+            </div>
+        </div>
+        <div class="login-field">
+            <label>Password</label>
+            <div class="login-field-wrap">
+                <i class="fas fa-lock"></i>
+                <input type="password" id="login-password" class="login-input" placeholder="••••••••" autocomplete="current-password">
+                <button type="button" class="login-pw-toggle" id="pw-toggle-btn" onclick="togglePasswordVisibility()">
+                    <i class="fas fa-eye" id="pw-toggle-icon"></i>
+                </button>
+            </div>
+        </div>
+
+        <button class="login-btn" id="login-btn" onclick="doLogin()">
+            <i class="fas fa-sign-in-alt"></i> Sign In
+        </button>
+        <div class="login-footer">
+            Access restricted to admins only.<br>
+            <a href="index.html">← Back to Game</a>
+        </div>
+    </div>
+</div>
+
+<!-- ════════════════════ ADMIN APP ════════════════════ -->
+<div id="admin-app" style="display:none; width:100%;">
+
 <!-- ════════════════════ SIDEBAR ════════════════════ -->
 <aside id="sidebar">
     <div class="sidebar-logo">
@@ -351,6 +516,7 @@
 
     <div class="nav-section">Content</div>
     <button class="nav-item" data-section="maps"><i class="fas fa-map-marked-alt"></i><span>Map Management</span></button>
+    <button class="nav-item" data-section="pokemon-search"><i class="fas fa-search"></i><span>Pokémon Search</span></button>
 
     <div class="nav-section">Links</div>
     <a href="index.html" class="nav-item"><i class="fas fa-gamepad"></i><span>Back to Game</span></a>
@@ -370,6 +536,7 @@
     <div id="topbar">
         <div class="topbar-title" id="topbar-title">Dashboard</div>
         <div class="topbar-right">
+            <span class="live-dot" id="live-indicator" style="display:none;">LIVE</span>
             <div id="admin-name-display" style="font-size:0.82rem;color:var(--text-light);">Loading...</div>
             <div class="admin-avatar" id="admin-avatar">A</div>
             <button class="btn btn-outline btn-sm" id="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</button>
@@ -390,7 +557,6 @@
             <div class="stat-card"><div class="stat-icon blue">⚔️</div><div><div class="stat-value" id="stat-encounters">—</div><div class="stat-label">Total Encounters</div></div></div>
             <div class="stat-card"><div class="stat-icon green">🗺️</div><div><div class="stat-value" id="stat-maps">—</div><div class="stat-label">Active Maps</div></div></div>
         </div>
-        <!-- Inactive alert on dashboard -->
         <div id="dash-inactive-alert" class="inactive-alert hidden">
             <i class="fas fa-exclamation-triangle"></i>
             <span>There are <strong id="dash-inactive-count">0</strong> inactive users waiting for activation. <button class="btn btn-sm btn-danger" style="margin-left:8px;" onclick="switchSection('users-inactive')">View Inactive →</button></span>
@@ -466,7 +632,48 @@
         </div>
         <div id="maps-grid" class="map-grid-admin"><div class="page-loader"><div class="loading-spinner"></div>Loading maps...</div></div>
     </section>
-</div>
+
+    <!-- ══ POKÉMON SEARCH ══ -->
+    <section class="page-section" id="section-pokemon-search">
+        <div class="section-header">
+            <h2><i class="fas fa-search"></i> Pokémon Search (Global Index)</h2>
+            <p>Search across all trainers using the <strong>all_pokemon</strong> Firestore collection. Sync to build or refresh the index.</p>
+        </div>
+
+        <!-- Sync Status Box -->
+        <div class="sync-info-box">
+            <div class="sync-row">
+                <span id="sync-badge" class="sync-badge warn"><i class="fas fa-database"></i> Checking index…</span>
+                <button id="sync-all-pokemon-btn" class="btn btn-warning"><i class="fas fa-upload"></i> Sync All Pokémon → all_pokemon</button>
+                <button id="auto-sync-toggle-btn" class="btn btn-outline btn-sm" style="margin-left:auto;">
+                    <i class="fas fa-magic"></i> <span id="auto-sync-label">Enable Auto-Sync</span>
+                </button>
+            </div>
+            <div id="sync-status-text">Loading sync status…</div>
+        </div>
+
+        <div class="table-card" style="padding:20px;">
+            <div style="display:flex; gap:10px; align-items:center; margin-bottom:14px; flex-wrap:wrap;">
+                <div style="position:relative;flex:2;min-width:180px;">
+                    <i class="fas fa-search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-light);"></i>
+                    <input type="text" id="search-species" placeholder="Pokémon name or ID (e.g. pikachu or 25)" style="width:100%;padding:10px 14px 10px 36px;border:1px solid var(--border);border-radius:40px;font-size:0.9rem;background:#f8fafc;">
+                </div>
+                <button id="search-pokemon-btn" class="btn btn-primary btn-lg"><i class="fas fa-search"></i> Search</button>
+            </div>
+            <div style="display:flex; gap:14px; flex-wrap:wrap; margin-bottom:18px; padding:12px 14px; background:#f8fafc; border-radius:12px; border:1px solid var(--border);">
+                <span style="font-size:0.75rem; font-weight:700; color:var(--text-light); text-transform:uppercase; letter-spacing:0.5px; align-self:center;">Filters:</span>
+                <label class="checkbox-label"><input type="checkbox" id="search-shiny-only"> ✨ Shiny only</label>
+                <label class="checkbox-label"><input type="checkbox" id="search-atk-only"> ⚔️ +ATK</label>
+                <label class="checkbox-label"><input type="checkbox" id="search-def-only"> 🛡️ +DEF</label>
+                <label class="checkbox-label"><input type="checkbox" id="search-spd-only"> 🏃 +SPD</label>
+            </div>
+            <div id="pokemon-search-results">
+                <div class="empty-state"><i class="fas fa-database"></i><p>Click <strong>Sync All Pokémon</strong> first to build the index, then search.</p></div>
+            </div>
+        </div>
+    </section>
+</div><!-- end #main -->
+</div><!-- end #admin-app -->
 
 <!-- ════ MANAGE USER MODAL ════ -->
 <div id="manage-user-modal" class="overlay hidden" onclick="if(event.target===this)this.classList.add('hidden')">
@@ -554,18 +761,92 @@
     </div>
 </div>
 
+<!-- ════ DELETE PLAYER CONFIRM MODAL ════ -->
+<div id="delete-player-modal" class="overlay hidden" onclick="if(event.target===this)this.classList.add('hidden')">
+    <div class="modal" style="max-width:460px;" onclick="event.stopPropagation()">
+        <div class="modal-header" style="border-bottom:2px solid var(--danger);">
+            <h2 style="color:var(--danger);"><i class="fas fa-skull"></i> Delete Player Account</h2>
+            <button class="close-btn" onclick="document.getElementById('delete-player-modal').classList.add('hidden')"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <div style="background:#fff5f5;border:1px solid #fed7d7;border-radius:12px;padding:16px;margin-bottom:16px;">
+                <p style="font-weight:700;color:var(--danger);margin-bottom:8px;font-size:0.95rem;">⚠️ This action is irreversible!</p>
+                <p style="font-size:0.84rem;color:var(--text-dark);line-height:1.6;">This will permanently delete <strong id="delete-player-name" style="color:var(--danger);"></strong>'s Firestore data including their trainer profile, all Pokémon, and their entry in the search index.<br><br>
+                <span style="color:var(--text-light);font-size:0.78rem;">Note: Firebase Auth account deletion requires the Admin SDK. The player will no longer be able to log in once their data is removed.</span></p>
+            </div>
+            <div class="form-group">
+                <label>Type the trainer name to confirm:</label>
+                <input type="text" id="delete-confirm-input" placeholder="Enter trainer name exactly…" style="border-color:var(--danger);">
+            </div>
+            <p id="delete-confirm-error" style="color:var(--danger);font-size:0.8rem;display:none;">❌ Name doesn't match. Please type it exactly.</p>
+        </div>
+        <div class="modal-footer" style="background:#fff5f5;">
+            <button id="confirm-delete-player-btn" class="btn btn-danger btn-lg" style="gap:8px;"><i class="fas fa-trash-alt"></i> Delete Permanently</button>
+            <button class="btn btn-outline" onclick="document.getElementById('delete-player-modal').classList.add('hidden')">Cancel</button>
+        </div>
+    </div>
+</div>
+
 <!-- TOAST -->
 <div id="toast"></div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, getDocs, collection, updateDoc, deleteDoc, addDoc, setDoc, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, getDocs, collection, updateDoc, deleteDoc, addDoc, setDoc, query, where, limit, onSnapshot, writeBatch, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const FB = { apiKey:"AIzaSyDkCE0wBrsQ1s-7zplvTtWOSE28ISaCFfQ", authDomain:"pokesim-7f9b7.firebaseapp.com", projectId:"pokesim-7f9b7", storageBucket:"pokesim-7f9b7.firebasestorage.app", messagingSenderId:"1087100425430", appId:"1:1087100425430:web:9558a79ee5330d4a792577" };
 const app  = initializeApp(FB);
 const auth = getAuth(app);
 const db   = getFirestore(app);
+
+// ══ LOGIN HELPERS ══
+window.togglePasswordVisibility = function() {
+    const inp = document.getElementById('login-password');
+    const ic  = document.getElementById('pw-toggle-icon');
+    if (inp.type === 'password') { inp.type = 'text'; ic.className = 'fas fa-eye-slash'; }
+    else { inp.type = 'password'; ic.className = 'fas fa-eye'; }
+};
+
+function setLoginError(msg) {
+    const box = document.getElementById('login-error');
+    document.getElementById('login-error-msg').textContent = msg;
+    box.classList.add('show');
+    document.getElementById('login-email').classList.add('error');
+    document.getElementById('login-password').classList.add('error');
+}
+function clearLoginError() {
+    document.getElementById('login-error').classList.remove('show');
+    document.getElementById('login-email').classList.remove('error');
+    document.getElementById('login-password').classList.remove('error');
+}
+
+window.doLogin = async function() {
+    clearLoginError();
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    const btn = document.getElementById('login-btn');
+    if (!email || !password) { setLoginError('Please enter your email and password.'); return; }
+    btn.disabled = true;
+    btn.innerHTML = '<div class="loading-spinner" style="border-top-color:white;border-color:rgba(255,255,255,0.3);"></div> Signing in…';
+    try {
+        await signInWithEmailAndPassword(auth, email, password);
+        // onAuthStateChanged will handle the rest
+    } catch(err) {
+        let msg = 'Login failed. Please try again.';
+        if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') msg = 'Incorrect email or password.';
+        else if (err.code === 'auth/too-many-requests') msg = 'Too many attempts. Please wait a moment.';
+        else if (err.code === 'auth/invalid-email') msg = 'Please enter a valid email address.';
+        setLoginError(msg);
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In';
+    }
+};
+
+// Allow Enter key on login inputs
+['login-email','login-password'].forEach(id => {
+    document.getElementById(id).addEventListener('keypress', e => { if (e.key === 'Enter') window.doLogin(); });
+});
 
 // ══ TOAST ══
 let toastTimer;
@@ -581,7 +862,7 @@ function typeColor(t) {
     const c = {normal:'#A8A77A',fire:'#EE8130',water:'#6390F0',electric:'#F7D02C',grass:'#7AC74C',ice:'#96D9D6',fighting:'#C22E28',poison:'#A33EA1',ground:'#E2BF65',flying:'#A98FF3',psychic:'#F95587',bug:'#A6B91A',rock:'#B6A136',ghost:'#735797',dragon:'#6F35FC',dark:'#705746',steel:'#B7B7CE',fairy:'#D685AD'};
     return c[t] || '#777';
 }
-function typeBadges(types) { return types.map(t=>`<span class="badge badge-type" style="background:${typeColor(t)}">${t.toUpperCase()}</span>`).join(''); }
+function typeBadges(types) { return (types||[]).map(t=>`<span class="badge badge-type" style="background:${typeColor(t)}">${t.toUpperCase()}</span>`).join(''); }
 
 // ══ SPRITE HELPERS ══
 function spriteUrl(id) { return [`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`,`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`]; }
@@ -598,9 +879,10 @@ function switchSection(id) {
     if (sec) sec.classList.add('active');
     const btn = document.querySelector(`.nav-item[data-section="${id}"]`);
     if (btn) btn.classList.add('active');
-    const titles = {dashboard:'Dashboard','users-active':'Active Users','users-inactive':'Inactive Users','users-all':'All Users',maps:'Map Management'};
+    const titles = {dashboard:'Dashboard','users-active':'Active Users','users-inactive':'Inactive Users','users-all':'All Users',maps:'Map Management','pokemon-search':'Pokémon Search'};
     document.getElementById('topbar-title').textContent = titles[id] || id;
     window._activeSection = id;
+    if (id === 'pokemon-search') refreshSyncStatus();
 }
 document.querySelectorAll('.nav-item[data-section]').forEach(btn => {
     btn.addEventListener('click', () => switchSection(btn.dataset.section));
@@ -613,6 +895,361 @@ document.getElementById('toggle-sidebar-btn').addEventListener('click', () => {
     sb.classList.toggle('collapsed');
     const ic = document.getElementById('sidebar-toggle-icon');
     ic.className = sb.classList.contains('collapsed') ? 'fas fa-chevron-right' : 'fas fa-chevron-left';
+});
+
+// ══════════════════════════════════════════════
+// ALL_POKEMON SYNC ENGINE
+// ══════════════════════════════════════════════
+
+let autoSyncEnabled = false;
+const AUTO_SYNC_KEY = 'pokesim_autosync_enabled';
+
+// Load auto-sync preference
+try { autoSyncEnabled = localStorage.getItem(AUTO_SYNC_KEY) === 'true'; } catch {}
+updateAutoSyncBtn();
+
+function updateAutoSyncBtn() {
+    const btn = document.getElementById('auto-sync-toggle-btn');
+    const label = document.getElementById('auto-sync-label');
+    if (!btn) return;
+    if (autoSyncEnabled) {
+        btn.className = 'btn btn-success btn-sm';
+        label.textContent = 'Auto-Sync ON';
+        btn.innerHTML = '<i class="fas fa-magic"></i> <span>Auto-Sync ON</span>';
+    } else {
+        btn.className = 'btn btn-outline btn-sm';
+        btn.innerHTML = '<i class="fas fa-magic"></i> <span>Enable Auto-Sync</span>';
+    }
+}
+
+document.getElementById('auto-sync-toggle-btn').addEventListener('click', () => {
+    autoSyncEnabled = !autoSyncEnabled;
+    try { localStorage.setItem(AUTO_SYNC_KEY, autoSyncEnabled); } catch {}
+    updateAutoSyncBtn();
+    showToast(autoSyncEnabled ? '🔄 Auto-sync enabled — Pokémon will sync automatically.' : '⏹ Auto-sync disabled.', autoSyncEnabled ? 'success' : 'warning');
+});
+
+// Check and display sync status
+async function refreshSyncStatus() {
+    const badge = document.getElementById('sync-badge');
+    const statusText = document.getElementById('sync-status-text');
+    try {
+        const metaSnap = await getDoc(doc(db, 'admin_meta', 'pokemon_search_sync'));
+        if (metaSnap.exists()) {
+            const data = metaSnap.data();
+            const lastSynced = data.lastSynced?.toDate();
+            const totalCount = data.totalCount || 0;
+            const trainerCount = data.trainerCount || 0;
+            if (lastSynced) {
+                const mins = Math.floor((Date.now() - lastSynced.getTime()) / 60000);
+                const timeStr = mins < 1 ? 'just now' : mins < 60 ? `${mins}m ago` : `${Math.floor(mins/60)}h ${mins%60}m ago`;
+                badge.className = 'sync-badge ok';
+                badge.innerHTML = `<i class="fas fa-check-circle"></i> Index Ready`;
+                statusText.innerHTML = `✅ <strong>${totalCount.toLocaleString()} Pokémon</strong> indexed from <strong>${trainerCount} trainers</strong> — Last synced: <strong>${lastSynced.toLocaleString()}</strong> (${timeStr})`;
+            } else {
+                badge.className = 'sync-badge warn';
+                badge.innerHTML = `<i class="fas fa-exclamation-triangle"></i> No Sync Yet`;
+                statusText.innerHTML = `⚠️ No sync data found. Click <strong>Sync All Pokémon</strong> to build the index.`;
+            }
+        } else {
+            badge.className = 'sync-badge err';
+            badge.innerHTML = `<i class="fas fa-times-circle"></i> Not Synced`;
+            statusText.innerHTML = `❌ The <code>all_pokemon</code> collection does not exist yet. Click <strong>Sync All Pokémon</strong> to create it.`;
+        }
+    } catch(e) {
+        badge.className = 'sync-badge err';
+        badge.innerHTML = `<i class="fas fa-times-circle"></i> Error`;
+        statusText.innerHTML = `❌ Could not check sync status: ${e.message}`;
+    }
+}
+
+// ── CORE SYNC: Write all trainers' Pokémon to all_pokemon collection ──
+async function syncAllPokemonToGlobalCollection() {
+    const btn = document.getElementById('sync-all-pokemon-btn');
+    const badge = document.getElementById('sync-badge');
+    const statusText = document.getElementById('sync-status-text');
+    btn.disabled = true;
+    btn.innerHTML = '<div class="loading-spinner" style="border-top-color:white;border-color:rgba(255,255,255,0.3);"></div> Syncing…';
+
+    // Wait for allUsers to be populated
+    let attempts = 0;
+    while (allUsers.length === 0 && attempts < 50) {
+        await new Promise(r => setTimeout(r, 100));
+        attempts++;
+    }
+    if (allUsers.length === 0) {
+        statusText.innerHTML = '❌ Could not load users. Please refresh and try again.';
+        btn.disabled = false; btn.innerHTML = '<i class="fas fa-upload"></i> Sync All Pokémon → all_pokemon';
+        return;
+    }
+
+    badge.className = 'sync-badge warn';
+    badge.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing…';
+
+    let totalWritten = 0;
+    let batchOps = writeBatch(db);
+    let batchCount = 0;
+    const MAX_BATCH = 499;
+
+    async function commitIfNeeded(force = false) {
+        if (batchCount === 0) return;
+        if (force || batchCount >= MAX_BATCH) {
+            await batchOps.commit();
+            batchOps = writeBatch(db);
+            batchCount = 0;
+        }
+    }
+
+    const usersProcessed = [];
+
+    for (const user of allUsers) {
+        statusText.innerHTML = `🔄 Syncing trainer <strong>${escHtml(user.name)}</strong>… (${totalWritten} written so far)`;
+        try {
+            const pokemonSnap = await getDocs(collection(db, 'users', user.uid, 'pokemon'));
+            for (const docSnap of pokemonSnap.docs) {
+                const p = docSnap.data();
+                const docRef = doc(db, 'all_pokemon', `${user.uid}_${docSnap.id}`);
+                batchOps.set(docRef, {
+                    ownerId:       user.uid,
+                    ownerName:     user.name,
+                    ownerEmail:    user.email,
+                    pokemonId:     p.pokemonId,
+                    name:          (p.name || '').toLowerCase(),   // store lowercase for name search
+                    nameDisplay:   p.name || '',
+                    level:         p.level || 1,
+                    isShiny:       p.isShiny || false,
+                    bonusStats:    p.bonusStats || { atk: false, def: false, spd: false },
+                    inTeam:        p.inTeam || false,
+                    capturedAt:    p.capturedAt || null,
+                    capturedBy:    p.capturedBy || null,
+                    capturedOnMap: p.capturedOnMap || null,
+                    originalDocId: docSnap.id,
+                    syncedAt:      new Date()
+                });
+                batchCount++;
+                totalWritten++;
+                await commitIfNeeded();
+            }
+            usersProcessed.push(user.uid);
+        } catch(err) {
+            console.warn(`Failed to process user ${user.uid}:`, err);
+        }
+    }
+
+    await commitIfNeeded(true);
+
+    // Store sync metadata
+    await setDoc(doc(db, 'admin_meta', 'pokemon_search_sync'), {
+        lastSynced:    new Date(),
+        totalCount:    totalWritten,
+        trainerCount:  usersProcessed.length
+    });
+
+    badge.className = 'sync-badge ok';
+    badge.innerHTML = `<i class="fas fa-check-circle"></i> Index Ready`;
+    statusText.innerHTML = `✅ Sync complete! <strong>${totalWritten.toLocaleString()} Pokémon</strong> from <strong>${usersProcessed.length} trainers</strong> written to <code>all_pokemon</code>.`;
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-upload"></i> Sync All Pokémon → all_pokemon';
+    showToast(`✅ Synced ${totalWritten} Pokémon!`, 'success');
+}
+
+// ── PARTIAL SYNC: Sync a single trainer's Pokémon (used after add/edit/delete) ──
+async function syncTrainerPokemon(uid, userName, userEmail) {
+    if (!autoSyncEnabled) return; // only run if auto-sync is on
+    try {
+        const pokemonSnap = await getDocs(collection(db, 'users', uid, 'pokemon'));
+        const batchOp = writeBatch(db);
+        let count = 0;
+        for (const docSnap of pokemonSnap.docs) {
+            const p = docSnap.data();
+            batchOp.set(doc(db, 'all_pokemon', `${uid}_${docSnap.id}`), {
+                ownerId:       uid,
+                ownerName:     userName,
+                ownerEmail:    userEmail,
+                pokemonId:     p.pokemonId,
+                name:          (p.name || '').toLowerCase(),
+                nameDisplay:   p.name || '',
+                level:         p.level || 1,
+                isShiny:       p.isShiny || false,
+                bonusStats:    p.bonusStats || { atk: false, def: false, spd: false },
+                inTeam:        p.inTeam || false,
+                capturedAt:    p.capturedAt || null,
+                capturedBy:    p.capturedBy || null,
+                capturedOnMap: p.capturedOnMap || null,
+                originalDocId: docSnap.id,
+                syncedAt:      new Date()
+            }, { merge: true });
+            count++;
+        }
+        await batchOp.commit();
+        console.log(`[AutoSync] Synced ${count} Pokémon for trainer ${userName}`);
+    } catch(e) {
+        console.warn('[AutoSync] Failed partial sync:', e);
+    }
+}
+
+// ── SEARCH: Query all_pokemon collection ──
+async function searchPokemonGlobal(speciesQuery, shinyOnly, atkOnly, defOnly, spdOnly) {
+    const resultsDiv = document.getElementById('pokemon-search-results');
+    resultsDiv.innerHTML = '<div class="page-loader"><div class="loading-spinner"></div>Searching all_pokemon index…</div>';
+
+    const constraints = [];
+    const q = speciesQuery.trim().toLowerCase();
+
+    // Species filter
+    if (q !== '') {
+        const asNum = parseInt(q);
+        if (!isNaN(asNum) && asNum > 0) {
+            constraints.push(where('pokemonId', '==', asNum));
+        } else {
+            // Firestore range query on `name` (stored lowercase)
+            constraints.push(where('name', '>=', q), where('name', '<=', q + '\uf8ff'));
+        }
+    }
+
+    // Boolean filters
+    if (shinyOnly) constraints.push(where('isShiny', '==', true));
+    if (atkOnly)   constraints.push(where('bonusStats.atk', '==', true));
+    if (defOnly)   constraints.push(where('bonusStats.def', '==', true));
+    if (spdOnly)   constraints.push(where('bonusStats.spd', '==', true));
+
+    try {
+        const q2 = query(collection(db, 'all_pokemon'), ...constraints, limit(500));
+        const snap = await getDocs(q2);
+
+        if (snap.empty) {
+            // If no constraints and empty → index probably not built
+            if (constraints.length === 0) {
+                resultsDiv.innerHTML = '<div class="empty-state"><i class="fas fa-database"></i><p>The <strong>all_pokemon</strong> index is empty. Click <strong>Sync All Pokémon</strong> to build it.</p></div>';
+            } else {
+                resultsDiv.innerHTML = '<div class="empty-state"><i class="fas fa-paw"></i><p>No Pokémon found matching your search.</p></div>';
+            }
+            return;
+        }
+
+        const results = [];
+        snap.forEach(d => results.push(d.data()));
+        // Sort: shiny first, then by level desc
+        results.sort((a, b) => (b.isShiny - a.isShiny) || (b.level - a.level));
+        renderPokemonSearchResults(results);
+    } catch(err) {
+        // Common error: missing composite index
+        if (err.code === 'failed-precondition' || err.message?.includes('index')) {
+            resultsDiv.innerHTML = `<div class="inactive-alert"><i class="fas fa-exclamation-triangle"></i><span>Firestore index required for this filter combination. <a href="${err.message.match(/https:\/\/[^\s]+/)?.[0] || '#'}" target="_blank" style="color:var(--primary);font-weight:700;">Create index →</a></span></div>`;
+        } else {
+            resultsDiv.innerHTML = `<div class="empty-state"><i class="fas fa-times-circle" style="color:var(--danger);"></i><p>Search error: ${escHtml(err.message)}</p></div>`;
+        }
+        console.error('Search error:', err);
+    }
+}
+
+function renderPokemonSearchResults(results) {
+    const resultsDiv = document.getElementById('pokemon-search-results');
+    let html = `
+        <p style="font-size:0.78rem;color:var(--text-light);margin-bottom:10px;">
+            Found <strong>${results.length}</strong> result(s)
+        </p>
+        <div style="overflow-x:auto;">
+        <table class="ranking-table" style="width:100%;">
+            <thead><tr>
+                <th>Owner</th><th>Pokémon</th><th>Level</th><th>Bonus Stats</th><th>Shiny</th><th>Location</th><th>Origin</th><th>Actions</th>
+            </tr></thead><tbody>`;
+    for (const r of results) {
+        const bonusIcons = [
+            r.bonusStats?.atk ? '<span class="badge" style="background:#fff1f2;color:#c0392b;border:1px solid #fca5a5;">⚔️ ATK</span>' : '',
+            r.bonusStats?.def ? '<span class="badge" style="background:#eef2ff;color:#3730a3;border:1px solid #a5b4fc;">🛡️ DEF</span>' : '',
+            r.bonusStats?.spd ? '<span class="badge" style="background:#f0fdf4;color:#166534;border:1px solid #86efac;">🏃 SPD</span>' : ''
+        ].filter(Boolean).join(' ');
+        const caughtDate = r.capturedAt ? new Date(r.capturedAt.seconds ? r.capturedAt.seconds*1000 : r.capturedAt).toLocaleDateString() : '—';
+        const displayName = r.nameDisplay || r.name || '';
+        const safeOwnerId = escHtml(r.ownerId||'');
+        const safeOrigId  = escHtml(r.originalDocId||'');
+        html += `
+            <tr>
+                <td>
+                    <div class="trainer-cell">
+                        <div class="trainer-avatar">${(r.ownerName||'?').charAt(0).toUpperCase()}</div>
+                        <div>
+                            <strong>${escHtml(r.ownerName||'Unknown')}</strong><br>
+                            <small style="color:var(--text-light);">${escHtml(r.ownerEmail||'')}</small>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${r.pokemonId}.png"
+                             style="width:36px;height:36px;object-fit:contain;image-rendering:pixelated;" onerror="this.style.display='none'">
+                        <div>
+                            <strong>${escHtml(displayName.toUpperCase())}</strong>
+                            <span style="color:var(--text-light);"> #${r.pokemonId}</span>
+                            ${r.isShiny ? '<span class="badge" style="background:#ecc94b;color:#744210;">✨ SHINY</span>' : ''}
+                        </div>
+                    </div>
+                </td>
+                <td><strong>Lv.${r.level}</strong></td>
+                <td>${bonusIcons || '<span style="color:var(--text-light);">—</span>'}</td>
+                <td>${r.isShiny ? '✨ Yes' : '<span style="color:var(--text-light);">No</span>'}</td>
+                <td>${r.inTeam ? '⚔️ Team' : '📦 Box'}</td>
+                <td style="font-size:0.8rem;">
+                    <div>👤 ${escHtml(r.capturedBy||'—')}</div>
+                    <div>📍 ${escHtml(r.capturedOnMap||'—')}</div>
+                    <div style="color:var(--text-light);">📅 ${caughtDate}</div>
+                </td>
+                <td>
+                    <div class="btn-group" style="flex-direction:column;gap:4px;">
+                        <button class="btn btn-sm btn-outline search-edit-poke"
+                            data-uid="${safeOwnerId}" data-pid="${safeOrigId}"
+                            style="white-space:nowrap;">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        <button class="btn btn-sm btn-danger search-del-poke"
+                            data-uid="${safeOwnerId}" data-pid="${safeOrigId}" data-name="${escHtml(displayName)}"
+                            style="white-space:nowrap;">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                </td>
+            </tr>`;
+    }
+    html += `</tbody></table></div>`;
+    resultsDiv.innerHTML = html;
+
+    // Wire edit buttons
+    resultsDiv.querySelectorAll('.search-edit-poke').forEach(btn => {
+        btn.onclick = () => openEditPokemonModal(btn.dataset.pid, btn.dataset.uid);
+    });
+    // Wire delete buttons
+    resultsDiv.querySelectorAll('.search-del-poke').forEach(btn => {
+        btn.onclick = async () => {
+            const name = btn.dataset.name.toUpperCase();
+            if (!confirm('Delete ' + name + ' from this trainer? This cannot be undone.')) return;
+            btn.disabled = true; btn.innerHTML = '<div class="loading-spinner"></div>';
+            try {
+                await deleteDoc(doc(db, 'users', btn.dataset.uid, 'pokemon', btn.dataset.pid));
+                try { await deleteDoc(doc(db, 'all_pokemon', btn.dataset.uid + '_' + btn.dataset.pid)); } catch {}
+                showToast(name + ' deleted from trainer.', 'warning');
+                // Re-run the last search to refresh results
+                document.getElementById('search-pokemon-btn').click();
+            } catch(e) {
+                showToast('Delete failed: ' + e.message, 'error');
+                btn.disabled = false; btn.innerHTML = '<i class="fas fa-trash"></i> Delete';
+            }
+        };
+    });
+}
+
+// Search button events
+document.getElementById('sync-all-pokemon-btn').addEventListener('click', syncAllPokemonToGlobalCollection);
+document.getElementById('search-pokemon-btn').addEventListener('click', () => {
+    const species = document.getElementById('search-species').value.trim();
+    const shiny   = document.getElementById('search-shiny-only').checked;
+    const atk     = document.getElementById('search-atk-only').checked;
+    const def     = document.getElementById('search-def-only').checked;
+    const spd     = document.getElementById('search-spd-only').checked;
+    searchPokemonGlobal(species, shiny, atk, def, spd);
+});
+document.getElementById('search-species').addEventListener('keypress', e => {
+    if (e.key === 'Enter') document.getElementById('search-pokemon-btn').click();
 });
 
 // ══ MOVE DATABASE ══
@@ -644,50 +1281,68 @@ async function loadAllPokemon() {
     try {
         const res = await fetch('https://pokeapi.co/api/v2/pokemon?limit=2000');
         const list = (await res.json()).results;
-        const batches = [];
-        for (let i=0; i<list.length; i+=50) {
-            const batch = list.slice(i,i+50).map((_,j)=>{
-                const id=i+j+1;
-                return fetch(`https://pokeapi.co/api/v2/pokemon/${id}`).then(r=>r.json()).then(d=>({
-                    id, name:d.name, types:d.types.map(t=>t.type.name)
-                })).catch(()=>null);
-            });
-            const results = await Promise.all(batch);
-            allPokemon.push(...results.filter(Boolean));
-        }
+        allPokemon = list.map((p) => {
+            const parts = p.url.replace(/\/$/, '').split('/');
+            const id = parseInt(parts[parts.length - 1]);
+            return { id, name: p.name };
+        }).filter(p => !isNaN(p.id));
     } catch(e) { console.error('AllPokemon failed', e); }
 }
 
 async function getPokemonById(id) {
-    const local = allPokemon.find(p=>p.id===id);
-    if (local) return local;
+    const local = allPokemon.find(p => p.id === id);
+    let result = null;
+    if (local) {
+        result = { id: local.id, name: local.name };
+        const cachedFull = localStorage.getItem(`poke_types_${id}`);
+        if (cachedFull) {
+            result.types = JSON.parse(cachedFull);
+        } else {
+            try {
+                const d = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`).then(r => r.json());
+                result.types = d.types.map(t => t.type.name);
+                localStorage.setItem(`poke_types_${id}`, JSON.stringify(result.types));
+            } catch (e) { result.types = []; }
+        }
+        return result;
+    }
     try {
-        const d = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`).then(r=>r.json());
-        return { id:d.id, name:d.name, types:d.types.map(t=>t.type.name) };
+        const d = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`).then(r => r.json());
+        return { id: d.id, name: d.name, types: d.types.map(t => t.type.name) };
     } catch { return null; }
 }
 
 // ══ USER MANAGEMENT ══
 let allUsers = [], currentEditingUser = null, allUsersFilter = 'all', sortConfig = {};
+let usersUnsubscribe = null;
 
-async function fetchAllUsers() {
-    const snap = await getDocs(collection(db, 'users'));
-    const users = [];
-    for (const d of snap.docs) {
-        const data = d.data();
-        if (!data.hasStarter) continue;
-        users.push({
-            uid: d.id,
-            name: data.trainerName || d.id,
-            email: data.email || d.id,
-            totalLevels: data.totalLevels || 0,
-            totalEncounters: data.totalEncounters || 0,
-            active: data.active !== false,
-            coins: data.coins || 0,
-            role: data.role || null
-        });
-    }
-    return users;
+function startUsersRealtime() {
+    if (usersUnsubscribe) return;
+    usersUnsubscribe = onSnapshot(collection(db, 'users'), (snap) => {
+        const users = [];
+        for (const d of snap.docs) {
+            const data = d.data();
+            if (!data.hasStarter) continue;
+            users.push({
+                uid: d.id,
+                name: data.trainerName || d.id,
+                email: data.email || d.id,
+                totalLevels: data.totalLevels || 0,
+                totalEncounters: data.totalEncounters || 0,
+                active: data.active !== false,
+                coins: data.coins || 0,
+                role: data.role || null
+            });
+        }
+        allUsers = users;
+        updateBadgeCounts(allUsers);
+        renderAllTables();
+        renderDashboardLeaderboard();
+        document.getElementById('live-indicator').style.display = 'inline-flex';
+    }, (err) => {
+        console.error('Realtime users listener error:', err);
+        document.getElementById('live-indicator').style.display = 'none';
+    });
 }
 
 function updateBadgeCounts(users) {
@@ -698,7 +1353,6 @@ function updateBadgeCounts(users) {
     document.getElementById('count-all').textContent = users.length;
     document.getElementById('count-active-tab').textContent = active.length;
     document.getElementById('count-inactive-tab').textContent = inactive.length;
-    // Stat cards
     document.getElementById('stat-total').textContent = users.length;
     document.getElementById('stat-active').textContent = active.length;
     document.getElementById('stat-inactive').textContent = inactive.length;
@@ -706,14 +1360,12 @@ function updateBadgeCounts(users) {
     document.getElementById('stat-top-level').textContent = topLevel;
     const totalEnc = users.reduce((s,u)=>s+u.totalEncounters,0);
     document.getElementById('stat-encounters').textContent = totalEnc.toLocaleString();
-    // Inactive alert on dashboard
     if (inactive.length > 0) {
         document.getElementById('dash-inactive-alert').classList.remove('hidden');
         document.getElementById('dash-inactive-count').textContent = inactive.length;
     } else {
         document.getElementById('dash-inactive-alert').classList.add('hidden');
     }
-    // Inactive alert on inactive section
     const alertEl = document.getElementById('inactive-top-alert');
     if (inactive.length > 0) {
         alertEl.innerHTML = `<div class="inactive-alert"><i class="fas fa-exclamation-triangle"></i><span><strong>${inactive.length} trainer${inactive.length>1?'s':''}</strong> ${inactive.length>1?'are':'is'} waiting for activation.</span></div>`;
@@ -748,6 +1400,7 @@ function renderUserRows(tbody, users) {
                         ${u.active ? '<i class="fas fa-ban"></i> Deactivate' : '<i class="fas fa-check"></i> Activate'}
                     </button>
                     <button class="btn btn-sm btn-outline manage-user" data-uid="${u.uid}"><i class="fas fa-cog"></i> Manage</button>
+                    ${u.role !== 'admin' ? `<button class="btn btn-sm btn-danger delete-player" data-uid="${u.uid}" data-name="${escHtml(u.name)}" title="Delete player"><i class="fas fa-user-times"></i></button>` : ''}
                 </div>
             </td>
         </tr>
@@ -758,15 +1411,14 @@ function renderUserRows(tbody, users) {
             const newActive = btn.dataset.active === 'true' ? false : true;
             btn.disabled = true; btn.innerHTML = '<div class="loading-spinner"></div>';
             await updateDoc(doc(db, 'users', uid), { active: newActive });
-            allUsers = await fetchAllUsers();
-            updateBadgeCounts(allUsers);
-            renderAllTables();
-            renderDashboardLeaderboard();
             showToast(newActive ? '✅ User activated!' : '🚫 User deactivated.', newActive ? 'success' : 'warning');
         };
     });
     tbody.querySelectorAll('.manage-user').forEach(btn => {
         btn.onclick = () => openManageUserModal(btn.dataset.uid);
+    });
+    tbody.querySelectorAll('.delete-player').forEach(btn => {
+        btn.onclick = () => openDeletePlayerModal(btn.dataset.uid, btn.dataset.name);
     });
 }
 
@@ -814,12 +1466,10 @@ document.querySelectorAll('.ranking-table th[data-sort]').forEach(th => {
     });
 });
 
-// Search inputs
 document.querySelectorAll('.user-search-input').forEach(el => {
     el.addEventListener('input', () => renderAllTables());
 });
 
-// All-users filter tabs
 document.querySelectorAll('#all-users-filter-tabs .filter-tab').forEach(btn => {
     btn.addEventListener('click', () => {
         allUsersFilter = btn.dataset.filter;
@@ -860,7 +1510,6 @@ async function openManageUserModal(uid) {
     document.getElementById('edit-coins-btn').onclick = () => editCoins(uid);
     document.getElementById('edit-total-level-btn').onclick = () => editTotalLevel(uid);
     document.getElementById('add-pokemon-btn').onclick = () => openAddPokemonModal(uid);
-    // Pokémon
     const snap = await getDocs(collection(db, 'users', uid, 'pokemon'));
     const team = [], box = [];
     snap.forEach(d => {
@@ -916,11 +1565,15 @@ async function openManageUserModal(uid) {
 
 async function movePokemonStatus(pid, uid, inTeam) {
     await updateDoc(doc(db,'users',uid,'pokemon',pid), { inTeam });
+    const user = allUsers.find(u=>u.uid===uid);
+    if (user) syncTrainerPokemon(uid, user.name, user.email);
     showToast(inTeam ? '⚔️ Moved to Team!' : '📦 Moved to Box!', 'success');
     openManageUserModal(uid);
 }
 async function deletePokemon(pid, uid, name) {
     if (!confirm(`Delete ${name.toUpperCase()}? This cannot be undone.`)) return;
+    // Also delete from all_pokemon index
+    try { await deleteDoc(doc(db,'all_pokemon',`${uid}_${pid}`)); } catch {}
     await deleteDoc(doc(db,'users',uid,'pokemon',pid));
     showToast('🗑️ Pokémon deleted.', 'warning');
     openManageUserModal(uid);
@@ -931,7 +1584,7 @@ async function editCoins(uid) {
     if (val === null || isNaN(parseInt(val))) return;
     await updateDoc(doc(db,'users',uid), { coins: parseInt(val) });
     document.getElementById('manage-coins').textContent = val;
-    allUsers = await fetchAllUsers(); updateBadgeCounts(allUsers); renderAllTables();
+    allUsers = allUsers.map(u=>u.uid===uid?{...u,coins:parseInt(val)}:u); updateBadgeCounts(allUsers); renderAllTables();
     showToast('💰 Coins updated!', 'success');
 }
 async function editTotalLevel(uid) {
@@ -940,9 +1593,66 @@ async function editTotalLevel(uid) {
     if (val === null || isNaN(parseInt(val))) return;
     await updateDoc(doc(db,'users',uid), { totalLevels: parseInt(val) });
     document.getElementById('manage-total-level').textContent = val;
-    allUsers = await fetchAllUsers(); updateBadgeCounts(allUsers); renderAllTables();
+    allUsers = allUsers.map(u=>u.uid===uid?{...u,totalLevels:parseInt(val)}:u); updateBadgeCounts(allUsers); renderAllTables();
     showToast('⚡ Total level updated!', 'success');
 }
+
+// DELETE PLAYER FUNCTIONS
+let _deleteTargetUid = null, _deleteTargetName = null;
+
+function openDeletePlayerModal(uid, name) {
+    _deleteTargetUid = uid;
+    _deleteTargetName = name;
+    document.getElementById('delete-player-name').textContent = name;
+    document.getElementById('delete-confirm-input').value = '';
+    document.getElementById('delete-confirm-error').style.display = 'none';
+    document.getElementById('delete-player-modal').classList.remove('hidden');
+    setTimeout(() => document.getElementById('delete-confirm-input').focus(), 100);
+}
+
+document.getElementById('confirm-delete-player-btn').onclick = async () => {
+    const typed = document.getElementById('delete-confirm-input').value.trim();
+    if (typed !== _deleteTargetName) {
+        document.getElementById('delete-confirm-error').style.display = 'block';
+        return;
+    }
+    const btn = document.getElementById('confirm-delete-player-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<div class="loading-spinner" style="border-top-color:white;border-color:rgba(255,255,255,0.3);"></div> Deleting...';
+    try {
+        await deletePlayerData(_deleteTargetUid);
+        document.getElementById('delete-player-modal').classList.add('hidden');
+        showToast(_deleteTargetName + ' has been deleted.', 'warning');
+    } catch(e) {
+        showToast('Delete failed: ' + e.message, 'error');
+        console.error('Delete player error:', e);
+    }
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-trash-alt"></i> Delete Permanently';
+};
+
+document.getElementById('delete-confirm-input').addEventListener('keypress', e => {
+    if (e.key === 'Enter') document.getElementById('confirm-delete-player-btn').click();
+});
+
+async function deletePlayerData(uid) {
+    const pokSnap = await getDocs(collection(db, 'users', uid, 'pokemon'));
+    let batchDel = writeBatch(db);
+    let bCount = 0;
+    for (const d of pokSnap.docs) {
+        batchDel.delete(doc(db, 'users', uid, 'pokemon', d.id));
+        try { batchDel.delete(doc(db, 'all_pokemon', uid + '_' + d.id)); } catch {}
+        bCount++;
+        if (bCount >= 490) {
+            await batchDel.commit();
+            batchDel = writeBatch(db);
+            bCount = 0;
+        }
+    }
+    if (bCount > 0) await batchDel.commit();
+    await deleteDoc(doc(db, 'users', uid));
+}
+
 
 // ══ SPECIES INPUT COMPONENT ══
 async function createSpeciesInput(currentId, onChange) {
@@ -970,40 +1680,54 @@ async function createSpeciesInput(currentId, onChange) {
     const infoEl = wrap.querySelector('#species-info');
     const typesEl = wrap.querySelector('#species-types');
     let cur = null;
+
     const setSpecies = async (id) => {
-        infoEl.innerHTML = '<span style="color:var(--text-light)">Loading...</span>';
+        infoEl.innerHTML = '<span>Loading...</span>';
         cur = await getPokemonById(id);
         if (cur) {
+            if (!cur.types) {
+                try {
+                    const full = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`).then(r => r.json());
+                    cur.types = full.types.map(t => t.type.name);
+                } catch(e) { cur.types = []; }
+            }
             loadImg(sprImg, spriteUrl(cur.id));
             sprImg.style.display = 'block';
             infoEl.innerHTML = `<strong>${cur.name.toUpperCase()}</strong> <span style="color:var(--text-light);font-size:0.75rem;">#${cur.id}</span>`;
             typesEl.innerHTML = typeBadges(cur.types);
-            idIn.value = cur.id; nmIn.value = cur.name;
+            idIn.value = cur.id;
+            nmIn.value = cur.name;
         } else {
             sprImg.style.display = 'none';
-            infoEl.innerHTML = '<span style="color:var(--danger);">Pokémon not found</span>';
+            infoEl.innerHTML = '<span style="color:var(--danger);">Pokemon not found</span>';
             typesEl.innerHTML = '';
         }
         if (onChange) onChange(cur?.id || null, cur);
     };
-    idIn.addEventListener('change', () => { const v=parseInt(idIn.value); if(!isNaN(v)&&v>0) setSpecies(v); });
+
+    idIn.addEventListener('change', () => { const v = parseInt(idIn.value); if (!isNaN(v) && v > 0) setSpecies(v); });
     nmIn.addEventListener('change', async () => {
         const nm = nmIn.value.toLowerCase().trim();
         if (!nm) return;
-        const found = allPokemon.find(p=>p.name===nm);
+        const found = allPokemon.find(p => p.name === nm);
         if (found) { setSpecies(found.id); return; }
-        try { const d=await fetch(`https://pokeapi.co/api/v2/pokemon/${nm}`).then(r=>r.json()); setSpecies(d.id); } catch { infoEl.innerHTML='<span style="color:var(--danger);">Not found</span>'; }
+        try {
+            const d = await fetch(`https://pokeapi.co/api/v2/pokemon/${nm}`).then(r => r.json());
+            setSpecies(d.id);
+        } catch { infoEl.innerHTML = '<span style="color:var(--danger);">Not found</span>'; }
     });
     await setSpecies(currentId);
+
     wrap.querySelector('#view-animated-btn').onclick = () => {
         if (!cur) return;
         document.getElementById('animated-title').textContent = cur.name.toUpperCase();
         document.getElementById('animated-info').innerHTML = typeBadges(cur.types);
         document.getElementById('animated-error').innerHTML = '';
-        const img = document.getElementById('animated-sprite-img'); img.style.display='block';
+        const img = document.getElementById('animated-sprite-img');
+        img.style.display = 'block';
         const load = () => { loadImg(img, showdownUrl(cur.id)); };
-        img.onerror = () => { document.getElementById('animated-error').innerHTML='Failed. Click Retry.'; img.style.display='none'; };
-        img.onload = () => { document.getElementById('animated-error').innerHTML=''; img.style.display='block'; };
+        img.onerror = () => { document.getElementById('animated-error').innerHTML = 'Failed. Click Retry.'; img.style.display = 'none'; };
+        img.onload  = () => { document.getElementById('animated-error').innerHTML = ''; img.style.display = 'block'; };
         load();
         document.getElementById('retry-animated-btn').onclick = load;
         document.getElementById('animated-sprite-modal').classList.remove('hidden');
@@ -1011,12 +1735,12 @@ async function createSpeciesInput(currentId, onChange) {
     return wrap;
 }
 
-// ══ MOVE SELECTOR COMPONENT ══
+// ══ MOVE SELECTOR ══
 function renderMoveSelector(containerId, currentMoves, onChange) {
     const container = document.getElementById(containerId);
     if (!container) return;
     container.innerHTML = `
-        <input type="text" class="move-search" placeholder="🔍 Search moves...">
+        <input type="text" class="move-search" placeholder="Search moves...">
         <div class="move-table-container">
             <table class="move-table">
                 <thead><tr><th>Move</th><th>Type</th><th>Power</th><th>Acc.</th><th class="move-select">Pick</th></tr></thead>
@@ -1036,7 +1760,7 @@ function renderMoveSelector(containerId, currentMoves, onChange) {
         preview.innerHTML = selected.map(m=>`
             <span class="selected-move-pill" style="background:${typeColor(m.type)}">
                 ${m.name.toUpperCase()} <span style="opacity:0.7;font-size:0.65em;">(${m.power})</span>
-                <button class="remove-move-btn" data-name="${m.name}">✕</button>
+                <button class="remove-move-btn" data-name="${m.name}">x</button>
             </span>
         `).join('');
         preview.querySelectorAll('.remove-move-btn').forEach(b => {
@@ -1061,82 +1785,89 @@ function renderMoveSelector(containerId, currentMoves, onChange) {
             tr.querySelector('input').onchange = e => {
                 if (e.target.checked) {
                     if (selected.length >= 4) { alert('Max 4 moves.'); e.target.checked=false; return; }
-                    selected.push({ name:move.name, type:move.type, power:move.power, accuracy:move.accuracy, effect:'-', effectAccuracy:'-', icon:'✨' });
+                    selected.push({ name:move.name, type:move.type, power:move.power, accuracy:move.accuracy, effect:'-', effectAccuracy:'-', icon:'*' });
                 } else {
                     const i = selected.findIndex(s=>s.name===name);
                     if (i!==-1) selected.splice(i,1);
                 }
-                updatePreview(); if(onChange)onChange(selected);
+                updatePreview(); if(onChange) onChange(selected);
             };
         });
     };
     search.addEventListener('input', updateTable);
     updateTable(); updatePreview();
-    if (onChange) onChange(selected);
 }
 
-// ══ EDIT POKÉMON MODAL ══
-let editSaveCallback = null;
+// ══ EDIT POKEMON MODAL ══
 async function openEditPokemonModal(pokemonId, uid) {
     if (!isMoveDatabaseLoaded) { showToast('Loading move database...'); await loadMoveDatabase(); }
-    const snap = await getDoc(doc(db,'users',uid,'pokemon',pokemonId));
-    const p = snap.data();
-    const form = document.getElementById('edit-pokemon-form'); form.innerHTML = '';
+    const pokSnap = await getDoc(doc(db,'users',uid,'pokemon',pokemonId));
+    if (!pokSnap.exists()) { showToast('Pokemon not found.','error'); return; }
+    const p = { id:pokSnap.id, ...pokSnap.data() };
+    if (!p.moves||!Array.isArray(p.moves)) p.moves=[{name:'tackle',type:'normal',power:40,accuracy:100}];
     let selSpeciesId = p.pokemonId, selSpecies = null, selMoves = [...p.moves];
-    // Species
-    const speciesWrap = document.createElement('div');
-    form.appendChild(speciesWrap);
+    const form = document.getElementById('edit-pokemon-form'); form.innerHTML = '';
+    const speciesWrap = document.createElement('div'); form.appendChild(speciesWrap);
     const speciesInput = await createSpeciesInput(p.pokemonId, (id, sp) => { selSpeciesId=id; selSpecies=sp; });
     speciesWrap.appendChild(speciesInput);
     selSpecies = await getPokemonById(p.pokemonId);
-    // Stats grid
     const grid = document.createElement('div'); grid.className = 'editor-grid'; grid.innerHTML = `
         <div class="form-group"><label>Level</label><input type="number" id="edit-level" value="${p.level}" min="1" max="200"></div>
         <div class="form-group"><label>Experience (XP)</label><input type="number" id="edit-exp" value="${p.exp||0}" min="0"></div>
     `;
     form.appendChild(grid);
-    // Bonus stats
     const bonusDiv = document.createElement('div'); bonusDiv.className = 'form-group';
     bonusDiv.innerHTML = `
         <label>Bonus Stats</label>
         <div class="checkbox-group">
-            <label class="checkbox-label"><input type="checkbox" id="edit-atk" ${p.bonusStats?.atk?'checked':''}> ⚔️ +ATK</label>
-            <label class="checkbox-label"><input type="checkbox" id="edit-def" ${p.bonusStats?.def?'checked':''}> 🛡️ +DEF</label>
-            <label class="checkbox-label"><input type="checkbox" id="edit-spd" ${p.bonusStats?.spd?'checked':''}> 🏃 +SPD</label>
-            <label class="checkbox-label"><input type="checkbox" id="edit-shiny" ${p.isShiny?'checked':''}> ✨ Shiny</label>
+            <label class="checkbox-label"><input type="checkbox" id="edit-atk" ${p.bonusStats?.atk?'checked':''}> +ATK</label>
+            <label class="checkbox-label"><input type="checkbox" id="edit-def" ${p.bonusStats?.def?'checked':''}> +DEF</label>
+            <label class="checkbox-label"><input type="checkbox" id="edit-spd" ${p.bonusStats?.spd?'checked':''}> +SPD</label>
+            <label class="checkbox-label"><input type="checkbox" id="edit-shiny" ${p.isShiny?'checked':''}> Shiny</label>
         </div>
     `;
     form.appendChild(bonusDiv);
-    // Moves
     const movesDiv = document.createElement('div'); movesDiv.className = 'form-group';
     movesDiv.innerHTML = '<label>Moves (select up to 4)</label><div id="edit-moves-list"></div>';
     form.appendChild(movesDiv);
     renderMoveSelector('edit-moves-list', selMoves, m => selMoves=m);
     document.getElementById('edit-pokemon-modal').classList.remove('hidden');
     document.getElementById('save-pokemon-edit-btn').onclick = async () => {
-        if (!selSpecies) { showToast('Invalid Pokémon species.', 'error'); return; }
+        if (!selSpecies) { showToast('Invalid Pokemon species.', 'error'); return; }
         const btn = document.getElementById('save-pokemon-edit-btn');
-        btn.disabled = true; btn.innerHTML = '<div class="loading-spinner"></div> Saving...';
+        btn.disabled=true; btn.innerHTML='<div class="loading-spinner"></div> Saving...';
         let finalMoves = [...selMoves];
-        while (finalMoves.length < 4) finalMoves.push({ name:'tackle', type:'normal', power:40, accuracy:100, effect:'-', effectAccuracy:'-', icon:'🔘' });
-        await updateDoc(doc(db,'users',uid,'pokemon',pokemonId), {
-            pokemonId: selSpeciesId,
-            name: selSpecies.name,
+        while (finalMoves.length < 4) finalMoves.push({ name:'tackle', type:'normal', power:40, accuracy:100, effect:'-', effectAccuracy:'-', icon:'-' });
+        const updateData = {
+            pokemonId: selSpeciesId, name: selSpecies.name,
             level: parseInt(document.getElementById('edit-level').value),
             exp: parseInt(document.getElementById('edit-exp').value),
-            types: selSpecies.types,
-            moves: finalMoves.slice(0,4),
+            types: selSpecies.types, moves: finalMoves.slice(0,4),
             bonusStats: { atk:document.getElementById('edit-atk').checked, def:document.getElementById('edit-def').checked, spd:document.getElementById('edit-spd').checked },
             isShiny: document.getElementById('edit-shiny').checked
-        });
+        };
+        await updateDoc(doc(db,'users',uid,'pokemon',pokemonId), updateData);
+        // Also update all_pokemon index entry
+        try {
+            const user = allUsers.find(u=>u.uid===uid);
+            await setDoc(doc(db,'all_pokemon',`${uid}_${pokemonId}`), {
+                ownerId: uid, ownerName: user?.name||'', ownerEmail: user?.email||'',
+                pokemonId: selSpeciesId, name: selSpecies.name.toLowerCase(),
+                nameDisplay: selSpecies.name, level: parseInt(document.getElementById('edit-level').value),
+                isShiny: document.getElementById('edit-shiny').checked,
+                bonusStats: { atk:document.getElementById('edit-atk').checked, def:document.getElementById('edit-def').checked, spd:document.getElementById('edit-spd').checked },
+                inTeam: p.inTeam||false, capturedAt: p.capturedAt||null, capturedBy: p.capturedBy||null,
+                capturedOnMap: p.capturedOnMap||null, originalDocId: pokemonId, syncedAt: new Date()
+            }, { merge: true });
+        } catch(e) { console.warn('all_pokemon update failed:', e); }
         btn.disabled=false; btn.innerHTML='<i class="fas fa-save"></i> Save Changes';
         document.getElementById('edit-pokemon-modal').classList.add('hidden');
-        showToast('✅ Pokémon updated!', 'success');
+        showToast('Pokemon updated!', 'success');
         openManageUserModal(uid);
     };
 }
 
-// ══ ADD POKÉMON MODAL ══
+// ══ ADD POKEMON MODAL ══
 async function openAddPokemonModal(uid) {
     if (!isMoveDatabaseLoaded) { showToast('Loading move database...'); await loadMoveDatabase(); }
     const form = document.getElementById('add-pokemon-form'); form.innerHTML = '';
@@ -1154,11 +1885,11 @@ async function openAddPokemonModal(uid) {
     bonusDiv.innerHTML = `
         <label>Bonus Stats &amp; Options</label>
         <div class="checkbox-group">
-            <label class="checkbox-label"><input type="checkbox" id="add-atk"> ⚔️ +ATK</label>
-            <label class="checkbox-label"><input type="checkbox" id="add-def"> 🛡️ +DEF</label>
-            <label class="checkbox-label"><input type="checkbox" id="add-spd"> 🏃 +SPD</label>
-            <label class="checkbox-label"><input type="checkbox" id="add-shiny"> ✨ Shiny</label>
-            <label class="checkbox-label"><input type="checkbox" id="add-to-team" checked> ⚔️ Add to Team</label>
+            <label class="checkbox-label"><input type="checkbox" id="add-atk"> +ATK</label>
+            <label class="checkbox-label"><input type="checkbox" id="add-def"> +DEF</label>
+            <label class="checkbox-label"><input type="checkbox" id="add-spd"> +SPD</label>
+            <label class="checkbox-label"><input type="checkbox" id="add-shiny"> Shiny</label>
+            <label class="checkbox-label"><input type="checkbox" id="add-to-team" checked> Add to Team</label>
         </div>
     `;
     form.appendChild(bonusDiv);
@@ -1168,30 +1899,42 @@ async function openAddPokemonModal(uid) {
     renderMoveSelector('add-moves-list', selMoves, m => selMoves=m);
     document.getElementById('add-pokemon-modal').classList.remove('hidden');
     document.getElementById('confirm-add-pokemon-btn').onclick = async () => {
-        if (!selSpecies) { showToast('Invalid Pokémon species.', 'error'); return; }
+        if (!selSpecies) { showToast('Invalid Pokemon species.', 'error'); return; }
         const btn = document.getElementById('confirm-add-pokemon-btn');
         btn.disabled=true; btn.innerHTML='<div class="loading-spinner"></div> Adding...';
         let finalMoves = [...selMoves];
-        while (finalMoves.length < 4) finalMoves.push({ name:'tackle', type:'normal', power:40, accuracy:100, effect:'-', effectAccuracy:'-', icon:'🔘' });
-        await addDoc(collection(db,'users',uid,'pokemon'), {
+        while (finalMoves.length < 4) finalMoves.push({ name:'tackle', type:'normal', power:40, accuracy:100, effect:'-', effectAccuracy:'-', icon:'-' });
+        const inTeam = document.getElementById('add-to-team').checked;
+        const newDocRef = await addDoc(collection(db,'users',uid,'pokemon'), {
             pokemonId: selSpeciesId, name: selSpecies.name,
             level: parseInt(document.getElementById('add-level').value),
             exp: parseInt(document.getElementById('add-exp').value),
-            moves: finalMoves.slice(0,4), types: selSpecies.types,
-            inTeam: document.getElementById('add-to-team').checked,
+            moves: finalMoves.slice(0,4), types: selSpecies.types, inTeam,
             bonusStats: { atk:document.getElementById('add-atk').checked, def:document.getElementById('add-def').checked, spd:document.getElementById('add-spd').checked },
             isShiny: document.getElementById('add-shiny').checked
         });
-        btn.disabled=false; btn.innerHTML='<i class="fas fa-plus"></i> Add Pokémon';
+        // Write to all_pokemon index immediately
+        try {
+            const user = allUsers.find(u=>u.uid===uid);
+            await setDoc(doc(db,'all_pokemon',`${uid}_${newDocRef.id}`), {
+                ownerId: uid, ownerName: user?.name||'', ownerEmail: user?.email||'',
+                pokemonId: selSpeciesId, name: selSpecies.name.toLowerCase(),
+                nameDisplay: selSpecies.name,
+                level: parseInt(document.getElementById('add-level').value),
+                isShiny: document.getElementById('add-shiny').checked,
+                bonusStats: { atk:document.getElementById('add-atk').checked, def:document.getElementById('add-def').checked, spd:document.getElementById('add-spd').checked },
+                inTeam, capturedAt: null, capturedBy: uid, capturedOnMap: 'Admin',
+                originalDocId: newDocRef.id, syncedAt: new Date()
+            });
+        } catch(e) { console.warn('all_pokemon write failed:', e); }
+        btn.disabled=false; btn.innerHTML='<i class="fas fa-plus"></i> Add Pokemon';
         document.getElementById('add-pokemon-modal').classList.add('hidden');
-        showToast('✅ Pokémon added!', 'success');
+        showToast('Pokemon added!', 'success');
         openManageUserModal(uid);
     };
 }
 
-// ══════════════════════════
-// MAP MANAGEMENT
-// ══════════════════════════
+// ══ MAP MANAGEMENT ══
 let allMaps = [], editingMapId = null;
 
 async function loadMaps() {
@@ -1212,8 +1955,8 @@ function renderMapCards() {
     for (const map of allMaps) {
         const card = document.createElement('div'); card.className = 'map-card-admin';
         const imgEl = map.imageUrl
-            ? `<img src="${escHtml(map.imageUrl)}" alt="${escHtml(map.name)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" style="width:100%;height:120px;object-fit:cover;"><div class="map-card-img" style="display:none;height:120px;">🗺️</div>`
-            : `<div class="map-card-img" style="height:120px;display:flex;">🗺️</div>`;
+            ? `<img src="${escHtml(map.imageUrl)}" alt="${escHtml(map.name)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" style="width:100%;height:120px;object-fit:cover;"><div class="map-card-img" style="display:none;height:120px;">Map</div>`
+            : `<div class="map-card-img" style="height:120px;display:flex;">Map</div>`;
         card.innerHTML = `
             ${imgEl}
             <div class="map-card-body">
@@ -1221,11 +1964,11 @@ function renderMapCards() {
                 <div class="map-card-title">${escHtml(map.name)}</div>
                 <div class="map-card-desc">${escHtml(map.description || '')}</div>
                 <div class="map-meta">
-                    <span class="map-meta-pill">🔒 Req Lv.${map.requiredLevel || 0}</span>
-                    <span class="map-meta-pill">🎯 ${map.catchRate || 45}% catch</span>
-                    <span class="map-meta-pill">🐾 #${map.pokemonMin}–${map.pokemonMax}</span>
-                    ${map.specialLevelRange?.enabled ? `<span class="map-meta-pill">📈 Lv.${map.specialLevelRange.min}–${map.specialLevelRange.max}</span>` : ''}
-                    ${(map.specialPokemonList||[]).length ? `<span class="map-meta-pill">⭐ ${map.specialPokemonList.length} specials</span>` : ''}
+                    <span class="map-meta-pill">Req Lv.${map.requiredLevel || 0}</span>
+                    <span class="map-meta-pill">${map.catchRate || 45}% catch</span>
+                    <span class="map-meta-pill">#${map.pokemonMin}-${map.pokemonMax}</span>
+                    ${map.specialLevelRange?.enabled ? `<span class="map-meta-pill">Lv.${map.specialLevelRange.min}-${map.specialLevelRange.max}</span>` : ''}
+                    ${(map.specialPokemonList||[]).length ? `<span class="map-meta-pill">${map.specialPokemonList.length} specials</span>` : ''}
                 </div>
                 <div class="map-card-actions">
                     <button class="btn btn-sm btn-primary" data-edit="${map.id}"><i class="fas fa-edit"></i> Edit</button>
@@ -1237,7 +1980,7 @@ function renderMapCards() {
         card.querySelector('[data-del]').onclick = async () => {
             if (!confirm(`Delete map "${map.name}"? This cannot be undone.`)) return;
             await deleteDoc(doc(db,'maps',map.id));
-            showToast('🗑️ Map deleted.', 'warning');
+            showToast('Map deleted.', 'warning');
             loadMaps();
         };
         grid.appendChild(card);
@@ -1251,30 +1994,29 @@ function buildMapForm(map) {
     f.innerHTML = `
         <div class="map-form-grid">
             <div class="form-group"><label>Map Name</label><input type="text" id="mf-name" value="${escHtml(existing.name||'')}"></div>
-            <div class="form-group"><label>Generation (I–IX)</label><input type="text" id="mf-gen" value="${escHtml(existing.generation||'I')}"></div>
+            <div class="form-group"><label>Generation (I-IX)</label><input type="text" id="mf-gen" value="${escHtml(existing.generation||'I')}"></div>
         </div>
         <div class="form-group"><label>Description</label><input type="text" id="mf-desc" value="${escHtml(existing.description||'')}"></div>
-        <div class="form-group"><label>Image URL (e.g. map1.png)</label><input type="text" id="mf-img" value="${escHtml(existing.imageUrl||'')}"></div>
+        <div class="form-group"><label>Image URL</label><input type="text" id="mf-img" value="${escHtml(existing.imageUrl||'')}"></div>
         <div class="map-form-grid">
             <div class="form-group"><label>Required Total Level</label><input type="number" id="mf-req-lvl" value="${existing.requiredLevel||0}" min="0"></div>
             <div class="form-group"><label>Catch Rate (%)</label><input type="number" id="mf-catch-rate" value="${existing.catchRate||45}" min="1" max="100"></div>
             <div class="form-group"><label>XP Required to Catch (%)</label><input type="number" id="mf-req-xp" value="${existing.requiredExpPercent||10}" min="0" max="100"></div>
             <div class="form-group"><label>Catch XP Penalty (%)</label><input type="number" id="mf-catch-penalty" value="${existing.catchXpPenaltyPercent||10}" min="0" max="100"></div>
-            <div class="form-group"><label>Pokémon ID Min</label><input type="number" id="mf-pmin" value="${existing.pokemonMin||1}" min="1"></div>
-            <div class="form-group"><label>Pokémon ID Max</label><input type="number" id="mf-pmax" value="${existing.pokemonMax||151}" min="1"></div>
+            <div class="form-group"><label>Pokemon ID Min</label><input type="number" id="mf-pmin" value="${existing.pokemonMin||1}" min="1"></div>
+            <div class="form-group"><label>Pokemon ID Max</label><input type="number" id="mf-pmax" value="${existing.pokemonMax||151}" min="1"></div>
         </div>
-        <div class="form-group"><label>Tile Colors (comma-separated hex, e.g. #c2b280,#78cd54)</label><input type="text" id="mf-tile-colors" value="${(existing.tileColors||['#c2b280','#78cd54']).join(',')}"><div class="tile-colors-preview" id="tile-color-preview"></div></div>
-        <div class="form-group"><label>Tile Classes (comma-separated, e.g. dirt,grass)</label><input type="text" id="mf-tile-classes" value="${(existing.tileClasses||['dirt','grass']).join(',')}"></div>
+        <div class="form-group"><label>Tile Colors (comma-separated hex)</label><input type="text" id="mf-tile-colors" value="${(existing.tileColors||['#c2b280','#78cd54']).join(',')}"><div class="tile-colors-preview" id="tile-color-preview"></div></div>
+        <div class="form-group"><label>Tile Classes (comma-separated)</label><input type="text" id="mf-tile-classes" value="${(existing.tileClasses||['dirt','grass']).join(',')}"></div>
         <div class="form-group">
-            <label class="checkbox-label" style="margin-bottom:8px;"><input type="checkbox" id="mf-sl-enabled" ${sl.enabled?'checked':''}> Enable Special Level Range for wild Pokémon</label>
+            <label class="checkbox-label" style="margin-bottom:8px;"><input type="checkbox" id="mf-sl-enabled" ${sl.enabled?'checked':''}> Enable Special Level Range</label>
             <div id="mf-sl-fields" style="display:${sl.enabled?'grid':'none'};grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;">
                 <div class="form-group" style="margin-bottom:0;"><label>Min Level</label><input type="number" id="mf-sl-min" value="${sl.min||1}" min="1"></div>
                 <div class="form-group" style="margin-bottom:0;"><label>Max Level</label><input type="number" id="mf-sl-max" value="${sl.max||100}" min="1"></div>
             </div>
         </div>
-        <div class="form-group"><label>Special Pokémon IDs (comma-separated, optional)</label><input type="text" id="mf-special-list" value="${(existing.specialPokemonList||[]).join(',')}"><small style="color:var(--text-light);font-size:0.72rem;">These have a 50% chance to appear instead of the ID range.</small></div>
+        <div class="form-group"><label>Special Pokemon IDs (comma-separated)</label><input type="text" id="mf-special-list" value="${(existing.specialPokemonList||[]).join(',')}"><small style="color:var(--text-light);font-size:0.72rem;">50% chance to appear instead of the ID range.</small></div>
     `;
-    // Live tile color preview
     const colorsIn = f.querySelector('#mf-tile-colors');
     const preview = f.querySelector('#tile-color-preview');
     const updateColorPreview = () => {
@@ -1282,7 +2024,6 @@ function buildMapForm(map) {
         preview.innerHTML = cols.map(c=>`<div class="tile-color-dot" style="background:${escHtml(c)};"></div>`).join('');
     };
     colorsIn.addEventListener('input', updateColorPreview); updateColorPreview();
-    // Special level toggle
     f.querySelector('#mf-sl-enabled').onchange = (e) => { f.querySelector('#mf-sl-fields').style.display = e.target.checked ? 'grid' : 'none'; };
 }
 
@@ -1317,7 +2058,7 @@ async function openMapModal(mapId) {
         else await addDoc(collection(db,'maps'), newMap);
         btn.disabled=false; btn.innerHTML='<i class="fas fa-save"></i> Save Map';
         document.getElementById('map-modal').classList.add('hidden');
-        showToast(editingMapId ? '✅ Map updated!' : '✅ Map created!', 'success');
+        showToast(editingMapId ? 'Map updated!' : 'Map created!', 'success');
         loadMaps();
     };
 }
@@ -1325,22 +2066,39 @@ document.getElementById('add-map-btn').onclick = () => openMapModal(null);
 
 // ══ AUTH & INIT ══
 onAuthStateChanged(auth, async (user) => {
-    if (!user) { window.location.href = 'index.html'; return; }
+    if (!user) {
+        document.getElementById('login-screen').classList.remove('hidden');
+        document.getElementById('admin-app').style.display = 'none';
+        if (usersUnsubscribe) { usersUnsubscribe(); usersUnsubscribe = null; }
+        const btn = document.getElementById('login-btn');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In';
+        return;
+    }
     const userDoc = await getDoc(doc(db, 'users', user.uid));
     const ud = userDoc.data();
-    if (ud?.role !== 'admin') { alert('Access denied. Admins only.'); window.location.href = 'index.html'; return; }
+    if (ud?.role !== 'admin') {
+        alert('Access denied. Admins only.');
+        await signOut(auth);
+        return;
+    }
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('admin-app').style.display = 'flex';
     const adminName = ud.trainerName || user.email;
     document.getElementById('admin-name-display').textContent = adminName;
     document.getElementById('admin-avatar').textContent = adminName.charAt(0).toUpperCase();
-    // Load data in parallel
-    const [users] = await Promise.all([fetchAllUsers(), loadMaps(), loadAllPokemon()]);
-    allUsers = users;
-    updateBadgeCounts(allUsers);
-    renderAllTables();
-    renderDashboardLeaderboard();
+    startUsersRealtime();
+    await Promise.all([loadMaps(), loadAllPokemon()]);
+    refreshSyncStatus();
 });
 
-document.getElementById('logout-btn').onclick = () => signOut(auth).then(() => window.location.href = 'index.html');
+document.getElementById('logout-btn').onclick = () => {
+    if (usersUnsubscribe) { usersUnsubscribe(); usersUnsubscribe = null; }
+    signOut(auth).then(() => {
+        document.getElementById('login-screen').classList.remove('hidden');
+        document.getElementById('admin-app').style.display = 'none';
+    });
+};
 </script>
 </body>
 </html>

@@ -6,6 +6,8 @@ const assets = [
   'registration.html',
   'battle.html',
   'admin.html',
+  'market.html',
+  'ranking.html',
   'manifest.json',
   'favicon.ico',
   'PokeSim_Pokemon.png',

@@ -6312,7 +6312,10 @@ onAuthStateChanged(auth, async (user) => {
         };
     })();
 
-    document.getElementById('login-btn').onclick = () => signInWithEmailAndPassword(auth, email.value, password.value).catch(e=>alert(e.message));
+    document.getElementById('login-btn').onclick = () => {
+        if (window.stopAuthMusic) window.stopAuthMusic();
+        signInWithEmailAndPassword(auth, email.value, password.value).catch(e => alert(e.message));
+    };
     document.getElementById('logout-btn').onclick = () => signOut(auth).then(()=>location.reload());
     document.getElementById('catch-btn').onclick = attemptCatch;
     document.getElementById('escape-btn').onclick = attemptEscape;

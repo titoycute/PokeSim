@@ -1727,7 +1727,7 @@ body.dark-theme footer .support-section a:hover {
 </style>
 </head>
 <body>
-
+<div id="toast" style="position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 10px 20px; border-radius: 40px; font-size: 0.9rem; z-index: 10000; opacity: 0; transition: opacity 0.3s; pointer-events: none;"></div>
     <!-- Overlays -->
    <div id="loading-overlay" class="overlay hidden">
     <div class="loading-container">
@@ -1884,6 +1884,29 @@ body.dark-theme footer .support-section a:hover {
     </div>
 </div>
 
+<!-- Referral Modal -->
+<div id="referral-modal" class="overlay hidden" onclick="if(event.target===this)this.classList.add('hidden')">
+    <div class="modal" style="max-width: 450px; text-align: center;" onclick="event.stopPropagation()">
+        <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 10px;">
+            <h2><i class="fas fa-gift"></i> Invite a Friend</h2>
+            <button class="close-x" onclick="document.getElementById('referral-modal').classList.add('hidden')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p>Share your unique referral link. When your friend signs up and verifies their email,<br>
+            <strong>both of you get ₱100,000 coins!</strong></p>
+            <div style="background: #f8fafc; border-radius: 12px; padding: 12px; margin: 16px 0; display: flex; gap: 8px; align-items: center;">
+                <input type="text" id="referral-link-input" readonly style="flex:1; font-family: monospace; background: white;" onclick="this.select()">
+                <button id="copy-referral-link-btn" class="btn btn-primary btn-sm"><i class="fas fa-copy"></i> Copy</button>
+            </div>
+            <div id="referral-loading" style="display:none;">Generating your code...</div>
+            <small style="color: var(--text-light);">Your code is unique and never expires.</small>
+        </div>
+        <div class="modal-footer" style="margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border);">
+            <button class="btn btn-outline" onclick="document.getElementById('referral-modal').classList.add('hidden')">Close</button>
+        </div>
+    </div>
+</div>
+
     <!-- Switch Pokémon Modal (during battle) -->
     <div id="switch-pokemon-modal" class="overlay hidden">
         <div class="modal" style="max-width: 500px;">
@@ -1895,16 +1918,328 @@ body.dark-theme footer .support-section a:hover {
 
     <!-- Auth Screen -->
     <div id="auth-screen">
-        <div class="auth-card">
-            <img src="PokeSim_Pokemon.png" alt="PokeSim Logo">
-            <div id="auth-fields" style="display: none;">
-                <input type="email" id="email" placeholder="Email">
-                <input type="password" id="password" placeholder="Password">
-                <button class="btn btn-primary" id="login-btn">Login</button>
-                <button class="btn btn-outline" id="reg-btn" style="margin-top: 12px;">Register</button>
+<!-- Auth screen background music -->
+<audio id="auth-music" src="music5.mp3" loop preload="auto"></audio>
+<button id="auth-music-btn" title="Mute/Unmute music">🔊</button>
+
+    <!-- Animated background: floating pokeballs and particles -->
+    <div class="auth-bg-animation">
+        <div class="pokeball-float pokeball-1"></div>
+        <div class="pokeball-float pokeball-2"></div>
+        <div class="pokeball-float pokeball-3"></div>
+        <div class="particle particle-1"></div>
+        <div class="particle particle-2"></div>
+        <div class="particle particle-3"></div>
+    </div>
+
+    <div class="auth-card glass-effect">
+        <div class="card-glow"></div>
+        <img src="PokeSim_Pokemon.png" alt="PokeSim Logo" class="auth-logo bounce-soft">
+        
+        <div id="auth-fields" style="display: none;">
+            <div class="input-group">
+                <i class="fas fa-envelope input-icon"></i>
+                <input type="email" id="email" placeholder="Email address" autocomplete="email">
             </div>
+            <div class="input-group">
+                <i class="fas fa-lock input-icon"></i>
+                <input type="password" id="password" placeholder="Password" autocomplete="current-password">
+            </div>
+            <button class="btn btn-primary login-btn" id="login-btn">
+                <span>Login</span>
+                <i class="fas fa-arrow-right"></i>
+            </button>
+            <button class="btn btn-outline register-btn" id="reg-btn">
+                <i class="fas fa-user-plus"></i>
+                <span>Create new account</span>
+            </button>
+        </div>
+
+        <div class="admin-contact">
+            <i class="fas fa-headset"></i> Need help? <strong>Message the admin</strong> on Messenger:
+            <a href="https://m.me/tootzkiecute" target="_blank">Click here to chat</a>
         </div>
     </div>
+</div>
+<style>
+/* ========== AMAZING AUTH SCREEN ========== */
+#auth-screen {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #0a0f2a 0%, #1a1a3e 50%, #2d1b3a 100%);
+}
+
+/* Animated background elements */
+.auth-bg-animation {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    z-index: 0;
+}
+
+.pokeball-float {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.1), rgba(0,0,0,0.2));
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.15);
+    animation: float 12s infinite ease-in-out;
+    pointer-events: none;
+}
+
+.pokeball-float::before {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 40%;
+    background: rgba(255,255,255,0.05);
+    border-radius: 40px 40px 0 0;
+    top: 0;
+    left: 0;
+}
+
+.pokeball-float::after {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 50%;
+    bottom: 20%;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.pokeball-1 { top: 10%; left: -30px; width: 120px; height: 120px; animation-duration: 18s; }
+.pokeball-2 { bottom: -20px; right: 5%; width: 200px; height: 200px; animation-duration: 25s; animation-delay: -5s; }
+.pokeball-3 { top: 40%; right: -50px; width: 150px; height: 150px; animation-duration: 20s; animation-delay: -10s; }
+
+.particle {
+    position: absolute;
+    background: radial-gradient(circle, rgba(255,215,0,0.6), transparent);
+    border-radius: 50%;
+    animation: drift 8s infinite linear;
+    pointer-events: none;
+}
+
+.particle-1 { width: 4px; height: 4px; top: 20%; left: 10%; animation-duration: 12s; }
+.particle-2 { width: 6px; height: 6px; top: 70%; left: 80%; animation-duration: 15s; animation-delay: -3s; }
+.particle-3 { width: 3px; height: 3px; top: 50%; left: 30%; animation-duration: 9s; animation-delay: -6s; }
+
+@keyframes float {
+    0% { transform: translateY(0px) rotate(0deg); opacity: 0.4; }
+    50% { transform: translateY(-40px) rotate(5deg); opacity: 0.7; }
+    100% { transform: translateY(0px) rotate(0deg); opacity: 0.4; }
+}
+
+@keyframes drift {
+    0% { transform: translateX(0) translateY(0); opacity: 0; }
+    20% { opacity: 0.8; }
+    80% { opacity: 0.6; }
+    100% { transform: translateX(100px) translateY(-50px); opacity: 0; }
+}
+
+/* Glassmorphic auth card */
+.auth-card {
+    position: relative;
+    z-index: 10;
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(12px);
+    border-radius: 32px;
+    padding: 40px 30px;
+    width: 380px;
+    text-align: center;
+    box-shadow: 0 30px 50px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.25);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.auth-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 40px 60px rgba(0,0,0,0.4);
+}
+
+.card-glow {
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(45deg, #ffd700, #ff6b6b, #4dabf7, #ffd700);
+    border-radius: 34px;
+    opacity: 0;
+    z-index: -1;
+    transition: opacity 0.5s;
+}
+
+.auth-card:hover .card-glow {
+    opacity: 0.5;
+}
+
+.auth-logo {
+    width: 220px;
+    margin-bottom: 20px;
+    filter: drop-shadow(0 8px 20px rgba(0,0,0,0.3));
+}
+
+.bounce-soft {
+    animation: bounceSoft 2s infinite ease-in-out;
+}
+
+@keyframes bounceSoft {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+}
+
+/* Input groups with icons */
+.input-group {
+    position: relative;
+    margin: 15px 0;
+}
+
+.input-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(255,255,255,0.6);
+    font-size: 1rem;
+    pointer-events: none;
+    transition: color 0.2s;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 14px 16px 14px 44px;
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 60px;
+    font-size: 0.95rem;
+    color: white;
+    transition: all 0.2s;
+}
+
+.input-group input:focus {
+    background: rgba(255,255,255,0.25);
+    border-color: #ffd700;
+    box-shadow: 0 0 0 3px rgba(255,215,0,0.2);
+    outline: none;
+}
+
+.input-group input::placeholder {
+    color: rgba(255,255,255,0.6);
+}
+
+.input-group:focus-within .input-icon {
+    color: #ffd700;
+}
+
+/* Enhanced buttons */
+.login-btn, .register-btn {
+    width: 100%;
+    padding: 12px;
+    border-radius: 60px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+}
+
+.login-btn {
+    background: linear-gradient(135deg, #ffd700, #ffaa00);
+    color: #2d2f3e;
+    margin-top: 10px;
+}
+
+.login-btn:hover {
+    transform: scale(1.02);
+    box-shadow: 0 8px 25px rgba(255,215,0,0.4);
+    gap: 16px;
+}
+
+.register-btn {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.4);
+    color: white;
+    margin-top: 12px;
+}
+
+.register-btn:hover {
+    background: rgba(255,255,255,0.3);
+    transform: scale(1.02);
+}
+
+/* Admin contact */
+.admin-contact {
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255,255,255,0.2);
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.7);
+}
+
+.admin-contact a {
+    color: #ffd700;
+    text-decoration: none;
+    font-weight: bold;
+    transition: 0.2s;
+}
+
+.admin-contact a:hover {
+    text-decoration: underline;
+    text-shadow: 0 0 5px #ffd700;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .auth-card {
+        width: 90%;
+        padding: 30px 20px;
+    }
+    .auth-logo {
+        width: 180px;
+    }
+    .pokeball-float {
+        display: none;
+    }
+}
+
+/* Auth screen music button */
+#auth-music-btn {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.12);
+    backdrop-filter: blur(10px);
+    border: 1.5px solid rgba(255,255,255,0.25);
+    color: white;
+    font-size: 1.4rem;
+    cursor: pointer;
+    z-index: 9999;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+#auth-music-btn:hover {
+    background: rgba(255,255,255,0.22);
+    transform: scale(1.08);
+}
+#auth-music-btn.hidden { display: none !important; }
+
+</style>
 
     
     <!-- Unified Battle Summary Modal -->
@@ -2037,6 +2372,7 @@ body.dark-theme footer .support-section a:hover {
                 </div>
                 <div id="level-display" class="nav-item">⭐ Lv. <span id="trainer-level">0</span></div>
                 <div id="coin-display" class="nav-item">💰 <span id="coin-amount">0</span></div>
+                <button id="referral-btn" class="nav-link hidden" title="Invite Friends"><i class="fas fa-gift"></i> Referral</button>
                 <button class="btn btn-outline nav-item" id="logout-btn">Logout</button>
                  <button id="zoom-out-btn" class="volume-btn nav-item" title="Zoom Out">−</button>
                 <button id="zoom-in-btn" class="volume-btn nav-item" title="Zoom In">+</button>
@@ -3676,6 +4012,67 @@ function updatePlayerLabel() {
         playerSprite.style.backgroundPosition = 'center';
     }
 }
+
+// ---------- REFERRAL SYSTEM ----------
+function generateReferralCode(uid) {
+    const email = auth.currentUser.email.split('@')[0].substring(0, 4);
+    const random = Math.floor(1000 + Math.random() * 9000);
+    return `${email.toUpperCase()}${random}`;
+}
+
+async function ensureReferralCode() {
+    const user = auth.currentUser;
+    if (!user) return null;
+    const userRef = doc(db, "users", user.uid);
+    const userSnap = await getDoc(userRef);
+    if (!userSnap.exists()) return null;
+    let code = userSnap.data().referralCode;
+    if (!code) {
+        code = generateReferralCode(user.uid);
+        try {
+            await updateDoc(userRef, { referralCode: code });
+            trackWrite();
+        } catch (err) {
+            console.error("Failed to save referral code:", err);
+            return null;  // still might be null, but you can show an error
+        }
+    }
+    return code;
+}
+
+
+async function getReferralLink() {
+    const code = await ensureReferralCode();
+    return `${window.location.origin}/registration.html?ref=${encodeURIComponent(code)}`;
+}
+
+async function openReferralModal() {
+    const code = await ensureReferralCode();
+    if (!code) {
+        alert("Unable to generate referral link. Please try again later.");
+        return;
+    }
+    const modal = document.getElementById('referral-modal');
+    const input = document.getElementById('referral-link-input');
+    const loadingDiv = document.getElementById('referral-loading');
+    loadingDiv.style.display = 'block';
+    modal.classList.remove('hidden');
+    const link = `${window.location.origin}/registration.html?ref=${encodeURIComponent(code)}`;
+    input.value = link;
+    loadingDiv.style.display = 'none';
+}
+
+document.getElementById('referral-btn')?.addEventListener('click', openReferralModal);
+document.getElementById('copy-referral-link-btn')?.addEventListener('click', async () => {
+    const input = document.getElementById('referral-link-input');
+    try {
+        await navigator.clipboard.writeText(input.value);
+        showToast('Link copied to clipboard!', 'success');
+    } catch (err) {
+        console.error('Copy failed', err);
+        showToast('Copy failed – please copy manually', 'error');
+    }
+});
 
    async function getMoveDetails(moves) {
     return Promise.all(moves.slice(0,4).map(async m => {
@@ -5346,6 +5743,8 @@ function showNoEvolutionModal(pokemonName) {
     }
 }
 
+
+
 async function releasePokemon(id,name) {
         if(!confirm(`Release ${name}?`)) return;
         const teamSnap = await getDocs(collection(db,"users",auth.currentUser.uid,"pokemon")); trackRead();
@@ -5365,6 +5764,9 @@ async function releasePokemon(id,name) {
     updatePlayerLabel();   // ← ADD THIS LINE
 }
        async function updateActiveCache(id) { const a=await getDoc(doc(db,"users",auth.currentUser.uid,"pokemon",id)); trackRead(); if(a.exists()) cachedActivePokemon={id:a.id,...a.data()}; }
+
+
+
 
  // ========== CLEAN & OPTIMIZED VIEW SWITCHING (30-USER GRIND FIX) ==========
 // ========== OPTIMIZED VIEW SWITCHING & POKEDEX ==========
@@ -5513,12 +5915,9 @@ async function releasePokemon(id,name) {
     }
 
     let pendingUser = null;
-    document.getElementById('reg-btn').onclick = async () => {
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        if (!email || !password) { alert("Please fill in both email and password."); return; }
-        try { await createUserWithEmailAndPassword(auth, email, password); } catch (err) { alert(err.message); }
-    };
+    document.getElementById('reg-btn').onclick = () => {
+    window.location.href = 'registration.html';
+};
     let isSubmittingStarter = false;
 
 async function fetchEvolutionChain(pokemonId) {
@@ -5736,6 +6135,70 @@ onAuthStateChanged(auth, async (user) => {
             };
             return;
         }
+
+        // ---- Referral reward check ----
+// ---- Referral reward check (fires only after admin activation) ----
+        // data is already loaded above. Only reward if:
+        // - account is active
+        // - has a referredBy
+        // - reward has not been given yet
+        if (data.active === true && data.referredBy && !data.referralRewarded) {
+            const REFERRAL_REWARD = 100000; // coins rewarded to both parties
+
+            const userRef = doc(db, "users", user.uid);
+
+            // 1. Reward the newly activated user
+            await updateDoc(userRef, {
+                coins: increment(REFERRAL_REWARD),
+                referralRewarded: true   // flag so this only runs once
+            });
+
+            // 2. Reward the referrer
+            try {
+                const inviterRef = doc(db, "users", data.referredBy);
+                const inviterSnap = await getDoc(inviterRef);
+                if (inviterSnap.exists()) {
+                    const inviterName = inviterSnap.data().trainerName || "A trainer";
+                    await updateDoc(inviterRef, {
+                        coins: increment(REFERRAL_REWARD),
+                        referralCount: increment(1)
+                    });
+                    // Optional: write a notification for the referrer
+                    await addDoc(collection(db, "users", data.referredBy, "notifications"), {
+                        type: "referral_reward",
+                        message: `Your referral was activated! You received ₱${REFERRAL_REWARD.toLocaleString()} coins.`,
+                        referredUser: data.trainerName || user.email,
+                        createdAt: new Date(),
+                        read: false
+                    });
+                }
+            } catch (err) {
+                console.warn("Referrer reward failed:", err);
+                // non-fatal — the new user's reward is already saved
+            }
+
+            // 3. Show toast to the newly activated user
+            showToast(`🎉 Welcome! You received ₱${REFERRAL_REWARD.toLocaleString()} referral bonus!`, 'success');
+        }
+
+const referralBtn = document.getElementById('referral-btn');
+if (referralBtn) {
+    referralBtn.classList.remove('hidden');
+}
+
+// Global helper (outside any callback)
+function showToast(msg, type = '') {
+    const toast = document.getElementById('toast');
+    if (!toast) return;
+    toast.textContent = msg;
+    toast.style.opacity = '1';
+    toast.style.backgroundColor = type === 'success' ? '#48bb78' : '#333';
+    setTimeout(() => toast.style.opacity = '0', 3000);
+}
+
+onAuthStateChanged(auth, async (user) => {
+    // ... now showToast is available everywhere
+});
         
         // Merkado link
         const merkadoLink = document.getElementById('merkado-link');
@@ -5795,6 +6258,7 @@ onAuthStateChanged(auth, async (user) => {
         }
         
         refreshTeamView();
+        if (window.stopAuthMusic) window.stopAuthMusic();
         playMainMusic();
         updateNavDisplay();
         document.getElementById('change-name-btn').onclick = changeTrainerName;
@@ -5809,6 +6273,44 @@ onAuthStateChanged(auth, async (user) => {
         if (battleMusic) battleMusic.pause();
     }
 });
+
+
+    // ── AUTH SCREEN MUSIC (music5.mp3) ──
+    (function() {
+        const authMusic    = document.getElementById('auth-music');
+        const authMusicBtn = document.getElementById('auth-music-btn');
+        if (!authMusic || !authMusicBtn) return;
+
+        let authMusicOn = true;
+        authMusic.volume = 0.35;
+
+        function startAuthMusic() {
+            authMusic.play().catch(() => {});
+            document.removeEventListener('click',     startAuthMusic);
+            document.removeEventListener('touchstart', startAuthMusic);
+        }
+        document.addEventListener('click',     startAuthMusic);
+        document.addEventListener('touchstart', startAuthMusic);
+
+        authMusicBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // don't double-trigger startAuthMusic
+            authMusicOn = !authMusicOn;
+            if (authMusicOn) {
+                authMusic.play().catch(() => {});
+                authMusicBtn.textContent = '🔊';
+            } else {
+                authMusic.pause();
+                authMusicBtn.textContent = '🔇';
+            }
+        });
+
+        // Stop auth music and hide button once the user is in-game
+        window.stopAuthMusic = function() {
+            authMusic.pause();
+            authMusic.currentTime = 0;
+            authMusicBtn.classList.add('hidden');
+        };
+    })();
 
     document.getElementById('login-btn').onclick = () => signInWithEmailAndPassword(auth, email.value, password.value).catch(e=>alert(e.message));
     document.getElementById('logout-btn').onclick = () => signOut(auth).then(()=>location.reload());
@@ -5994,5 +6496,8 @@ window.addEventListener('beforeunload', () => {
     }, THREE_MINUTES);
 })();
 </script>
+
+
+
 </body>
 </html>

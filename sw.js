@@ -1,8 +1,11 @@
-const CACHE_NAME = 'pokesim-v1.7.1';   // increment version
+const CACHE_NAME = 'pokesim-v1.7.2';   // increment version
 const assets = [
   'index.html',
   'map.html',
   'pokesim_offline.html',
+  'registration.html',
+  'battle.html',
+  'admin.html',
   'manifest.json',
   'favicon.ico',
   'PokeSim_Pokemon.png',
@@ -11,7 +14,8 @@ const assets = [
   'music1.mp3',
   'music2.mp3',
   'music3.mp3',
-  'music4.mp3'
+  'music4.mp3',
+  'music5.mp3'
 ];
 
 const urlsToCache = [

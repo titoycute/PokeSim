@@ -378,6 +378,7 @@ footer a:hover {
     width: 90%;
     box-shadow: 0 20px 35px rgba(0,0,0,0.3);
     color: var(--text-dark);
+    color: #2d3748;
 }
 .encounter-sprite {
     width: 180px;
@@ -1156,9 +1157,87 @@ body.dark-theme #map-info-modal .btn-primary:hover {
     border-bottom: 3px solid #ca9500; 
     text-shadow: none !important;
 }
+
+/* Base pill styles (light theme defaults) */
+.bonus-pill {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    margin: 2px;
+    text-shadow: none;
+}
+/* Form stats pills – darker, readable on white */
+.bonus-pill.form {
+    background: #ffcccc;
+    color: #b30000;
+}
+.bonus-pill.form.def {
+    background: #cce5ff;
+    color: #003d66;
+}
+.bonus-pill.form.spd {
+    background: #ccffcc;
+    color: #006600;
+}
+/* Wild stats pills – original bright style (good for light theme) */
+.bonus-pill.wild {
+    background: #ff6b6b;
+    color: white;
+}
+.bonus-pill.wild.def {
+    background: #4dabf7;
+}
+.bonus-pill.wild.spd {
+    background: #69db7c;
+}
+
+/* Dark theme overrides – softer, muted */
+body.dark-theme .bonus-pill.form {
+    background: rgba(255, 107, 107, 0.2);
+    color: #ffa0a0;
+}
+body.dark-theme .bonus-pill.form.def {
+    background: rgba(77, 171, 247, 0.2);
+    color: #a0c4ff;
+}
+body.dark-theme .bonus-pill.form.spd {
+    background: rgba(105, 219, 124, 0.2);
+    color: #a0ffa0;
+}
+body.dark-theme .bonus-pill.wild {
+    background: #c0392b;
+    color: #ffe0e0;
+}
+body.dark-theme .bonus-pill.wild.def {
+    background: #2c6e9e;
+}
+body.dark-theme .bonus-pill.wild.spd {
+    background: #2d6a4f;
+}
+#summary-details {
+    background: #f1f5f9;
+}
+body.dark-theme #summary-details {
+    background: #1e2230;
+}
+
+#battle-area {
+    max-width: 700px;
+    width: 95%;
+    margin: 20px auto;
+    background: linear-gradient(145deg, #87CEEB 0%, #c0e0ff 40%, #78c850 100%);
+    border-radius: 24px;
+    box-shadow: 0 12px 28px rgba(0,0,0,0.2);
+    border: 1px solid rgba(255,255,255,0.3);
+    overflow: hidden;
+    position: relative;   /* ← ADD THIS */
+}
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
+    
 </head>
 <body>
 
@@ -1732,14 +1811,42 @@ function getTotalBadgeBonus(effectType, targetType) {
         return stats;
     }
 
-  function getEffectiveSpeed(pokemon, isPlayer = true) {
+// ========== SPECIAL FORM BONUSES (percentage) ==========
+function getSpecialFormBonuses(pokemonName, pokemonId) {
+    const name = pokemonName.toLowerCase();
+    let atk = 0, def = 0, spd = 0;
+
+    // Gigantamax / Dynamax
+    if (name.includes('-gmax') || name === 'dynamax') {
+        atk = 10; def = 10; spd = 10;
+    }
+    // Primal Kyogre & Primal Groudon
+    else if (name === 'kyogre-primal' || name === 'groudon-primal' || 
+             (pokemonId === 382 && name.includes('primal')) || 
+             (pokemonId === 383 && name.includes('primal'))) {
+        atk = 5; def = 5; spd = 5;
+    }
+    // Origin Forme Dialga & Palkia
+    else if (name === 'dialga-origin' || name === 'palkia-origin') {
+        atk = 5; def = 5; spd = 5;
+    }
+    // Mega Evolutions (any -mega suffix)
+    else if (name.includes('-mega')) {
+        atk = 3; def = 3; spd = 3;
+    }
+    
+
+    return { atk, def, spd };
+}
+
+ function getEffectiveSpeed(pokemon, isPlayer = true) {
     let speed = pokemon.level;
-    if (pokemon.bonusStats?.spd) speed = Math.floor(speed * 1.25);
+    let spdBonus = pokemon.bonusStats?.spdPct || (pokemon.bonusStats?.spd ? 25 : 0);
+    if (spdBonus > 0) speed = Math.floor(speed * (1 + spdBonus / 100));
+    // Badge effects already handled elsewhere, but keep existing code if needed
     if (isPlayer) {
-        const spdBonus = getTotalBadgeBonus('spd', '');
-        if (spdBonus > 0) {
-            speed = Math.floor(speed * (1 + spdBonus / 100));
-        }
+        const spdBonusFromBadges = getTotalBadgeBonus('spd', '');
+        if (spdBonusFromBadges > 0) speed = Math.floor(speed * (1 + spdBonusFromBadges / 100));
     }
     return speed;
 }
@@ -1752,12 +1859,16 @@ function getTotalBadgeBonus(effectType, targetType) {
     return Math.random() < 0.5 ? 'player' : 'wild';
 }
 
-    function applyDamageModifiers(damage, attackerBonus, defenderBonus) {
-        let multiplier = 1;
-        if (attackerBonus?.atk) multiplier *= 1.25;
-        if (defenderBonus?.def) multiplier *= 0.75;
-        return Math.floor(damage * multiplier);
-    }
+  function applyDamageModifiers(damage, attackerBonus, defenderBonus) {
+    let multiplier = 1;
+    // Attacker ATK bonus
+    let atkBonus = attackerBonus?.atkPct || (attackerBonus?.atk ? 25 : 0);
+    if (atkBonus > 0) multiplier *= (1 + atkBonus / 100);
+    // Defender DEF bonus (reduces damage)
+    let defBonus = defenderBonus?.defPct || (defenderBonus?.def ? 25 : 0);
+    if (defBonus > 0) multiplier *= (1 - defBonus / 100);
+    return Math.floor(damage * multiplier);
+}
 
 function executeAttack(attacker, defender, move, isPlayerAttacking) {
     let eff = getTypeEffectiveness(move.type, defender.types);
@@ -1794,6 +1905,39 @@ function executeAttack(attacker, defender, move, isPlayerAttacking) {
         sprite.classList.remove('shake-effect');
         void sprite.offsetWidth;
         sprite.classList.add('shake-effect');
+        
+        // --- FLOATING DAMAGE NUMBER ---
+        const battleArea = document.getElementById('battle-area');
+        const rect = sprite.getBoundingClientRect();
+        const battleRect = battleArea.getBoundingClientRect();
+        // --- FLOATING DAMAGE NUMBER WITH MOVE ICON ---
+const dmgNumber = document.createElement('div');
+const moveIcon = TYPE_ICONS[move.type] || '💥';   // fallback icon
+dmgNumber.innerHTML = `<span style="font-size: 1.5rem; margin-right: 6px;">${moveIcon}</span>${dmg}`;
+dmgNumber.style.position = 'absolute';
+dmgNumber.style.display = 'flex';
+dmgNumber.style.alignItems = 'center';
+dmgNumber.style.justifyContent = 'center';
+dmgNumber.style.whiteSpace = 'nowrap';
+dmgNumber.style.left = `${rect.left - battleRect.left + rect.width / 2 - 30}px`;
+dmgNumber.style.top = `${rect.top - battleRect.top + rect.height / 2 - 30}px`;
+dmgNumber.style.color = '#ff4444';
+dmgNumber.style.fontWeight = 'bold';
+dmgNumber.style.fontSize = '1.8rem';
+dmgNumber.style.textShadow = '1px 1px 0 black';
+dmgNumber.style.zIndex = '1000';
+dmgNumber.style.pointerEvents = 'none';
+dmgNumber.style.transition = 'all 0.6s ease-out';
+dmgNumber.style.opacity = '1';
+dmgNumber.style.transform = 'translateY(0)';
+battleArea.appendChild(dmgNumber);
+
+requestAnimationFrame(() => {
+    dmgNumber.style.transform = 'translateY(-50px)';
+    dmgNumber.style.opacity = '0';
+});
+setTimeout(() => dmgNumber.remove(), 800);
+        // --- END FLOATING NUMBER ---
     }
     
     // Include STAB info in battle log
@@ -2093,8 +2237,11 @@ const autoCatchEnabled = currentMap?.autoCatchEnabled === true;
 const autoCatchThreshold = currentMap?.autoCatchThreshold || 5;
 const alreadyAutoCaught = recordSnap.exists() && (recordSnap.data().autoCaught === true || recordSnap.data().autoCaught5th === true);
 
+// === AUTO‑CATCH BLOCK (patch) ===
 if (autoCatchEnabled && encounterCount >= autoCatchThreshold && !alreadyAutoCaught) {
     addBattleLog(`🎉 ${b.wild.name.toUpperCase()} has been encountered ${encounterCount} times on this map! It automatically joins your team!`);
+
+    // 1. Save the new Pokémon (as before)
     const trainerName = await getTrainerName();
     const newPokemon = {
         pokemonId: b.wild.pokemonId,
@@ -2115,7 +2262,27 @@ if (autoCatchEnabled && encounterCount >= autoCatchThreshold && !alreadyAutoCaug
     await updateUserTotalLevels(userId, b.wild.level);
     await updateDoc(recordRef, { autoCaught: true });
     invalidateTeamCache();
-    showBattleSummary('catch');
+
+    // 2. Force stop battle music and hide battle UI to avoid overlay conflicts
+    stopBattleMusic();
+    document.getElementById('battle-area').classList.add('hidden');
+
+    // 3. Use a reliable custom modal (or fallback alert)
+    const autoCatchModal = document.createElement('div');
+    autoCatchModal.className = 'overlay'; // reuses your overlay style
+    autoCatchModal.innerHTML = `
+        <div class="modal" style="max-width: 400px; text-align: center;">
+            <h2>🎉 AUTO‑CATCH SUCCESS!</h2>
+            <img src="${getStaticSpriteUrl(b.wild.pokemonId)[0]}" style="width: 120px;">
+            <p><strong>${b.wild.name.toUpperCase()}</strong> automatically joined your team!</p>
+            <button class="btn btn-primary" id="close-auto-catch">Continue</button>
+        </div>
+    `;
+    document.body.appendChild(autoCatchModal);
+    document.getElementById('close-auto-catch').onclick = () => {
+        autoCatchModal.remove();
+        endBattleCleanup();  // cleans up currentBattle
+    };
     return;
 }
         // ---- Normal win: distribute XP among participants ----
@@ -2445,16 +2612,14 @@ setTimeout(() => {
     });
 }, 100);
 } else if (type === 'catch') {
-    header.innerText = "GOTCHA!";
+    let statBreakdownHtml = ''; 
+  header.innerText = "GOTCHA!";
     header.style.color = "#ef4444";
 
     const spriteContainer = document.getElementById('summary-sprite-container');
-    // REMOVED THE GLOW: Just a clean, solid radial background
     spriteContainer.style.background = "radial-gradient(circle, #fff 0%, #f3f4f6 100%)";
     spriteContainer.style.border = "4px solid #ef4444";
     spriteContainer.style.position = "relative";
-    
-    // Ensure old glows are removed if they exist
     const oldGlow = spriteContainer.querySelector('.catch-success-glow');
     if (oldGlow) oldGlow.remove();
 
@@ -2463,40 +2628,57 @@ setTimeout(() => {
     } else {
         loadImageWithFallback(sprite, getBattleSpriteUrl(b.wild.pokemonId, 'front'));
     }
-    
     sprite.className = "catch-pop-in";
     sprite.style.imageRendering = "pixelated";
     sprite.style.width = "110px";
     sprite.style.height = "110px";
     sprite.style.zIndex = "2";
 
-    // 1. Build the Stat & Shiny Bonuses HTML
-    let statBonusesHtml = "";
-    
-    // Add Shiny Attribute if the Pokemon is Shiny
-    if (b.wild.isShiny) {
-        statBonusesHtml += `<div class="stat-badge-pill sb-shiny">✨ SHINY</div>`;
-    }
-    
-    if (b.wild.bonusStats?.atk) statBonusesHtml += `<div class="stat-badge-pill sb-atk">⚔️ ATK +25%</div>`;
-    if (b.wild.bonusStats?.def) statBonusesHtml += `<div class="stat-badge-pill sb-def">🛡️ DEF +25%</div>`;
-    if (b.wild.bonusStats?.spd) statBonusesHtml += `<div class="stat-badge-pill sb-spd">🏃 SPD +25%</div>`;
-    
-    if (statBonusesHtml === "") {
-        statBonusesHtml = `<div style="font-size:0.75rem; color:var(--text-light); font-style:italic;">Standard Potential</div>`;
-    }
-
     let wIcons = b.wild.isShiny ? '✨ ' : '';
     name.innerHTML = `${wIcons}${b.wild.name.toUpperCase()}`;
     info.innerHTML = `LEVEL ${b.wild.level} <span style="margin:0 5px; opacity:0.3;">•</span> <span style="color:#ef4444; font-weight:bold;">NEW REGISTRATION</span>`;
     typesDiv.innerHTML = generateTypeBadges(b.wild.types);
 
-    // 2. Build Moveset with specific colors and icons
+    // --- NEW BONUS DISPLAY (Form + Wild, with subdued form colors) ---
+    const form = b.wild.formBonuses || { atk:0, def:0, spd:0 };
+    const wild = b.wild.wildBonuses || { atk:0, def:0, spd:0 };
+    let bonusHtml = '';
+
+    // Form stats (subdued)
+    // Form bonuses
+if (form.atk > 0 || form.def > 0 || form.spd > 0) {
+    statBreakdownHtml += `<div style="font-size:0.75rem; color:var(--primary-dark); font-weight:700; margin-bottom:5px;">✧ Form‑specific bonuses (${b.wild.name.split('-')[0].toUpperCase()}):</div>`;
+    statBreakdownHtml += `<div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">`;
+    if (form.atk > 0) statBreakdownHtml += `<span class="bonus-pill form">⚔️ ATK +${form.atk}%</span>`;
+    if (form.def > 0) statBreakdownHtml += `<span class="bonus-pill form def">🛡️ DEF +${form.def}%</span>`;
+    if (form.spd > 0) statBreakdownHtml += `<span class="bonus-pill form spd">🏃 SPD +${form.spd}%</span>`;
+    statBreakdownHtml += `</div>`;
+}
+
+// Wild bonuses
+if (wild.atk > 0 || wild.def > 0 || wild.spd > 0) {
+    statBreakdownHtml += `<div style="font-size:0.75rem; color:var(--text-light); font-weight:700; margin-bottom:5px;">🌿 Wild bonus (random encounter):</div>`;
+    statBreakdownHtml += `<div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">`;
+    if (wild.atk > 0) statBreakdownHtml += `<span class="bonus-pill wild">⚔️ ATK +${wild.atk}%</span>`;
+    if (wild.def > 0) statBreakdownHtml += `<span class="bonus-pill wild def">🛡️ DEF +${wild.def}%</span>`;
+    if (wild.spd > 0) statBreakdownHtml += `<span class="bonus-pill wild spd">🏃 SPD +${wild.spd}%</span>`;
+    statBreakdownHtml += `</div>`;
+}
+
+    if (bonusHtml === "") {
+        bonusHtml = `<div style="font-size:0.75rem; color:var(--text-light); font-style:italic;">No additional bonuses</div>`;
+    }
+
+    // Shiny HP bonus (if applicable)
+    let shinyBonusHtml = '';
+    if (b.wild.isShiny) {
+        shinyBonusHtml = `<div style="margin-top:6px; font-size:0.7rem; color:var(--warning);">✨ Shiny bonus: +15% HP</div>`;
+    }
+
+    // Moveset (unchanged)
     let movesHtml = b.wild.moves.map(m => {
         const typeColor = getTypeColor(m.type);
-        // Fallback to gear emoji if type icon doesn't exist
-        const typeIcon = TYPE_ICONS[m.type] || '⚙️'; 
-        
+        const typeIcon = TYPE_ICONS[m.type] || '⚙️';
         return `
             <div class="move-tag-colored" style="background: ${typeColor};">
                 <span style="font-size: 0.9rem;">${typeIcon}</span> 
@@ -2506,20 +2688,16 @@ setTimeout(() => {
     }).join('');
 
     details.innerHTML = `
-        <!-- STAT BONUSES SECTION -->
-        <span class="summary-section-title">Special Traits & Potential</span>
-        <div style="display:flex; justify-content:center; gap:8px; flex-wrap:wrap; margin-bottom:15px; padding:10px; background:rgba(0,0,0,0.02); border-radius:12px;">
-            ${statBonusesHtml}
+        <span class="summary-section-title">⚡ Special Traits & Potential</span>
+        <div style="background:rgba(0,0,0,0.02); border-radius:12px; padding:8px; margin-bottom:12px;">
+            ${bonusHtml}
+            ${shinyBonusHtml}
         </div>
-
-        <!-- MOVESET SECTION -->
-        <span class="summary-section-title">Known Moves</span>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px;">
+        <span class="summary-section-title">📖 Known Moves</span>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:12px;">
             ${movesHtml}
         </div>
-
-        <!-- FOOTER INFO -->
-        <div style="margin-top:20px; padding:8px; border:1px dashed var(--border); border-radius:12px; font-size:0.7rem; color:var(--text-light); text-align:center;">
+        <div style="margin-top:12px; padding:8px; border:1px dashed var(--border); border-radius:12px; font-size:0.7rem; color:var(--text-light); text-align:center;">
             Captured at <b>${currentMap?.name || 'Unknown Area'}</b>
         </div>
     `;
@@ -2554,73 +2732,97 @@ else if (type === 'defeat') {
 
 async function attemptCatch() {
     if (!currentBattle || isProcessing || !currentMap) return;
+
     const b = currentBattle;
     const requiredXPPercent = currentMap.requiredExpPercent || 10;
     const penaltyPercent = (currentMap.catchXpPenaltyPercent || 10) / 100;
     const expNeededTotal = b.player.level * 300;
     const requiredXPNeeded = expNeededTotal * (requiredXPPercent / 100);
     const currentXP = b.player.exp || 0;
-    if (b.player.level <= 10) { alert("Active Pokémon must be above level 10 to catch!"); return; }
-    if (currentXP < requiredXPNeeded) { alert(`Need at least ${requiredXPPercent}% XP progress to catch! Current: ${Math.floor((currentXP/expNeededTotal)*100)}%`); return; }
+
+    // Validation
+    if (b.player.level <= 10) {
+        addBattleLog("❌ Your Pokémon must be above level 10 to catch!");
+        return;
+    }
+    if (currentXP < requiredXPNeeded) {
+        addBattleLog(`❌ Need at least ${requiredXPPercent}% XP progress to catch! Current: ${Math.floor((currentXP/expNeededTotal)*100)}%`);
+        return;
+    }
+
+    // Lock UI and clear any pending turn
+    if (currentTurnTimeout) clearTimeout(currentTurnTimeout);
     isProcessing = true;
     toggleBattleUI(true);
-    if (currentTurnTimeout) clearTimeout(currentTurnTimeout);
+
     try {
         const penalty = Math.floor(expNeededTotal * penaltyPercent);
         const newExp = Math.max(0, currentXP - penalty);
-        // Batch start
+
+        // 1. Deduct XP immediately (always happens)
         const batch = writeBatch(db);
-        const userRef = doc(db, "users", auth.currentUser.uid);
         const pokemonRef = doc(db, "users", auth.currentUser.uid, "pokemon", b.player.id);
         batch.update(pokemonRef, { exp: newExp });
+        await batch.commit();   // ← XP deducted now, whether catch succeeds or fails
 
+        // 2. Update local objects
         b.player.exp = newExp;
-        if (cachedActivePokemon && cachedActivePokemon.id === b.player.id) cachedActivePokemon.exp = newExp;
-        addBattleLog(`Catch attempt! Spent ${penalty} XP.`);
+        if (cachedActivePokemon && cachedActivePokemon.id === b.player.id) {
+            cachedActivePokemon.exp = newExp;
+        }
+        addBattleLog(`🎣 Catch attempt! Spent ${penalty} XP.`);
         renderBattleUI();
 
+        // 3. Determine catch success
         const hpPct = b.wild.currentHp / b.wild.maxHp;
         let catchChance = Math.min((currentMap.catchRate || 45) / 100, (1 - hpPct) * 0.8 + 0.05);
-        if (Math.random() < catchChance) {
-    const trainerName = await getTrainerName();
-    const newPokemon = {
-        pokemonId: b.wild.pokemonId,
-        name: b.wild.name,
-        level: b.wild.level,
-        exp: 0,
-        moves: b.wild.moves,
-        types: b.wild.types,
-        inTeam: false,
-        capturedAt: new Date(),
-        capturedBy: trainerName,
-        capturedOnMap: currentMap?.name || "Somewhere in PokeSim",
-        bonusStats: b.wild.bonusStats,
-        isShiny: b.wild.isShiny
-    };
-    await addDoc(collection(db, "users", auth.currentUser.uid, "pokemon"), newPokemon);
-    ownedPokemonIds.add(b.wild.pokemonId);
-    await updateUserTotalLevels(auth.currentUser.uid, b.wild.level);
-    invalidateTeamCache();
-    await savePlayerPositionToFirestore();
-    showBattleSummary('catch');
-    refreshTeamView();
-    updateNavDisplay();
-}else {
-            // If catch fails, we only committed the XP penalty – we need to commit that now
-            await batch.commit();
-            addBattleLog(`It broke free!`);
-            setTimeout(() => {
+        const success = Math.random() < catchChance;
+
+        if (success) {
+            // ---- CATCH SUCCESS ----
+            const trainerName = await getTrainerName();
+            const newPokemon = {
+                pokemonId: b.wild.pokemonId,
+                name: b.wild.name,
+                level: b.wild.level,
+                exp: 0,
+                moves: b.wild.moves,
+                types: b.wild.types,
+                inTeam: false,
+                capturedAt: new Date(),
+                capturedBy: trainerName,
+                capturedOnMap: currentMap?.name || "Somewhere in PokeSim",
+                bonusStats: b.wild.bonusStats,
+                isShiny: b.wild.isShiny
+            };
+            await addDoc(collection(db, "users", auth.currentUser.uid, "pokemon"), newPokemon);
+            ownedPokemonIds.add(b.wild.pokemonId);
+            await updateUserTotalLevels(auth.currentUser.uid, b.wild.level);
+            invalidateTeamCache();
+
+            // Update encounter record (optional, but keep track)
+            const recordRef = doc(db, "users", auth.currentUser.uid, "records", b.wild.pokemonId.toString());
+            await updateDoc(recordRef, { count: increment(1) }).catch(() => {});
+
+            addBattleLog(`✨ Gotcha! ${b.wild.name.toUpperCase()} was caught! ✨`);
+            showBattleSummary('catch');   // modal will end battle when closed
+            // No need to call endBattleCleanup here – the modal's button does it.
+            // isProcessing will be reset by endBattleCleanup after modal closes.
+            return;
+        } else {
+            // ---- CATCH FAILS ----
+            addBattleLog(`💔 It broke free! The wild ${b.wild.name.toUpperCase()} attacks!`);
+            // Wild Pokémon counterattacks after a short delay
+            setTimeout(async () => {
                 if (!currentBattle) return;
                 const wM = b.wild.moves[Math.floor(Math.random() * b.wild.moves.length)];
                 executeAttack(b.wild, b.player, wM, false);
                 renderBattleUI();
+
                 if (b.player.currentHp <= 0) {
-                    handlePlayerFaint(b);
-                    isProcessing = false;
-                    toggleBattleUI(false);
-                    if (currentTurnTimeout) clearTimeout(currentTurnTimeout);
-                    currentTurnTimeout = null;
+                    await handlePlayerFaint(b);
                 } else {
+                    // Re‑enable UI after enemy attack
                     isProcessing = false;
                     toggleBattleUI(false);
                     if (currentTurnTimeout) clearTimeout(currentTurnTimeout);
@@ -2629,13 +2831,15 @@ async function attemptCatch() {
             }, 1000);
         }
     } catch (err) {
-        console.error(err);
+        console.error("Catch error:", err);
+        addBattleLog("⚠️ Something went wrong while trying to catch!");
         isProcessing = false;
         toggleBattleUI(false);
         if (currentTurnTimeout) clearTimeout(currentTurnTimeout);
         currentTurnTimeout = null;
     }
 }
+
 
     async function attemptEscape() {
         if (!currentBattle || isProcessing) return;
@@ -2971,24 +3175,25 @@ function renderBattleUI() {
 
     // ----- Enemy Stat Box (new layout) -----
     const enemyStatBox = document.querySelector('#battle-area .enemy-side .stat-box');
-    if (enemyStatBox) {
-        const shinyIcon = b.wild.isShiny ? '✨ ' : '';
-        let bonusIcons = '';
-        if (b.wild.bonusStats?.atk) bonusIcons += '⚔️';
-        if (b.wild.bonusStats?.def) bonusIcons += '🛡️';
-        if (b.wild.bonusStats?.spd) bonusIcons += '🏃';
-        const specialBadge = b.wild.specialBadge || '';
-        const hpPercent = (b.wild.currentHp / b.wild.maxHp) * 100;
+if (enemyStatBox) {
+    const shinyIcon = b.wild.isShiny ? '✨ ' : '';
+    // Show icons ONLY for random wild bonuses (+25% flags)
+    let bonusIcons = '';
+    if (b.wild.wildBonuses?.atk) bonusIcons += '⚔️';
+    if (b.wild.wildBonuses?.def) bonusIcons += '🛡️';
+    if (b.wild.wildBonuses?.spd) bonusIcons += '🏃';
+    const specialBadge = b.wild.specialBadge || '';
+    const hpPercent = (b.wild.currentHp / b.wild.maxHp) * 100;
 
-        enemyStatBox.innerHTML = `
-            <div><strong>${shinyIcon}${b.wild.name.toUpperCase()}</strong> | Lv.${b.wild.level}</div>
-            ${specialBadge ? `<div style="font-size:0.7rem; margin-top:2px;">${specialBadge}</div>` : ''}
-            ${bonusIcons ? `<div style="font-size:0.9rem; margin-top:2px;">${bonusIcons}</div>` : ''}
-            <div>${generateTypeBadges(b.wild.types)}</div>
-            <div class="hp-bar"><div class="hp-fill" style="width: ${hpPercent}%; background: var(--success);"></div></div>
-            <div style="font-size:0.7rem; margin-top:4px;">❤️ HP: ${b.wild.currentHp}/${b.wild.maxHp}</div>
-        `;
-    }
+    enemyStatBox.innerHTML = `
+        <div><strong>${shinyIcon}${b.wild.name.toUpperCase()}</strong> | Lv.${b.wild.level}</div>
+        ${specialBadge ? `<div style="font-size:0.7rem; margin-top:2px;">${specialBadge}</div>` : ''}
+        ${bonusIcons ? `<div style="font-size:0.9rem; margin-top:2px;">${bonusIcons}</div>` : ''}
+        <div>${generateTypeBadges(b.wild.types)}</div>
+        <div class="hp-bar"><div class="hp-fill" style="width: ${hpPercent}%; background: var(--success);"></div></div>
+        <div style="font-size:0.7rem; margin-top:4px;">❤️ HP: ${b.wild.currentHp}/${b.wild.maxHp}</div>
+    `;
+}
 
     // ----- Player Stat Box (new layout) -----
     const playerStatBox = document.querySelector('#battle-area .player-side .stat-box');
@@ -3308,6 +3513,16 @@ rawMoves = baseData.moves;
             // Calculate level BEFORE showing preview so we can display it
             let wildLevel;
             const wildBonus = generateWildBonusStats();
+            // Get extra percentage bonuses from special forms
+            const formBonuses = getSpecialFormBonuses(wildData.name, wildId);
+            let totalAtkPct = (wildBonus.atk ? 25 : 0) + formBonuses.atk;
+            let totalDefPct = (wildBonus.def ? 25 : 0) + formBonuses.def;
+            let totalSpdPct = (wildBonus.spd ? 25 : 0) + formBonuses.spd;
+            let extraBonusHtml = '';
+if (formBonuses.atk > 0) extraBonusHtml += `<span style="background:#ff6b6b;color:white;padding:3px 10px;border-radius:20px;">✨ Form +${formBonuses.atk}% ATK</span>`;
+if (formBonuses.def > 0) extraBonusHtml += `<span style="background:#4dabf7;color:white;padding:3px 10px;border-radius:20px;">✨ Form +${formBonuses.def}% DEF</span>`;
+if (formBonuses.spd > 0) extraBonusHtml += `<span style="background:#69db7c;color:white;padding:3px 10px;border-radius:20px;">✨ Form +${formBonuses.spd}% SPD</span>`;
+document.getElementById('preview-bonus-stats').insertAdjacentHTML('beforeend', extraBonusHtml);
             if (currentMap.specialLevelRange?.enabled) {
                 wildLevel = Math.floor(Math.random() * (currentMap.specialLevelRange.max - currentMap.specialLevelRange.min + 1)) + currentMap.specialLevelRange.min;
             } else {
@@ -3319,16 +3534,37 @@ rawMoves = baseData.moves;
 
             document.getElementById('encounter-preview').classList.remove('hidden');
             document.getElementById('preview-level-hp').innerHTML = `⚡ Level ${wildLevel} &nbsp;|&nbsp; ❤️ HP: ${wildMaxHp}`;
-            // Bonus stats warning
-            const bonusDiv = document.getElementById('preview-bonus-stats');
-            let bonusHtml = '';
-            if (wildBonus.atk) bonusHtml += `<span style="background:#ff6b6b;color:white;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:bold;">⚔️ +ATK <small style="opacity:0.85;">+25% Attack</small></span>`;
-            if (wildBonus.def) bonusHtml += `<span style="background:#4dabf7;color:white;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:bold;">🛡️ +DEF <small style="opacity:0.85;">+25% Defense</small></span>`;
-            if (wildBonus.spd) bonusHtml += `<span style="background:#69db7c;color:white;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:bold;">🏃 +SPD <small style="opacity:0.85;">+25% Speed</small></span>`;
-            bonusDiv.innerHTML = bonusHtml;
            
-             const count = await trackRecord(wildId, wildData.name);
+        
+// ---- ENHANCED BONUS STATS (Form + Wild, separate lines) ----
+const bonusDiv = document.getElementById('preview-bonus-stats');
+let bonusHtml = '';
 
+// 1. Form stats (smaller, less prominent)
+const form = getSpecialFormBonuses(wildData.name, wildId);
+if (form.atk > 0 || form.def > 0 || form.spd > 0) {
+    bonusHtml += `<div style="margin-bottom:6px;"><span style="font-size:0.65rem; font-weight:600; letter-spacing:0.5px;">✨ FORM STATS</span><br>`;
+    if (form.atk > 0) bonusHtml += `<span class="bonus-pill form">⚔️ ATK +${form.atk}%</span>`;
+    if (form.def > 0) bonusHtml += `<span class="bonus-pill form def">🛡️ DEF +${form.def}%</span>`;
+    if (form.spd > 0) bonusHtml += `<span class="bonus-pill form spd">🏃 SPD +${form.spd}%</span>`;
+    bonusHtml += `</div>`;
+}
+
+
+if (wildBonus.atk || wildBonus.def || wildBonus.spd) {
+    bonusHtml += `<div style="margin-bottom:4px;"><span style="font-size:0.7rem; font-weight:700; color:#ffd966;">🌿 WILD STATS</span><br>`;
+    if (wildBonus.atk) bonusHtml += `<span class="bonus-pill wild">⚔️ ATK +25%</span>`;
+    if (wildBonus.def) bonusHtml += `<span class="bonus-pill wild def">🛡️ DEF +25%</span>`;
+    if (wildBonus.spd) bonusHtml += `<span class="bonus-pill wild spd">🏃 SPD +25%</span>`;
+    bonusHtml += `</div>`;
+}
+
+if (bonusHtml === "") {
+    bonusHtml = `<span style="color:var(--text-light); font-size:0.7rem;">No additional bonuses</span>`;
+}
+bonusDiv.innerHTML = bonusHtml;
+   
+const count = await trackRecord(wildId, wildData.name);
             setTimeout(async () => {
                 document.getElementById('encounter-preview').classList.add('hidden');
                 const selectedPokemon = await showPreBattleSelectModal(team);
@@ -3359,7 +3595,20 @@ rawMoves = baseData.moves;
                         isSpecial: isSpecial,
                         specialCategory: specialCategory,
                         specialBadge: specialBadge,
-                        bonusStats: wildBonus,
+                        bonusStats: {
+                            atk: totalAtkPct > 0,
+                            def: totalDefPct > 0,
+                            spd: totalSpdPct > 0,
+                            atkPct: totalAtkPct,
+                            defPct: totalDefPct,
+                            spdPct: totalSpdPct
+                        },
+                        formBonuses: { atk: formBonuses.atk, def: formBonuses.def, spd: formBonuses.spd },
+                        wildBonuses: { 
+                            atk: wildBonus.atk ? 25 : 0, 
+                            def: wildBonus.def ? 25 : 0, 
+                            spd: wildBonus.spd ? 25 : 0 
+                        },
                         isShiny: isShiny
                     }
                 };

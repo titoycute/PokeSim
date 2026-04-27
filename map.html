@@ -1812,29 +1812,129 @@ function getTotalBadgeBonus(effectType, targetType) {
     }
 
 // ========== SPECIAL FORM BONUSES (percentage) ==========
+// ========== SPECIAL FORM BONUSES (percentage) ==========
 function getSpecialFormBonuses(pokemonName, pokemonId) {
     const name = pokemonName.toLowerCase();
     let atk = 0, def = 0, spd = 0;
 
-    // Gigantamax / Dynamax
+    // ----- Gigantamax / Dynamax -----
     if (name.includes('-gmax') || name === 'dynamax') {
         atk = 10; def = 10; spd = 10;
     }
-    // Primal Kyogre & Primal Groudon
+    // ----- Primal Kyogre & Primal Groudon -----
     else if (name === 'kyogre-primal' || name === 'groudon-primal' || 
              (pokemonId === 382 && name.includes('primal')) || 
              (pokemonId === 383 && name.includes('primal'))) {
         atk = 5; def = 5; spd = 5;
     }
-    // Origin Forme Dialga & Palkia
+    // ----- Origin Forme Dialga & Palkia -----
     else if (name === 'dialga-origin' || name === 'palkia-origin') {
         atk = 5; def = 5; spd = 5;
     }
-    // Mega Evolutions (any -mega suffix)
-    else if (name.includes('-mega')) {
+    // ----- Mega Evolutions (any -mega suffix OR ID range 10001-10255) -----
+    else if (name.includes('-mega') || (pokemonId > 10000 && pokemonId < 10256)) {
         atk = 3; def = 3; spd = 3;
     }
-    
+
+    // ========== NEW ADDITIONS ==========
+
+    // ----- Ultra Beasts (UB) -----
+    // Known UB IDs: 793-799, 803-806, & some newer (list all)
+    const ultraBeastIds = new Set([
+        793, 794, 795, 796, 797, 798, 799, 803, 804, 805, 806,
+        10025, 10026, 10027, 10028, 10029, 10030 // add any missing UB IDs
+    ]);
+    if (ultraBeastIds.has(pokemonId) || name.includes('-ub') || name.includes('ultra') || 
+        (name.includes('beast') && !name.includes('beast'))) {
+        atk = 3; def = 0; spd = 3;  // glass cannon
+    }
+
+    // ----- Alolan Forms -----
+    if (name.includes('-alola')) {
+        if (name === 'ninetales-alola' || name === 'alolan-ninetales') {
+            spd = 2;
+        } else if (name === 'sandslash-alola' || name === 'alolan-sandslash') {
+            atk = 2; def = 2;
+        }
+        // other Alolan forms default to no bonus unless specified
+    }
+
+    // ----- Galarian Forms -----
+    if (name.includes('-galar')) {
+        if (name === 'darmanitan-galar-zen' || name.includes('galarian-darmanitan-zen')) {
+            atk = 5;
+        } else if (name === 'slowbro-galar' || name === 'galarian-slowbro') {
+            def = 2;
+        }
+        // Galarian Darmanitan regular (non-Zen) – no bonus
+    }
+
+    // ----- Hisuian Forms -----
+    if (name.includes('-hisui')) {
+        if (name === 'zoroark-hisui' || name === 'hisuian-zoroark') {
+            atk = 3; spd = 3;
+        } else if (name === 'arcanine-hisui' || name === 'hisuian-arcanine') {
+            atk = 3; def = 2;
+        }
+    }
+
+    // ----- Specific Legendaries & Mythicals -----
+    // Giratina‑Origin
+    if (name === 'giratina-origin') {
+        atk = 5; def = 3; spd = 3;
+    }
+    // Deoxys forms
+    else if (name === 'deoxys-attack') {
+        atk = 5; spd = 5;
+    } else if (name === 'deoxys-defense') {
+        def = 5;
+    } else if (name === 'deoxys-speed') {
+        spd = 5;
+    }
+    // Shaymin‑Sky
+    else if (name === 'shaymin-sky') {
+        atk = 3; spd = 5;
+    }
+    // Keldeo‑Resolute
+    else if (name === 'keldeo-resolute') {
+        atk = 3; spd = 3;
+    }
+    // Hoopa‑Unbound
+    else if (name === 'hoopa-unbound') {
+        atk = 5; def = 3; spd = 5;
+    }
+    // Necrozma forms
+    else if (name === 'necrozma-dusk-mane') {
+        atk = 5; def = 5;
+    } else if (name === 'necrozma-dawn-wings') {
+        atk = 5; spd = 5;
+    }
+    // Zacian & Zamazenta (Crowned)
+    else if (name === 'zacian-crowned') {
+        atk = 5; spd = 3;
+    } else if (name === 'zamazenta-crowned') {
+        def = 5; spd = 3;
+    }
+    // Eternatus‑Eternamax
+    else if (name === 'eternatus-eternamax') {
+        atk = 5; def = 5; spd = 5;
+    }
+    // Zygarde forms
+    else if (name === 'zygarde-10') {
+        // no bonus by default
+    } else if (name === 'zygarde-50') {
+        atk = 2; def = 2; spd = 2;
+    } else if (name === 'zygarde-complete' || name === 'zygarde-100') {
+        atk = 5; def = 5; spd = 5;
+    }
+    // Aegislash‑Blade
+    else if (name === 'aegislash-blade') {
+        atk = 5; spd = 3;
+    }
+    // Wishiwashi‑School
+    else if (name === 'wishiwashi-school') {
+        atk = 3; def = 3; spd = 3;
+    }
 
     return { atk, def, spd };
 }
@@ -2612,8 +2712,7 @@ setTimeout(() => {
     });
 }, 100);
 } else if (type === 'catch') {
-    let statBreakdownHtml = ''; 
-  header.innerText = "GOTCHA!";
+   header.innerText = "GOTCHA!";
     header.style.color = "#ef4444";
 
     const spriteContainer = document.getElementById('summary-sprite-container');
@@ -2639,41 +2738,51 @@ setTimeout(() => {
     info.innerHTML = `LEVEL ${b.wild.level} <span style="margin:0 5px; opacity:0.3;">•</span> <span style="color:#ef4444; font-weight:bold;">NEW REGISTRATION</span>`;
     typesDiv.innerHTML = generateTypeBadges(b.wild.types);
 
-    // --- NEW BONUS DISPLAY (Form + Wild, with subdued form colors) ---
+    // --- IMPORTANT: use separate form and wild bonuses ---
     const form = b.wild.formBonuses || { atk:0, def:0, spd:0 };
     const wild = b.wild.wildBonuses || { atk:0, def:0, spd:0 };
-    let bonusHtml = '';
+    const total = {
+        atk: form.atk + wild.atk,
+        def: form.def + wild.def,
+        spd: form.spd + wild.spd
+    };
 
-    // Form stats (subdued)
+    let statBreakdownHtml = `
+        <span class="summary-section-title">⚡ Special Traits & Potential</span>
+        <div style="background:rgba(0,0,0,0.02); border-radius:12px; padding:8px; margin-bottom:12px;">
+    `;
+
     // Form bonuses
-if (form.atk > 0 || form.def > 0 || form.spd > 0) {
-    statBreakdownHtml += `<div style="font-size:0.75rem; color:var(--primary-dark); font-weight:700; margin-bottom:5px;">✧ Form‑specific bonuses (${b.wild.name.split('-')[0].toUpperCase()}):</div>`;
-    statBreakdownHtml += `<div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">`;
-    if (form.atk > 0) statBreakdownHtml += `<span class="bonus-pill form">⚔️ ATK +${form.atk}%</span>`;
-    if (form.def > 0) statBreakdownHtml += `<span class="bonus-pill form def">🛡️ DEF +${form.def}%</span>`;
-    if (form.spd > 0) statBreakdownHtml += `<span class="bonus-pill form spd">🏃 SPD +${form.spd}%</span>`;
-    statBreakdownHtml += `</div>`;
-}
-
-// Wild bonuses
-if (wild.atk > 0 || wild.def > 0 || wild.spd > 0) {
-    statBreakdownHtml += `<div style="font-size:0.75rem; color:var(--text-light); font-weight:700; margin-bottom:5px;">🌿 Wild bonus (random encounter):</div>`;
-    statBreakdownHtml += `<div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">`;
-    if (wild.atk > 0) statBreakdownHtml += `<span class="bonus-pill wild">⚔️ ATK +${wild.atk}%</span>`;
-    if (wild.def > 0) statBreakdownHtml += `<span class="bonus-pill wild def">🛡️ DEF +${wild.def}%</span>`;
-    if (wild.spd > 0) statBreakdownHtml += `<span class="bonus-pill wild spd">🏃 SPD +${wild.spd}%</span>`;
-    statBreakdownHtml += `</div>`;
-}
-
-    if (bonusHtml === "") {
-        bonusHtml = `<div style="font-size:0.75rem; color:var(--text-light); font-style:italic;">No additional bonuses</div>`;
+    if (form.atk > 0 || form.def > 0 || form.spd > 0) {
+        statBreakdownHtml += `<div style="font-size:0.75rem; color:var(--primary-dark); font-weight:700; margin-bottom:5px;">✧ Form‑specific bonuses (${b.wild.name.split('-')[0].toUpperCase()}):</div>`;
+        statBreakdownHtml += `<div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">`;
+        if (form.atk > 0) statBreakdownHtml += `<span class="bonus-pill form">⚔️ ATK +${form.atk}%</span>`;
+        if (form.def > 0) statBreakdownHtml += `<span class="bonus-pill form def">🛡️ DEF +${form.def}%</span>`;
+        if (form.spd > 0) statBreakdownHtml += `<span class="bonus-pill form spd">🏃 SPD +${form.spd}%</span>`;
+        statBreakdownHtml += `</div>`;
     }
 
-    // Shiny HP bonus (if applicable)
-    let shinyBonusHtml = '';
+    // Wild bonuses (random +25% flags)
+    if (wild.atk > 0 || wild.def > 0 || wild.spd > 0) {
+        statBreakdownHtml += `<div style="font-size:0.75rem; color:var(--text-light); font-weight:700; margin-bottom:5px;">🌿 Wild bonus (random encounter):</div>`;
+        statBreakdownHtml += `<div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">`;
+        if (wild.atk > 0) statBreakdownHtml += `<span class="bonus-pill wild">⚔️ ATK +${wild.atk}%</span>`;
+        if (wild.def > 0) statBreakdownHtml += `<span class="bonus-pill wild def">🛡️ DEF +${wild.def}%</span>`;
+        if (wild.spd > 0) statBreakdownHtml += `<span class="bonus-pill wild spd">🏃 SPD +${wild.spd}%</span>`;
+        statBreakdownHtml += `</div>`;
+    }
+
+    // Totals
+    statBreakdownHtml += `<div style="font-size:0.75rem; font-weight:700; color:var(--success); border-top:1px dashed var(--border); padding-top:6px;">✨ Total bonuses: `;
+    if (total.atk > 0) statBreakdownHtml += `⚔️ +${total.atk}% `;
+    if (total.def > 0) statBreakdownHtml += `🛡️ +${total.def}% `;
+    if (total.spd > 0) statBreakdownHtml += `🏃 +${total.spd}% `;
+    statBreakdownHtml += `</div>`;
+
     if (b.wild.isShiny) {
-        shinyBonusHtml = `<div style="margin-top:6px; font-size:0.7rem; color:var(--warning);">✨ Shiny bonus: +15% HP</div>`;
+        statBreakdownHtml += `<div style="margin-top:6px; font-size:0.7rem; color:var(--warning);">✨ Shiny bonus: +15% HP</div>`;
     }
+    statBreakdownHtml += `</div>`;
 
     // Moveset (unchanged)
     let movesHtml = b.wild.moves.map(m => {
@@ -2688,11 +2797,7 @@ if (wild.atk > 0 || wild.def > 0 || wild.spd > 0) {
     }).join('');
 
     details.innerHTML = `
-        <span class="summary-section-title">⚡ Special Traits & Potential</span>
-        <div style="background:rgba(0,0,0,0.02); border-radius:12px; padding:8px; margin-bottom:12px;">
-            ${bonusHtml}
-            ${shinyBonusHtml}
-        </div>
+        ${statBreakdownHtml}
         <span class="summary-section-title">📖 Known Moves</span>
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:12px;">
             ${movesHtml}

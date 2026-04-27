@@ -1724,6 +1724,45 @@ body.dark-theme footer .support-section a:hover {
     20% { transform: translateX(120vw) translateY(20vh); opacity: 0; }
     100% { transform: translateX(120vw) translateY(20vh); opacity: 0; }
 }
+
+.bonus-pill.form { background: #ffcccc; color: #b30000; }
+.bonus-pill.form.def { background: #cce5ff; color: #003d66; }
+.bonus-pill.form.spd { background: #ccffcc; color: #006600; }
+.bonus-pill.wild { background: #ff6b6b; color: white; }
+.bonus-pill.wild.def { background: #4dabf7; }
+.bonus-pill.wild.spd { background: #69db7c; }
+
+.poke-card-bonus span:first-child:has(~ .bonus-pill.form) {
+    font-size: 0.5rem !important;
+}
+.bonus-pill.form {
+    font-size: 0.5rem !important;
+}
+
+.bonus-pill.form, 
+.bonus-pill.form.def, 
+.bonus-pill.form.spd {
+    background: #ffb347;
+    color: #3e3000;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.2);
+     font-size: 0.5rem !important;
+
+}
+
+
+/* Wild pills (ATK/DEF/SPD) – make them smaller */
+.bonus-pill.atk, .bonus-pill.def, .bonus-pill.spd {
+    padding: 2px 6px !important;
+     font-size: 0.5rem !important;
+}
+
+/* Form pills – orange theme */
+/* .bonus-pill.form { background: #ffb347; color: #7a2e00; }
+.bonus-pill.form.def { background: #ffa559; color: #5e2a00; }
+.bonus-pill.form.spd { background: #ffc966; color: #6b3c00; } */
+
+/* Optional: Shiny pill already inline-styled, but you can add a class if needed */
+
 </style>
 </head>
 <body>
@@ -2711,6 +2750,134 @@ body.dark-theme footer .support-section a:hover {
         }
         return stats;
     }
+
+    // ========== SPECIAL FORM BONUSES (percentage) ==========
+// ========== SPECIAL FORM BONUSES (percentage) ==========
+function getSpecialFormBonuses(pokemonName, pokemonId) {
+    const name = pokemonName.toLowerCase();
+    let atk = 0, def = 0, spd = 0;
+
+    // ----- Gigantamax / Dynamax -----
+    if (name.includes('-gmax') || name === 'dynamax') {
+        atk = 10; def = 10; spd = 10;
+    }
+    // ----- Primal Kyogre & Primal Groudon -----
+    else if (name === 'kyogre-primal' || name === 'groudon-primal' || 
+             (pokemonId === 382 && name.includes('primal')) || 
+             (pokemonId === 383 && name.includes('primal'))) {
+        atk = 5; def = 5; spd = 5;
+    }
+    // ----- Origin Forme Dialga & Palkia -----
+    else if (name === 'dialga-origin' || name === 'palkia-origin') {
+        atk = 5; def = 5; spd = 5;
+    }
+    // ----- Mega Evolutions (any -mega suffix OR ID range 10001-10255) -----
+    else if (name.includes('-mega') || name.includes(' mega') || (pokemonId > 10000 && pokemonId < 10256)) {
+        atk = 3; def = 3; spd = 3;
+    }
+
+    // ========== NEW ADDITIONS ==========
+
+    // ----- Ultra Beasts (UB) -----
+    // Known UB IDs: 793-799, 803-806, & some newer (list all)
+    const ultraBeastIds = new Set([
+        793, 794, 795, 796, 797, 798, 799, 803, 804, 805, 806,
+        10025, 10026, 10027, 10028, 10029, 10030 // add any missing UB IDs
+    ]);
+    if (ultraBeastIds.has(pokemonId) || name.includes('-ub') || name.includes('ultra') || 
+        (name.includes('beast') && !name.includes('beast'))) {
+        atk = 3; def = 0; spd = 3;  // glass cannon
+    }
+
+    // ----- Alolan Forms -----
+    if (name.includes('-alola')) {
+        if (name === 'ninetales-alola' || name === 'alolan-ninetales') {
+            spd = 2;
+        } else if (name === 'sandslash-alola' || name === 'alolan-sandslash') {
+            atk = 2; def = 2;
+        }
+        // other Alolan forms default to no bonus unless specified
+    }
+
+    // ----- Galarian Forms -----
+    if (name.includes('-galar')) {
+        if (name === 'darmanitan-galar-zen' || name.includes('galarian-darmanitan-zen')) {
+            atk = 5;
+        } else if (name === 'slowbro-galar' || name === 'galarian-slowbro') {
+            def = 2;
+        }
+        // Galarian Darmanitan regular (non-Zen) – no bonus
+    }
+
+    // ----- Hisuian Forms -----
+    if (name.includes('-hisui')) {
+        if (name === 'zoroark-hisui' || name === 'hisuian-zoroark') {
+            atk = 3; spd = 3;
+        } else if (name === 'arcanine-hisui' || name === 'hisuian-arcanine') {
+            atk = 3; def = 2;
+        }
+    }
+
+    // ----- Specific Legendaries & Mythicals -----
+    // Giratina‑Origin
+    if (name === 'giratina-origin') {
+        atk = 5; def = 3; spd = 3;
+    }
+    // Deoxys forms
+    else if (name === 'deoxys-attack') {
+        atk = 5; spd = 5;
+    } else if (name === 'deoxys-defense') {
+        def = 5;
+    } else if (name === 'deoxys-speed') {
+        spd = 5;
+    }
+    // Shaymin‑Sky
+    else if (name === 'shaymin-sky') {
+        atk = 3; spd = 5;
+    }
+    // Keldeo‑Resolute
+    else if (name === 'keldeo-resolute') {
+        atk = 3; spd = 3;
+    }
+    // Hoopa‑Unbound
+    else if (name === 'hoopa-unbound') {
+        atk = 5; def = 3; spd = 5;
+    }
+    // Necrozma forms
+    else if (name === 'necrozma-dusk-mane') {
+        atk = 5; def = 5;
+    } else if (name === 'necrozma-dawn-wings') {
+        atk = 5; spd = 5;
+    }
+    // Zacian & Zamazenta (Crowned)
+    else if (name === 'zacian-crowned') {
+        atk = 5; spd = 3;
+    } else if (name === 'zamazenta-crowned') {
+        def = 5; spd = 3;
+    }
+    // Eternatus‑Eternamax
+    else if (name === 'eternatus-eternamax') {
+        atk = 5; def = 5; spd = 5;
+    }
+    // Zygarde forms
+    else if (name === 'zygarde-10') {
+        // no bonus by default
+    } else if (name === 'zygarde-50') {
+        atk = 2; def = 2; spd = 2;
+    } else if (name === 'zygarde-complete' || name === 'zygarde-100') {
+        atk = 5; def = 5; spd = 5;
+    }
+    // Aegislash‑Blade
+    else if (name === 'aegislash-blade') {
+        atk = 5; spd = 3;
+    }
+    // Wishiwashi‑School
+    else if (name === 'wishiwashi-school') {
+        atk = 3; def = 3; spd = 3;
+    }
+
+    return { atk, def, spd };
+}
 
     function getEffectiveSpeed(pokemon) {
         let speed = pokemon.level;
@@ -3701,6 +3868,50 @@ const newPokemon = {
             Height: ${(p.height || 0) / 10}m | Weight: ${(p.weight || 0) / 10}kg
             ${weaknessHtml}
         `;
+        // Inside showInfo, after setting info-stats HTML, add:
+
+// --- Bonus stats display ---
+// --- Bonus stats display ---
+// Remove any existing bonus section to avoid duplication
+const existingBonus = document.getElementById('info-bonus-stats');
+if (existingBonus) existingBonus.remove();
+
+const wildBonuses = { atk: false, def: false, spd: false };
+if (p.bonusStats) {
+    wildBonuses.atk = p.bonusStats.atk;
+    wildBonuses.def = p.bonusStats.def;
+    wildBonuses.spd = p.bonusStats.spd;
+}
+const formBonuses = getSpecialFormBonuses(p.name, p.id);
+
+let bonusHtml = '<div id="info-bonus-stats" class="info-bonus-section"><strong>✨ Bonus Stats</strong><div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:8px;">';
+
+// Form bonuses (small, subdued style)
+if (formBonuses.atk || formBonuses.def || formBonuses.spd) {
+    bonusHtml += '<div><span style="font-size:0.7rem; font-weight:600;">📊 Form‑specific:</span><br>';
+    if (formBonuses.atk) bonusHtml += `<span class="bonus-pill form">ATK +${formBonuses.atk}%</span>`;
+    if (formBonuses.def) bonusHtml += `<span class="bonus-pill form def">DEF +${formBonuses.def}%</span>`;
+    if (formBonuses.spd) bonusHtml += `<span class="bonus-pill form spd">SPD +${formBonuses.spd}%</span>`;
+    bonusHtml += '</div>';
+}
+
+// Wild bonuses (bright, random encounter)
+if (wildBonuses.atk || wildBonuses.def || wildBonuses.spd) {
+    bonusHtml += '<div><span style="font-size:0.7rem; font-weight:600;">🌿 Wild bonus:</span><br>';
+    if (wildBonuses.atk) bonusHtml += `<span class="bonus-pill wild">⚔️ ATK +25%</span>`;
+    if (wildBonuses.def) bonusHtml += `<span class="bonus-pill wild def">🛡️ DEF +25%</span>`;
+    if (wildBonuses.spd) bonusHtml += `<span class="bonus-pill wild spd">🏃 SPD +25%</span>`;
+    bonusHtml += '</div>';
+}
+
+if (!formBonuses.atk && !formBonuses.def && !formBonuses.spd && !wildBonuses.atk && !wildBonuses.def && !wildBonuses.spd) {
+    bonusHtml += '<div>No additional bonuses</div>';
+}
+bonusHtml += '</div></div>';
+
+// Insert the bonus HTML right after #info-stats
+const statsDiv = document.getElementById('info-stats');
+statsDiv.insertAdjacentHTML('afterend', bonusHtml);
 
         // --- Evolution chain from BASE species (even for special forms) ---
         const baseId = await getBaseSpeciesId(id);
@@ -5034,23 +5245,46 @@ async function createPokemonCard(p, isTeam, teamSize) {
         `<span class="type-badge" style="background:${getTypeColor(t)};font-size:0.6rem;">${t.toUpperCase()}</span>`
     ).join('');
 
-    // Bonus stat pills with description
-    let bonusPills = '';
-    if (p.bonusStats?.atk) bonusPills += `<span class="bonus-pill atk">⚔️ +ATK <span style="font-weight:400;opacity:0.85;">+25% Atk</span></span>`;
-    if (p.bonusStats?.def) bonusPills += `<span class="bonus-pill def">🛡️ +DEF <span style="font-weight:400;opacity:0.85;">+25% Def</span></span>`;
-    if (p.bonusStats?.spd) bonusPills += `<span class="bonus-pill spd">🏃 +SPD <span style="font-weight:400;opacity:0.85;">+25% Spd</span></span>`;
+    // --- Wild random bonuses (stored in Firestore) ---
+       // --- Wild random bonuses (pills) ---
+    let wildPills = '';
+    if (p.bonusStats?.atk) wildPills += `<span class="bonus-pill atk">⚔️ +25% ATK</span>`;
+    if (p.bonusStats?.def) wildPills += `<span class="bonus-pill def">🛡️ +25% DEF</span>`;
+    if (p.bonusStats?.spd) wildPills += `<span class="bonus-pill spd">🏃 +25% SPD</span>`;
+
+    // --- Form bonuses (orange pills) ---
+    const formBonuses = getSpecialFormBonuses(p.name, p.pokemonId);
+    let formPills = '';
+    if (formBonuses.atk) formPills += `<span class="bonus-pill form">⚔️ ATK +${formBonuses.atk}%</span>`;
+    if (formBonuses.def) formPills += `<span class="bonus-pill form def">🛡️ DEF +${formBonuses.def}%</span>`;
+    if (formBonuses.spd) formPills += `<span class="bonus-pill form spd">🏃 SPD +${formBonuses.spd}%</span>`;
+
+    // --- Shiny bonus (golden pill) ---
+    let shinyPill = '';
+    if (p.isShiny) {
+        shinyPill = `<div class="shiny-bonus-pill" style="background:#ffd700; color:#b7791f; padding:2px 8px; border-radius:20px; font-size:0.6rem; font-weight:700; display:inline-block;">✨ SHINY +15% HP</div>`;
+    }
+
+    // --- Build three lines (each line is a flex container) ---
+    let wildLine = wildPills ? `<div style="display:flex; flex-wrap:wrap; gap:4px; align-items:center; margin-bottom:4px;"><span style="font-size:0.6rem; color:var(--text-light); margin-right:4px;">🌿 Wild:</span>${wildPills}</div>` : '';
+    let formLine = formPills ? `<div style="display:flex; flex-wrap:wrap; gap:4px; align-items:center; margin-bottom:4px;"><span style="font-size:0.6rem; color:var(--text-light); margin-right:4px;">✨ Form:</span>${formPills}</div>` : '';
+    let shinyLine = shinyPill ? `<div style="display:flex; flex-wrap:wrap; gap:4px; align-items:center; margin-top:2px;">${shinyPill}</div>` : '';
+
+    const bonusSection = (wildLine || formLine || shinyLine)
+        ? `<div class="poke-card-bonus">${wildLine}${formLine}${shinyLine}</div>`
+        : '';
 
     const movePills = (p.moves || []).map(m =>
         `<span class="poke-card-move-pill" style="background:${getTypeColor(m.type)}">${m.name.toUpperCase()}</span>`
     ).join('');
 
     let capturedText = '';
-if (p.capturedAt) {
-    const date = new Date(p.capturedAt.seconds ? p.capturedAt.seconds * 1000 : p.capturedAt).toLocaleDateString();
-    const trainer = p.capturedBy || 'Unknown Trainer';
-    const map = p.capturedOnMap || 'Somewhere in PokeSim';
-    capturedText = `👤 ${trainer} · 📍 ${map} · 📅 ${date}`;
-}
+    if (p.capturedAt) {
+        const date = new Date(p.capturedAt.seconds ? p.capturedAt.seconds * 1000 : p.capturedAt).toLocaleDateString();
+        const trainer = p.capturedBy || 'Unknown Trainer';
+        const map = p.capturedOnMap || 'Somewhere in PokeSim';
+        capturedText = `👤 ${trainer} · 📍 ${map} · 📅 ${date}`;
+    }
 
     div.innerHTML = `
         ${p.isShiny ? '<span class="poke-card-corner-badge badge-shiny">✨ SHINY</span>' : ''}
@@ -5064,7 +5298,7 @@ if (p.capturedAt) {
                 <div class="poke-card-name">${p.name.toUpperCase()}</div>
                 <div class="poke-card-level">Lv. ${p.level} &nbsp;·&nbsp; #${p.pokemonId}</div>
                 <div class="poke-card-types">${typeBadges}</div>
-                ${bonusPills ? `<div class="poke-card-bonus">${bonusPills}</div>` : ''}
+                ${bonusSection}
             </div>
         </div>
 

@@ -894,47 +894,211 @@ async function loadSell() {
   } catch (e) { console.error(e); }
 }
 
-async function openSellModal(){
-  const owned=await getUserPokemon();
-  if(!owned.length){toast('No Pokémon to sell.','error');return;}
-  const listed=new Set();
-  (await getDocs(collection(db,'market_sell_listings'))).forEach(d=>listed.add(d.data().originalPokemonId));
-  const avail=owned.filter(p=>!listed.has(p.id));
-  if(!avail.length){toast('All Pokémon already listed.','error');return;}
+// ========== SPRITE CACHE SYSTEM (add near the top of your script) ==========
+const spriteCache = new Map();   // key: "id_shiny" -> blob URL or fallback
 
-  const body=document.getElementById('sell-modal-body');
-  body.innerHTML=`
-    <div class="form-group">
-      <label>Select Your Pokémon</label>
-      <select id="sell-select">${avail.map(p=>`<option value="${p.id}" data-pid="${p.pokemonId}" data-shiny="${p.isShiny||false}">${p.name.toUpperCase()} (Lv.${p.level}) ${p.isShiny?'✨':''}</option>`).join('')}</select>
+async function getCachedSpriteUrl(pokemonId, shiny = false) {
+  const key = `${pokemonId}_${shiny}`;
+  if (spriteCache.has(key)) {
+    return spriteCache.get(key);
+  }
+  const url = shiny
+    ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/shiny/${pokemonId}.png`
+    : `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${pokemonId}.png`;
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Network error');
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    spriteCache.set(key, blobUrl);
+    return blobUrl;
+  } catch (error) {
+    // Fallback to the small static PNG (no caching, but browser may still cache it)
+    const fallbackUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemonId}.png`;
+    spriteCache.set(key, fallbackUrl);
+    return fallbackUrl;
+  }
+}
+
+// Revoke object URLs before page unload to free memory
+window.addEventListener('beforeunload', () => {
+  for (const blobUrl of spriteCache.values()) {
+    if (blobUrl.startsWith('blob:')) URL.revokeObjectURL(blobUrl);
+  }
+  spriteCache.clear();
+});
+
+// ========== UPDATED renderSellPokemonList (search + cached sprites) ==========
+async function renderSellPokemonList(containerId, onSelect) {
+  const owned = await getUserPokemon();
+  const listedSnap = await getDocs(collection(db, 'market_sell_listings'));
+  const listedIds = new Set();
+  listedSnap.forEach(d => listedIds.add(d.data().originalPokemonId));
+  let available = owned.filter(p => !listedIds.has(p.id));
+
+  const container = document.getElementById(containerId);
+  if (!available.length) {
+    container.innerHTML = `<div class="empty-state" style="padding:20px;"><i class="fas fa-box-open"></i><p>No Pokémon available to sell. (All are already listed or you have none.)</p></div>`;
+    return;
+  }
+
+  // Build search input + list container
+  container.innerHTML = `
+    <div class="form-group" style="margin-bottom:10px;">
+      <input type="text" id="sell-search-input" placeholder="🔍 Search your Pokémon..." style="width:100%; padding:8px 12px; border-radius:40px; border:1px solid var(--border); background:var(--bg);">
     </div>
-    <div id="sell-preview"></div>
-    <div class="form-group"><label>Price (coins)</label><input type="number" id="sell-price" value="1000" min="1"></div>`;
+    <div id="sell-pokemon-list-cards" style="display:flex; flex-direction:column; gap:10px; max-height:360px; overflow-y:auto; padding-right:5px;"></div>
+  `;
 
-  const sel=body.querySelector('#sell-select');
-  const refresh=()=>{
-    const opt=sel.options[sel.selectedIndex];
-    renderPokePreview('sell-preview',parseInt(opt.dataset.pid),opt.dataset.shiny==='true');
-  };
-  sel.addEventListener('change',refresh); refresh();
+  const listContainer = container.querySelector('#sell-pokemon-list-cards');
+
+  // Preload sprites for all available Pokémon in parallel
+  const spritePromises = available.map(async (p) => {
+    const spriteUrl = await getCachedSpriteUrl(p.pokemonId, p.isShiny);
+    return { p, spriteUrl };
+  });
+  const pokemonWithSprites = await Promise.all(spritePromises);
+
+  function renderFiltered(searchTerm) {
+    const term = searchTerm.toLowerCase();
+    const filtered = pokemonWithSprites.filter(item => item.p.name.toLowerCase().includes(term));
+    if (!filtered.length) {
+      listContainer.innerHTML = `<div class="empty-state"><p>No matching Pokémon.</p></div>`;
+      return;
+    }
+    listContainer.innerHTML = filtered.map(({ p, spriteUrl }) => `
+      <div class="selectable-poke" data-id="${p.id}" style="display:flex; align-items:center; gap:12px; padding:10px; background:var(--card-bg); border:1px solid var(--border); border-radius:16px; cursor:pointer; transition:0.15s;">
+        <img src="${spriteUrl}" onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.pokemonId}.png'" style="width:56px; height:56px; object-fit:contain; image-rendering:pixelated;">
+        <div style="flex:1;">
+          <div style="font-weight:800; font-size:0.9rem;">${p.name.toUpperCase()} ${p.isShiny ? '✨' : ''} ${bonusIcons(p.bonusStats)}</div>
+          <div class="types-row" style="margin:4px 0;">${typeBadges(p.types || [])}</div>
+          <div style="font-size:0.75rem; color:var(--text-light);">Lv.${p.level} · XP:${p.exp || 0}</div>
+          <div class="moves-row" style="margin-top:4px;">${(p.moves || []).slice(0,2).map(m => `<span class="move-pill" style="background:${typeColor(m.type)}">${m.name.toUpperCase()}</span>`).join('')}${(p.moves?.length || 0) > 2 ? ' +' : ''}</div>
+        </div>
+      </div>
+    `).join('');
+
+    // Attach click events
+    listContainer.querySelectorAll('.selectable-poke').forEach(el => {
+      el.onclick = () => {
+        const id = el.dataset.id;
+        const selectedItem = filtered.find(item => item.p.id === id);
+        if (selectedItem) onSelect(selectedItem.p);
+        // Highlight selected
+        listContainer.querySelectorAll('.selectable-poke').forEach(n => n.style.borderColor = 'var(--border)');
+        el.style.borderColor = 'var(--primary)';
+      };
+    });
+  }
+
+  const searchInput = container.querySelector('#sell-search-input');
+  searchInput.addEventListener('input', () => renderFiltered(searchInput.value));
+  renderFiltered(''); // initial render
+}
+
+// ========== UPDATED openSellModal (uses cached sprites and the new list) ==========
+async function openSellModal() {
+  const owned = await getUserPokemon();
+  if (!owned.length) {
+    toast('No Pokémon to sell.', 'error');
+    return;
+  }
+  // Check which are already listed
+  const listedSnap = await getDocs(collection(db, 'market_sell_listings'));
+  const listedIds = new Set();
+  listedSnap.forEach(d => listedIds.add(d.data().originalPokemonId));
+  const available = owned.filter(p => !listedIds.has(p.id));
+  if (!available.length) {
+    toast('All your Pokémon are already listed for sale.', 'error');
+    return;
+  }
+
+  const body = document.getElementById('sell-modal-body');
+  body.innerHTML = `
+    <div class="form-group">
+      <label>Select a Pokémon to sell</label>
+      <div id="sell-pokemon-list" style="margin-bottom:16px;"></div>
+    </div>
+    <div id="sell-detailed-preview" style="margin-bottom:16px;"></div>
+    <div class="form-group">
+      <label>Price (coins)</label>
+      <input type="number" id="sell-price" value="1000" min="1">
+    </div>
+  `;
+
+  let selectedPokemon = null;
+
+  // Render list of selectable Pokémon (with search + cache)
+  await renderSellPokemonList('sell-pokemon-list', async (poke) => {
+    selectedPokemon = poke;
+    const spriteUrl = await getCachedSpriteUrl(poke.pokemonId, poke.isShiny);
+    const previewDiv = document.getElementById('sell-detailed-preview');
+    previewDiv.innerHTML = `
+      <div style="background:${poke.isShiny ? '#fffff0' : '#f8fafc'}; border:2px solid ${poke.isShiny ? '#ecc94b' : 'var(--primary)'}; border-radius:16px; padding:12px; display:flex; gap:12px;">
+        <img src="${spriteUrl}" onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${poke.pokemonId}.png'" style="width:80px; height:80px; object-fit:contain; image-rendering:pixelated;">
+        <div style="flex:1;">
+          <div style="font-weight:800; font-size:1rem;">${poke.name.toUpperCase()} ${poke.isShiny ? '✨' : ''} ${bonusIcons(poke.bonusStats)}</div>
+          <div class="types-row">${typeBadges(poke.types || [])}</div>
+          <div style="font-size:0.8rem;">Level ${poke.level} · XP: ${poke.exp || 0}</div>
+          <div class="moves-row" style="margin-top:6px;">${(poke.moves || []).map(m => `<span class="move-pill" style="background:${typeColor(m.type)}">${m.name.toUpperCase()}</span>`).join('')}</div>
+          ${poke.bonusStats?.atk ? '<span class="bonus-icons">⚔️ +ATK</span>' : ''}
+          ${poke.bonusStats?.def ? '<span class="bonus-icons">🛡️ +DEF</span>' : ''}
+          ${poke.bonusStats?.spd ? '<span class="bonus-icons">🏃 +SPD</span>' : ''}
+        </div>
+      </div>
+    `;
+  });
+
   document.getElementById('sell-modal').classList.remove('hidden');
 
-  document.getElementById('sell-modal-save').onclick=async()=>{
-    const opt=sel.options[sel.selectedIndex];
-    const pokId=sel.value;
-    const price=parseInt(body.querySelector('#sell-price').value);
-    if(!price||price<1){toast('Enter a valid price.','error');return;}
-    try{
-      await runTransaction(db,async tx=>{
-        const pref=doc(db,'users',currentUser.uid,'pokemon',pokId);
-        const psnap=await tx.get(pref); if(!psnap.exists())throw new Error('Pokémon gone.');
-        const pd=psnap.data();
-        const listing={ownerId:currentUser.uid,ownerName:userData?.trainerName||currentUser.email,originalPokemonId:pokId,pokemonId:pd.pokemonId,name:pd.name,types:pd.types,level:pd.level,moves:pd.moves,bonusStats:pd.bonusStats,price,isSpecial:pd.isSpecial||false,isShiny:pd.isShiny||false,createdAt:new Date()};
-        tx.delete(pref);
-        tx.set(doc(collection(db,'market_sell_listings')),listing);
+  document.getElementById('sell-modal-save').onclick = async () => {
+    if (!selectedPokemon) {
+      toast('Please select a Pokémon.', 'error');
+      return;
+    }
+    const price = parseInt(document.getElementById('sell-price').value);
+    if (!price || price < 1) {
+      toast('Enter a valid price (minimum 1 coin).', 'error');
+      return;
+    }
+    const btn = document.getElementById('sell-modal-save');
+    btn.disabled = true;
+    btn.innerHTML = '<div class="loading-spinner"></div> Listing...';
+    try {
+      await runTransaction(db, async (tx) => {
+        const pokeRef = doc(db, 'users', currentUser.uid, 'pokemon', selectedPokemon.id);
+        const pokeSnap = await tx.get(pokeRef);
+        if (!pokeSnap.exists()) throw new Error('Pokémon already sold or moved.');
+        const pd = pokeSnap.data();
+        const listing = {
+          ownerId: currentUser.uid,
+          ownerName: userData?.trainerName || currentUser.email,
+          originalPokemonId: selectedPokemon.id,
+          pokemonId: pd.pokemonId,
+          name: pd.name,
+          types: pd.types,
+          level: pd.level,
+          exp: pd.exp || 0,
+          moves: pd.moves,
+          bonusStats: pd.bonusStats,
+          isSpecial: pd.isSpecial || false,
+          isShiny: pd.isShiny || false,
+          price: price,
+          createdAt: new Date()
+        };
+        tx.delete(pokeRef);
+        tx.set(doc(collection(db, 'market_sell_listings')), listing);
       });
-      closeModal('sell-modal'); loadSell(); updateNav(); toast('Pokémon listed!','success');
-    }catch(e){toast(e.message,'error');}
+      closeModal('sell-modal');
+      loadSell();
+      updateNav(true);
+      toast(`✅ ${selectedPokemon.name.toUpperCase()} listed for ${price} coins!`, 'success');
+    } catch (err) {
+      toast(err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = 'List for Sale';
+    }
   };
 }
 

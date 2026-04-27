@@ -441,6 +441,49 @@
             .filter-tabs { gap: 4px; }
             .filter-tab { padding: 5px 10px; font-size: 0.72rem; }
         }
+
+        /* --- Visual Effect Preview Styles --- */
+.preview-sprite-container {
+    width: 100px;
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: visible; /* Crucial for shadows */
+    margin: 10px;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+}
+
+.preview-sprite-container img {
+    max-width: 80px;
+    max-height: 80px;
+    object-fit: contain;
+    image-rendering: pixelated;
+    transition: filter 0.3s ease;
+}
+
+/* Copying the exact filters from gym_battle.html */
+.fx-legendary-aura img { filter: drop-shadow(0 0 4px rgba(255,215,0,0.8)) drop-shadow(0 0 16px rgba(255,100,0,0.5)); }
+.fx-void-aura img { filter: drop-shadow(0 0 4px #0af) drop-shadow(0 0 15px #00f); }
+.fx-mirage-aura img { filter: drop-shadow(0 0 4px #ffa) drop-shadow(0 0 15px #fa0); }
+.fx-blaze-aura img { filter: drop-shadow(0 0 4px #f60) drop-shadow(0 0 15px #f00); }
+.fx-glacial-aura img { filter: drop-shadow(0 0 4px #0cf) drop-shadow(0 0 15px #06f); }
+.fx-shadow-aura img { filter: drop-shadow(0 0 4px #c0f) drop-shadow(0 0 15px #40a); }
+.fx-cosmic-aura img { filter: drop-shadow(0 0 5px hsl(var(--rh,0),100%,60%)) drop-shadow(0 0 20px hsl(var(--rh,0),100%,50%)); }
+.fx-phantom-aura img { filter: drop-shadow(0 0 4px #0f8) drop-shadow(0 0 15px #094); }
+.fx-rainbow-aura img { filter: drop-shadow(0 0 4px hsl(var(--rh,0),100%,60%)) drop-shadow(0 0 15px hsl(var(--rh,0),100%,50%)); }
+.fx-chrome-aura img { filter: drop-shadow(0 0 3px rgba(255,255,255,0.8)) drop-shadow(0 0 12px rgba(160,180,200,0.4)); }
+.fx-electric-aura img { filter: drop-shadow(0 0 3px #0ef) drop-shadow(0 0 12px #0af); animation: previewElectric 0.1s steps(2) infinite; }
+.fx-dark-aura img { filter: drop-shadow(0 0 4px #80f) drop-shadow(0 0 15px #309); }
+.fx-darkgreen-aura img { filter: drop-shadow(0 0 4px #0f6) drop-shadow(0 0 15px #083); }
+.fx-windy-aura img { animation: previewWindy 1.5s ease-in-out infinite alternate; }
+.fx-retro-aura img { filter: drop-shadow(2px 2px 0 rgba(0,0,0,0.5)) drop-shadow(0 0 3px rgba(255,255,200,0.3)); }
+.fx-overcharged-aura img { filter: drop-shadow(0 0 6px #fff) drop-shadow(0 0 25px #0ef); animation: previewPulse 0.8s ease-in-out infinite alternate; }
+
+@keyframes previewElectric { 0% { opacity: 0.8; } 100% { opacity: 1; } }
+@keyframes previewPulse { from { filter: drop-shadow(0 0 4px #fff); } to { filter: drop-shadow(0 0 20px #0ef); } }
+@keyframes previewWindy { from { transform: translateX(-2px); filter: drop-shadow(-3px 2px 6px #0af); } to { transform: translateX(2px); filter: drop-shadow(-6px 4px 12px #06f); } }
     </style>
 </head>
 <body>
@@ -516,6 +559,7 @@
 
     <div class="nav-section">Content</div>
     <button class="nav-item" data-section="maps"><i class="fas fa-map-marked-alt"></i><span>Map Management</span></button>
+    <button class="nav-item" data-section="gyms"><i class="fas fa-trophy"></i><span>Gym Management</span></button>
     <button class="nav-item" data-section="pokemon-search"><i class="fas fa-search"></i><span>Pokémon Search</span></button>
 
     <div class="nav-section">Links</div>
@@ -632,6 +676,37 @@
         </div>
         <div id="maps-grid" class="map-grid-admin"><div class="page-loader"><div class="loading-spinner"></div>Loading maps...</div></div>
     </section>
+
+    <!-- ══ GYM MANAGEMENT ══ -->
+    <section class="page-section" id="section-gyms">
+        <div class="section-header" style="display:flex;justify-content:space-between;align-items:flex-start;">
+            <div>
+                <h2><i class="fas fa-trophy"></i> Gym Management</h2>
+                <p>Create and edit Gym Leaders, their badges, and their Pokémon teams.</p>
+            </div>
+            <button class="btn btn-primary" id="add-gym-btn-global"><i class="fas fa-plus"></i> Create New Gym</button>
+        </div>
+        <div id="gyms-grid-admin" class="map-grid-admin">
+            <div class="page-loader"><div class="loading-spinner"></div>Loading Gyms...</div>
+        </div>
+    </section>
+
+    <!-- ════ GYM EDIT MODAL ════ -->
+<div id="gym-modal" class="overlay hidden" onclick="if(event.target===this)this.classList.add('hidden')">
+    <div class="modal" style="max-width:900px;" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h2 id="gym-modal-title"><i class="fas fa-trophy"></i> Gym Details</h2>
+            <button class="close-btn" onclick="document.getElementById('gym-modal').classList.add('hidden')"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <div id="gym-form-container"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary btn-lg" id="save-gym-btn-global"><i class="fas fa-save"></i> Save Gym</button>
+            <button class="btn btn-outline" onclick="document.getElementById('gym-modal').classList.add('hidden')">Cancel</button>
+        </div>
+    </div>
+</div>
 
     <!-- ══ POKÉMON SEARCH ══ -->
     <section class="page-section" id="section-pokemon-search">
@@ -873,16 +948,31 @@ function escHtml(s) { return String(s).replace(/[&<>]/g,m=>({'&':'&amp;','<':'&l
 
 // ══ SIDEBAR NAV ══
 function switchSection(id) {
-    document.querySelectorAll('.page-section').forEach(s=>s.classList.remove('active'));
-    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-    const sec = document.getElementById('section-'+id);
+    document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    
+    const sec = document.getElementById('section-' + id);
     if (sec) sec.classList.add('active');
+    
     const btn = document.querySelector(`.nav-item[data-section="${id}"]`);
     if (btn) btn.classList.add('active');
-    const titles = {dashboard:'Dashboard','users-active':'Active Users','users-inactive':'Inactive Users','users-all':'All Users',maps:'Map Management','pokemon-search':'Pokémon Search'};
+
+    const titles = {
+        dashboard: 'Dashboard',
+        'users-active': 'Active Users',
+        'users-inactive': 'Inactive Users',
+        'users-all': 'All Users',
+        maps: 'Map Management',
+        'pokemon-search': 'Pokémon Search',
+        gyms: 'Gym Management' // ✅ Add title
+    };
+    
     document.getElementById('topbar-title').textContent = titles[id] || id;
     window._activeSection = id;
+
+    // ✅ CORRECT: Load/Refresh the specific content based on section ID
     if (id === 'pokemon-search') refreshSyncStatus();
+    if (id === 'gyms') loadGyms(); // <--- ADD THIS LINE HERE
 }
 document.querySelectorAll('.nav-item[data-section]').forEach(btn => {
     btn.addEventListener('click', () => switchSection(btn.dataset.section));
@@ -1493,6 +1583,330 @@ function renderDashboardLeaderboard() {
     `).join('');
 }
 
+// --- GLOBALS FOR GYM ---
+let allGyms = [];
+let editingGymId = null;
+let tempGymTeam = [];
+
+// --- 1. Load Gyms ---
+async function loadGyms() {
+    const snap = await getDocs(collection(db, 'gyms'));
+    allGyms = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderGymCardsAdmin();
+}
+
+function renderGymCardsAdmin() {
+    const grid = document.getElementById('gyms-grid-admin');
+    if (!allGyms.length) {
+        grid.innerHTML = `<div class="empty-state"><i class="fas fa-trophy"></i><p>No gyms found.</p></div>`;
+        return;
+    }
+    grid.innerHTML = allGyms.map(gym => `
+        <div class="map-card-admin">
+            <div class="map-card-img">
+                <img src="${gym.gymImage || 'gym/default.png'}" onerror="this.src='https://via.placeholder.com/120?text=Gym'">
+            </div>
+            <div class="map-card-body">
+                <div class="map-card-gen" style="display:flex; align-items:center; gap:5px;">
+                    <img src="${gym.badgeImage || ''}" style="width:20px; height:20px; object-fit:contain;">
+                    ${gym.badgeName || 'No Badge'}
+                </div>
+                <div class="map-card-title">${escHtml(gym.name)}</div>
+                <div class="map-meta">
+                    <span class="map-meta-pill">Req Lv.${gym.requiredLevel || 0}</span>
+                    <span class="map-meta-pill">${(gym.team || []).length} Pokémon</span>
+                </div>
+                <div class="map-card-actions" style="margin-top:10px;">
+                    <button class="btn btn-sm btn-primary" onclick="window.openGymModal('${gym.id}')"><i class="fas fa-edit"></i> Edit</button>
+                    <button class="btn btn-sm btn-danger" onclick="window.deleteGym('${gym.id}', '${escHtml(gym.name)}')"><i class="fas fa-trash"></i></button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// --- 2. Open Gym Modal ---
+window.openGymModal = async function(gymId = null) {
+    editingGymId = gymId;
+    const gym = gymId ? allGyms.find(g => g.id === gymId) : null;
+    tempGymTeam = gym ? JSON.parse(JSON.stringify(gym.team || [])) : [];
+    
+    document.getElementById('gym-modal-title').innerHTML = `<i class="fas fa-trophy"></i> ${gymId ? 'Edit Gym Leader' : 'Create New Gym'}`;
+    await buildGymForm(gym);
+    document.getElementById('gym-modal').classList.remove('hidden');
+};
+
+// --- 3. Build Gym Form ---
+async function buildGymForm(gym) {
+    const container = document.getElementById('gym-form-container');
+    const g = gym || {};
+    const be = g.badgeEffect || {};
+
+    container.innerHTML = `
+        <div class="editor-grid">
+            <div class="form-group">
+                <label>Gym Name</label>
+                <input type="text" id="gm-name" value="${escHtml(g.name||'')}" placeholder="e.g. Pewter Gym">
+            </div>
+            <div class="form-group">
+                <label>Gym Image Path</label>
+                <input type="text" id="gm-img" value="${escHtml(g.gymImage||'')}" placeholder="gym/filename.png">
+                <small style="color:var(--text-light); font-size:0.65rem;">Folder: /gym/</small>
+            </div>
+            <div class="form-group">
+                <label>Badge Name</label>
+                <input type="text" id="gm-badge-name" value="${escHtml(g.badgeName||'')}" placeholder="e.g. Boulder Badge">
+            </div>
+            <div class="form-group">
+                <label>Badge Image Path</label>
+                <input type="text" id="gm-badge-img" value="${escHtml(g.badgeImage||'')}" placeholder="badges/filename.png">
+                <small style="color:var(--text-light); font-size:0.65rem;">Folder: /badges/</small>
+            </div>
+        </div>
+
+        <div style="background:#f0f7ff; padding:15px; border-radius:15px; margin:15px 0; border:1px solid #cce3ff;">
+            <p style="font-size:0.75rem; font-weight:800; color:var(--primary); margin-bottom:10px; text-transform:uppercase;">🏆 Badge Reward Effect</p>
+            <div class="editor-grid">
+                <div class="form-group">
+                    <label>Effect Type</label>
+                    <select id="gm-effect-type">
+                        <option value="" ${!be.effectType?'selected':''}>None</option>
+                        <option value="atk" ${be.effectType==='atk'?'selected':''}>⚔️ Attack Boost</option>
+                        <option value="def" ${be.effectType==='def'?'selected':''}>🛡️ Defense Reduction</option>
+                        <option value="spd" ${be.effectType==='spd'?'selected':''}>🏃 Speed Boost</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Target Type</label>
+                    <select id="gm-effect-target">
+                        <option value="">Any Type</option>
+                        ${['normal','fire','water','electric','grass','ice','fighting','poison','ground','flying','psychic','bug','rock','ghost','dragon','dark','steel','fairy']
+                          .map(t => `<option value="${t}" ${be.targetType===t?'selected':''}>${t.toUpperCase()}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Bonus %</label>
+                    <input type="number" id="gm-effect-bonus" value="${be.bonusPercent || 5}">
+                </div>
+                <div class="form-group">
+                    <label>Req. Trainer Lv</label>
+                    <input type="number" id="gm-req-lvl" value="${g.requiredLevel || 0}">
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top:20px;">
+            <div class="flex-between">
+                <label style="font-weight:800;">Trainer Team (${tempGymTeam.length}/6)</label>
+                <button class="btn btn-sm btn-success" onclick="window.addPokemonToGymTeam()">+ Add Pokémon</button>
+            </div>
+            <div id="gym-team-list" style="margin-top:10px;"></div>
+        </div>
+    `;
+    renderGymTeamList();
+}
+
+// --- 4. Gym Team Management ---
+window.renderGymTeamList = function() {
+    const list = document.getElementById('gym-team-list');
+    if (!tempGymTeam.length) {
+        list.innerHTML = `<p style="font-size:0.8rem; color:var(--text-light); text-align:center; padding:10px;">Leader has no Pokémon.</p>`;
+        return;
+    }
+    list.innerHTML = tempGymTeam.map((p, idx) => `
+        <div class="mon-item">
+            <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.pokemonId}.png" style="width:40px;">
+            <div class="mon-info">
+                <strong>${escHtml(p.name.toUpperCase())}</strong> <span class="mon-level">Lv.${p.level}</span>
+                <div class="mon-moves" style="font-size:0.6rem;">${(p.moves||[]).map(m=>m.name).join(', ')}</div>
+                ${p.effect ? `<span class="badge" style="background:var(--primary); color:white; font-size:0.5rem;">${p.effect}</span>` : ''}
+            </div>
+            <div class="mon-actions">
+                <button class="btn btn-sm btn-outline" onclick="window.openEditGymPokemonModal(${idx})">Edit</button>
+                <button class="btn btn-sm btn-danger" onclick="tempGymTeam.splice(${idx},1); renderGymTeamList();"><i class="fas fa-times"></i></button>
+            </div>
+        </div>
+    `).join('');
+};
+
+window.addPokemonToGymTeam = function() {
+    if (tempGymTeam.length >= 6) return alert('Max 6 Pokémon');
+    tempGymTeam.push({
+        pokemonId: 1, name: 'bulbasaur', level: 10,
+        types: ['grass','poison'], moves: [],
+        bonusStats: {atk:false, def:false, spd:false}, isShiny: false, effect: ""
+    });
+    renderGymTeamList();
+};
+
+// --- 5. Edit Specific Gym Pokémon ---
+// Note: This reuses your existing Edit Pokémon Modal architecture
+window.openEditGymPokemonModal = async function(idx) {
+    const p = tempGymTeam[idx];
+    const modal = document.getElementById('edit-pokemon-modal');
+    const form = document.getElementById('edit-pokemon-form');
+    
+    modal.classList.remove('hidden');
+    form.innerHTML = '<div class="page-loader"><div class="loading-spinner"></div> Loading Pokémon Data...</div>';
+
+    let selSpeciesId = p.pokemonId;
+    let selSpecies = null;
+    let selMoves = [...(p.moves || [])];
+    
+    // 1. DECLARE auraWrapper variable early (without value yet)
+    let auraWrapper = null; 
+
+    // 2. DEFINE the update function early with a safety check
+    const updateEffectPreview = () => {
+        const dropdown = document.getElementById('egm-effect');
+        // Safety check: only run if the wrapper and dropdown exist in the DOM
+        if (auraWrapper && dropdown) {
+            auraWrapper.className = "preview-sprite-container " + dropdown.value;
+        }
+    };
+
+    // 3. Create the Species Input
+    // The callback uses the safety-checked updateEffectPreview
+    const speciesInput = await createSpeciesInput(p.pokemonId, (id, sp) => { 
+        selSpeciesId = id; 
+        selSpecies = sp; 
+        updateEffectPreview(); 
+    });
+    
+    form.innerHTML = '';
+    form.appendChild(speciesInput);
+
+    // 4. Create UI fields
+    const extraFields = document.createElement('div');
+    extraFields.innerHTML = `
+        <div class="editor-grid">
+            <div class="form-group">
+                <label>Level</label>
+                <input type="number" id="egm-level" value="${p.level}" min="1" max="100">
+            </div>
+            <div class="form-group">
+                <label>Aura Effect (Visual Preview)</label>
+                <select id="egm-effect" style="width:100%; padding:8px; border-radius:10px; border:1px solid var(--border);">
+                    <option value="">None (Standard)</option>
+                    <option value="fx-legendary-aura" ${p.effect==='fx-legendary-aura'?'selected':''}>👑 Legendary Glow</option>
+                    <option value="fx-void-aura" ${p.effect==='fx-void-aura'?'selected':''}>🌀 Blue Void</option>
+                    <option value="fx-mirage-aura" ${p.effect==='fx-mirage-aura'?'selected':''}>✨ Golden Mirage</option>
+                    <option value="fx-blaze-aura" ${p.effect==='fx-blaze-aura'?'selected':''}>🔥 Fire Blaze</option>
+                    <option value="fx-glacial-aura" ${p.effect==='fx-glacial-aura'?'selected':''}>❄️ Glacial Ice</option>
+                    <option value="fx-shadow-aura" ${p.effect==='fx-shadow-aura'?'selected':''}>🌑 Purple Shadow</option>
+                    <option value="fx-cosmic-aura" ${p.effect==='fx-cosmic-aura'?'selected':''}>🌌 Cosmic (Animated)</option>
+                    <option value="fx-phantom-aura" ${p.effect==='fx-phantom-aura'?'selected':''}>👻 Phantom Green</option>
+                    <option value="fx-rainbow-aura" ${p.effect==='fx-rainbow-aura'?'selected':''}>🌈 Rainbow (Animated)</option>
+                    <option value="fx-chrome-aura" ${p.effect==='fx-chrome-aura'?'selected':''}>🪩 Chrome White</option>
+                    <option value="fx-electric-aura" ${p.effect==='fx-electric-aura'?'selected':''}>⚡ Electric Flicker</option>
+                    <option value="fx-dark-aura" ${p.effect==='fx-dark-aura'?'selected':''}>🖤 Deep Dark</option>
+                    <option value="fx-darkgreen-aura" ${p.effect==='fx-darkgreen-aura'?'selected':''}>☠️ Toxic Green</option>
+                    <option value="fx-windy-aura" ${p.effect==='fx-windy-aura'?'selected':''}>💨 Windy Gust</option>
+                    <option value="fx-retro-aura" ${p.effect==='fx-retro-aura'?'selected':''}>🕹️ Retro Pixel</option>
+                    <option value="fx-overcharged-aura" ${p.effect==='fx-overcharged-aura'?'selected':''}>☀️ Overcharged Pulse</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Stats & Visuals</label>
+            <div class="checkbox-group">
+                <label class="checkbox-label"><input type="checkbox" id="egm-atk" ${p.bonusStats?.atk?'checked':''}> +ATK</label>
+                <label class="checkbox-label"><input type="checkbox" id="egm-def" ${p.bonusStats?.def?'checked':''}> +DEF</label>
+                <label class="checkbox-label"><input type="checkbox" id="egm-spd" ${p.bonusStats?.spd?'checked':''}> +SPD</label>
+                <label class="checkbox-label"><input type="checkbox" id="egm-shiny" ${p.isShiny?'checked':''}> Shiny</label>
+            </div>
+        </div>
+        <div id="egm-moves-container"></div>
+    `;
+    form.appendChild(extraFields);
+
+    // 5. INITIALIZE auraWrapper now that elements are on screen
+    const previewImg = speciesInput.querySelector('#species-sprite');
+    auraWrapper = document.createElement('div'); 
+    auraWrapper.id = "aura-preview-wrapper";
+    auraWrapper.className = "preview-sprite-container";
+    
+    if (previewImg && previewImg.parentNode) {
+        previewImg.parentNode.insertBefore(auraWrapper, previewImg);
+        auraWrapper.appendChild(previewImg);
+    }
+
+    const effectDropdown = document.getElementById('egm-effect');
+    effectDropdown.addEventListener('change', updateEffectPreview);
+    
+    // Call it once manually now that auraWrapper is assigned
+    updateEffectPreview();
+
+    // 6. Initialize Moves and Save Logic
+    renderMoveSelector('egm-moves-container', selMoves, m => selMoves = m);
+
+    document.getElementById('save-pokemon-edit-btn').onclick = () => {
+        if (!selSpeciesId) return alert("Please select a valid Pokémon");
+
+        tempGymTeam[idx] = {
+            pokemonId: selSpeciesId,
+            name: selSpecies ? selSpecies.name : p.name,
+            level: parseInt(document.getElementById('egm-level').value) || 1,
+            types: selSpecies ? selSpecies.types : p.types,
+            moves: selMoves.slice(0, 4),
+            bonusStats: {
+                atk: document.getElementById('egm-atk').checked,
+                def: document.getElementById('egm-def').checked,
+                spd: document.getElementById('egm-spd').checked
+            },
+            isShiny: document.getElementById('egm-shiny').checked,
+            effect: effectDropdown.value
+        };
+
+        document.getElementById('edit-pokemon-modal').classList.add('hidden');
+        renderGymTeamList();
+    };
+};
+
+// --- 6. Save Gym ---
+document.getElementById('save-gym-btn-global').onclick = async () => {
+    const btn = document.getElementById('save-gym-btn-global');
+    const name = document.getElementById('gm-name').value.trim();
+    if (!name) return alert('Name required');
+
+    btn.disabled = true;
+    btn.innerHTML = '<div class="loading-spinner"></div> Saving...';
+
+    const gymData = {
+        name,
+        gymImage: document.getElementById('gm-img').value.trim(),
+        badgeName: document.getElementById('gm-badge-name').value.trim(),
+        badgeImage: document.getElementById('gm-badge-img').value.trim(),
+        requiredLevel: parseInt(document.getElementById('gm-req-lvl').value) || 0,
+        badgeEffect: {
+            effectType: document.getElementById('gm-effect-type').value,
+            targetType: document.getElementById('gm-effect-target').value,
+            bonusPercent: parseInt(document.getElementById('gm-effect-bonus').value) || 0
+        },
+        team: tempGymTeam
+    };
+
+    try {
+        if (editingGymId) await updateDoc(doc(db, 'gyms', editingGymId), gymData);
+        else await addDoc(collection(db, 'gyms'), gymData);
+        
+        showToast('Gym saved!', 'success');
+        document.getElementById('gym-modal').classList.add('hidden');
+        loadGyms();
+    } catch(e) { alert(e.message); }
+    finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-save"></i> Save Gym';
+    }
+};
+
+window.deleteGym = async function(id, name) {
+    if (!confirm(`Delete Gym: ${name}?`)) return;
+    await deleteDoc(doc(db, 'gyms', id));
+    showToast('Gym deleted', 'warning');
+    loadGyms();
+};
+
 // ══ MANAGE USER MODAL ══
 async function openManageUserModal(uid) {
     currentEditingUser = uid;
@@ -1987,80 +2401,227 @@ function renderMapCards() {
     }
 }
 
-function buildMapForm(map) {
-    const f = document.getElementById('map-form'); f.innerHTML = '';
+async function buildMapForm(map) {
+    const f = document.getElementById('map-form'); 
+    f.innerHTML = '<div class="page-loader"><div class="loading-spinner"></div> Loading Form...</div>';
+    
     const existing = map || {};
     const sl = existing.specialLevelRange || {};
+    
+    // Fetch Gyms for Badge Requirements
+    let badgeCheckboxesHtml = '';
+    try {
+        const gymsSnap = await getDocs(collection(db, "gyms"));
+        const selectedBadges = existing.requiredBadgeIds || [];
+        gymsSnap.forEach(gymDoc => {
+            const g = gymDoc.data();
+            const isChecked = selectedBadges.includes(gymDoc.id) ? 'checked' : '';
+            badgeCheckboxesHtml += `
+                <label class="checkbox-label" style="background:#fff; padding:5px 10px; border-radius:10px; border:1px solid var(--border);">
+                    <input type="checkbox" class="badge-req-check" value="${gymDoc.id}" ${isChecked}> 
+                    <img src="${g.badgeImage || ''}" style="width:20px; vertical-align:middle;"> ${g.badgeName || g.name}
+                </label>`;
+        });
+    } catch(e) { badgeCheckboxesHtml = 'Error loading badges.'; }
+
     f.innerHTML = `
         <div class="map-form-grid">
             <div class="form-group"><label>Map Name</label><input type="text" id="mf-name" value="${escHtml(existing.name||'')}"></div>
             <div class="form-group"><label>Generation (I-IX)</label><input type="text" id="mf-gen" value="${escHtml(existing.generation||'I')}"></div>
         </div>
         <div class="form-group"><label>Description</label><input type="text" id="mf-desc" value="${escHtml(existing.description||'')}"></div>
-        <div class="form-group"><label>Image URL</label><input type="text" id="mf-img" value="${escHtml(existing.imageUrl||'')}"></div>
-        <div class="map-form-grid">
-            <div class="form-group"><label>Required Total Level</label><input type="number" id="mf-req-lvl" value="${existing.requiredLevel||0}" min="0"></div>
-            <div class="form-group"><label>Catch Rate (%)</label><input type="number" id="mf-catch-rate" value="${existing.catchRate||45}" min="1" max="100"></div>
-            <div class="form-group"><label>XP Required to Catch (%)</label><input type="number" id="mf-req-xp" value="${existing.requiredExpPercent||10}" min="0" max="100"></div>
-            <div class="form-group"><label>Catch XP Penalty (%)</label><input type="number" id="mf-catch-penalty" value="${existing.catchXpPenaltyPercent||10}" min="0" max="100"></div>
-            <div class="form-group"><label>Pokemon ID Min</label><input type="number" id="mf-pmin" value="${existing.pokemonMin||1}" min="1"></div>
-            <div class="form-group"><label>Pokemon ID Max</label><input type="number" id="mf-pmax" value="${existing.pokemonMax||151}" min="1"></div>
-        </div>
-        <div class="form-group"><label>Tile Colors (comma-separated hex)</label><input type="text" id="mf-tile-colors" value="${(existing.tileColors||['#c2b280','#78cd54']).join(',')}"><div class="tile-colors-preview" id="tile-color-preview"></div></div>
-        <div class="form-group"><label>Tile Classes (comma-separated)</label><input type="text" id="mf-tile-classes" value="${(existing.tileClasses||['dirt','grass']).join(',')}"></div>
-        <div class="form-group">
-            <label class="checkbox-label" style="margin-bottom:8px;"><input type="checkbox" id="mf-sl-enabled" ${sl.enabled?'checked':''}> Enable Special Level Range</label>
-            <div id="mf-sl-fields" style="display:${sl.enabled?'grid':'none'};grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;">
-                <div class="form-group" style="margin-bottom:0;"><label>Min Level</label><input type="number" id="mf-sl-min" value="${sl.min||1}" min="1"></div>
-                <div class="form-group" style="margin-bottom:0;"><label>Max Level</label><input type="number" id="mf-sl-max" value="${sl.max||100}" min="1"></div>
+        <div class="form-group"><label>Image URL (e.g. map1.png)</label><input type="text" id="mf-img" value="${escHtml(existing.imageUrl||'')}"></div>
+
+        <div style="background:#f8fafc; padding:15px; border-radius:15px; margin-bottom:15px; border:1px solid var(--border);">
+            <p style="font-size:0.7rem; font-weight:800; color:var(--primary); margin-bottom:10px; text-transform:uppercase;">Catching & Shiny Logic</p>
+            <div class="map-form-grid">
+                <div class="form-group"><label>Catch Rate (%)</label><input type="number" id="mf-catch-rate" value="${existing.catchRate||45}"></div>
+                <div class="form-group"><label>Shiny Rate (1 in X)</label><input type="number" id="mf-shiny-rate" value="${existing.shinyRate||8192}"></div>
+                <div class="form-group"><label>Req XP to Catch (%)</label><input type="number" id="mf-req-xp" value="${existing.requiredExpPercent||10}"></div>
+                <div class="form-group"><label>Catch XP Penalty (%)</label><input type="number" id="mf-catch-penalty" value="${existing.catchXpPenaltyPercent||10}"></div>
+            </div>
+            <div class="checkbox-group">
+                <label class="checkbox-label"><input type="checkbox" id="mf-auto-catch" ${existing.autoCatchEnabled?'checked':''}> Enable Auto-Catch</label>
+                <div class="form-group" style="margin-bottom:0;"><label>Auto-Catch Threshold</label><input type="number" id="mf-auto-threshold" value="${existing.autoCatchThreshold||5}" style="width:80px;"></div>
             </div>
         </div>
-        <div class="form-group"><label>Special Pokemon IDs (comma-separated)</label><input type="text" id="mf-special-list" value="${(existing.specialPokemonList||[]).join(',')}"><small style="color:var(--text-light);font-size:0.72rem;">50% chance to appear instead of the ID range.</small></div>
+
+        <div style="background:#fffbeb; padding:15px; border-radius:15px; margin-bottom:15px; border:1px solid #fde68a;">
+            <p style="font-size:0.7rem; font-weight:800; color:#92400e; margin-bottom:10px; text-transform:uppercase;">Rewards & Level Gating</p>
+            <div class="map-form-grid">
+                <div class="form-group"><label>XP Multiplier</label><input type="number" id="mf-xp-mult" value="${existing.xpMultiplier||1.0}" step="0.1"></div>
+                <div class="form-group"><label>Coin Multiplier</label><input type="number" id="mf-coin-mult" value="${existing.coinMultiplier||1.0}" step="0.1"></div>
+                <div class="form-group"><label>Req. Trainer Level</label><input type="number" id="mf-req-lvl" value="${existing.requiredLevel||0}"></div>
+                <div class="form-group"><label>Req. Badge Count</label><input type="number" id="mf-req-badge-count" value="${existing.requiredBadgesCount||0}"></div>
+            </div>
+            <label style="font-size: 0.78rem; font-weight: 700; color: var(--text-light); margin-bottom: 5px; display:block;">Required Specific Badges (Must have at least one of selected)</label>
+            <div id="badge-req-container" style="display:flex; gap:8px; flex-wrap:wrap; background:rgba(0,0,0,0.03); padding:10px; border-radius:10px;">
+                ${badgeCheckboxesHtml}
+            </div>
+        </div>
+
+        <div class="map-form-grid">
+            <div class="form-group"><label>Pokemon ID Min</label><input type="number" id="mf-pmin" value="${existing.pokemonMin||1}"></div>
+            <div class="form-group"><label>Pokemon ID Max</label><input type="number" id="mf-pmax" value="${existing.pokemonMax||151}"></div>
+        </div>
+
+        <div class="form-group">
+            <label class="checkbox-label"><input type="checkbox" id="mf-sl-enabled" ${sl.enabled?'checked':''}> Enable Special Level Range</label>
+            <div id="mf-sl-fields" style="display:${sl.enabled?'grid':'none'}; grid-template-columns:1fr 1fr; gap:10px; margin-top:8px;">
+                <div class="form-group"><label>Min Level</label><input type="number" id="mf-sl-min" value="${sl.min||1}"></div>
+                <div class="form-group"><label>Max Level</label><input type="number" id="mf-sl-max" value="${sl.max||100}"></div>
+            </div>
+        </div>
+
+        
+<div class="form-group">
+    <label>Special Pokemon IDs (comma-separated)</label>
+    <input type="text" id="mf-special-list" value="${(existing.specialPokemonList||[]).join(',')}" placeholder="e.g. 150, 151, 249">
+    <small style="color:var(--text-light);font-size:0.72rem; display:block; margin-bottom:5px;">50% chance to appear instead of the ID range.</small>
+    
+    <!-- ADD THIS PREVIEW CONTAINER -->
+    <div id="mf-special-preview-tags" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; min-height:34px; padding:8px; background:rgba(0,0,0,0.03); border-radius:12px;"></div>
+</div>
+        
+        <div class="form-group"><label>Tile Colors (comma hex)</label><input type="text" id="mf-tile-colors" value="${(existing.tileColors||['#c2b280','#78cd54']).join(',')}"></div>
+        <div class="form-group"><label>Tile Classes (comma names)</label><input type="text" id="mf-tile-classes" value="${(existing.tileClasses||['dirt','grass']).join(',')}"></div>
     `;
-    const colorsIn = f.querySelector('#mf-tile-colors');
-    const preview = f.querySelector('#tile-color-preview');
-    const updateColorPreview = () => {
-        const cols = colorsIn.value.split(',').map(s=>s.trim()).filter(s=>s);
-        preview.innerHTML = cols.map(c=>`<div class="tile-color-dot" style="background:${escHtml(c)};"></div>`).join('');
-    };
-    colorsIn.addEventListener('input', updateColorPreview); updateColorPreview();
+
+    // Re-bind the toggle for special levels
     f.querySelector('#mf-sl-enabled').onchange = (e) => { f.querySelector('#mf-sl-fields').style.display = e.target.checked ? 'grid' : 'none'; };
+}
+
+
+async function refreshSpecialPokemonPreview() {
+    const input = document.getElementById('mf-special-list');
+    const container = document.getElementById('mf-special-preview-tags');
+    if (!input || !container) return;
+
+    // 1. Clean the input into a list of numbers
+    const ids = input.value.split(',')
+        .map(s => parseInt(s.trim()))
+        .filter(n => !isNaN(n) && n > 0);
+
+    if (ids.length === 0) {
+        container.innerHTML = '<span style="font-size:0.7rem; color:var(--text-light); opacity:0.6;">No special Pokémon listed.</span>';
+        return;
+    }
+
+    // 2. Map through IDs and find names in the global 'allPokemon' array
+    const tagsHtml = ids.slice(0, 50).map(id => {
+        // Find the pokemon in the local list we loaded at startup
+        const pokeData = allPokemon.find(p => p.id === id);
+        const name = pokeData ? pokeData.name.toUpperCase() : "UNKNOWN";
+        const spriteUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
+
+        return `
+            <div style="display:flex; align-items:center; background:white; border:1px solid var(--border); padding:2px 10px 2px 2px; border-radius:20px; gap:8px; box-shadow:0 1px 3px rgba(0,0,0,0.05); transition: 0.2s;">
+                <img src="${spriteUrl}" style="width:34px; height:34px; image-rendering:pixelated;" 
+                     onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png'">
+                <div style="display:flex; flex-direction:column; line-height:1.1;">
+                    <span style="font-size:0.65rem; font-weight:900; color:var(--primary-dark); letter-spacing:0.2px;">${name}</span>
+                    <span style="font-size:0.55rem; font-weight:700; color:var(--text-light);">#${id}</span>
+                </div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = tagsHtml.join('');
 }
 
 async function openMapModal(mapId) {
     editingMapId = mapId || null;
     const map = mapId ? allMaps.find(m=>m.id===mapId) : null;
     document.getElementById('map-modal-title').innerHTML = `<i class="fas fa-map"></i> ${mapId ? 'Edit Map' : 'Add New Map'}`;
-    buildMapForm(map);
+     // 1. Build the form
+    await buildMapForm(map);
+    
+    // 2. TRIGGER INITIAL PREVIEW
+    refreshSpecialPokemonPreview();
+
+    // 3. ADD EVENT LISTENER FOR TYPING
+    const specialInput = document.getElementById('mf-special-list');
+if (specialInput) {
+    // Run once immediately to show existing pokemon
+    refreshSpecialPokemonPreview();
+
+    // Run whenever the admin types in the box
+    specialInput.addEventListener('input', () => {
+        // Small delay (debounce) to wait for the user to finish typing a number
+        clearTimeout(window.specialPreviewTimer);
+        window.specialPreviewTimer = setTimeout(refreshSpecialPokemonPreview, 400);
+    });
+}
+    document.getElementById('map-modal').classList.remove('hidden');
+    
     document.getElementById('map-modal').classList.remove('hidden');
     document.getElementById('save-map-btn').onclick = async () => {
-        const btn = document.getElementById('save-map-btn');
-        btn.disabled=true; btn.innerHTML='<div class="loading-spinner"></div> Saving...';
-        const name = document.getElementById('mf-name').value.trim();
-        if (!name) { showToast('Map name is required.', 'error'); btn.disabled=false; btn.innerHTML='<i class="fas fa-save"></i> Save Map'; return; }
-        const newMap = {
-            name,
-            generation: document.getElementById('mf-gen').value.trim(),
-            description: document.getElementById('mf-desc').value.trim(),
-            imageUrl: document.getElementById('mf-img').value.trim(),
-            requiredLevel: parseInt(document.getElementById('mf-req-lvl').value)||0,
-            catchRate: parseInt(document.getElementById('mf-catch-rate').value)||45,
-            requiredExpPercent: parseInt(document.getElementById('mf-req-xp').value)||10,
-            catchXpPenaltyPercent: parseInt(document.getElementById('mf-catch-penalty').value)||10,
-            pokemonMin: parseInt(document.getElementById('mf-pmin').value)||1,
-            pokemonMax: parseInt(document.getElementById('mf-pmax').value)||151,
-            tileColors: document.getElementById('mf-tile-colors').value.split(',').map(s=>s.trim()).filter(s=>s),
-            tileClasses: document.getElementById('mf-tile-classes').value.split(',').map(s=>s.trim()).filter(s=>s),
-            specialLevelRange: { enabled: document.getElementById('mf-sl-enabled').checked, min: parseInt(document.getElementById('mf-sl-min').value)||1, max: parseInt(document.getElementById('mf-sl-max').value)||100 },
-            specialPokemonList: document.getElementById('mf-special-list').value.split(',').map(s=>parseInt(s.trim())).filter(n=>!isNaN(n)&&n>0)
-        };
-        if (editingMapId) await updateDoc(doc(db,'maps',editingMapId), newMap);
-        else await addDoc(collection(db,'maps'), newMap);
-        btn.disabled=false; btn.innerHTML='<i class="fas fa-save"></i> Save Map';
-        document.getElementById('map-modal').classList.add('hidden');
-        showToast(editingMapId ? 'Map updated!' : 'Map created!', 'success');
-        loadMaps();
+    const btn = document.getElementById('save-map-btn');
+    const name = document.getElementById('mf-name').value.trim();
+    if (!name) { showToast('Name required', 'error'); return; }
+
+    btn.disabled = true;
+    btn.innerHTML = '<div class="loading-spinner"></div> Saving...';
+
+    // Collect Badge IDs from checkboxes
+    const requiredBadgeIds = Array.from(document.querySelectorAll('.badge-req-check:checked')).map(cb => cb.value);
+
+    const newMap = {
+        name: name,
+        generation: document.getElementById('mf-gen').value.trim(),
+        description: document.getElementById('mf-desc').value.trim(),
+        imageUrl: document.getElementById('mf-img').value.trim(),
+        
+        // Progression & Gating
+        requiredLevel: parseInt(document.getElementById('mf-req-lvl').value) || 0,
+        requiredBadgesCount: parseInt(document.getElementById('mf-req-badge-count').value) || 0,
+        requiredBadgeIds: requiredBadgeIds,
+
+        // Mechanics
+        catchRate: parseInt(document.getElementById('mf-catch-rate').value) || 45,
+        shinyRate: parseInt(document.getElementById('mf-shiny-rate').value) || 8192,
+        requiredExpPercent: parseInt(document.getElementById('mf-req-xp').value) || 10,
+        catchXpPenaltyPercent: parseInt(document.getElementById('mf-catch-penalty').value) || 10,
+        
+        // Auto Catch
+        autoCatchEnabled: document.getElementById('mf-auto-catch').checked,
+        autoCatchThreshold: parseInt(document.getElementById('mf-auto-threshold').value) || 5,
+
+        // Multipliers
+        xpMultiplier: parseFloat(document.getElementById('mf-xp-mult').value) || 1.0,
+        coinMultiplier: parseFloat(document.getElementById('mf-coin-mult').value) || 1.0,
+
+        // Spawns
+        pokemonMin: parseInt(document.getElementById('mf-pmin').value) || 1,
+        pokemonMax: parseInt(document.getElementById('mf-pmax').value) || 151,
+        specialPokemonList: document.getElementById('mf-special-list').value.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n)),
+        specialLevelRange: {
+            enabled: document.getElementById('mf-sl-enabled').checked,
+            min: parseInt(document.getElementById('mf-sl-min').value) || 1,
+            max: parseInt(document.getElementById('mf-sl-max').value) || 100
+        },
+
+        // Visuals
+        tileColors: document.getElementById('mf-tile-colors').value.split(',').map(s => s.trim()).filter(s => s),
+        tileClasses: document.getElementById('mf-tile-classes').value.split(',').map(s => s.trim()).filter(s => s)
     };
+
+    try {
+        if (editingMapId) {
+            await updateDoc(doc(db, 'maps', editingMapId), newMap);
+        } else {
+            await addDoc(collection(db, 'maps'), newMap);
+        }
+        showToast('Map saved successfully!', 'success');
+        document.getElementById('map-modal').classList.add('hidden');
+        loadMaps();
+    } catch(e) {
+        showToast('Error: ' + e.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-save"></i> Save Map';
+    }
+};
 }
 document.getElementById('add-map-btn').onclick = () => openMapModal(null);
 
@@ -2070,11 +2631,9 @@ onAuthStateChanged(auth, async (user) => {
         document.getElementById('login-screen').classList.remove('hidden');
         document.getElementById('admin-app').style.display = 'none';
         if (usersUnsubscribe) { usersUnsubscribe(); usersUnsubscribe = null; }
-        const btn = document.getElementById('login-btn');
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In';
         return;
     }
+    
     const userDoc = await getDoc(doc(db, 'users', user.uid));
     const ud = userDoc.data();
     if (ud?.role !== 'admin') {
@@ -2082,13 +2641,23 @@ onAuthStateChanged(auth, async (user) => {
         await signOut(auth);
         return;
     }
+
+    // ✅ CORRECT: Assign the click listener to the "Create New Gym" button
+    const addGymBtn = document.getElementById('add-gym-btn-global');
+    if (addGymBtn) addGymBtn.onclick = () => window.openGymModal(null);
+
     document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('admin-app').style.display = 'flex';
+    
     const adminName = ud.trainerName || user.email;
     document.getElementById('admin-name-display').textContent = adminName;
     document.getElementById('admin-avatar').textContent = adminName.charAt(0).toUpperCase();
+    
     startUsersRealtime();
-    await Promise.all([loadMaps(), loadAllPokemon()]);
+
+    // ✅ CORRECT: Add loadGyms() to the initial data load
+    await Promise.all([loadMaps(), loadAllPokemon(), loadGyms()]);
+    
     refreshSyncStatus();
 });
 
@@ -2099,6 +2668,16 @@ document.getElementById('logout-btn').onclick = () => {
         document.getElementById('admin-app').style.display = 'none';
     });
 };
+
+// Global timer for Cosmic/Rainbow effects in the Admin Panel
+let adminHue = 0;
+setInterval(() => {
+    adminHue = (adminHue + 2) % 360;
+    // Apply to any image inside a cosmic or rainbow aura
+    document.querySelectorAll('.fx-cosmic-aura img, .fx-rainbow-aura img').forEach(img => {
+        img.style.setProperty('--rh', adminHue + 'deg');
+    });
+}, 50);
 </script>
 </body>
 </html>

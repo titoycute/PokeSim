@@ -108,9 +108,26 @@ body.dark-theme #toast.error { background: var(--danger); }
 .pokemon-card.shiny-card{border-color:#ecc94b;background:linear-gradient(to bottom,#fffff0,#fff);}
 .card-img-wrap{background:#f8fafc;padding:16px;text-align:center;border-bottom:1px solid var(--border);position:relative;min-height:140px;display:flex;align-items:center;justify-content:center;}
 .card-img-wrap img{width:120px;height:120px;object-fit:contain;filter:drop-shadow(0 4px 8px rgba(0,0,0,.15));image-rendering:pixelated;}
-.card-badge{position:absolute;top:8px;right:8px;padding:3px 9px;border-radius:20px;font-size:.65rem;font-weight:700;}
-.shiny-badge{background:#ffd700;color:#333;animation:pulse .9s infinite;}
-.special-badge{background:linear-gradient(135deg,#f6d365,#fda085);color:#333;animation:pulse .9s infinite;}
+.card-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    padding: 4px 10px;
+    border-radius: 30px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    z-index: 2;
+    backdrop-filter: blur(2px);
+}
+.shiny-badge {
+    background: #ffd700;
+    color: #333;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.special-badge {
+    background: linear-gradient(135deg, #f6d365, #fda085);
+    color: #333;
+}
 .auction-badge{background:linear-gradient(135deg,var(--auction-gold),var(--warning));color:white;}
 .my-badge{position:absolute;top:8px;left:8px;background:var(--primary);color:white;padding:2px 8px;border-radius:20px;font-size:.62rem;font-weight:700;}
 @keyframes pulse{0%,100%{transform:scale(1);opacity:.85}50%{transform:scale(1.04);opacity:1}}
@@ -255,6 +272,43 @@ body.dark-theme #toast.error { background: var(--danger); }
   .modal-box{border-radius:16px;}
   .top-nav{padding:8px 14px;}
 }
+
+/* ----- Bonus Pills (Wild & Form) ----- */
+.bonus-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 0.62rem;
+    font-weight: 700;
+    color: white;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.2);
+    white-space: nowrap;
+}
+.bonus-pill.atk { background: #ff6b6b; }
+.bonus-pill.def { background: #4dabf7; }
+.bonus-pill.spd { background: #69db7c; color: #1a4731; }
+
+/* Form bonuses – orange theme */
+.bonus-pill.form { background: #ffb347; color: #7a2e00; }
+.bonus-pill.form.def { background: #ffa559; color: #5e2a00; }
+.bonus-pill.form.spd { background: #ffc966; color: #6b3c00; }
+
+/* Shiny bonus (golden pill) */
+.shiny-bonus-pill {
+    background: #ffd700;
+    color: #b7791f;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+.shiny-badge { top: 8px; right: 8px; }
+.special-badge { top: 30px; right: 8px; }
 </style>
 </head>
 <body>
@@ -268,6 +322,7 @@ body.dark-theme #toast.error { background: var(--danger); }
     <div class="user-chip"><i class="fas fa-chart-line"></i> Lv.<span id="trainer-level">0</span></div>
     <div class="user-chip"><i class="fas fa-coins"></i> <span id="coin-amount">0</span></div>
     <button id="logout-btn" class="btn btn-outline btn-sm"><i class="fas fa-sign-out-alt"></i> Logout</button>
+    <a href="index.html" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Back to PokeSim</a>
   </div>
 </nav>
 
@@ -469,6 +524,73 @@ let allPokemonList=[];
 let auctionSettings={transactionFee:0,minLevel:0};
 let _pokePickerCallback=null;
 
+
+// ========== PERSISTENT SPRITE CACHE (IndexedDB) ==========
+const DB_NAME = 'PokeSimSpriteCache';
+const DB_VERSION = 1;
+const STORE_NAME = 'sprites';
+let dbReady = false;
+let dbInstance = null;
+
+function openSpriteDB() {
+  return new Promise((resolve, reject) => {
+    if (dbInstance && dbReady) { resolve(dbInstance); return; }
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => { dbInstance = request.result; dbReady = true; resolve(dbInstance); };
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME);
+      }
+    };
+  });
+}
+
+async function getCachedImageUrl(url) {
+  try {
+    const db = await openSpriteDB();
+    const tx = db.transaction(STORE_NAME, 'readonly');
+    const store = tx.objectStore(STORE_NAME);
+    const record = await new Promise((resolve) => {
+      const req = store.get(url);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => resolve(null);
+    });
+    if (record && record.blob) {
+      return URL.createObjectURL(record.blob);
+    }
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('fetch failed');
+    const blob = await response.blob();
+    const writeTx = db.transaction(STORE_NAME, 'readwrite');
+    const writeStore = writeTx.objectStore(STORE_NAME);
+    writeStore.put({ blob: blob, timestamp: Date.now() }, url);
+    writeTx.commit();
+    return URL.createObjectURL(blob);
+  } catch (err) {
+    console.warn('Failed to cache sprite:', url, err);
+    return url; // fallback to direct URL
+  }
+}
+
+// Helper: get showdown URL and official artwork URL for a Pokemon
+function getShowdownUrl(pokemonId, isShiny, pokemonName) {
+  let name = pokemonName ? pokemonName.toLowerCase() : `pokemon/${pokemonId}`;
+  return isShiny
+    ? `https://play.pokemonshowdown.com/sprites/ani-shiny/${name}.gif`
+    : `https://play.pokemonshowdown.com/sprites/ani/${name}.gif`;
+}
+function getOfficialArtworkUrl(pokemonId, isShiny) {
+  return isShiny
+    ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/shiny/${pokemonId}.png`
+    : `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${pokemonId}.png`;
+}
+function getDefaultSpriteUrl(pokemonId) {
+  return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemonId}.png`;
+}
+
+
 // ──────────── UTILS ────────────
 window.closeModal=id=>document.getElementById(id)?.classList.add('hidden');
 
@@ -620,6 +742,117 @@ function renderMoveSelector(containerId, currentMoves, onChange){
   if(onChange)onChange(selected);
 }
 
+
+// ========== SPECIAL FORM BONUSES (percentage) ==========
+function getSpecialFormBonuses(pokemonName, pokemonId) {
+    const name = pokemonName.toLowerCase();
+    let atk = 0, def = 0, spd = 0;
+
+    // Gigantamax / Dynamax
+    if (name.includes('-gmax') || name === 'dynamax') {
+        atk = 10; def = 10; spd = 10;
+    }
+    // Primal Kyogre & Primal Groudon
+    else if (name === 'kyogre-primal' || name === 'groudon-primal' || 
+             (pokemonId === 382 && name.includes('primal')) || 
+             (pokemonId === 383 && name.includes('primal'))) {
+        atk = 5; def = 5; spd = 5;
+    }
+    // Origin Forme Dialga & Palkia
+    else if (name === 'dialga-origin' || name === 'palkia-origin') {
+        atk = 5; def = 5; spd = 5;
+    }
+    // Mega Evolutions (any -mega suffix OR ID range 10001-10255)
+    else if (name.includes('-mega') || (pokemonId > 10000 && pokemonId < 10256)) {
+        atk = 3; def = 3; spd = 3;
+    }
+
+    // ----- Ultra Beasts -----
+    const ultraBeastIds = new Set([793,794,795,796,797,798,799,803,804,805,806]);
+    if (ultraBeastIds.has(pokemonId) || name.includes('-ub')) {
+        atk = 3; def = 0; spd = 3;
+    }
+    // ----- Alolan Forms -----
+    if (name === 'ninetales-alola' || name === 'alolan-ninetales') {
+        spd = 2;
+    } else if (name === 'sandslash-alola' || name === 'alolan-sandslash') {
+        atk = 2; def = 2;
+    }
+    // ----- Galarian Forms -----
+    if (name === 'darmanitan-galar-zen' || name.includes('galarian-darmanitan-zen')) {
+        atk = 5;
+    } else if (name === 'slowbro-galar' || name === 'galarian-slowbro') {
+        def = 2;
+    }
+    // ----- Hisuian Forms -----
+    if (name === 'zoroark-hisui' || name === 'hisuian-zoroark') {
+        atk = 3; spd = 3;
+    } else if (name === 'arcanine-hisui' || name === 'hisuian-arcanine') {
+        atk = 3; def = 2;
+    }
+    // ----- Specific Legendaries / Mythicals -----
+    if (name === 'giratina-origin') { atk = 5; def = 3; spd = 3; }
+    else if (name === 'deoxys-attack') { atk = 5; spd = 5; }
+    else if (name === 'deoxys-defense') { def = 5; }
+    else if (name === 'deoxys-speed') { spd = 5; }
+    else if (name === 'shaymin-sky') { atk = 3; spd = 5; }
+    else if (name === 'keldeo-resolute') { atk = 3; spd = 3; }
+    else if (name === 'hoopa-unbound') { atk = 5; def = 3; spd = 5; }
+    else if (name === 'necrozma-dusk-mane') { atk = 5; def = 5; }
+    else if (name === 'necrozma-dawn-wings') { atk = 5; spd = 5; }
+    else if (name === 'zacian-crowned') { atk = 5; spd = 3; }
+    else if (name === 'zamazenta-crowned') { def = 5; spd = 3; }
+    else if (name === 'eternatus-eternamax') { atk = 5; def = 5; spd = 5; }
+    else if (name === 'zygarde-50') { atk = 2; def = 2; spd = 2; }
+    else if (name === 'zygarde-complete' || name === 'zygarde-100') { atk = 5; def = 5; spd = 5; }
+    else if (name === 'aegislash-blade') { atk = 5; spd = 3; }
+    else if (name === 'wishiwashi-school') { atk = 3; def = 3; spd = 3; }
+
+    return { atk, def, spd };
+}
+
+
+// Returns { text, color? } for special form badges
+function getSpecialBadgeInfo(pokemonId, pokemonName) {
+    const name = pokemonName.toLowerCase();
+    
+    // Mega
+    if (name.includes('-mega')) return { text: 'MEGA', style: 'background: linear-gradient(135deg, #3399ff, #1a66cc);' };
+    // Gigantamax
+    if (name.includes('-gmax')) return { text: 'G-MAX', style: 'background: linear-gradient(135deg, #ff4444, #cc0000);' };
+    // Primal
+    if (name.includes('-primal') || (pokemonId === 382 && name.includes('primal')) || (pokemonId === 383 && name.includes('primal'))) {
+        return { text: 'PRIMAL', style: 'background: linear-gradient(135deg, #ffaa33, #cc8800);' };
+    }
+    // Origin Forme (Giratina, Dialga, Palkia)
+    if (name.includes('-origin')) return { text: 'ORIGIN', style: 'background: linear-gradient(135deg, #aa66ff, #7733cc);' };
+    // Ultra Beast
+    const ultraBeastIds = new Set([793,794,795,796,797,798,799,803,804,805,806]);
+    if (ultraBeastIds.has(pokemonId) || name.includes('-ub')) return { text: 'ULTRA BEAST', style: 'background: linear-gradient(135deg, #00cc99, #008866);' };
+    // Alolan
+    if (name === 'ninetales-alola' || name === 'sandslash-alola' || name.includes('-alola')) return { text: 'ALOLAN', style: 'background: linear-gradient(135deg, #66ccff, #3399cc);' };
+    // Galarian
+    if (name === 'darmanitan-galar-zen' || name === 'slowbro-galar' || name.includes('-galar')) return { text: 'GALARIAN', style: 'background: linear-gradient(135deg, #ff9966, #cc6633);' };
+    // Hisuian
+    if (name.includes('-hisui')) return { text: 'HISUIAN', style: 'background: linear-gradient(135deg, #99cc66, #669933);' };
+    // Eternamax
+    if (name === 'eternatus-eternamax') return { text: 'ETERNAL', style: 'background: linear-gradient(135deg, #ff66cc, #cc3399);' };
+    // Zygarde Complete
+    if (name === 'zygarde-complete') return { text: 'COMPLETE', style: 'background: linear-gradient(135deg, #33cc33, #1a8a1a);' };
+    // Aegislash Blade
+    if (name === 'aegislash-blade') return { text: 'BLADE', style: 'background: linear-gradient(135deg, #ffaa44, #cc8822);' };
+    // Other special forms (school, crowned, etc.)
+    if (name.includes('-school')) return { text: 'SCHOOL', style: 'background: linear-gradient(135deg, #66ccff, #3399cc);' };
+    if (name.includes('-crowned')) return { text: 'CROWNED', style: 'background: linear-gradient(135deg, #ffdd66, #ccaa33);' };
+    if (name.includes('-10')) return { text: '10%', style: 'background: #888;' };
+    if (name.includes('-50') && !name.includes('100')) return { text: '50%', style: 'background: #888;' };
+    if (name.includes('-100')) return { text: '100%', style: 'background: #ffaa33;' };
+    
+    // Default for legendaries/mythicals not otherwise specified
+    return null;
+}
+
+
 // ──────────── USER POKEMON (session cached) ────────────
 let _userPokeCache = null;
 let _userPokeCacheTs = 0;
@@ -677,30 +910,78 @@ function showReward(pokemon, title, message){
 }
 
 // ──────────── POKEMON CARD ────────────
-function createPokemonCard(poke, actions, extraSlot=null){
-  const card=document.createElement('div');
-  card.className='pokemon-card'+(poke.isShiny?' shiny-card':'');
-  const sUrl=poke.isShiny?shinySprite(poke.name):spriteUrl(poke.pokemonId);
-  const fb=spriteStatic(poke.pokemonId);
-  card.innerHTML=`
-    <div class="card-img-wrap">
-      <img src="${sUrl}" onerror="this.src='${fb}'" alt="${esc(poke.name||'')}">
-      ${poke.isShiny?'<span class="card-badge shiny-badge">✨ SHINY</span>':''}
-      ${poke.isSpecial?'<span class="card-badge special-badge" style="top:'+(poke.isShiny?'36px':'8px')+'">⭐ SPECIAL</span>':''}
-      ${poke.isOwn?'<span class="my-badge">Yours</span>':''}
+function createPokemonCard(poke, actions, extraSlot = null) {
+  const card = document.createElement('div');
+  card.className = 'pokemon-card' + (poke.isShiny ? ' shiny-card' : '');
+
+  // --- Sprite URLs ---
+  const showdownUrl = poke.isShiny
+    ? `https://play.pokemonshowdown.com/sprites/ani-shiny/${poke.name.toLowerCase()}.gif`
+    : `https://play.pokemonshowdown.com/sprites/ani/${poke.name.toLowerCase()}.gif`;
+  const officialUrl = poke.isShiny
+    ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/shiny/${poke.pokemonId}.png`
+    : `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${poke.pokemonId}.png`;
+  const defaultUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${poke.pokemonId}.png`;
+  const mainOnError = `this.onerror=null; this.src='${officialUrl}'; this.onerror=()=>this.src='${defaultUrl}';`;
+  const miniOnError = `this.onerror=null; this.src='${defaultUrl}';`;
+
+  // --- Wild bonuses (pills) ---
+  let wildPills = '';
+  if (poke.bonusStats?.atk) wildPills += `<span class="bonus-pill atk">⚔️ +25% ATK</span>`;
+  if (poke.bonusStats?.def) wildPills += `<span class="bonus-pill def">🛡️ +25% DEF</span>`;
+  if (poke.bonusStats?.spd) wildPills += `<span class="bonus-pill spd">🏃 +25% SPD</span>`;
+
+  // --- Form bonuses (orange pills) ---
+  const formBonuses = getSpecialFormBonuses(poke.name, poke.pokemonId);
+  let formPills = '';
+  if (formBonuses.atk) formPills += `<span class="bonus-pill form">⚔️ ATK +${formBonuses.atk}%</span>`;
+  if (formBonuses.def) formPills += `<span class="bonus-pill form def">🛡️ DEF +${formBonuses.def}%</span>`;
+  if (formBonuses.spd) formPills += `<span class="bonus-pill form spd">🏃 SPD +${formBonuses.spd}%</span>`;
+
+  // --- Shiny HP bonus (golden pill) ---
+  let shinyPill = '';
+  if (poke.isShiny) {
+    shinyPill = `<div class="shiny-bonus-pill">✨ SHINY +15% HP</div>`;
+  }
+
+  // --- Build three lines (wild, form, shiny) ---
+  let wildLine = wildPills ? `<div style="display:flex; flex-wrap:wrap; gap:4px; align-items:center; margin-bottom:4px;"><span style="font-size:0.6rem; color:var(--text-light); margin-right:4px;">🌿 Wild:</span>${wildPills}</div>` : '';
+  let formLine = formPills ? `<div style="display:flex; flex-wrap:wrap; gap:4px; align-items:center; margin-bottom:4px;"><span style="font-size:0.6rem; color:var(--text-light); margin-right:4px;">✨ Form:</span>${formPills}</div>` : '';
+  let shinyLine = shinyPill ? `<div style="display:flex; flex-wrap:wrap; gap:4px; align-items:center; margin-top:2px;">${shinyPill}</div>` : '';
+
+  const bonusSection = (wildLine || formLine || shinyLine) ? `<div class="poke-card-bonus" style="margin: 6px 0;">${wildLine}${formLine}${shinyLine}</div>` : '';
+
+  // --- Special badge (Mega, Gmax, etc.) ---
+  const specialInfo = getSpecialBadgeInfo(poke.pokemonId, poke.name);
+  let specialBadgeHtml = '';
+  if (specialInfo) {
+    specialBadgeHtml = `<span class="card-badge special-badge" style="${specialInfo.style}">${specialInfo.text}</span>`;
+  }
+
+  card.innerHTML = `
+    <div class="card-img-wrap" style="position:relative;">
+      <img src="${officialUrl}" onerror="${miniOnError}"
+           style="position:absolute; top:4px; left:4px; width:28px; height:28px; object-fit:contain; image-rendering:pixelated; z-index:3; border-radius:6px; background:rgba(0,0,0,0.4); padding:2px;">
+      <img src="${showdownUrl}" onerror="${mainOnError}"
+           alt="${esc(poke.name||'')}" style="width:120px; height:120px; object-fit:contain; filter:drop-shadow(0 4px 8px rgba(0,0,0,.15)); image-rendering:pixelated;">
+      ${poke.isShiny ? '<span class="card-badge shiny-badge">✨ SHINY</span>' : ''}
+      ${specialBadgeHtml}
+      ${poke.isOwn ? '<span class="my-badge">Yours</span>' : ''}
     </div>
     <div class="card-body">
-      <div class="poke-name">${esc((poke.name||'').toUpperCase())}<span class="bonus-icons">${bonusIcons(poke.bonusStats)}</span></div>
+      <div class="poke-name">${esc(poke.name.toUpperCase())}</div>
       <div class="types-row">${typeBadges(poke.types||[])}</div>
-      <div class="level-row">Lv.${poke.level||'?'} ${poke.exp!==undefined?`· XP: ${poke.exp}`:''}</div>
+      <div class="level-row">Lv.${poke.level} ${poke.exp!==undefined?`· XP:${poke.exp}`:''}</div>
+      ${bonusSection}
       <div class="moves-row">${(poke.moves||[]).map(m=>`<span class="move-pill" style="background:${typeColor(m.type)}">${m.name.toUpperCase()}</span>`).join('')}</div>
       ${poke.price!=null?`<div class="price-tag">💰 ${Number(poke.price).toLocaleString()} coins</div>`:''}
       ${poke.ownerName?`<div class="owner-row"><i class="fas fa-user"></i> ${esc(poke.ownerName)}</div>`:''}
       ${extraSlot||''}
     </div>
     <div class="card-footer">${actions.map(a=>`<button class="btn ${a.cls||'btn-primary'} btn-sm">${a.label}</button>`).join('')}</div>`;
-  const btns=card.querySelectorAll('.card-footer .btn');
-  actions.forEach((a,i)=>{if(btns[i])btns[i].onclick=a.fn;});
+
+  const btns = card.querySelectorAll('.card-footer .btn');
+  actions.forEach((a,i)=>{ if(btns[i]) btns[i].onclick = a.fn; });
   return card;
 }
 
@@ -729,6 +1010,34 @@ async function showEvolutionModal(pokemonId){
   }catch(e){toast('Could not load evolution data.','error');}
 }
 
+
+// Helper: preloads sprites for a set of items that have pokemonId and isShiny fields
+// async function preloadSpritesForListings(items) {
+//   const unique = new Map(); // key -> { id, shiny, name }
+//   for (const item of items) {
+//     if (item.pokemonId) {
+//       const key = `${item.pokemonId}_${item.isShiny ? '1' : '0'}`;
+//       if (!unique.has(key)) {
+//         unique.set(key, { id: item.pokemonId, shiny: item.isShiny, name: item.name });
+//       }
+//     }
+//   }
+//   await Promise.all([...unique.values()].map(async ({ id, shiny, name }) => {
+//     await getCachedSpriteUrl(id, shiny, name);
+//   }));
+// }
+
+
+// function collectAuctionSprites(auction) {
+//   const set = new Set();
+//   set.add(`${auction.pokemonId}_${auction.isShiny ? '1' : '0'}`);
+//   for (const bid of (auction.bids || [])) {
+//     for (const poke of (bid.pokemon || [])) {
+//       if (poke.pokemonId) set.add(`${poke.pokemonId}_${poke.isShiny ? '1' : '0'}`);
+//     }
+//   }
+//   return Array.from(set);
+// }
 // ══════════════════════════════════════
 // SHOP TAB
 // ══════════════════════════════════════
@@ -736,44 +1045,39 @@ async function loadShop() {
   const c = document.getElementById('shop-listings');
   c.innerHTML = `<div class="loading-state"><div class="spin"></div><p>Loading market...</p></div>`;
   try {
-    // ✅ Admin sees all listings; players only see those with stock > 0
     const q = isAdmin
       ? query(collection(db, 'market_shop_listings'), limit(48))
       : query(collection(db, 'market_shop_listings'), where('stock', '>', 0), limit(24));
     const snap = await getDocs(q);
     const listings = []; snap.forEach(d => listings.push({ id: d.id, ...d.data() }));
+    if (!listings.length) {
+      c.innerHTML = '<div class="empty-state"><p>No listings right now.</p></div>';
+      return;
+    }
     c.innerHTML = '';
-    if (!listings.length) { c.innerHTML = '<div class="empty-state"><p>No listings right now.</p></div>'; return; }
     for (const l of listings) {
       const outOfStock = l.stock <= 0;
-      const p = { pokemonId: l.pokemonId, name: l.name, types: l.types, level: l.level,
-                  moves: l.moves, bonusStats: l.bonusStats, price: l.price,
-                  isSpecial: l.isSpecial, isShiny: l.isShiny || false };
+      const p = {
+        pokemonId: l.pokemonId, name: l.name, types: l.types, level: l.level,
+        moves: l.moves, bonusStats: l.bonusStats, price: l.price,
+        isSpecial: l.isSpecial, isShiny: l.isShiny || false
+      };
       if (isAdmin) {
-        // ✅ Admin: show stock count, edit & delete, and out-of-stock badge
-        const stockColor = outOfStock ? 'var(--danger)' : 'var(--success)';
-        const stockLabel = outOfStock
-          ? `<span style="color:var(--danger);font-weight:700;">⚠️ OUT OF STOCK</span>`
-          : `<span style="color:${stockColor};font-weight:700;">Stock: ${l.stock}</span>`;
-        c.appendChild(createPokemonCard(p,
-          [
-            { label: '✏️ Edit', cls: 'btn-outline btn-sm', fn: () => openShopModal(l) },
-            { label: '🗑️ Delete', cls: 'btn-danger btn-sm', fn: () => deleteShopListing(l.id) }
-          ],
-          `<div style="font-size:.78rem;margin-top:4px;">${stockLabel}</div>`
-        ));
-      } else {
-        // ✅ Player: only sees in-stock items (query already filters, but safety check)
-        if (outOfStock) continue;
-        c.appendChild(createPokemonCard(p,
-          [{ label: 'Buy', cls: 'btn-primary', fn: () => buyShop(l.id, l.price) }],
-          `<div style="font-size:.78rem;color:var(--text-light);">Stock: ${l.stock}</div>`
-        ));
+        const stockLabel = outOfStock ? '<span style="color:var(--danger);">⚠️ OUT OF STOCK</span>' : `<span style="color:var(--success);">Stock: ${l.stock}</span>`;
+        const actions = [
+          { label: '✏️ Edit', cls: 'btn-outline btn-sm', fn: () => openShopModal(l) },
+          { label: '🗑️ Delete', cls: 'btn-danger btn-sm', fn: () => deleteShopListing(l.id) }
+        ];
+        const card = createPokemonCard(p, actions, `<div style="font-size:.78rem;margin-top:4px;">${stockLabel}</div>`);
+        c.appendChild(card);
+      } else if (!outOfStock) {
+        const actions = [{ label: 'Buy', cls: 'btn-primary', fn: () => buyShop(l.id, l.price) }];
+        const card = createPokemonCard(p, actions, `<div style="font-size:.78rem;color:var(--text-light);">Stock: ${l.stock}</div>`);
+        c.appendChild(card);
       }
     }
   } catch (e) { console.error(e); c.innerHTML = '<div class="empty-state"><p>Failed to load.</p></div>'; }
 }
-
 
 async function buyShop(id, price) {
     if (!currentUser) { toast('Please log in.', 'error'); return; }
@@ -879,7 +1183,6 @@ async function loadSell() {
   const c = document.getElementById('sell-listings');
   c.innerHTML = `<div class="loading-state"><div class="spin"></div><p>Loading...</p></div>`;
   try {
-    // Optimization: Added limit(24)
     const q = query(collection(db, 'market_sell_listings'), limit(24));
     const snap = await getDocs(q);
     const listings = []; snap.forEach(d => listings.push({ id: d.id, ...d.data() }));
@@ -889,44 +1192,66 @@ async function loadSell() {
       const isOwn = l.ownerId === currentUser?.uid;
       const actions = [{ label: 'Buy', cls: 'btn-primary', fn: () => buySell(l.id, l.price, l.ownerId) }];
       if (isOwn) actions.push({ label: 'Cancel', cls: 'btn-danger', fn: () => cancelSell(l.id) });
-      c.appendChild(createPokemonCard({ ...l, isOwn }, actions));
+      const card = createPokemonCard({ ...l, isOwn }, actions);
+      c.appendChild(card);
     }
   } catch (e) { console.error(e); }
 }
 
-// ========== SPRITE CACHE SYSTEM (add near the top of your script) ==========
-const spriteCache = new Map();   // key: "id_shiny" -> blob URL or fallback
+// ======================================================
+// SPRITE CACHE SYSTEM (Showdown animated GIF first, PNG fallback)
+// ======================================================
+// const spriteCache = new Map();
 
-async function getCachedSpriteUrl(pokemonId, shiny = false) {
-  const key = `${pokemonId}_${shiny}`;
-  if (spriteCache.has(key)) {
-    return spriteCache.get(key);
-  }
-  const url = shiny
-    ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/shiny/${pokemonId}.png`
-    : `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${pokemonId}.png`;
-  try {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error('Network error');
-    const blob = await response.blob();
-    const blobUrl = URL.createObjectURL(blob);
-    spriteCache.set(key, blobUrl);
-    return blobUrl;
-  } catch (error) {
-    // Fallback to the small static PNG (no caching, but browser may still cache it)
-    const fallbackUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemonId}.png`;
-    spriteCache.set(key, fallbackUrl);
-    return fallbackUrl;
-  }
-}
+// async function getCachedSpriteUrl(pokemonId, shiny = false, pokemonName = null) {
+//   const key = `${pokemonId}_${shiny}`;
+//   if (spriteCache.has(key)) return spriteCache.get(key);
 
-// Revoke object URLs before page unload to free memory
-window.addEventListener('beforeunload', () => {
-  for (const blobUrl of spriteCache.values()) {
-    if (blobUrl.startsWith('blob:')) URL.revokeObjectURL(blobUrl);
-  }
-  spriteCache.clear();
-});
+//   // Get Pokémon name for showdown URL (if not provided, fetch it)
+//   let name = pokemonName;
+//   if (!name) {
+//     try {
+//       const p = await fetchPokemon(pokemonId);
+//       name = p.name;
+//     } catch {
+//       name = `pokemon/${pokemonId}`;
+//     }
+//   }
+//   const nameLower = name.toLowerCase();
+  
+//   const showdownUrl = shiny
+//     ? `https://play.pokemonshowdown.com/sprites/ani-shiny/${nameLower}.gif`
+//     : `https://play.pokemonshowdown.com/sprites/ani/${nameLower}.gif`;
+//   const officialShiny = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/shiny/${pokemonId}.png`;
+//   const officialNormal = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${pokemonId}.png`;
+//   const fallbackSprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemonId}.png`;
+
+//   const urls = [showdownUrl, shiny ? officialShiny : officialNormal, fallbackSprite];
+
+//   // Try each URL until one loads
+//   for (const url of urls) {
+//     try {
+//       const res = await fetch(url);
+//       if (res.ok) {
+//         const blob = await res.blob();
+//         const blobUrl = URL.createObjectURL(blob);
+//         spriteCache.set(key, blobUrl);
+//         return blobUrl;
+//       }
+//     } catch {}
+//   }
+//   // If all fail, return fallback static PNG
+//   spriteCache.set(key, fallbackSprite);
+//   return fallbackSprite;
+// }
+
+// // Free memory on page unload
+// window.addEventListener('beforeunload', () => {
+//   for (const url of spriteCache.values()) {
+//     if (url.startsWith('blob:')) URL.revokeObjectURL(url);
+//   }
+//   spriteCache.clear();
+// });
 
 // ========== UPDATED renderSellPokemonList (search + cached sprites) ==========
 async function renderSellPokemonList(containerId, onSelect) {
@@ -938,80 +1263,72 @@ async function renderSellPokemonList(containerId, onSelect) {
 
   const container = document.getElementById(containerId);
   if (!available.length) {
-    container.innerHTML = `<div class="empty-state" style="padding:20px;"><i class="fas fa-box-open"></i><p>No Pokémon available to sell. (All are already listed or you have none.)</p></div>`;
+    container.innerHTML = `<div class="empty-state" style="padding:20px;"><i class="fas fa-box-open"></i><p>No Pokémon available to sell.</p></div>`;
     return;
   }
-
-  // Build search input + list container
   container.innerHTML = `
     <div class="form-group" style="margin-bottom:10px;">
-      <input type="text" id="sell-search-input" placeholder="🔍 Search your Pokémon..." style="width:100%; padding:8px 12px; border-radius:40px; border:1px solid var(--border); background:var(--bg);">
+      <input type="text" id="sell-search-input" placeholder="🔍 Search your Pokémon..." style="width:100%; padding:8px 12px;">
     </div>
-    <div id="sell-pokemon-list-cards" style="display:flex; flex-direction:column; gap:10px; max-height:360px; overflow-y:auto; padding-right:5px;"></div>
+    <div id="sell-pokemon-list-cards" style="display:flex; flex-direction:column; gap:10px; max-height:360px; overflow-y:auto;"></div>
   `;
-
   const listContainer = container.querySelector('#sell-pokemon-list-cards');
-
-  // Preload sprites for all available Pokémon in parallel
-  const spritePromises = available.map(async (p) => {
-    const spriteUrl = await getCachedSpriteUrl(p.pokemonId, p.isShiny);
-    return { p, spriteUrl };
-  });
-  const pokemonWithSprites = await Promise.all(spritePromises);
-
+  
   function renderFiltered(searchTerm) {
     const term = searchTerm.toLowerCase();
-    const filtered = pokemonWithSprites.filter(item => item.p.name.toLowerCase().includes(term));
+    const filtered = available.filter(p => p.name.toLowerCase().includes(term));
     if (!filtered.length) {
       listContainer.innerHTML = `<div class="empty-state"><p>No matching Pokémon.</p></div>`;
       return;
     }
-    listContainer.innerHTML = filtered.map(({ p, spriteUrl }) => `
-      <div class="selectable-poke" data-id="${p.id}" style="display:flex; align-items:center; gap:12px; padding:10px; background:var(--card-bg); border:1px solid var(--border); border-radius:16px; cursor:pointer; transition:0.15s;">
-        <img src="${spriteUrl}" onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.pokemonId}.png'" style="width:56px; height:56px; object-fit:contain; image-rendering:pixelated;">
-        <div style="flex:1;">
-          <div style="font-weight:800; font-size:0.9rem;">${p.name.toUpperCase()} ${p.isShiny ? '✨' : ''} ${bonusIcons(p.bonusStats)}</div>
-          <div class="types-row" style="margin:4px 0;">${typeBadges(p.types || [])}</div>
-          <div style="font-size:0.75rem; color:var(--text-light);">Lv.${p.level} · XP:${p.exp || 0}</div>
-          <div class="moves-row" style="margin-top:4px;">${(p.moves || []).slice(0,2).map(m => `<span class="move-pill" style="background:${typeColor(m.type)}">${m.name.toUpperCase()}</span>`).join('')}${(p.moves?.length || 0) > 2 ? ' +' : ''}</div>
-        </div>
-      </div>
-    `).join('');
-
-    // Attach click events
+    listContainer.innerHTML = filtered.map(p => {
+      const showdownUrl = p.isShiny
+        ? `https://play.pokemonshowdown.com/sprites/ani-shiny/${p.name.toLowerCase()}.gif`
+        : `https://play.pokemonshowdown.com/sprites/ani/${p.name.toLowerCase()}.gif`;
+      const officialUrl = p.isShiny
+        ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/shiny/${p.pokemonId}.png`
+        : `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${p.pokemonId}.png`;
+      const defaultUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.pokemonId}.png`;
+      const mainOnError = `this.onerror=null; this.src='${officialUrl}'; this.onerror=()=>this.src='${defaultUrl}';`;
+      const miniOnError = `this.onerror=null; this.src='${defaultUrl}';`;
+      return `
+        <div class="selectable-poke" data-id="${p.id}" style="display:flex; align-items:center; gap:12px; padding:10px; background:var(--card-bg); border:1px solid var(--border); border-radius:16px; cursor:pointer;">
+          <div style="position:relative;">
+            <img src="${officialUrl}" onerror="${miniOnError}" style="position:absolute; top:-2px; left:-2px; width:24px; height:24px; object-fit:contain; image-rendering:pixelated; z-index:2; border-radius:4px;">
+            <img src="${showdownUrl}" onerror="${mainOnError}" style="width:56px; height:56px; object-fit:contain; image-rendering:pixelated;">
+          </div>
+          <div style="flex:1;">
+            <div style="font-weight:800;">${p.name.toUpperCase()} ${p.isShiny ? '✨' : ''} ${bonusIcons(p.bonusStats)}</div>
+            <div class="types-row">${typeBadges(p.types || [])}</div>
+            <div style="font-size:0.75rem;">Lv.${p.level} · XP:${p.exp || 0}</div>
+            <div class="moves-row">${(p.moves || []).slice(0,2).map(m => `<span class="move-pill" style="background:${typeColor(m.type)}">${m.name.toUpperCase()}</span>`).join('')}${(p.moves?.length || 0) > 2 ? ' +' : ''}</div>
+          </div>
+        </div>`;
+    }).join('');
     listContainer.querySelectorAll('.selectable-poke').forEach(el => {
       el.onclick = () => {
         const id = el.dataset.id;
-        const selectedItem = filtered.find(item => item.p.id === id);
-        if (selectedItem) onSelect(selectedItem.p);
-        // Highlight selected
+        const selected = available.find(p => p.id === id);
+        if (selected) onSelect(selected);
         listContainer.querySelectorAll('.selectable-poke').forEach(n => n.style.borderColor = 'var(--border)');
         el.style.borderColor = 'var(--primary)';
       };
     });
   }
-
   const searchInput = container.querySelector('#sell-search-input');
   searchInput.addEventListener('input', () => renderFiltered(searchInput.value));
-  renderFiltered(''); // initial render
+  renderFiltered('');
 }
 
 // ========== UPDATED openSellModal (uses cached sprites and the new list) ==========
 async function openSellModal() {
   const owned = await getUserPokemon();
-  if (!owned.length) {
-    toast('No Pokémon to sell.', 'error');
-    return;
-  }
-  // Check which are already listed
+  if (!owned.length) { toast('No Pokémon to sell.', 'error'); return; }
   const listedSnap = await getDocs(collection(db, 'market_sell_listings'));
   const listedIds = new Set();
   listedSnap.forEach(d => listedIds.add(d.data().originalPokemonId));
   const available = owned.filter(p => !listedIds.has(p.id));
-  if (!available.length) {
-    toast('All your Pokémon are already listed for sale.', 'error');
-    return;
-  }
+  if (!available.length) { toast('All your Pokémon are already listed for sale.', 'error'); return; }
 
   const body = document.getElementById('sell-modal-body');
   body.innerHTML = `
@@ -1025,17 +1342,24 @@ async function openSellModal() {
       <input type="number" id="sell-price" value="1000" min="1">
     </div>
   `;
-
   let selectedPokemon = null;
 
-  // Render list of selectable Pokémon (with search + cache)
   await renderSellPokemonList('sell-pokemon-list', async (poke) => {
     selectedPokemon = poke;
-    const spriteUrl = await getCachedSpriteUrl(poke.pokemonId, poke.isShiny);
+    const showdownUrl = getShowdownUrl(poke.pokemonId, poke.isShiny, poke.name);
+    const officialUrl = getOfficialArtworkUrl(poke.pokemonId, poke.isShiny);
+    const defaultUrl = getDefaultSpriteUrl(poke.pokemonId);
+    const mainSprite = await getCachedImageUrl(showdownUrl);
+    const miniSprite = await getCachedImageUrl(officialUrl);
+    const mainOnError = `this.onerror=null; this.src='${officialUrl}'; this.onerror=()=>this.src='${defaultUrl}';`;
+    const miniOnError = `this.onerror=null; this.src='${defaultUrl}';`;
     const previewDiv = document.getElementById('sell-detailed-preview');
     previewDiv.innerHTML = `
       <div style="background:${poke.isShiny ? '#fffff0' : '#f8fafc'}; border:2px solid ${poke.isShiny ? '#ecc94b' : 'var(--primary)'}; border-radius:16px; padding:12px; display:flex; gap:12px;">
-        <img src="${spriteUrl}" onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${poke.pokemonId}.png'" style="width:80px; height:80px; object-fit:contain; image-rendering:pixelated;">
+        <div style="position:relative;">
+          <img src="${miniSprite}" onerror="${miniOnError}" style="position:absolute; top:-4px; left:-4px; width:24px; height:24px; object-fit:contain; image-rendering:pixelated; z-index:2; border-radius:4px;">
+          <img src="${mainSprite}" onerror="${mainOnError}" style="width:80px; height:80px; object-fit:contain; image-rendering:pixelated;">
+        </div>
         <div style="flex:1;">
           <div style="font-weight:800; font-size:1rem;">${poke.name.toUpperCase()} ${poke.isShiny ? '✨' : ''} ${bonusIcons(poke.bonusStats)}</div>
           <div class="types-row">${typeBadges(poke.types || [])}</div>
@@ -1050,20 +1374,12 @@ async function openSellModal() {
   });
 
   document.getElementById('sell-modal').classList.remove('hidden');
-
   document.getElementById('sell-modal-save').onclick = async () => {
-    if (!selectedPokemon) {
-      toast('Please select a Pokémon.', 'error');
-      return;
-    }
+    if (!selectedPokemon) { toast('Please select a Pokémon.', 'error'); return; }
     const price = parseInt(document.getElementById('sell-price').value);
-    if (!price || price < 1) {
-      toast('Enter a valid price (minimum 1 coin).', 'error');
-      return;
-    }
+    if (!price || price < 1) { toast('Enter a valid price (minimum 1 coin).', 'error'); return; }
     const btn = document.getElementById('sell-modal-save');
-    btn.disabled = true;
-    btn.innerHTML = '<div class="loading-spinner"></div> Listing...';
+    btn.disabled = true; btn.innerHTML = '<div class="loading-spinner"></div> Listing...';
     try {
       await runTransaction(db, async (tx) => {
         const pokeRef = doc(db, 'users', currentUser.uid, 'pokemon', selectedPokemon.id);
@@ -1071,20 +1387,11 @@ async function openSellModal() {
         if (!pokeSnap.exists()) throw new Error('Pokémon already sold or moved.');
         const pd = pokeSnap.data();
         const listing = {
-          ownerId: currentUser.uid,
-          ownerName: userData?.trainerName || currentUser.email,
-          originalPokemonId: selectedPokemon.id,
-          pokemonId: pd.pokemonId,
-          name: pd.name,
-          types: pd.types,
-          level: pd.level,
-          exp: pd.exp || 0,
-          moves: pd.moves,
-          bonusStats: pd.bonusStats,
-          isSpecial: pd.isSpecial || false,
-          isShiny: pd.isShiny || false,
-          price: price,
-          createdAt: new Date()
+          ownerId: currentUser.uid, ownerName: userData?.trainerName || currentUser.email,
+          originalPokemonId: selectedPokemon.id, pokemonId: pd.pokemonId, name: pd.name,
+          types: pd.types, level: pd.level, exp: pd.exp || 0, moves: pd.moves,
+          bonusStats: pd.bonusStats, isSpecial: pd.isSpecial || false, isShiny: pd.isShiny || false,
+          price: price, createdAt: new Date()
         };
         tx.delete(pokeRef);
         tx.set(doc(collection(db, 'market_sell_listings')), listing);
@@ -1093,14 +1400,11 @@ async function openSellModal() {
       loadSell();
       updateNav(true);
       toast(`✅ ${selectedPokemon.name.toUpperCase()} listed for ${price} coins!`, 'success');
-    } catch (err) {
-      toast(err.message, 'error');
-    } finally {
-      btn.disabled = false;
-      btn.innerHTML = 'List for Sale';
-    }
+    } catch (err) { toast(err.message, 'error'); }
+    finally { btn.disabled = false; btn.innerHTML = 'List for Sale'; }
   };
 }
+
 
 async function cancelSell(id){
   if(!confirm('Remove listing? Pokémon will return.'))return;
@@ -1139,34 +1443,40 @@ async function buySell(id, price, sellerId){
 // ══════════════════════════════════════
 // TRADE TAB
 // ══════════════════════════════════════
-async function loadTrade(){
-  const c=document.getElementById('trade-listings');
-  c.innerHTML=`<div class="loading-state"><div class="spin"></div><p>Loading...</p></div>`;
-  try{
-    const q=query(collection(db,'market_trade_offers'),where('status','==','open'));
-    const snap=await getDocs(q);
-    const offers=[]; snap.forEach(d=>offers.push({id:d.id,...d.data()}));
-    c.innerHTML='';
-    if(!offers.length){c.innerHTML='<div class="empty-state"><i class="fas fa-exchange-alt"></i><p>No open trades.</p></div>';return;}
-    for(const o of offers){
-      const isOwn=o.ownerId===currentUser?.uid;
-      const p={pokemonId:o.pokemonId,name:o.pokemonName,types:o.pokemonTypes,level:o.pokemonLevel,moves:o.pokemonMoves,bonusStats:o.pokemonBonusStats,isSpecial:o.isSpecial,isShiny:o.isShiny||false,ownerName:o.ownerName,isOwn};
-      // Build requirement tags
-      const tags=[];
-      if(o.requestPokemonName)tags.push(`<span class="req-tag">Wants: ${o.requestPokemonName.toUpperCase()}</span>`);
-      if(o.minLevel)tags.push(`<span class="req-tag gold">Min Lv.${o.minLevel}</span>`);
-      if(o.requireAtk)tags.push(`<span class="req-tag">⚔️ ATK req.</span>`);
-      if(o.requireDef)tags.push(`<span class="req-tag">🛡️ DEF req.</span>`);
-      if(o.requireSpd)tags.push(`<span class="req-tag">🏃 SPD req.</span>`);
-      if(o.requireShiny)tags.push(`<span class="req-tag gold">✨ Shiny req.</span>`);
-      const extra=`<div class="req-tags">${tags.join('')||'<span class="req-tag">Accepts any Pokémon</span>'}</div>`;
-      const actions=[{label:'<i class="fas fa-handshake"></i> Accept',cls:'btn-primary',fn:()=>openAcceptTradeModal(o)}];
-      if(isOwn)actions.push({label:'Cancel',cls:'btn-danger',fn:()=>cancelTrade(o.id)});
-      c.appendChild(createPokemonCard(p,actions,extra));
+async function loadTrade() {
+  const c = document.getElementById('trade-listings');
+  c.innerHTML = `<div class="loading-state"><div class="spin"></div><p>Loading...</p></div>`;
+  try {
+    const q = query(collection(db, 'market_trade_offers'), where('status', '==', 'open'));
+    const snap = await getDocs(q);
+    const offers = []; snap.forEach(d => offers.push({ id: d.id, ...d.data() }));
+    if (!offers.length) {
+      c.innerHTML = '<div class="empty-state"><i class="fas fa-exchange-alt"></i><p>No open trades.</p></div>';
+      return;
     }
-  }catch(e){c.innerHTML='<div class="empty-state"><p>Failed to load.</p></div>';}
+    c.innerHTML = '';
+    for (const o of offers) {
+      const isOwn = o.ownerId === currentUser?.uid;
+      const p = {
+        pokemonId: o.pokemonId, name: o.pokemonName, types: o.pokemonTypes, level: o.pokemonLevel,
+        moves: o.pokemonMoves, bonusStats: o.pokemonBonusStats,
+        isSpecial: o.isSpecial, isShiny: o.isShiny || false, ownerName: o.ownerName, isOwn
+      };
+      const tags = [];
+      if (o.requestPokemonName) tags.push(`<span class="req-tag">Wants: ${o.requestPokemonName.toUpperCase()}</span>`);
+      if (o.minLevel) tags.push(`<span class="req-tag gold">Min Lv.${o.minLevel}</span>`);
+      if (o.requireAtk) tags.push(`<span class="req-tag">⚔️ ATK req.</span>`);
+      if (o.requireDef) tags.push(`<span class="req-tag">🛡️ DEF req.</span>`);
+      if (o.requireSpd) tags.push(`<span class="req-tag">🏃 SPD req.</span>`);
+      if (o.requireShiny) tags.push(`<span class="req-tag gold">✨ Shiny req.</span>`);
+      const extra = `<div class="req-tags">${tags.join('') || '<span class="req-tag">Accepts any Pokémon</span>'}</div>`;
+      const actions = [{ label: '<i class="fas fa-handshake"></i> Accept', cls: 'btn-primary', fn: () => openAcceptTradeModal(o) }];
+      if (isOwn) actions.push({ label: 'Cancel', cls: 'btn-danger', fn: () => cancelTrade(o.id) });
+      const card = createPokemonCard(p, actions, extra);
+      c.appendChild(card);
+    }
+  } catch (e) { c.innerHTML = '<div class="empty-state"><p>Failed to load.</p></div>'; }
 }
-
 async function openTradeModal(){
   const owned=await getUserPokemon();
   if(!owned.length){toast('No Pokémon to trade.','error');return;}
@@ -1360,77 +1670,42 @@ async function loadRedeem() {
   c.innerHTML = `<div class="loading-state"><div class="spin"></div><p>Loading codes...</p></div>`;
   try {
     let snap;
-    if (isAdmin) {
-      // ✅ Admin sees ALL codes including out-of-stock, with full details
-      snap = await getDocs(query(collection(db, 'redeem_codes'), limit(50)));
-    } else {
-      // ✅ Players only see codes with stock > 0
-      snap = await getDocs(query(collection(db, 'redeem_codes'), where('stock', '>', 0), limit(12)));
-    }
-    c.innerHTML = '';
-    if (snap.empty) {
+    if (isAdmin) snap = await getDocs(query(collection(db, 'redeem_codes'), limit(50)));
+    else snap = await getDocs(query(collection(db, 'redeem_codes'), where('stock', '>', 0), limit(12)));
+    const codes = []; snap.forEach(d => codes.push({ id: d.id, ...d.data() }));
+    if (!codes.length) {
       c.innerHTML = '<div class="empty-state"><p>No active codes right now. Enter a code manually!</p></div>';
       return;
     }
-    snap.forEach(docSnap => {
-      const cd = { id: docSnap.id, ...docSnap.data() };
-      const isExpired = cd.expiry && cd.expiry.toDate() < new Date();
-      const outOfStock = cd.stock <= 0;
-
-      // ✅ Players: skip out-of-stock (shouldn't happen due to query, but safety check)
-      if (!isAdmin && (outOfStock || isExpired)) return;
-
-      const p = { pokemonId: cd.pokemonId, name: cd.name, types: cd.types, level: cd.level,
-                  moves: cd.moves, isShiny: cd.isShiny, bonusStats: cd.bonusStats };
-
+    c.innerHTML = '';
+    for (const cd of codes) {
+      const p = {
+        pokemonId: cd.pokemonId, name: cd.name, types: cd.types, level: cd.level,
+        moves: cd.moves, isShiny: cd.isShiny, bonusStats: cd.bonusStats
+      };
+      let actions = [], extra = '';
       if (isAdmin) {
-        // ✅ Admin card: shows code, stock, expiry, edit/delete buttons + full pokemon info
-        const expText = cd.expiry ? new Date(cd.expiry.toDate()).toLocaleString() : 'No expiry';
+        const outOfStock = cd.stock <= 0;
+        const isExpired = cd.expiry && cd.expiry.toDate() < new Date();
         const stockColor = outOfStock ? 'var(--danger)' : 'var(--success)';
-        const statusTag = outOfStock
-          ? `<span style="background:var(--danger);color:white;padding:2px 8px;border-radius:20px;font-size:.65rem;font-weight:700;">OUT OF STOCK</span>`
-          : isExpired
-            ? `<span style="background:var(--warning);color:white;padding:2px 8px;border-radius:20px;font-size:.65rem;font-weight:700;">EXPIRED</span>`
-            : `<span style="background:var(--success);color:white;padding:2px 8px;border-radius:20px;font-size:.65rem;font-weight:700;">ACTIVE</span>`;
-
-        const adminExtra = `
-          <div style="margin-top:8px;padding:10px;background:var(--bg);border-radius:12px;font-size:.78rem;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-              <span style="font-weight:700;color:var(--text-light);">CODE:</span>
-              <span style="font-family:monospace;font-size:.95rem;font-weight:800;color:var(--primary);letter-spacing:2px;background:var(--card-bg);padding:3px 10px;border-radius:8px;border:1px solid var(--border);">${esc(cd.code||'???')}</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-              <span style="color:var(--text-light);">Stock:</span>
-              <strong style="color:${stockColor};">${cd.stock} remaining</strong>
-            </div>
-            <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-              <span style="color:var(--text-light);">Expires:</span>
-              <span>${expText}</span>
-            </div>
-            <div style="display:flex;gap:4px;align-items:center;">${statusTag}</div>
-          </div>`;
-
-        c.appendChild(createPokemonCard(p,
-          [
-            { label: '✏️ Edit', cls: 'btn-outline', fn: () => openRedeemModal(cd) },
-            { label: '🗑️ Delete', cls: 'btn-danger', fn: () => deleteRedeem(cd.id) }
-          ],
-          adminExtra
-        ));
+        const statusTag = outOfStock ? '<span style="background:var(--danger);color:white;">OUT OF STOCK</span>' : (isExpired ? '<span style="background:var(--warning);color:white;">EXPIRED</span>' : '<span style="background:var(--success);color:white;">ACTIVE</span>');
+        extra = `<div style="margin-top:8px;background:var(--bg);border-radius:12px;padding:8px;">
+          <div><strong>CODE:</strong> ${esc(cd.code)}</div>
+          <div><strong>Stock:</strong> <span style="color:${stockColor};">${cd.stock}</span></div>
+          <div>${statusTag}</div>
+        </div>`;
+        actions = [
+          { label: '✏️ Edit', cls: 'btn-outline btn-sm', fn: () => openRedeemModal(cd) },
+          { label: '🗑️ Delete', cls: 'btn-danger btn-sm', fn: () => deleteRedeem(cd.id) }
+        ];
       } else {
-        // ✅ Player card: only shows "ACTIVE CODE AVAILABLE" — no code, no stock number
-        c.appendChild(createPokemonCard(p, [],
-          `<div style="font-size:.75rem;color:var(--success);font-weight:700;">🎁 ACTIVE CODE AVAILABLE</div>`
-        ));
+        extra = `<div style="font-size:.75rem;color:var(--success);">🎁 ACTIVE CODE AVAILABLE</div>`;
       }
-    });
-
-    if (c.innerHTML === '') {
-      c.innerHTML = '<div class="empty-state"><p>No active codes right now. Enter a code manually!</p></div>';
+      const card = await createPokemonCard(p, actions, extra);
+      c.appendChild(card);
     }
   } catch (e) { console.error(e); c.innerHTML = '<div class="empty-state"><p>Failed to load.</p></div>'; }
 }
-
 
 async function openRedeemModal(existing=null){
   const isEdit=!!existing;
@@ -1557,108 +1832,145 @@ async function loadAuctionSettings(){
   }catch{}
 }
 
-async function loadAuctions(){
-  const c=document.getElementById('auction-listings');
-  c.innerHTML=`<div class="loading-state"><div class="spin"></div><p>Loading auctions...</p></div>`;
+async function loadAuctions() {
+  const c = document.getElementById('auction-listings');
+  c.innerHTML = `<div class="loading-state"><div class="spin"></div><p>Loading auctions...</p></div>`;
   await loadAuctionSettings();
-  try{
-    const snap=await getDocs(collection(db,'auctions'));
-    const auctions=[]; snap.forEach(d=>auctions.push({id:d.id,...d.data()}));
-    c.innerHTML='';
-    const now=new Date();
-    const active=auctions.filter(a=>a.status==='open');
-    if(!active.length){c.innerHTML='<div class="empty-state"><i class="fas fa-gavel"></i><p>No active auctions.</p></div>';return;}
-    for(const a of active){
-      c.appendChild(await buildAuctionCard(a,now));
+  try {
+    const snap = await getDocs(collection(db, 'auctions'));
+    const auctions = []; snap.forEach(d => auctions.push({ id: d.id, ...d.data() }));
+    const active = auctions.filter(a => a.status === 'open');
+    if (!active.length) {
+      c.innerHTML = '<div class="empty-state"><i class="fas fa-gavel"></i><p>No active auctions.</p></div>';
+      return;
     }
-    // Update badge
-    document.getElementById('auction-badge').textContent=active.length;
-    document.getElementById('auction-badge').style.display=active.length?'inline':'none';
-  }catch(e){c.innerHTML='<div class="empty-state"><p>Failed to load.</p></div>';}
+    c.innerHTML = '';
+    for (const a of active) {
+      const card = await buildAuctionCard(a, new Date());
+      c.appendChild(card);
+    }
+    document.getElementById('auction-badge').textContent = active.length;
+    document.getElementById('auction-badge').style.display = active.length ? 'inline' : 'none';
+  } catch(e) { c.innerHTML = '<div class="empty-state"><p>Failed to load.</p></div>'; }
 }
 
-async function buildAuctionCard(a, now){
-  const card=document.createElement('div');
-  card.className='auction-card';
-  const endDate=a.endTime?a.endTime.toDate():null;
-  const timeLeftStr=endDate?getTimeLeft(endDate):'No end time';
-  const isOwn=a.createdBy===currentUser?.uid;
-  const sUrl=a.isShiny?shinySprite(a.name):spriteUrl(a.pokemonId);
-  const fb=spriteStatic(a.pokemonId);
+async function buildAuctionCard(a, now) {
+  const card = document.createElement('div');
+  card.className = 'auction-card';
+  const endDate = a.endTime ? a.endTime.toDate() : null;
+  const timeLeftStr = endDate ? getTimeLeft(endDate) : 'No end time';
+  const isOwn = a.createdBy === currentUser?.uid;
 
-  // Build bidders list
-   const bids = a.bids || [];
- const biddersHtml = bids.length ? bids.slice(-5).reverse().map(b => `
-  <div class="bidder-item view-bid-btn" style="cursor:pointer;" data-bidid="${b.bidId}" data-auctionid="${a.id}">
-    <div class="bidder-avatar">${(b.trainerName || '?').charAt(0).toUpperCase()}</div>
-    <div style="flex:1;">
-      <div style="font-weight:700">${esc(b.trainerName || 'Unknown')} ${b.userId === currentUser?.uid ? '<small style="color:var(--primary)">(You)</small>' : ''}</div>
-      <div style="font-size:.7rem;color:var(--text-light);">${b.coins ? `💰 ${b.coins.toLocaleString()}` : ''} ${b.pokemon?.length ? `+ ${b.pokemon.length} Pokémon` : ''}</div>
-    </div>
-    ${(isAdmin || a.createdBy === currentUser?.uid) ? `<button class="btn btn-success btn-sm accept-bid-btn" data-bid='${JSON.stringify(b)}' data-auctionid="${a.id}" style="margin-left:8px;">✔ Accept</button>` : ''}
-    <i class="fas fa-chevron-right" style="font-size:.7rem; color:var(--border);"></i>
-  </div>
-`).join('') : '<div style="font-size:.78rem;color:var(--text-light);text-align:center;padding:8px;">No bids yet. Be the first!</div>';
+  // --- Sprite URLs ---
+  const showdownUrl = a.isShiny
+    ? `https://play.pokemonshowdown.com/sprites/ani-shiny/${a.name.toLowerCase()}.gif`
+    : `https://play.pokemonshowdown.com/sprites/ani/${a.name.toLowerCase()}.gif`;
+  const officialUrl = a.isShiny
+    ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/shiny/${a.pokemonId}.png`
+    : `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${a.pokemonId}.png`;
+  const defaultUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${a.pokemonId}.png`;
+  const mainOnError = `this.onerror=null; this.src='${officialUrl}'; this.onerror=()=>this.src='${defaultUrl}';`;
+  const miniOnError = `this.onerror=null; this.src='${defaultUrl}';`;
 
-  card.innerHTML=`
+  // --- Wild bonuses (pills) ---
+  let wildPills = '';
+  if (a.bonusStats?.atk) wildPills += `<span class="bonus-pill atk">⚔️ +25% ATK</span>`;
+  if (a.bonusStats?.def) wildPills += `<span class="bonus-pill def">🛡️ +25% DEF</span>`;
+  if (a.bonusStats?.spd) wildPills += `<span class="bonus-pill spd">🏃 +25% SPD</span>`;
+
+  // --- Form bonuses (orange pills) ---
+  const formBonuses = getSpecialFormBonuses(a.name, a.pokemonId);
+  let formPills = '';
+  if (formBonuses.atk) formPills += `<span class="bonus-pill form">⚔️ ATK +${formBonuses.atk}%</span>`;
+  if (formBonuses.def) formPills += `<span class="bonus-pill form def">🛡️ DEF +${formBonuses.def}%</span>`;
+  if (formBonuses.spd) formPills += `<span class="bonus-pill form spd">🏃 SPD +${formBonuses.spd}%</span>`;
+
+  // --- Shiny HP bonus (golden pill) ---
+  let shinyPill = '';
+  if (a.isShiny) {
+    shinyPill = `<div class="shiny-bonus-pill">✨ SHINY +15% HP</div>`;
+  }
+
+  // --- Build three lines ---
+  let wildLine = wildPills ? `<div style="display:flex; flex-wrap:wrap; gap:4px; align-items:center; margin-bottom:4px;"><span style="font-size:0.6rem; color:var(--text-light); margin-right:4px;">🌿 Wild:</span>${wildPills}</div>` : '';
+  let formLine = formPills ? `<div style="display:flex; flex-wrap:wrap; gap:4px; align-items:center; margin-bottom:4px;"><span style="font-size:0.6rem; color:var(--text-light); margin-right:4px;">✨ Form:</span>${formPills}</div>` : '';
+  let shinyLine = shinyPill ? `<div style="display:flex; flex-wrap:wrap; gap:4px; align-items:center; margin-top:2px;">${shinyPill}</div>` : '';
+
+  const bonusSection = (wildLine || formLine || shinyLine) ? `<div class="poke-card-bonus" style="margin: 6px 0;">${wildLine}${formLine}${shinyLine}</div>` : '';
+
+  // --- Special badge (Mega, Gmax, etc.) ---
+  const specialInfo = getSpecialBadgeInfo(a.pokemonId, a.name);
+  let specialBadgeHtml = '';
+  if (specialInfo) {
+    specialBadgeHtml = `<span class="card-badge special-badge" style="${specialInfo.style}">${specialInfo.text}</span>`;
+  }
+
+  // --- Bidders list (unchanged) ---
+  const bids = a.bids || [];
+  let biddersHtml = '';
+  for (const b of bids.slice(-5).reverse()) {
+    let pokeHtml = '';
+    for (const p of (b.pokemon || [])) {
+      const pokeShowdown = p.isShiny
+        ? `https://play.pokemonshowdown.com/sprites/ani-shiny/${p.name.toLowerCase()}.gif`
+        : `https://play.pokemonshowdown.com/sprites/ani/${p.name.toLowerCase()}.gif`;
+      const pokeOfficial = p.isShiny
+        ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/shiny/${p.pokemonId}.png`
+        : `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${p.pokemonId}.png`;
+      const pokeDefault = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.pokemonId}.png`;
+      const pokeOnError = `this.onerror=null; this.src='${pokeOfficial}'; this.onerror=()=>this.src='${pokeDefault}';`;
+      pokeHtml += `<img src="${pokeShowdown}" onerror="${pokeOnError}" style="width:20px;height:20px;image-rendering:pixelated;">`;
+    }
+    biddersHtml += `
+      <div class="bidder-item view-bid-btn" style="cursor:pointer;" data-bidid="${b.bidId}" data-auctionid="${a.id}">
+        <div class="bidder-avatar">${(b.trainerName || '?').charAt(0).toUpperCase()}</div>
+        <div style="flex:1;">
+          <div style="font-weight:700">${esc(b.trainerName || 'Unknown')} ${b.userId === currentUser?.uid ? '<small>(You)</small>' : ''}</div>
+          <div style="font-size:.7rem;">💰 ${b.coins.toLocaleString()} ${pokeHtml ? `+ ${pokeHtml}` : ''}</div>
+        </div>
+        ${(isAdmin || a.createdBy === currentUser?.uid) ? `<button class="btn btn-success btn-sm accept-bid-btn" data-bid='${JSON.stringify(b)}' data-auctionid="${a.id}">✔ Accept</button>` : ''}
+      </div>`;
+  }
+  if (!biddersHtml) biddersHtml = '<div style="font-size:.78rem;text-align:center;">No bids yet.</div>';
+
+  card.innerHTML = `
     <div class="auction-timer"><i class="fas fa-clock"></i> <span class="auction-time-left" data-end="${endDate?.toISOString()||''}">${timeLeftStr}</span></div>
-    <div class="card-img-wrap" style="padding:12px;">
-      <img src="${sUrl}" onerror="this.src='${fb}'" alt="${esc(a.name||'')}" style="width:110px;height:110px;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 4px 8px rgba(0,0,0,.15));">
-      <span class="card-badge auction-badge" style="top:8px;right:8px;">🔨 Auction</span>
-      ${a.isShiny?'<span class="card-badge shiny-badge" style="top:36px;right:8px;">✨ SHINY</span>':''}
+    <div class="card-img-wrap" style="position:relative;">
+      <img src="${officialUrl}" onerror="${miniOnError}"
+           style="position:absolute; top:4px; left:4px; width:28px; height:28px; object-fit:contain; image-rendering:pixelated; z-index:3; border-radius:6px; background:rgba(0,0,0,0.4); padding:2px;">
+      <img src="${showdownUrl}" onerror="${mainOnError}" style="width:110px;">
+      <span class="card-badge auction-badge">🔨 Auction</span>
+      ${a.isShiny ? '<span class="card-badge shiny-badge">✨ SHINY</span>' : ''}
+      ${specialBadgeHtml}
     </div>
     <div class="card-body">
-      <div class="poke-name">${esc((a.name||'').toUpperCase())}<span class="bonus-icons">${bonusIcons(a.bonusStats)}</span></div>
+      <div class="poke-name">${esc(a.name.toUpperCase())}</div>
       <div class="types-row">${typeBadges(a.types||[])}</div>
-      <div class="level-row">Lv.${a.level||'?'}</div>
+      <div class="level-row">Lv.${a.level}</div>
+      ${bonusSection}
       <div class="moves-row">${(a.moves||[]).map(m=>`<span class="move-pill" style="background:${typeColor(m.type)}">${m.name.toUpperCase()}</span>`).join('')}</div>
       <div class="bid-section">
-        <div class="bid-row"><span class="bid-label">Starting bid:</span><span class="bid-value">💰 ${(a.startingBid||0).toLocaleString()}</span></div>
-        <div class="bid-row"><span class="bid-label">Total bids:</span><span class="bid-value">${bids.length}</span></div>
-        ${a.maxPokemon?`<div class="bid-row"><span class="bid-label">Max Pokémon offer:</span><span class="bid-value">${a.maxPokemon}</span></div>`:''}
-        <div style="font-size:.72rem;color:var(--text-light);margin-top:4px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Recent Bidders</div>
+        <div class="bid-row">Starting bid: 💰 ${(a.startingBid||0).toLocaleString()}</div>
+        <div class="bid-row">Total bids: ${bids.length}</div>
         <div class="bidders-list">${biddersHtml}</div>
       </div>
     </div>
     <div class="card-footer">
-      ${!isOwn && !isAdmin ? `<button class="btn btn-gold btn-sm bid-btn"><i class="fas fa-hand-paper"></i> Place Bid</button>` : ''}
-      ${(isAdmin || isOwn) ? `
-        <button class="btn btn-outline btn-sm edit-auction-btn"><i class="fas fa-edit"></i> Edit Auction</button>
-        <button class="btn btn-danger btn-sm close-auction-btn"><i class="fas fa-times"></i> Close Auction</button>
-      ` : ''}
+      ${!isOwn && !isAdmin ? `<button class="btn btn-gold btn-sm bid-btn">Place Bid</button>` : ''}
+      ${(isAdmin || isOwn) ? `<button class="btn btn-outline btn-sm edit-auction-btn">Edit</button><button class="btn btn-danger btn-sm close-auction-btn">Close</button>` : ''}
     </div>`;
 
-  // Timer
-  if(endDate){
-    const timer=card.querySelector('.auction-time-left');
-    const iv=setInterval(()=>{const tl=getTimeLeft(endDate);timer.textContent=tl;if(tl==='Ended'){clearInterval(iv);}},1000);
-    auctionTimers[a.id]=iv;
+  // Event listeners (unchanged)
+  if (endDate) {
+    const timer = card.querySelector('.auction-time-left');
+    const iv = setInterval(() => { const t = getTimeLeft(endDate); timer.textContent = t; if (t === 'Ended') clearInterval(iv); }, 1000);
+    auctionTimers[a.id] = iv;
   }
-
-  // Bid button
-  const bidBtn=card.querySelector('.bid-btn');
-  if(bidBtn)bidBtn.onclick=()=>openBidModal(a);
-
-  // View bid details listener
-  card.querySelectorAll('.view-bid-btn').forEach(btn => {
-    btn.onclick = () => {
-      const bid = a.bids.find(b => b.bidId === btn.dataset.bidid);
-      showBidDetailsModal(bid, a);
-    };
-  });
-
-  // Admin accept buttons
-  card.querySelectorAll('.accept-bid-btn').forEach(btn=>{
-    btn.onclick=async()=>{
-      if(!confirm('Accept this bid? The Pokémon will be given to this bidder and all other bids will be returned.'))return;
-      await acceptBid(a,JSON.parse(btn.dataset.bid));
-    };
-  });
-  const editBtn=card.querySelector('.edit-auction-btn');
-  if(editBtn)editBtn.onclick=()=>openAuctionPostModal(a);
-  const closeBtn=card.querySelector('.close-auction-btn');
-  if(closeBtn)closeBtn.onclick=async()=>{if(!confirm('Close this auction without accepting?'))return;await closeAuction(a.id);};
-
+  card.querySelector('.bid-btn')?.addEventListener('click', () => openBidModal(a));
+  card.querySelectorAll('.view-bid-btn').forEach(btn => btn.addEventListener('click', () => showBidDetailsModal(a.bids.find(b => b.bidId === btn.dataset.bidid), a)));
+  card.querySelectorAll('.accept-bid-btn').forEach(btn => btn.addEventListener('click', async () => { if (confirm('Accept this bid?')) await acceptBid(a, JSON.parse(btn.dataset.bid)); }));
+  card.querySelector('.edit-auction-btn')?.addEventListener('click', () => openAuctionPostModal(a));
+  card.querySelector('.close-auction-btn')?.addEventListener('click', async () => { if (confirm('Close auction?')) await closeAuction(a.id); });
   return card;
 }
 

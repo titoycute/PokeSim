@@ -2999,8 +2999,12 @@ async function attemptCatch() {
                 capturedAt: new Date(),
                 capturedBy: trainerName,
                 capturedOnMap: currentMap?.name || "Somewhere in PokeSim",
-                bonusStats: b.wild.bonusStats,
-                isShiny: b.wild.isShiny
+                  bonusStats: {
+                    atk: b.wild.wildBonuses.atk > 0,   // true if the random wild bonus gave +25% ATK
+                    def: b.wild.wildBonuses.def > 0,
+                    spd: b.wild.wildBonuses.spd > 0
+                },
+                            isShiny: b.wild.isShiny
             };
             await addDoc(collection(db, "users", auth.currentUser.uid, "pokemon"), newPokemon);
             ownedPokemonIds.add(b.wild.pokemonId);
@@ -3803,10 +3807,10 @@ const count = await trackRecord(wildId, wildData.name);
                         specialCategory: specialCategory,
                         specialBadge: specialBadge,
                         bonusStats: {
-                            atk: totalAtkPct > 0,
-                            def: totalDefPct > 0,
-                            spd: totalSpdPct > 0,
-                            atkPct: totalAtkPct,
+                            atk: wildBonus.atk,        // just the random flag
+                            def: wildBonus.def,
+                            spd: wildBonus.spd,
+                            atkPct: totalAtkPct,       // keep full percentages for damage calculations
                             defPct: totalDefPct,
                             spdPct: totalSpdPct
                         },

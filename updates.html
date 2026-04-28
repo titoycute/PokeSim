@@ -7,7 +7,6 @@
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="manifest" href="manifest.json">
     <style>
-        /* (same CSS as before) */
         * {
             margin: 0;
             padding: 0;
@@ -32,7 +31,7 @@
             min-height: 100vh;
         }
         .container {
-            max-width: 900px;
+            max-width: 1000px;
             margin: 0 auto;
             padding: 20px;
         }
@@ -146,14 +145,23 @@
             color: var(--text-dark);
             line-height: 1.5;
             margin: 12px 0;
-            white-space: pre-wrap;
+            overflow-x: auto;
         }
-        .update-description a {
-            color: var(--primary);
-            text-decoration: none;
+        .update-description table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
         }
-        .update-description a:hover {
-            text-decoration: underline;
+        .update-description th,
+        .update-description td {
+            border: 1px solid var(--border, #ddd);
+            padding: 8px;
+            text-align: left;
+            vertical-align: top;
+        }
+        .update-description th {
+            background: var(--primary, #3b4cca);
+            color: white;
         }
         .update-actions {
             display: flex;
@@ -162,11 +170,11 @@
             justify-content: flex-end;
         }
         .modal {
-            max-width: 500px;
-            width: 90%;
+            max-width: 95%;
+            width: 1000px;
             background: var(--card-bg);
             border-radius: 32px;
-            padding: 30px;
+            padding: 20px;
         }
         .form-group {
             margin-bottom: 15px;
@@ -184,9 +192,50 @@
             border-radius: 16px;
             font-size: 0.95rem;
         }
-        textarea {
+        .editor-split {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .editor-left, .editor-right {
+            flex: 1;
+            min-width: 250px;
+        }
+        .editor-left textarea {
+            height: 450px;
+            font-family: monospace;
+            font-size: 0.85rem;
             resize: vertical;
-            min-height: 100px;
+        }
+        .preview-box {
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 12px;
+            height: 450px;
+            overflow-y: auto;
+            background: var(--card-bg);
+        }
+        [contenteditable="true"] {
+            outline: none;
+            background: #fefefe;
+        }
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .toolbar-btn {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            padding: 4px 10px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        .toolbar-btn:hover {
+            background: var(--primary);
+            color: white;
         }
         .overlay {
             position: fixed;
@@ -204,251 +253,390 @@
         .hidden {
             display: none !important;
         }
-        .loader {
+        .loader, .empty-message {
             text-align: center;
             padding: 40px;
             color: var(--text-light);
         }
-        .empty-message {
-            text-align: center;
-            padding: 60px 20px;
-            color: var(--text-light);
-            font-size: 1.1rem;
-        }
-        @media (max-width: 600px) {
-            .container { padding: 15px; }
-            .header { flex-direction: column; align-items: stretch; }
-            .admin-actions { justify-content: flex-end; }
-            .update-title { font-size: 1.2rem; }
+        @media (max-width: 700px) {
+            .editor-split { flex-direction: column; }
+            .editor-left textarea, .preview-box { height: 300px; }
         }
     </style>
-    <!-- DOMPurify for safe HTML rendering -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.4/purify.min.js"></script>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <a href="index.html" class="back-link">← Back to Game</a>
-            <h1>📢 Game Updates</h1>
-            <div id="admin-controls" style="display: none;">
-                <button id="add-update-btn" class="btn btn-primary">➕ Add Update</button>
-            </div>
-        </div>
-        <div id="updates-container" class="updates-list">
-            <div class="loader">Loading updates...</div>
+<div class="container">
+    <div class="header">
+        <a href="index.html" class="back-link">← Back to Game</a>
+        <h1>📢 Game Updates</h1>
+        <div id="admin-controls" style="display: none;">
+            <button id="add-update-btn" class="btn btn-primary">➕ Add Update</button>
         </div>
     </div>
+    <div id="updates-container" class="updates-list">
+        <div class="loader">Loading updates...</div>
+    </div>
+</div>
 
-    <!-- Modal (starts hidden) -->
-    <div id="update-modal" class="overlay hidden" onclick="this.classList.add('hidden')">
-        <div class="modal" onclick="event.stopPropagation()">
-            <h2 id="modal-title" style="margin-bottom:20px;">Add Update</h2>
-            <div class="form-group">
-                <label>Version (optional)</label>
-                <input type="text" id="update-version" placeholder="e.g., v1.2.0">
+<!-- Edit Modal with split view + bidirectional editing -->
+<div id="update-modal" class="overlay hidden" onclick="this.classList.add('hidden')">
+    <div class="modal" onclick="event.stopPropagation()">
+        <h2 id="modal-title" style="margin-bottom:20px;">Add Update</h2>
+        <div class="form-group">
+            <label>Version (optional)</label>
+            <input type="text" id="update-version" placeholder="e.g., v1.2.0">
+        </div>
+        <div class="form-group">
+            <label>Title *</label>
+            <input type="text" id="update-title" placeholder="What's new?">
+        </div>
+        <div class="form-group">
+            <label>Date *</label>
+            <input type="date" id="update-date">
+        </div>
+        <div class="form-group">
+            <label>Description (HTML supported)</label>
+            <div class="toolbar">
+                <button type="button" class="toolbar-btn" id="btn-bold"><b>Bold</b></button>
+                <button type="button" class="toolbar-btn" id="btn-italic"><i>Italic</i></button>
+                <button type="button" class="toolbar-btn" id="btn-list-bullet">• Bullet List</button>
+                <button type="button" class="toolbar-btn" id="btn-list-numbered">1. Numbered List</button>
+                <button type="button" class="toolbar-btn" id="btn-table">📊 Insert Table</button>
+                <button type="button" class="toolbar-btn" id="btn-pre-table">📋 Paste Full Table</button>
             </div>
-            <div class="form-group">
-                <label>Title *</label>
-                <input type="text" id="update-title" placeholder="What's new?">
+            <div class="editor-split">
+                <div class="editor-left">
+                    <textarea id="html-editor" placeholder="Write or paste HTML here. Edit directly, or edit the preview on the right."></textarea>
+                </div>
+                <div class="editor-right">
+                    <div class="preview-box" id="html-preview" contenteditable="true"></div>
+                </div>
             </div>
-            <div class="form-group">
-                <label>Date *</label>
-                <input type="date" id="update-date">
-            </div>
-            <div class="form-group">
-                <label>Description *</label>
-                <textarea id="update-description" placeholder="Use HTML tags like &lt;b&gt;bold&lt;/b&gt;, &lt;i&gt;italic&lt;/i&gt;, &lt;a href='...'&gt;link&lt;/a&gt;"></textarea>
-            </div>
-            <div style="display: flex; gap: 12px; justify-content: flex-end;">
-                <button id="save-update-btn" class="btn btn-primary">Save</button>
-                <button id="cancel-modal-btn" class="btn btn-outline">Cancel</button>
-            </div>
+            <small>✅ Both sides are editable. Changes on one side update the other automatically. Tables, lists, bold, etc. work.</small>
+        </div>
+        <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
+            <button id="save-update-btn" class="btn btn-primary">Save</button>
+            <button id="cancel-modal-btn" class="btn btn-outline">Cancel</button>
         </div>
     </div>
+</div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, orderBy, query, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, orderBy, query, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyDkCE0wBrsQ1s-7zplvTtWOSE28ISaCFfQ",
-            authDomain: "pokesim-7f9b7.firebaseapp.com",
-            projectId: "pokesim-7f9b7",
-            storageBucket: "pokesim-7f9b7.firebasestorage.app",
-            messagingSenderId: "1087100425430",
-            appId: "1:1087100425430:web:9558a79ee5330d4a792577"
-        };
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+    const firebaseConfig = {
+        apiKey: "AIzaSyDkCE0wBrsQ1s-7zplvTtWOSE28ISaCFfQ",
+        authDomain: "pokesim-7f9b7.firebaseapp.com",
+        projectId: "pokesim-7f9b7",
+        storageBucket: "pokesim-7f9b7.firebasestorage.app",
+        messagingSenderId: "1087100425430",
+        appId: "1:1087100425430:web:9558a79ee5330d4a792577"
+    };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
-        let isAdmin = false;
-        let currentEditingId = null;
-        let updatesData = [];
-        // Load updates from Firestore
-        async function loadUpdates() {
-            const container = document.getElementById('updates-container');
-            container.innerHTML = '<div class="loader">Loading updates...</div>';
-            try {
-                const q = query(collection(db, "updates"), orderBy("date", "desc"));
-                const querySnapshot = await getDocs(q);
-                const updates = [];
-                querySnapshot.forEach(doc => {
-                    updates.push({ id: doc.id, ...doc.data() });
-                });
-                if (updates.length === 0) {
-                    container.innerHTML = '<div class="empty-message">No updates yet. Check back later!</div>';
-                    return;
-                }
-                container.innerHTML = '';
-                updates.forEach(update => {
-                    const card = document.createElement('div');
-                    card.className = 'update-card';
-                    const formattedDate = new Date(update.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-                    // Sanitize the description HTML before inserting
-                    const safeDescription = DOMPurify.sanitize(update.description, {
-                        ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'a', 'br', 'p', 'ul', 'li', 'h3', 'h4', 'span'],
-                        ALLOWED_ATTR: ['href', 'target']
-                    });
-                    card.innerHTML = `
-                        <div class="update-header">
-                            <div class="update-title">${escapeHtml(update.title)}</div>
-                            <div class="update-date">${formattedDate}</div>
-                        </div>
-                        ${update.version ? `<div class="update-version">${escapeHtml(update.version)}</div>` : ''}
-                        <div class="update-description">${safeDescription}</div>
-                        ${isAdmin ? `
-                            <div class="update-actions">
-                                <button class="btn btn-outline edit-update" data-id="${update.id}">✏️ Edit</button>
-                                <button class="btn btn-danger delete-update" data-id="${update.id}">🗑️ Delete</button>
-                            </div>
-                        ` : ''}
-                    `;
-                    container.appendChild(card);
-                });
-                if (isAdmin) {
-                    document.querySelectorAll('.edit-update').forEach(btn => {
-                        btn.onclick = () => openEditModal(btn.dataset.id);
-                    });
-                    document.querySelectorAll('.delete-update').forEach(btn => {
-                        btn.onclick = async () => {
-                            if (confirm("Are you sure you want to delete this update?")) {
-                                await deleteDoc(doc(db, "updates", btn.dataset.id));
-                                loadUpdates();
-                            }
-                        };
-                    });
-                }
-            } catch (err) {
-                console.error(err);
-                container.innerHTML = '<div class="empty-message">Failed to load updates. Please try again later.</div>';
-            }
+    let isAdmin = false;
+    let currentEditingId = null;
+    let updating = false; // prevent recursive sync
+
+    const htmlEditor = document.getElementById('html-editor');
+    const previewDiv = document.getElementById('html-preview');
+
+    // Helper: convert plain text (old updates) to HTML
+    function formatDescription(text) {
+        if (/<[a-z][\s>]/i.test(text)) return text;
+        let result = text;
+        result = result.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        result = result.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+        result = result.replace(/\*(.*?)\*/g, '<i>$1</i>');
+        result = result.replace(/\n/g, '<br>');
+        return result;
+    }
+
+    // Update preview from textarea (left → right)
+    function updatePreviewFromTextarea() {
+        if (updating) return;
+        updating = true;
+        let rawHtml = htmlEditor.value;
+        if (!/<[a-z][\s>]/i.test(rawHtml)) {
+            rawHtml = formatDescription(rawHtml);
         }
+        const sanitized = DOMPurify.sanitize(rawHtml, {
+            ALLOWED_TAGS: ['b','i','em','strong','a','br','p','ul','li','h1','h2','h3','h4','h5','h6','span','div','table','thead','tbody','tr','td','th','style','blockquote','code','pre','img','figure','figcaption','ol'],
+            ALLOWED_ATTR: ['href','target','class','style','src','alt','width','height','border','cellpadding','cellspacing']
+        });
+        previewDiv.innerHTML = sanitized;
+        updating = false;
+    }
 
-        function escapeHtml(str) {
-            return str.replace(/[&<>]/g, function(m) {
-                if (m === '&') return '&amp;';
-                if (m === '<') return '&lt;';
-                if (m === '>') return '&gt;';
-                return m;
+    // Update textarea from preview (right → left)
+    function updateTextareaFromPreview() {
+        if (updating) return;
+        updating = true;
+        let newHtml = previewDiv.innerHTML;
+        htmlEditor.value = newHtml;
+        updating = false;
+    }
+
+    // Event listeners for two-way sync
+    htmlEditor.addEventListener('input', updatePreviewFromTextarea);
+    previewDiv.addEventListener('blur', updateTextareaFromPreview);
+    previewDiv.addEventListener('input', updateTextareaFromPreview);
+
+    // Toolbar helpers
+    function wrapText(openTag, closeTag) {
+        if (!htmlEditor) return;
+        const start = htmlEditor.selectionStart;
+        const end = htmlEditor.selectionEnd;
+        const selected = htmlEditor.value.substring(start, end);
+        const newText = htmlEditor.value.substring(0, start) + openTag + selected + closeTag + htmlEditor.value.substring(end);
+        htmlEditor.value = newText;
+        htmlEditor.selectionStart = start + openTag.length;
+        htmlEditor.selectionEnd = end + openTag.length;
+        htmlEditor.focus();
+        updatePreviewFromTextarea();
+    }
+
+    function insertBulletList() {
+        const cursor = htmlEditor.selectionStart;
+        let lineStart = htmlEditor.value.lastIndexOf('\n', cursor - 1) + 1;
+        let lineEnd = htmlEditor.value.indexOf('\n', cursor);
+        if (lineEnd === -1) lineEnd = htmlEditor.value.length;
+        const line = htmlEditor.value.substring(lineStart, lineEnd);
+        if (line.trim().startsWith('• ')) {
+            const newLine = line.replace(/^•\s+/, '');
+            htmlEditor.value = htmlEditor.value.substring(0, lineStart) + newLine + htmlEditor.value.substring(lineEnd);
+            htmlEditor.setSelectionRange(lineStart, lineStart + newLine.length);
+        } else {
+            const newLine = '• ' + line;
+            htmlEditor.value = htmlEditor.value.substring(0, lineStart) + newLine + htmlEditor.value.substring(lineEnd);
+            htmlEditor.setSelectionRange(lineStart + 2, lineStart + 2 + line.length);
+        }
+        htmlEditor.focus();
+        updatePreviewFromTextarea();
+    }
+
+    function insertNumberedList() {
+        const cursor = htmlEditor.selectionStart;
+        let lineStart = htmlEditor.value.lastIndexOf('\n', cursor - 1) + 1;
+        let lineEnd = htmlEditor.value.indexOf('\n', cursor);
+        if (lineEnd === -1) lineEnd = htmlEditor.value.length;
+        const line = htmlEditor.value.substring(lineStart, lineEnd);
+        const match = line.match(/^(\d+)\.\s+/);
+        if (match) {
+            const newLine = line.replace(/^\d+\.\s+/, '');
+            htmlEditor.value = htmlEditor.value.substring(0, lineStart) + newLine + htmlEditor.value.substring(lineEnd);
+            htmlEditor.setSelectionRange(lineStart, lineStart + newLine.length);
+        } else {
+            let num = 1;
+            const before = htmlEditor.value.substring(0, lineStart);
+            const lines = before.split('\n');
+            for (let i = lines.length - 1; i >= 0; i--) {
+                const m = lines[i].match(/^(\d+)\.\s+/);
+                if (m) { num = parseInt(m[1]) + 1; break; }
+            }
+            const newLine = num + '. ' + line;
+            htmlEditor.value = htmlEditor.value.substring(0, lineStart) + newLine + htmlEditor.value.substring(lineEnd);
+            htmlEditor.setSelectionRange(lineStart + (num + '.').length + 1, lineStart + (num + '.').length + 1 + line.length);
+        }
+        htmlEditor.focus();
+        updatePreviewFromTextarea();
+    }
+
+    function insertSimpleTable() {
+        const rows = prompt("Number of rows:", "3");
+        const cols = prompt("Number of columns:", "3");
+        if (!rows || !cols) return;
+        let table = '<table border="1" cellpadding="8" style="border-collapse: collapse; width: 100%;">';
+        for (let i = 0; i < parseInt(rows); i++) {
+            table += '<tr>';
+            for (let j = 0; j < parseInt(cols); j++) {
+                table += '<td style="border: 1px solid #ddd; padding: 8px;">&nbsp;</td>';
+            }
+            table += '</tr>';
+        }
+        table += '</table><br>';
+        wrapText(table, '');
+    }
+
+    function pasteFullTable() {
+        const html = prompt("Paste your HTML table code:", '<table border="1" cellpadding="8"><tr><th>Header</th></tr><tr><td>Content</td></tr></table>');
+        if (html) wrapText(html, '');
+    }
+
+    // Load updates from Firestore
+    async function loadUpdates() {
+        const container = document.getElementById('updates-container');
+        container.innerHTML = '<div class="loader">Loading updates...</div>';
+        try {
+            const q = query(collection(db, "updates"), orderBy("date", "desc"));
+            const querySnapshot = await getDocs(q);
+            const updates = [];
+            querySnapshot.forEach(doc => {
+                updates.push({ id: doc.id, ...doc.data() });
             });
-        }
-
-        function openEditModal(id = null) {
-            currentEditingId = id;
-            const modal = document.getElementById('update-modal');
-            const titleElem = document.getElementById('modal-title');
-            const versionInput = document.getElementById('update-version');
-            const titleInput = document.getElementById('update-title');
-            const dateInput = document.getElementById('update-date');
-            const descInput = document.getElementById('update-description');
-
-            if (id) {
-                // Find the update data from the existing DOM or re‑fetch? We'll fetch from DOM for simplicity.
-                const card = document.querySelector(`.edit-update[data-id="${id}"]`).closest('.update-card');
-                const title = card.querySelector('.update-title').innerText;
-                const versionElem = card.querySelector('.update-version');
-                const version = versionElem ? versionElem.innerText : '';
-                // Get raw description from the update object stored in the card's data attribute
-                // Instead of parsing HTML, we store the raw description in a data attribute when rendering.
-                // Let's modify the rendering to include a data-raw-description attribute.
-                const rawDesc = card.dataset.rawDescription || '';
-                const dateText = card.querySelector('.update-date').innerText;
-                const dateObj = new Date(dateText);
-                const dateStr = dateObj.toISOString().split('T')[0];
-                titleElem.innerText = 'Edit Update';
-                versionInput.value = version;
-                titleInput.value = title;
-                dateInput.value = dateStr;
-                descInput.value = rawDesc;
-            } else {
-                titleElem.innerText = 'Add Update';
-                versionInput.value = '';
-                titleInput.value = '';
-                dateInput.value = new Date().toISOString().split('T')[0];
-                descInput.value = '';
-            }
-            modal.classList.remove('hidden');
-        }
-
-        async function saveUpdate() {
-            const version = document.getElementById('update-version').value.trim();
-            const title = document.getElementById('update-title').value.trim();
-            const date = document.getElementById('update-date').value;
-            let description = document.getElementById('update-description').value.trim();
-
-            if (!title || !date || !description) {
-                alert("Please fill in all required fields (Title, Date, Description).");
+            if (updates.length === 0) {
+                container.innerHTML = '<div class="empty-message">No updates yet. Check back later!</div>';
                 return;
             }
-
-            // Optional: sanitize description before storing (but we trust the admin, not necessary)
-            // We store as raw so that future edits can see the tags.
-
-            const updateData = {
-                title: title,
-                date: date,
-                description: description, // raw HTML
-                version: version || null,
-                updatedAt: new Date()
-            };
-
-            try {
-                if (currentEditingId) {
-                    await updateDoc(doc(db, "updates", currentEditingId), updateData);
-                } else {
-                    await addDoc(collection(db, "updates"), updateData);
+            container.innerHTML = '';
+            updates.forEach(update => {
+                const card = document.createElement('div');
+                card.className = 'update-card';
+                card.dataset.update = JSON.stringify({
+                    id: update.id,
+                    title: update.title,
+                    version: update.version || '',
+                    date: update.date,
+                    description: update.description
+                });
+                const formattedDate = new Date(update.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+                let descToShow = update.description;
+                if (!/<[a-z][\s>]/i.test(descToShow)) {
+                    descToShow = formatDescription(descToShow);
                 }
-                document.getElementById('update-modal').classList.add('hidden');
-                loadUpdates();
-            } catch (err) {
-                console.error(err);
-                alert("Failed to save update. Please try again.");
+                const safeDescription = DOMPurify.sanitize(descToShow, {
+                    ALLOWED_TAGS: ['b','i','em','strong','a','br','p','ul','li','h1','h2','h3','h4','h5','h6','span','div','table','thead','tbody','tr','td','th','style','blockquote','code','pre','img','figure','figcaption','ol'],
+                    ALLOWED_ATTR: ['href','target','class','style','src','alt','width','height','border','cellpadding','cellspacing']
+                });
+                card.innerHTML = `
+                    <div class="update-header">
+                        <div class="update-title">${escapeHtml(update.title)}</div>
+                        <div class="update-date">${formattedDate}</div>
+                    </div>
+                    ${update.version ? `<div class="update-version">${escapeHtml(update.version)}</div>` : ''}
+                    <div class="update-description">${safeDescription}</div>
+                    ${isAdmin ? `
+                        <div class="update-actions">
+                            <button class="btn btn-outline edit-update" data-id="${update.id}">✏️ Edit</button>
+                            <button class="btn btn-danger delete-update" data-id="${update.id}">🗑️ Delete</button>
+                        </div>
+                    ` : ''}
+                `;
+                container.appendChild(card);
+            });
+            if (isAdmin) {
+                document.querySelectorAll('.edit-update').forEach(btn => {
+                    btn.onclick = () => openEditModal(btn.dataset.id);
+                });
+                document.querySelectorAll('.delete-update').forEach(btn => {
+                    btn.onclick = async () => {
+                        if (confirm("Delete this update?")) {
+                            await deleteDoc(doc(db, "updates", btn.dataset.id));
+                            loadUpdates();
+                        }
+                    };
+                });
             }
+        } catch (err) {
+            console.error(err);
+            container.innerHTML = '<div class="empty-message">Failed to load updates.</div>';
+        }
+    }
+
+    function escapeHtml(str) {
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    function openEditModal(id = null) {
+        currentEditingId = id;
+        const modal = document.getElementById('update-modal');
+        const titleElem = document.getElementById('modal-title');
+        const versionInput = document.getElementById('update-version');
+        const titleInput = document.getElementById('update-title');
+        const dateInput = document.getElementById('update-date');
+
+        if (id) {
+            const btn = document.querySelector(`.edit-update[data-id="${id}"]`);
+            if (!btn) return;
+            const card = btn.closest('.update-card');
+            if (!card || !card.dataset.update) return;
+            const updateData = JSON.parse(card.dataset.update);
+            titleElem.innerText = 'Edit Update';
+            versionInput.value = updateData.version || '';
+            titleInput.value = updateData.title;
+            dateInput.value = updateData.date;
+            htmlEditor.value = updateData.description;
+        } else {
+            titleElem.innerText = 'Add Update';
+            versionInput.value = '';
+            titleInput.value = '';
+            dateInput.value = new Date().toISOString().split('T')[0];
+            htmlEditor.value = '';
+        }
+        updatePreviewFromTextarea();
+        modal.classList.remove('hidden');
+    }
+
+    async function saveUpdate() {
+        const version = document.getElementById('update-version').value.trim();
+        const title = document.getElementById('update-title').value.trim();
+        const date = document.getElementById('update-date').value;
+        let description = htmlEditor.value;
+
+        if (!title || !date || !description.trim()) {
+            alert("Please fill in Title, Date, and Description.");
+            return;
         }
 
-        // Auth state
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                const userDoc = await getDoc(doc(db, "users", user.uid));
-                const userData = userDoc.data();
-                isAdmin = userData?.role === 'admin';
-                if (isAdmin) {
-                    document.getElementById('admin-controls').style.display = 'block';
-                }
-                loadUpdates();
-            } else {
-                // Not logged in – show only public updates (no admin controls)
-                document.getElementById('admin-controls').style.display = 'none';
-                loadUpdates();
-            }
-        });
+        const updateData = {
+            title: title,
+            date: date,
+            description: description,
+            version: version || null,
+            updatedAt: new Date()
+        };
 
-        // Event listeners
-        document.getElementById('add-update-btn').onclick = () => openEditModal();
-        document.getElementById('save-update-btn').onclick = saveUpdate;
-        document.getElementById('cancel-modal-btn').onclick = () => document.getElementById('update-modal').classList.add('hidden');
-    </script>
+        try {
+            if (currentEditingId) {
+                await updateDoc(doc(db, "updates", currentEditingId), updateData);
+            } else {
+                await addDoc(collection(db, "updates"), updateData);
+            }
+            document.getElementById('update-modal').classList.add('hidden');
+            loadUpdates();
+        } catch (err) {
+            console.error(err);
+            alert("Failed to save update.");
+        }
+    }
+
+    // Event listeners
+    document.getElementById('add-update-btn').onclick = () => openEditModal();
+    document.getElementById('save-update-btn').onclick = saveUpdate;
+    document.getElementById('cancel-modal-btn').onclick = () => document.getElementById('update-modal').classList.add('hidden');
+
+    document.getElementById('btn-bold')?.addEventListener('click', () => wrapText('<b>', '</b>'));
+    document.getElementById('btn-italic')?.addEventListener('click', () => wrapText('<i>', '</i>'));
+    document.getElementById('btn-list-bullet')?.addEventListener('click', insertBulletList);
+    document.getElementById('btn-list-numbered')?.addEventListener('click', insertNumberedList);
+    document.getElementById('btn-table')?.addEventListener('click', insertSimpleTable);
+    document.getElementById('btn-pre-table')?.addEventListener('click', pasteFullTable);
+
+    // Auth state
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            const userDoc = await getDoc(doc(db, "users", user.uid));
+            const userData = userDoc.data();
+            isAdmin = userData?.role === 'admin';
+            if (isAdmin) {
+                document.getElementById('admin-controls').style.display = 'block';
+            }
+            loadUpdates();
+        } else {
+            document.getElementById('admin-controls').style.display = 'none';
+            loadUpdates();
+        }
+    });
+</script>
 </body>
 </html>

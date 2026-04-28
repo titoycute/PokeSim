@@ -1816,7 +1816,11 @@ function getTotalBadgeBonus(effectType, targetType) {
 function getSpecialFormBonuses(pokemonName, pokemonId) {
     const name = pokemonName.toLowerCase();
     let atk = 0, def = 0, spd = 0;
-
+ if (LEGENDARY_MYTHICAL_IDS.has(pokemonId)) {
+        atk += 5;
+        def += 2;
+        spd += 2;
+    }
     // ----- Gigantamax / Dynamax -----
     if (name.includes('-gmax') || name === 'dynamax') {
         atk = 10; def = 10; spd = 10;
@@ -1938,6 +1942,29 @@ function getSpecialFormBonuses(pokemonName, pokemonId) {
 
     return { atk, def, spd };
 }
+
+// Legendary & Mythical Pokémon IDs (base forms – includes all gens up to Gen 9)
+const LEGENDARY_MYTHICAL_IDS = new Set([
+    // Gen 1
+    144,145,146,150,151,
+    // Gen 2
+    243,244,245,249,250,251,
+    // Gen 3
+    377,378,379,380,381,382,383,384,385,386,
+    // Gen 4
+    480,481,482,483,484,485,486,487,488,489,490,491,492,493,
+    // Gen 5
+    638,639,640,641,642,643,644,645,646,647,648,649,
+    // Gen 6
+    716,717,718,719,720,721,722,
+    // Gen 7
+    785,786,787,788,789,790,791,792,793,794,795,796,797,798,799,800,801,802,807,808,809,
+    // Gen 8
+    888,889,890,891,892,893,894,895,896,897,898,
+    // Gen 9
+    1000,1001,1002,1003,1004,1005,1006,1007,1008
+]);
+
 
  function getEffectiveSpeed(pokemon, isPlayer = true) {
     let speed = pokemon.level;

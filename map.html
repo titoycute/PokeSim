@@ -2312,7 +2312,6 @@ async function handlePlayerFaint(battle) {
         isProcessing = false;
         toggleBattleUI(false);
         showBattleSummary('defeat');
-        endBattleCleanup();
         return null;
     }
     addBattleLog(`${battle.player.name.toUpperCase()} fainted! Choose your next Pokémon.`);
@@ -2321,7 +2320,6 @@ async function handlePlayerFaint(battle) {
         isProcessing = false;
         toggleBattleUI(false);
         showBattleSummary('defeat');
-        endBattleCleanup();
         return null;
     }
 
@@ -2835,20 +2833,97 @@ setTimeout(() => {
     `;
 }
 else if (type === 'defeat') {
-            header.innerText = "DEFEATED!";
-            header.style.color = "var(--danger)";
-            if (b.wild.isShiny) {
-                loadImageWithFallback(sprite, getShinyBattleSpriteUrl(b.wild.name, b.wild.pokemonId, 'front'));
-            } else {
-                loadImageWithFallback(sprite, getBattleSpriteUrl(b.wild.pokemonId, 'front'));
-            }
-            let displayName = b.wild.name.toUpperCase();
-            if (b.wild.isShiny) displayName = '✨ SHINY ' + displayName;
-            name.innerText = displayName;
-            info.innerText = `Defeated by wild ${b.wild.name}`;
-            typesDiv.innerHTML = generateTypeBadges(b.wild.types);
-            details.innerHTML = `<p style="text-align:center;">Your team fainted!</p>`;
-        }
+    header.innerText = "DEFEATED!";
+    header.style.color = "var(--danger)";
+
+    if (b.wild.isShiny) {
+        loadImageWithFallback(sprite, getShinyBattleSpriteUrl(b.wild.name, b.wild.pokemonId, 'front'));
+    } else {
+        loadImageWithFallback(sprite, getBattleSpriteUrl(b.wild.pokemonId, 'front'));
+    }
+    let displayName = b.wild.name.toUpperCase();
+    if (b.wild.isShiny) displayName = '✨ SHINY ' + displayName;
+    name.innerText = displayName;
+    info.innerText = `Level ${b.wild.level}`;
+    typesDiv.innerHTML = generateTypeBadges(b.wild.types);
+
+    // --- Build stats breakdown ---
+    const form = b.wild.formBonuses || { atk:0, def:0, spd:0 };
+    const wild = b.wild.wildBonuses || { atk:0, def:0, spd:0 };
+    const total = {
+        atk: form.atk + wild.atk,
+        def: form.def + wild.def,
+        spd: form.spd + wild.spd
+    };
+
+    let statBreakdownHtml = `
+        <span class="summary-section-title">⚡ Defeated by – Stats</span>
+        <div style="background:rgba(0,0,0,0.02); border-radius:12px; padding:8px; margin-bottom:12px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                <span>❤️ HP</span>
+                <span><b>${b.wild.currentHp}/${b.wild.maxHp}</b> (${Math.floor(b.wild.currentHp/b.wild.maxHp*100)}%)</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                <span>⭐ Level</span>
+                <span><b>${b.wild.level}</b></span>
+            </div>
+    `;
+
+    // Form bonuses
+    if (form.atk > 0 || form.def > 0 || form.spd > 0) {
+        statBreakdownHtml += `<div style="margin-top:8px;"><span style="font-size:0.75rem; font-weight:700;">✨ Form bonuses:</span><br>`;
+        if (form.atk > 0) statBreakdownHtml += `<span class="bonus-pill form">⚔️ ATK +${form.atk}%</span>`;
+        if (form.def > 0) statBreakdownHtml += `<span class="bonus-pill form def">🛡️ DEF +${form.def}%</span>`;
+        if (form.spd > 0) statBreakdownHtml += `<span class="bonus-pill form spd">🏃 SPD +${form.spd}%</span>`;
+        statBreakdownHtml += `</div>`;
+    }
+
+    // Wild bonuses
+    if (wild.atk > 0 || wild.def > 0 || wild.spd > 0) {
+        statBreakdownHtml += `<div style="margin-top:6px;"><span style="font-size:0.75rem; font-weight:700;">🌿 Wild bonuses:</span><br>`;
+        if (wild.atk > 0) statBreakdownHtml += `<span class="bonus-pill wild">⚔️ ATK +${wild.atk}%</span>`;
+        if (wild.def > 0) statBreakdownHtml += `<span class="bonus-pill wild def">🛡️ DEF +${wild.def}%</span>`;
+        if (wild.spd > 0) statBreakdownHtml += `<span class="bonus-pill wild spd">🏃 SPD +${wild.spd}%</span>`;
+        statBreakdownHtml += `</div>`;
+    }
+
+    // Total vs. player
+    statBreakdownHtml += `<div style="margin-top:8px; border-top:1px dashed var(--border); padding-top:6px;">✨ Total bonuses: `;
+    if (total.atk > 0) statBreakdownHtml += `⚔️ +${total.atk}% `;
+    if (total.def > 0) statBreakdownHtml += `🛡️ +${total.def}% `;
+    if (total.spd > 0) statBreakdownHtml += `🏃 +${total.spd}% `;
+    statBreakdownHtml += `</div>`;
+
+    if (b.wild.isShiny) {
+        statBreakdownHtml += `<div style="margin-top:6px; font-size:0.7rem;">✨ Shiny: +15% HP</div>`;
+    }
+    statBreakdownHtml += `</div>`;
+
+    // Moveset
+    let movesHtml = b.wild.moves.map(m => {
+        const typeColor = getTypeColor(m.type);
+        const typeIcon = TYPE_ICONS[m.type] || '⚙️';
+        return `
+            <div class="move-tag-colored" style="background: ${typeColor};">
+                <span style="font-size: 0.9rem;">${typeIcon}</span> 
+                <span>${m.name.toUpperCase()}</span>
+            </div>
+        `;
+    }).join('');
+
+    details.innerHTML = `
+        ${statBreakdownHtml}
+        <span class="summary-section-title">📖 Moveset (used against you)</span>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:12px;">
+            ${movesHtml}
+        </div>
+        <div style="margin-top:12px; padding:8px; border:1px dashed var(--danger); border-radius:12px; font-size:0.7rem; color:var(--danger); text-align:center;">
+            Your team fainted – better luck next time!
+        </div>
+    `;
+}
+    
+    
         modal.classList.remove('hidden');
         document.getElementById('close-summary-btn').onclick = endBattleCleanup;
     }
@@ -4604,18 +4679,36 @@ window.addEventListener('keydown', (e) => {
     if (activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT') return;
 
     // 3️⃣ Arrow keys → movement (only if no battle)
-    if (key === 'ArrowUp' || key === 'ArrowDown' || key === 'ArrowLeft' || key === 'ArrowRight') {
-        e.preventDefault();
-        if (!currentBattle) {
-            switch (key) {
-                case 'ArrowUp': movePlayer(0, -1); break;
-                case 'ArrowDown': movePlayer(0, 1); break;
-                case 'ArrowLeft': movePlayer(-1, 0); break;
-                case 'ArrowRight': movePlayer(1, 0); break;
-            }
+    // 3️⃣ Movement keys: Arrow keys + WASD (only if no battle)
+const moveKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'W', 'a', 'A', 's', 'S', 'd', 'D'];
+if (moveKeys.includes(key)) {
+    e.preventDefault();
+    if (!currentBattle) {
+        switch (key) {
+            case 'ArrowUp':
+            case 'w':
+            case 'W':
+                movePlayer(0, -1);
+                break;
+            case 'ArrowDown':
+            case 's':
+            case 'S':
+                movePlayer(0, 1);
+                break;
+            case 'ArrowLeft':
+            case 'a':
+            case 'A':
+                movePlayer(-1, 0);
+                break;
+            case 'ArrowRight':
+            case 'd':
+            case 'D':
+                movePlayer(1, 0);
+                break;
         }
-        return;
     }
+    return;
+}
 
     // 4️⃣ Number keys 1-4 → battle moves (only if in battle and not processing)
     if (key === '1' || key === '2' || key === '3' || key === '4') {

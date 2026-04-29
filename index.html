@@ -2846,10 +2846,50 @@ function movePlayer(dx, dy) {
 
 window.movePlayer = movePlayer;
 
-  function renderPlayer() {
+function renderPlayer() {
     const spriteEl = document.getElementById('player-sprite-img');
     if (spriteEl) spriteEl.style.backgroundImage = `url(${TRAINER_GIF})`;
-    document.getElementById('map-grid').style.transform = `translate(${275 - playerPos.x * 50}px, ${175 - playerPos.y * 50}px)`;
+
+    const viewport = document.getElementById('map-viewport');
+    const vw = viewport.clientWidth  || 600;
+    const vh = viewport.clientHeight || 400;
+
+    // Compute tile size dynamically from actual viewport size
+    const tileSize = Math.max(16, Math.floor(Math.min(vw / 12, vh / 8)));
+
+    // Push tile size to CSS so grid and .tile elements auto-resize
+    document.documentElement.style.setProperty('--tile-size', tileSize + 'px');
+
+    // Scale trainer sprite proportionally with tiles
+    const spriteSize = Math.round(tileSize * 1.2);
+    if (spriteEl) {
+        spriteEl.style.width  = spriteSize + 'px';
+        spriteEl.style.height = spriteSize + 'px';
+    }
+
+    // Scale companion proportionally
+    const companion = document.getElementById('player-companion');
+    if (companion) {
+        const companionSize = Math.round(tileSize * 0.8);
+        companion.style.width  = companionSize + 'px';
+        companion.style.height = companionSize + 'px';
+        companion.style.right  = `-${Math.round(companionSize * 0.6)}px`;
+        companion.style.bottom = '0px';
+    }
+
+    // Keep player element centered in the viewport
+    const playerEl = document.getElementById('player');
+    if (playerEl) {
+        playerEl.style.width = spriteSize + 'px';
+        playerEl.style.left  = Math.round(vw / 2 - spriteSize / 2) + 'px';
+        playerEl.style.top   = Math.round(vh / 2 - spriteSize / 2) + 'px';
+    }
+
+    // Offset the grid so playerPos is always centered on screen
+    const offsetX = Math.round(vw / 2 - playerPos.x * tileSize - tileSize / 2);
+    const offsetY = Math.round(vh / 2 - playerPos.y * tileSize - tileSize / 2);
+    document.getElementById('map-grid').style.transform =
+        `translate(${offsetX}px, ${offsetY}px)`;
 }
 
 function updatePlayerLabel() {
@@ -5408,6 +5448,10 @@ window.addEventListener('beforeunload', () => {
         sessionStorage.setItem('support_modal_shown', 'true');
     }, THREE_MINUTES);
 })();
+
+window.addEventListener('resize', () => {
+    if (currentMap) renderPlayer();
+});
 </script>
 
 

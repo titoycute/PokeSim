@@ -3812,17 +3812,17 @@ async function attemptEvolution(pokemonId, speciesId) {
         ...specialTargets.map(t => ({ ...t, isSpecial: true, met: t.met }))
     ];
 
-   if (allTargets.length === 0) {
-    showNoEvolutionModal(pokemon.name);
-    return;
-}
+    if (allTargets.length === 0) {
+        showNoEvolutionModal(pokemon.name);
+        return;
+    }
 
     // 3. Show selection modal with selectable cards + Evolve button
     const modal = document.getElementById('evolution-select-modal');
     const grid = document.getElementById('evolution-options-grid');
-    grid.innerHTML = '';
+    grid.innerHTML = '';  // ✅ Clear old cards
 
-    let selectedTarget = null;
+    let selectedTarget = null;   // ✅ Fresh variable each time
 
     for (const target of allTargets) {
         const card = document.createElement('div');
@@ -3866,10 +3866,9 @@ async function attemptEvolution(pokemonId, speciesId) {
                     c.style.border = '2px solid transparent';
                     c.style.backgroundColor = '';
                 });
-                // Highlight selected card
                 card.style.border = '2px solid var(--primary)';
                 card.style.backgroundColor = 'rgba(59,76,202,0.15)';
-                selectedTarget = target;
+                selectedTarget = target;   // ✅ Assign current target
                 // Enable evolve button
                 const evolveBtn = document.getElementById('confirm-evolution-select');
                 if (evolveBtn) evolveBtn.disabled = false;
@@ -3879,21 +3878,21 @@ async function attemptEvolution(pokemonId, speciesId) {
         grid.appendChild(card);
     }
 
-    // Add or get the Evolve button
-    let confirmBtn = document.getElementById('confirm-evolution-select');
-    if (!confirmBtn) {
-        confirmBtn = document.createElement('button');
-        confirmBtn.id = 'confirm-evolution-select';
-        confirmBtn.className = 'btn btn-primary';
-        confirmBtn.textContent = '✨ Evolve ✨';
-        confirmBtn.disabled = true;
-        confirmBtn.style.marginTop = '20px';
-        confirmBtn.style.width = '100%';
-        modal.querySelector('.modal').appendChild(confirmBtn);
-    } else {
-        confirmBtn.disabled = true;
-    }
+    // ✅ Remove any existing dynamic button (to avoid stale closure)
+    const oldBtn = document.getElementById('confirm-evolution-select');
+    if (oldBtn) oldBtn.remove();
 
+    // ✅ Create fresh button
+    const confirmBtn = document.createElement('button');
+    confirmBtn.id = 'confirm-evolution-select';
+    confirmBtn.className = 'btn btn-primary';
+    confirmBtn.textContent = '✨ Evolve ✨';
+    confirmBtn.disabled = true;
+    confirmBtn.style.marginTop = '20px';
+    confirmBtn.style.width = '100%';
+    modal.querySelector('.modal').appendChild(confirmBtn);
+
+    // ✅ Attach event handler with fresh closure using the current selectedTarget
     confirmBtn.onclick = async () => {
         if (!selectedTarget) {
             showToast("Please select an evolution first.");
@@ -3912,17 +3911,14 @@ async function attemptEvolution(pokemonId, speciesId) {
             return;
         }
         await performEvolution(pokemon, selectedTarget.targetId, selectedTarget.targetName, targetData);
-        // Reset selection after evolution
-        selectedTarget = null;
-        confirmBtn.disabled = true;
+        // No need to reset selectedTarget – modal is closed and a new one will be created next time
     };
 
-    // Cancel button resets selection
+    // Cancel button resets nothing (just closes)
     const cancelBtn = document.getElementById('cancel-evo-select');
     cancelBtn.onclick = () => {
         modal.classList.add('hidden');
-        if (confirmBtn) confirmBtn.disabled = true;
-        selectedTarget = null;
+        // Don't need to disable anything – button is removed next open anyway
     };
 
     modal.classList.remove('hidden');
@@ -4170,37 +4166,46 @@ async function performEvolution(pokemon, targetId, targetName, targetData) {
     const user = auth.currentUser;
     if (!user) return;
 
-    const modal = document.getElementById('evolution-modal');
-    const oldNameSpan = document.getElementById('evo-old-name');
-    const oldSprite = document.getElementById('evo-old-sprite');
-    const newSprite = document.getElementById('evo-new-sprite');
-    const arrowDiv = document.getElementById('evo-arrow');
-    const loadingDiv = document.getElementById('evo-loading');
-    const continueBtn = document.getElementById('evo-continue-btn');
-    const evoTitle = document.getElementById('evo-title');  // we'll reuse this for the messages
+    // 1. Create a fresh modal overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'overlay'; // uses your existing overlay style
+    overlay.style.zIndex = '10000';
+    overlay.innerHTML = `
+        <div class="modal" style="text-align: center; max-width: 400px;">
+            <h2 id="evo-title-dynamic">What? <span id="evo-old-name-dynamic">${oldName.toUpperCase()}</span> is evolving!</h2>
+            <div id="evo-sprite-container-dynamic" style="margin: 20px 0;">
+                <img id="evo-old-sprite-dynamic" src="" style="width: 150px; height: 150px; object-fit: contain;">
+                <div id="evo-arrow-dynamic" style="font-size: 3rem; margin: 20px 0;">→</div>
+                <img id="evo-new-sprite-dynamic" src="" style="width: 150px; height: 150px; object-fit: contain; display: none;">
+            </div>
+            <div id="evo-loading-dynamic" style="margin-top: 20px;">
+                <div class="pokeball-loader" style="margin: 0 auto;"></div>
+            </div>
+            <button id="evo-continue-btn-dynamic" class="btn btn-primary" style="display: none;">Continue</button>
+        </div>
+    `;
+    document.body.appendChild(overlay);
 
-    // Set the initial text
-    oldNameSpan.innerText = oldName.toUpperCase();
-    evoTitle.innerText = `What? ${oldName.toUpperCase()} is evolving!`;
+    // 2. Get references to the new dynamic elements
+    const oldSprite = document.getElementById('evo-old-sprite-dynamic');
+    const newSprite = document.getElementById('evo-new-sprite-dynamic');
+    const arrowDiv = document.getElementById('evo-arrow-dynamic');
+    const loadingDiv = document.getElementById('evo-loading-dynamic');
+    const continueBtn = document.getElementById('evo-continue-btn-dynamic');
+    const evoTitle = document.getElementById('evo-title-dynamic');
+    const oldNameSpan = document.getElementById('evo-old-name-dynamic');
 
-    // Load old sprite (shiny if applicable)
+    // 3. Load old sprite (shiny if applicable)
     if (pokemon.isShiny) {
         loadImageWithFallback(oldSprite, getShinyBattleSpriteUrl(pokemon.name, pokemon.pokemonId, 'front'));
     } else {
         loadImageWithFallback(oldSprite, getBattleSpriteUrl(pokemon.pokemonId, 'front'));
     }
 
-    oldSprite.style.display = 'block';
-    newSprite.style.display = 'none';
-    arrowDiv.style.display = 'block';
-    loadingDiv.style.display = 'block';
-    continueBtn.style.display = 'none';
-    modal.classList.remove('hidden');
-
     oldSprite.classList.add('evolution-animate');
 
+    // 4. After 1.5s, show the new sprite
     setTimeout(async () => {
-        // Load new sprite – preserve shiny
         if (pokemon.isShiny) {
             loadImageWithFallback(newSprite, getShinyBattleSpriteUrl(targetName, targetId, 'front'));
         } else {
@@ -4214,34 +4219,24 @@ async function performEvolution(pokemon, targetId, targetName, targetData) {
         loadingDiv.style.display = 'none';
         continueBtn.style.display = 'block';
 
-        // Update the modal title to the success message
         const displayNewName = targetName.replace(/-mega/gi, '').replace(/-gmax/gi, '').toUpperCase();
         evoTitle.innerText = `Congratulations! ${oldName.toUpperCase()} evolved into ${displayNewName}!`;
 
         continueBtn.onclick = async () => {
-            modal.classList.add('hidden');
-
+            // 5. Save to Firestore
             const updatedFields = {
                 name: targetName,
                 pokemonId: targetId,
                 types: targetData.types.map(t => t.type.name),
                 isShiny: pokemon.isShiny || false,
-                bonusStats: pokemon.bonusStats || { atk: false, def: false, spd: false }
+                bonusStats: pokemon.bonusStats || { atk: false, def: false, spd: false },
+                moves: pokemon.moves   // preserve original moves
             };
-
-            let newMoves = pokemon.moves;
-            if (targetData.moves && targetData.moves.length > 0) {
-                try {
-                    const moveUrls = targetData.moves.slice(0, 4).map(m => m.move.url);
-                    newMoves = await getMoveDetails(moveUrls);
-                    updatedFields.moves = pokemon.moves;
-                } catch (e) { console.warn(e); }
-            }
-
             const pokemonRef = doc(db, "users", user.uid, "pokemon", pokemon.id);
             await updateDoc(pokemonRef, updatedFields);
             trackWrite();
 
+            // 6. Update UI and caches
             invalidateTeamCache();
             refreshTeamView();
             updatePlayerLabel();
@@ -4249,7 +4244,8 @@ async function performEvolution(pokemon, targetId, targetName, targetData) {
                 cachedActivePokemon = { ...cachedActivePokemon, ...updatedFields };
             }
 
-            // No alert – everything was in the modal
+            // 7. Remove the dynamic modal
+            overlay.remove();
         };
     }, 1500);
 }

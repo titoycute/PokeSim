@@ -1920,6 +1920,17 @@ function renderMoveGrid(moveList, currentMoves) {
         toggleBattleUI(false);
         return newIdx;
     }
+    
+async function getTrainerName() {
+    if (cachedTrainerName) return cachedTrainerName;
+    const user = auth.currentUser;
+    if (!user) return "Unknown";
+    const userDoc = await getDoc(doc(db, "users", user.uid));
+    trackRead();
+    const data = userDoc.data();
+    cachedTrainerName = data?.trainerName || user.email.split('@')[0];
+    return cachedTrainerName;
+}
 
 async function resolveBattle(win) {
     if (currentTurnTimeout) clearTimeout(currentTurnTimeout);
@@ -2753,7 +2764,7 @@ async function loadDefaultMap() {
                 imageUrl: modal.querySelector('#map-image').value.trim(),
                 tileClasses: classInput.value.split(',').map(s => s.trim()),
                 tileColors: tileColorsArray,
-                tilePattern: pattern,
+                tilePattern: JSON.stringify(pattern),
                 specialLevelRange: {
                     enabled: specialCheckbox.checked,
                     min: parseInt(modal.querySelector('#special-level-min').value) || 1,

@@ -1404,7 +1404,7 @@ function applyDamageModifiers(dmg, atkBonus, defBonus) { let m=1; if(atkBonus?.a
             if (!selected) { resolveBattle(false); return; }
             const newIdx = b.playerTeam.findIndex(p => p.id === selected.id);
             b.activePlayerIdx = newIdx;
-            b.playerTeam[newIdx].currentHp = b.playerTeam[newIdx].maxHp;
+           
             renderBattleUI();
             addBattleLog(`Go! ${b.playerTeam[newIdx].name.toUpperCase()}!`);
             isProcessing = false;
@@ -1669,7 +1669,7 @@ function applyDamageModifiers(dmg, atkBonus, defBonus) { let m=1; if(atkBonus?.a
 }
             const newIdx = b.playerTeam.findIndex(p => p.id === selected.id);
             b.activePlayerIdx = newIdx;
-            b.playerTeam[newIdx].currentHp = b.playerTeam[newIdx].maxHp;
+            
             renderBattleUI();
             addBattleLog(`Go! ${b.playerTeam[newIdx].name.toUpperCase()}!`);
             setTimeout(() => {

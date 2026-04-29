@@ -18,7 +18,7 @@
 
 .map-wrapper {
     width: 100%;
-    overflow-x: auto;
+   overflow-x: hidden;
     display: flex;
     justify-content: center;
 }
@@ -2594,12 +2594,12 @@ const coins = Math.floor(b.wild.level * 10 * coinMultiplier);
                 const newName = np.name.toUpperCase();
                 const newMoves = await getMoveDetails(np.moves.slice(0, 4));
                 // Single Firestore read for bonusStats/isShiny
-               
+                const currentMoves = existingData.moves; 
                 await updateDoc(doc(db, "users", auth.currentUser.uid, "pokemon", id), {
                     name: np.name,
                     pokemonId: np.id,
                     types: np.types.map(t => t.type.name),
-                    moves: newMoves,
+                    moves: currentMoves,
                     bonusStats: bonusStats,     // from parameter
                     isShiny: isShiny            // from parameter
                 });

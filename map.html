@@ -7,6 +7,21 @@
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="manifest" href="manifest.json">
     <style>
+
+        #view-explore {
+    width: 100%;
+    overflow-x: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.map-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    display: flex;
+    justify-content: center;
+}
         body.dark-theme footer .support-section a {
     color: var(--primary);
 }
@@ -1559,6 +1574,12 @@ body.dark-theme #summary-details {
                     </div>
                 </div>
             </div>
+
+            <div style="display: flex; justify-content: center; gap: 12px; margin: 10px 0;">
+    <button id="zoom-out-global" class="btn btn-outline" style="font-size: 1.2rem; width: 50px;">−</button>
+    <span id="zoom-level-global" style="font-weight: bold; background: var(--card-bg); padding: 4px 15px; border-radius: 30px;">100%</span>
+    <button id="zoom-in-global" class="btn btn-outline" style="font-size: 1.2rem; width: 50px;">+</button>
+</div>
            <div class="map-controls-t">
                 <!-- Row 1: NW, N, NE -->
                 <button class="arrow-diagonal" onclick="movePlayer(-1,-1)" title="North-West">↖</button>
@@ -1671,8 +1692,41 @@ body.dark-theme #summary-details {
 let badgeCacheTimestamp = 0;
 const BADGE_CACHE_TTL = 3600000; // 1 hour
 
-
+let currentGlobalZoom = 1;     // 1 = 100%
+const ZOOM_MIN = 0.5;
+const ZOOM_MAX = 2.0;
+const ZOOM_STEP = 0.1;
 let userBadgeEffects = [];
+
+function applyGlobalZoom(zoom) {
+    currentGlobalZoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, zoom));
+    const screen = document.getElementById('view-explore');
+    if (!screen) return;
+    screen.style.transform = `scale(${currentGlobalZoom})`;
+    screen.style.transformOrigin = 'top center';
+    screen.style.transition = 'transform 0.2s ease';
+    
+    // Update displayed percentage
+    const percent = Math.round(currentGlobalZoom * 100);
+    document.getElementById('zoom-level-global').innerText = `${percent}%`;
+    
+    // Store in localStorage for persistence
+    localStorage.setItem('map_global_zoom', currentGlobalZoom);
+}
+
+document.getElementById('zoom-in-global').addEventListener('click', () => {
+    applyGlobalZoom(currentGlobalZoom + ZOOM_STEP);
+});
+document.getElementById('zoom-out-global').addEventListener('click', () => {
+    applyGlobalZoom(currentGlobalZoom - ZOOM_STEP);
+});
+
+const savedZoom = localStorage.getItem('map_global_zoom');
+if (savedZoom) {
+    applyGlobalZoom(parseFloat(savedZoom));
+} else {
+    applyGlobalZoom(1); // default 100%
+}
 
 async function loadUserBadgeEffects() {
     if (!auth.currentUser) return [];

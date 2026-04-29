@@ -556,6 +556,7 @@
     <button class="nav-item" data-section="users-active"><i class="fas fa-users"></i><span>Active Users</span><span class="nav-badge" id="badge-active">0</span></button>
     <button class="nav-item" data-section="users-inactive"><i class="fas fa-user-slash"></i><span>Inactive Users</span><span class="nav-badge" id="badge-inactive">0</span></button>
     <button class="nav-item" data-section="users-all"><i class="fas fa-list"></i><span>All Users</span></button>
+    <button class="nav-item" data-section="referrals"><i class="fas fa-user-friends"></i><span>Referrals</span><span class="nav-badge" id="badge-referrals">0</span></button>
 
     <div class="nav-section">Content</div>
     <button class="nav-item" data-section="maps"><i class="fas fa-map-marked-alt"></i><span>Map Management</span></button>
@@ -665,6 +666,43 @@
         </tr></thead><tbody id="all-users-body"><tr><td colspan="6"><div class="page-loader"><div class="loading-spinner"></div>Loading...</div></td></tr></tbody></table></div>
     </section>
 
+
+    <!-- ══ REFERRALS ══ -->
+<section class="page-section" id="section-referrals">
+    <div class="section-header">
+        <h2><i class="fas fa-user-friends"></i> Referrals</h2>
+        <p>Users who signed up using a referral link. Shows the referring trainer and reward status.</p>
+    </div>
+    <div class="stat-grid" style="margin-bottom: 16px;">
+        <div class="stat-card"><div class="stat-icon blue">🔗</div><div><div class="stat-value" id="ref-total">—</div><div class="stat-label">Total Referred</div></div></div>
+        <div class="stat-card"><div class="stat-icon green">✅</div><div><div class="stat-value" id="ref-rewarded">—</div><div class="stat-label">Reward Given</div></div></div>
+        <div class="stat-card"><div class="stat-icon red">⏳</div><div><div class="stat-value" id="ref-pending">—</div><div class="stat-label">Pending Reward</div></div></div>
+    </div>
+    <div class="filter-tabs" id="ref-filter-tabs">
+        <button class="filter-tab active" data-filter="all">All <span class="tab-count" id="ref-count-all">0</span></button>
+        <button class="filter-tab" data-filter="active">Active <span class="tab-count" id="ref-count-active">0</span></button>
+        <button class="filter-tab danger-tab" data-filter="inactive">Inactive <span class="tab-count" id="ref-count-inactive">0</span></button>
+    </div>
+    <div class="search-wrap"><i class="fas fa-search"></i><input type="text" id="ref-search-input" class="search-input" placeholder="Search by referred name or referrer name..."></div>
+    <div class="table-card">
+        <table class="ranking-table">
+            <thead>
+                <tr>
+                    <th data-sort="referrer">Referrer</th>
+                    <th data-sort="referred">Referred User</th>
+                    <th data-sort="status">Status</th>
+                    <th data-sort="rewarded">Reward Given?</th>
+                    <th data-sort="totalLevel">Total Level</th>
+                    <th data-sort="coins">Coins</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="referrals-table-body">
+                <tr><td colspan="7"><div class="page-loader"><div class="loading-spinner"></div>Loading...</div></td></tr>
+            </tbody>
+        </table>
+    </div>
+</section>startUsersRealtime()
     <!-- ══ MAP MANAGEMENT ══ -->
     <section class="page-section" id="section-maps">
         <div class="section-header" style="display:flex;justify-content:space-between;align-items:flex-start;">
@@ -868,7 +906,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, getDocs, collection, updateDoc, deleteDoc, addDoc, setDoc, query, where, limit, onSnapshot, writeBatch, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, getDocs, collection, updateDoc, deleteDoc, addDoc, setDoc, query, where, limit, onSnapshot, writeBatch, orderBy, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const FB = { apiKey:"AIzaSyDkCE0wBrsQ1s-7zplvTtWOSE28ISaCFfQ", authDomain:"pokesim-7f9b7.firebaseapp.com", projectId:"pokesim-7f9b7", storageBucket:"pokesim-7f9b7.firebasestorage.app", messagingSenderId:"1087100425430", appId:"1:1087100425430:web:9558a79ee5330d4a792577" };
 const app  = initializeApp(FB);
@@ -964,7 +1002,7 @@ function switchSection(id) {
         'users-all': 'All Users',
         maps: 'Map Management',
         'pokemon-search': 'Pokémon Search',
-        gyms: 'Gym Management' // ✅ Add title
+        gyms: 'Gym Management', referrals: 'Referrals' // ✅ Add title
     };
     
     document.getElementById('topbar-title').textContent = titles[id] || id;
@@ -1421,14 +1459,22 @@ function startUsersRealtime() {
                 totalEncounters: data.totalEncounters || 0,
                 active: data.active !== false,
                 coins: data.coins || 0,
-                role: data.role || null
+                role: data.role || null,
+                 referredBy: data.referredBy || null,
+    referralRewarded: data.referralRewarded || false
             });
-        }
-        allUsers = users;
+        } allUsers = users;
+        // Build a quick map for referrer names
+window.userMap = new Map();
+users.forEach(u => window.userMap.set(u.uid, u));
+       
         updateBadgeCounts(allUsers);
         renderAllTables();
+        renderReferralsTable();
         renderDashboardLeaderboard();
+        if (typeof renderReferralsTable === 'function') renderReferralsTable();
         document.getElementById('live-indicator').style.display = 'inline-flex';
+
     }, (err) => {
         console.error('Realtime users listener error:', err);
         document.getElementById('live-indicator').style.display = 'none';
@@ -1463,6 +1509,8 @@ function updateBadgeCounts(users) {
         alertEl.innerHTML = `<div class="inactive-alert" style="background:#f0fff4;border-color:#c6f6d5;color:#276749;"><i class="fas fa-check-circle"></i><span>No inactive users. Everyone is active! ✓</span></div>`;
     }
 }
+
+// Build a quick map for referrer names
 
 function renderUserRows(tbody, users) {
     if (!users.length) {
@@ -1543,6 +1591,121 @@ function renderAllTables(searchOverride) {
     });
 }
 
+// ══ REFERRALS TABLE RENDERING ══
+let referralsFilter = 'all';   // 'all', 'active', 'inactive'
+let referralsSearch = '';
+
+function renderReferralsTable() {
+    const tbody = document.getElementById('referrals-table-body');
+    if (!tbody) return;
+
+    // Get all referred users (where referredBy exists)
+    let referredList = allUsers.filter(u => u.referredBy && u.referredBy.trim() !== '');
+
+    // Update summary stats
+    document.getElementById('ref-total').textContent = referredList.length;
+    const rewardedCount = referredList.filter(u => u.referralRewarded === true).length;
+    document.getElementById('ref-rewarded').textContent = rewardedCount;
+    document.getElementById('ref-pending').textContent = referredList.length - rewardedCount;
+
+    document.getElementById('ref-count-all').textContent = referredList.length;
+    document.getElementById('ref-count-active').textContent = referredList.filter(u => u.active).length;
+    document.getElementById('ref-count-inactive').textContent = referredList.filter(u => !u.active).length;
+
+    // Apply status filter
+    if (referralsFilter === 'active') referredList = referredList.filter(u => u.active);
+    else if (referralsFilter === 'inactive') referredList = referredList.filter(u => !u.active);
+
+    // Apply search (by referred name or referrer name)
+    if (referralsSearch) {
+        const searchLower = referralsSearch.toLowerCase();
+        referredList = referredList.filter(u =>
+            u.name.toLowerCase().includes(searchLower) ||
+            (window.userMap.get(u.referredBy)?.name || '').toLowerCase().includes(searchLower)
+        );
+    }
+
+    // Sort (default by referrer name)
+    referredList.sort((a, b) => {
+        const aRefName = (window.userMap.get(a.referredBy)?.name || '').toLowerCase();
+        const bRefName = (window.userMap.get(b.referredBy)?.name || '').toLowerCase();
+        return aRefName.localeCompare(bRefName);
+    });
+
+    if (referredList.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><i class="fas fa-user-friends"></i><p>No referred users found.</p></div></td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = referredList.map(refUser => {
+        const referrer = window.userMap.get(refUser.referredBy);
+        const referrerName = referrer ? referrer.name : 'Unknown (deleted)';
+        return `
+            <tr class="${!refUser.active ? 'inactive-row' : ''}" data-uid="${refUser.uid}">
+                <td><strong>${escHtml(referrerName)}</strong></td>
+                <td>
+                    <div class="trainer-cell">
+                        <div class="trainer-avatar ${!refUser.active ? 'inactive' : ''}">${refUser.name.charAt(0).toUpperCase()}</div>
+                        <div>
+                            <div class="trainer-name">${escHtml(refUser.name)}</div>
+                            <div class="trainer-email">${escHtml(refUser.email)}</div>
+                        </div>
+                    </div>
+                </td>
+                <td><span class="badge ${refUser.active ? 'badge-active' : 'badge-inactive'}">${refUser.active ? '✓ Active' : '✗ Inactive'}</span></td>
+                <td>${refUser.referralRewarded ? '<span class="badge badge-success">✅ Yes</span>' : '<span class="badge badge-warning" style="background:#ed8936;color:white;">⏳ Pending</span>'}</td>
+                <td>${refUser.totalLevels}</td>
+                <td>💰 ${refUser.coins.toLocaleString()}</td>
+                <td>
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-primary manage-user" data-uid="${refUser.uid}">Manage</button>
+                        <button class="btn btn-sm btn-outline ${refUser.referralRewarded ? 'disabled' : ''}" 
+                            data-uid="${refUser.uid}" 
+                            data-reward="true" 
+                            ${refUser.referralRewarded ? 'disabled' : ''}>
+                            <i class="fas fa-gift"></i> Give Reward
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+
+    // Re-attach manage user buttons
+    tbody.querySelectorAll('.manage-user').forEach(btn => {
+        btn.onclick = () => openManageUserModal(btn.dataset.uid);
+    });
+    // Give reward button
+    tbody.querySelectorAll('[data-reward="true"]').forEach(btn => {
+        btn.onclick = async () => {
+            const uid = btn.dataset.uid;
+            if (!confirm(`Give ₱100,000 reward to ${refUser.name}? This will also pay the referrer (if not already paid).`)) return;
+            btn.disabled = true;
+            btn.innerHTML = '<div class="loading-spinner"></div>';
+            try {
+                // Get the user data to find referrer
+                const userDoc = await getDoc(doc(db, 'users', uid));
+                const userData = userDoc.data();
+                const referrerId = userData.referredBy;
+                const batch = writeBatch(db);
+                const userRef = doc(db, 'users', uid);
+                batch.update(userRef, { coins: increment(100000), referralRewarded: true });
+                if (referrerId) {
+                    const referrerRef = doc(db, 'users', referrerId);
+                    batch.update(referrerRef, { coins: increment(100000), referralCount: increment(1) });
+                }
+                await batch.commit();
+                showToast(`Reward given to ${userData.trainerName} and their referrer.`, 'success');
+                // Refresh data (realtime will handle UI update)
+            } catch (err) {
+                showToast('Error: ' + err.message, 'error');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-gift"></i> Give Reward';
+            }
+        };
+    });
+}
+
 // Sort on header click
 document.querySelectorAll('.ranking-table th[data-sort]').forEach(th => {
     th.addEventListener('click', () => {
@@ -1554,6 +1717,20 @@ document.querySelectorAll('.ranking-table th[data-sort]').forEach(th => {
         th.querySelector('i')?.setAttribute('class', `fas fa-sort-${sortConfig[section].asc ? 'up' : 'down'}`);
         renderAllTables();
     });
+});
+
+// Referrals filter tabs
+document.querySelectorAll('#ref-filter-tabs .filter-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+        referralsFilter = btn.dataset.filter;
+        document.querySelectorAll('#ref-filter-tabs .filter-tab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderReferralsTable();
+    });
+});
+document.getElementById('ref-search-input').addEventListener('input', (e) => {
+    referralsSearch = e.target.value.toLowerCase();
+    renderReferralsTable();
 });
 
 document.querySelectorAll('.user-search-input').forEach(el => {

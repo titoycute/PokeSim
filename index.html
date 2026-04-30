@@ -1768,7 +1768,7 @@ function renderMoveGrid(moveList, currentMoves) {
     }
 
     // ========== BATTLE & GAME FUNCTIONS ==========
-    async function showSwitchPokemonModal(availablePokemon, isForced = false) {
+async function showSwitchPokemonModal(availablePokemon, isForced = false) {
     return new Promise((resolve) => {
         const modal = document.getElementById('switch-pokemon-modal');
         const listDiv = document.getElementById('switch-pokemon-list');
@@ -1776,6 +1776,19 @@ function renderMoveGrid(moveList, currentMoves) {
         
         // Clear previous content
         listDiv.innerHTML = '';
+        
+        // Add instruction line
+       const instruction = document.createElement('div');
+instruction.style.background = 'var(--card-bg)';
+instruction.style.border = '1px solid var(--border)';
+instruction.style.borderRadius = '12px';
+instruction.style.padding = '8px 12px';
+instruction.style.marginBottom = '12px';
+instruction.style.fontSize = '0.8rem';
+instruction.style.textAlign = 'center';
+instruction.style.color = 'var(--text-dark)';
+instruction.innerHTML = '💡 <strong>Tip:</strong> Press number keys <kbd style="background:var(--border); padding:2px 6px; border-radius:6px; font-weight:bold;">1</kbd>–<kbd style="background:var(--border); padding:2px 6px; border-radius:6px; font-weight:bold;">6</kbd> to switch quickly.';
+listDiv.appendChild(instruction);
         
         // If forced switch (after faint), disable/hide cancel button
         if (isForced) {
@@ -1789,10 +1802,11 @@ function renderMoveGrid(moveList, currentMoves) {
         }
         
         // Create buttons for each available Pokémon
-        availablePokemon.forEach((p) => {
+        const buttons = [];
+        availablePokemon.forEach((p, idx) => {
             const btn = document.createElement('button');
             btn.className = 'btn btn-outline';
-            btn.style.margin = '5px';
+            btn.style.margin = '5px 0';
             btn.style.display = 'flex';
             btn.style.alignItems = 'center';
             btn.style.gap = '12px';
@@ -1800,6 +1814,9 @@ function renderMoveGrid(moveList, currentMoves) {
             btn.style.padding = '10px';
             btn.style.width = '100%';
             btn.style.justifyContent = 'flex-start';
+            
+            // Add data attribute for numeric shortcut (1-indexed)
+            btn.dataset.shortcut = (idx + 1).toString();
             
             const img = document.createElement('img');
             const spriteUrl = getStaticSpriteUrl(p.pokemonId)[0];
@@ -1833,78 +1850,210 @@ function renderMoveGrid(moveList, currentMoves) {
             `;
             btn.appendChild(textDiv);
             
+            // Visible number badge (right side)
+            const numberBadge = document.createElement('span');
+            numberBadge.style.marginLeft = '8px';
+            numberBadge.style.background = 'rgba(0,0,0,0.2)';
+            numberBadge.style.padding = '4px 10px';
+            numberBadge.style.borderRadius = '20px';
+            numberBadge.style.fontSize = '0.8rem';
+            numberBadge.style.fontWeight = 'bold';
+            numberBadge.style.minWidth = '32px';
+            numberBadge.style.textAlign = 'center';
+            numberBadge.innerText = `${idx + 1}`;
+            btn.appendChild(numberBadge);
+            
             btn.onclick = () => {
                 modal.classList.add('hidden');
+                removeModalKeyListener();
                 resolve(p);
             };
             listDiv.appendChild(btn);
+            buttons.push(btn);
         });
+        
+        // Keyboard shortcut handler
+        function handleModalKeydown(e) {
+            const key = e.key;
+            const num = parseInt(key);
+            if (num >= 1 && num <= buttons.length) {
+                e.preventDefault();
+                const targetBtn = buttons[num - 1];
+                if (targetBtn && !targetBtn.disabled) {
+                    targetBtn.click();
+                }
+            } else if (key === 'Escape' && !isForced) {
+                // Escape cancels the switch (only if not forced)
+                e.preventDefault();
+                modal.classList.add('hidden');
+                removeModalKeyListener();
+                resolve(null);
+            }
+        }
+        
+        function removeModalKeyListener() {
+            window.removeEventListener('keydown', handleModalKeydown);
+        }
+        
+        // Add listener when modal opens
+        window.addEventListener('keydown', handleModalKeydown);
         
         // Cancel button handler
         const handleCancel = () => {
             modal.classList.add('hidden');
-            resolve(null);  // Important: resolve with null so the game knows user cancelled
+            removeModalKeyListener();
+            resolve(null);
         };
         
-        // Remove any previous listener and attach new one
         cancelBtn.removeEventListener('click', handleCancel);
         cancelBtn.addEventListener('click', handleCancel);
+        
+        // When modal is hidden, clean up keyboard listener
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mut) => {
+                if (mut.attributeName === 'class' && modal.classList.contains('hidden')) {
+                    removeModalKeyListener();
+                    observer.disconnect();
+                }
+            });
+        });
+        observer.observe(modal, { attributes: true });
         
         modal.classList.remove('hidden');
     });
 }
 
-    function showPreBattleSelectModal(team) {
-        return new Promise((resolve) => {
-            const modal = document.getElementById('pre-battle-select-modal');
-            const listDiv = document.getElementById('pre-battle-select-list');
-            listDiv.innerHTML = '';
-            team.forEach((p) => {
-                const btn = document.createElement('button');
-                btn.className = 'btn btn-outline';
-                btn.style.margin = '5px';
-                btn.style.display = 'flex';
-                btn.style.alignItems = 'center';
-                btn.style.gap = '12px';
-                btn.style.textAlign = 'left';
-                btn.style.padding = '10px';
-                btn.style.width = '100%';
-                const img = document.createElement('img');
-                const spriteUrl = getStaticSpriteUrl(p.pokemonId)[0];
-                img.src = spriteUrl;
-                img.style.width = '50px';
-                img.style.height = '50px';
-                img.style.objectFit = 'contain';
-                img.onerror = () => { img.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.pokemonId}.png`; };
-                btn.appendChild(img);
-                let bonusIcons = '';
-                if (p.bonusStats?.atk) bonusIcons += '⚔️';
-                if (p.bonusStats?.def) bonusIcons += '🛡️';
-                if (p.bonusStats?.spd) bonusIcons += '🏃';
-                const textDiv = document.createElement('div');
-                textDiv.style.flex = '1';
-                const hpPct = Math.floor((p.currentHp / p.maxHp) * 100);
-                const neededXP = getExpNeededForNextLevel(p.level);
-                const currentXP = p.exp || 0;
-                const xpPercent = Math.floor((currentXP / neededXP) * 100);
-                const typeBadgesHtml = generateTypeBadges(p.types);
-                let shinyBadge = '';
-                if (p.isShiny) shinyBadge = '<span style="background: #ffcc00; color: #333; padding: 2px 6px; border-radius: 20px; font-size: 0.6rem; margin-left: 8px;">✨ SHINY</span>';
-                textDiv.innerHTML = `
-                    <strong>${p.name.toUpperCase()} ${bonusIcons}</strong> ${shinyBadge}<br>
-                    <div style="margin: 4px 0;">${typeBadgesHtml}</div>
-                    <small>Lvl ${p.level} — HP: ${p.currentHp}/${p.maxHp} (${hpPct}%)</small><br>
-                    <small>XP: ${currentXP}/${neededXP} (${xpPercent}%)</small>
-                `;
-                btn.appendChild(textDiv);
-                btn.onclick = () => { modal.classList.add('hidden'); resolve(p); };
-                listDiv.appendChild(btn);
-            });
-            document.getElementById('cancel-pre-battle').onclick = () => { modal.classList.add('hidden'); resolve(null); };
-            modal.classList.remove('hidden');
+  function showPreBattleSelectModal(team) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('pre-battle-select-modal');
+        const listDiv = document.getElementById('pre-battle-select-list');
+        const cancelBtn = document.getElementById('cancel-pre-battle');
+        
+        listDiv.innerHTML = '';
+        
+        // Instruction line
+        const instruction = document.createElement('div');
+instruction.style.background = 'var(--card-bg)';
+instruction.style.border = '1px solid var(--border)';
+instruction.style.borderRadius = '12px';
+instruction.style.padding = '8px 12px';
+instruction.style.marginBottom = '12px';
+instruction.style.fontSize = '0.8rem';
+instruction.style.textAlign = 'center';
+instruction.style.color = 'var(--text-dark)';
+instruction.innerHTML = '💡 <strong>Tip:</strong> Press number keys <kbd style="background:var(--border); padding:2px 6px; border-radius:6px; font-weight:bold;">1</kbd>–<kbd style="background:var(--border); padding:2px 6px; border-radius:6px; font-weight:bold;">6</kbd> to choose your Pokémon.';
+listDiv.appendChild(instruction);
+        
+        const buttons = [];
+        team.forEach((p, idx) => {
+            const btn = document.createElement('button');
+            btn.className = 'btn btn-outline';
+            btn.style.margin = '5px 0';
+            btn.style.display = 'flex';
+            btn.style.alignItems = 'center';
+            btn.style.gap = '12px';
+            btn.style.textAlign = 'left';
+            btn.style.padding = '10px';
+            btn.style.width = '100%';
+            btn.style.justifyContent = 'flex-start';
+            btn.dataset.shortcut = (idx + 1).toString();
+            
+            const img = document.createElement('img');
+            const spriteUrl = getStaticSpriteUrl(p.pokemonId)[0];
+            img.src = spriteUrl;
+            img.style.width = '50px';
+            img.style.height = '50px';
+            img.style.objectFit = 'contain';
+            img.onerror = () => { img.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.pokemonId}.png`; };
+            btn.appendChild(img);
+            
+            let bonusIcons = '';
+            if (p.bonusStats?.atk) bonusIcons += '⚔️';
+            if (p.bonusStats?.def) bonusIcons += '🛡️';
+            if (p.bonusStats?.spd) bonusIcons += '🏃';
+            
+            const textDiv = document.createElement('div');
+            textDiv.style.flex = '1';
+            const hpPct = Math.floor((p.currentHp / p.maxHp) * 100);
+            const neededXP = getExpNeededForNextLevel(p.level);
+            const currentXP = p.exp || 0;
+            const xpPercent = Math.floor((currentXP / neededXP) * 100);
+            const typeBadgesHtml = generateTypeBadges(p.types);
+            let shinyBadge = '';
+            if (p.isShiny) shinyBadge = '<span style="background: #ffcc00; color: #333; padding: 2px 6px; border-radius: 20px; font-size: 0.6rem; margin-left: 8px;">✨ SHINY</span>';
+            
+            textDiv.innerHTML = `
+                <strong>${p.name.toUpperCase()} ${bonusIcons}</strong> ${shinyBadge}<br>
+                <div style="margin: 4px 0;">${typeBadgesHtml}</div>
+                <small>Lvl ${p.level} — HP: ${p.currentHp}/${p.maxHp} (${hpPct}%)</small><br>
+                <small>XP: ${currentXP}/${neededXP} (${xpPercent}%)</small>
+            `;
+            btn.appendChild(textDiv);
+            
+            // Number badge
+            const numberBadge = document.createElement('span');
+            numberBadge.style.marginLeft = '8px';
+            numberBadge.style.background = 'rgba(0,0,0,0.2)';
+            numberBadge.style.padding = '4px 10px';
+            numberBadge.style.borderRadius = '20px';
+            numberBadge.style.fontSize = '0.8rem';
+            numberBadge.style.fontWeight = 'bold';
+            numberBadge.style.minWidth = '32px';
+            numberBadge.style.textAlign = 'center';
+            numberBadge.innerText = `${idx + 1}`;
+            btn.appendChild(numberBadge);
+            
+            btn.onclick = () => {
+                modal.classList.add('hidden');
+                removeModalKeyListener();
+                resolve(p);
+            };
+            listDiv.appendChild(btn);
+            buttons.push(btn);
         });
-    }
-
+        
+        function handleModalKeydown(e) {
+            const key = e.key;
+            const num = parseInt(key);
+            if (num >= 1 && num <= buttons.length) {
+                e.preventDefault();
+                const targetBtn = buttons[num - 1];
+                if (targetBtn && !targetBtn.disabled) {
+                    targetBtn.click();
+                }
+            } else if (key === 'Escape') {
+                e.preventDefault();
+                modal.classList.add('hidden');
+                removeModalKeyListener();
+                resolve(null);
+            }
+        }
+        
+        function removeModalKeyListener() {
+            window.removeEventListener('keydown', handleModalKeydown);
+        }
+        
+        window.addEventListener('keydown', handleModalKeydown);
+        
+        cancelBtn.onclick = () => {
+            modal.classList.add('hidden');
+            removeModalKeyListener();
+            resolve(null);
+        };
+        
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mut) => {
+                if (mut.attributeName === 'class' && modal.classList.contains('hidden')) {
+                    removeModalKeyListener();
+                    observer.disconnect();
+                }
+            });
+        });
+        observer.observe(modal, { attributes: true });
+        
+        modal.classList.remove('hidden');
+    });
+}
     async function handlePlayerFaint(battle) {
         const available = battle.playerTeam.filter(p => p.currentHp > 0);
         if (available.length === 0) { showBattleSummary('defeat'); return null; }
@@ -3558,56 +3707,145 @@ window.addEventListener('keydown', (e) => {
         setTimeout(() => { if (btn) btn.disabled = false; isProcessing = false; }, 1000);
     }
 
-    function showSwitchModal(availablePokemon, currentId) {
-        return new Promise((resolve) => {
-            const modal = document.getElementById('switch-pokemon-modal');
-            const listDiv = document.getElementById('switch-pokemon-list');
-            listDiv.innerHTML = '';
-            availablePokemon.forEach((p) => {
-                if (p.id === currentId) return;
-                const btn = document.createElement('button');
-                btn.className = 'btn btn-outline';
-                btn.style.margin = '5px';
-                btn.style.display = 'flex';
-                btn.style.alignItems = 'center';
-                btn.style.gap = '12px';
-                btn.style.textAlign = 'left';
-                btn.style.padding = '10px';
-                btn.style.width = '100%';
-                btn.style.justifyContent = 'flex-start';
-                const img = document.createElement('img');
-                const spriteUrl = getStaticSpriteUrl(p.pokemonId)[0];
-                img.src = spriteUrl;
-                img.style.width = '50px';
-                img.style.height = '50px';
-                img.style.objectFit = 'contain';
-                img.onerror = () => { img.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.pokemonId}.png`; };
-                btn.appendChild(img);
-                const textDiv = document.createElement('div');
-                textDiv.style.flex = '1';
-                const hpPct = Math.floor((p.currentHp / p.maxHp) * 100);
-                const neededXP = getExpNeededForNextLevel(p.level);
-                const currentXP = p.exp || 0;
-                const xpPercent = Math.floor((currentXP / neededXP) * 100);
-                const typeBadgesHtml = generateTypeBadges(p.types);
-                textDiv.innerHTML = `
-                    <strong>${p.name.toUpperCase()}</strong><br>
-                    <div style="margin: 4px 0;">${typeBadgesHtml}</div>
-                    <small>Lvl ${p.level} — HP: ${p.currentHp}/${p.maxHp} (${hpPct}%)</small><br>
-                    <small>XP: ${currentXP}/${neededXP} (${xpPercent}%)</small>
-                `;
-                btn.appendChild(textDiv);
-                btn.onclick = () => { modal.classList.add('hidden'); resolve(p); };
-                listDiv.appendChild(btn);
-            });
-           const cancelBtn = document.getElementById('cancel-switch-modal');
-        cancelBtn.onclick = () => { modal.classList.add('hidden'); resolve(null); };
-
-        modal.classList.remove('hidden');
+ function showSwitchModal(availablePokemon, currentId) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('switch-pokemon-modal');
+        const listDiv = document.getElementById('switch-pokemon-list');
+        const cancelBtn = document.getElementById('cancel-switch-modal');
+        
+        listDiv.innerHTML = '';
+        
+        // Add instruction line
+        const instruction = document.createElement('div');
+instruction.style.background = 'var(--card-bg)';
+instruction.style.border = '1px solid var(--border)';
+instruction.style.borderRadius = '12px';
+instruction.style.padding = '8px 12px';
+instruction.style.marginBottom = '12px';
+instruction.style.fontSize = '0.8rem';
+instruction.style.textAlign = 'center';
+instruction.style.color = 'var(--text-dark)';
+instruction.innerHTML = '💡 <strong>Tip:</strong> Press number keys <kbd style="background:var(--border); padding:2px 6px; border-radius:6px; font-weight:bold;">1</kbd>–<kbd style="background:var(--border); padding:2px 6px; border-radius:6px; font-weight:bold;">6</kbd> to switch quickly.';
+listDiv.appendChild(instruction);
+        
+        // Ensure cancel button is enabled (voluntary switch)
+        cancelBtn.disabled = false;
+        cancelBtn.style.opacity = '1';
+        cancelBtn.style.cursor = 'pointer';
+        
+        const buttons = [];
+        availablePokemon.forEach((p, idx) => {
+            if (p.id === currentId) return; // skip active Pokémon
+            
+            const btn = document.createElement('button');
+            btn.className = 'btn btn-outline';
+            btn.style.margin = '5px 0';
+            btn.style.display = 'flex';
+            btn.style.alignItems = 'center';
+            btn.style.gap = '12px';
+            btn.style.padding = '10px';
+            btn.style.width = '100%';
+            btn.style.justifyContent = 'flex-start';
+            btn.dataset.shortcut = (idx + 1).toString();
+            
+            const img = document.createElement('img');
+            const spriteUrl = getStaticSpriteUrl(p.pokemonId)[0];
+            img.src = spriteUrl;
+            img.style.width = '50px';
+            img.style.height = '50px';
+            img.style.objectFit = 'contain';
+            img.onerror = () => { img.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.pokemonId}.png`; };
+            btn.appendChild(img);
+            
+            let bonusIcons = '';
+            if (p.bonusStats?.atk) bonusIcons += '⚔️';
+            if (p.bonusStats?.def) bonusIcons += '🛡️';
+            if (p.bonusStats?.spd) bonusIcons += '🏃';
+            let shinyBadge = '';
+            if (p.isShiny) shinyBadge = '<span style="background: #ffcc00; color: #333; padding: 2px 6px; border-radius: 20px; font-size: 0.6rem; margin-left: 8px;">✨ SHINY</span>';
+            
+            const textDiv = document.createElement('div');
+            textDiv.style.flex = '1';
+            const hpPct = Math.floor((p.currentHp / p.maxHp) * 100);
+            const neededXP = getExpNeededForNextLevel(p.level);
+            const currentXP = p.exp || 0;
+            const xpPercent = Math.floor((currentXP / neededXP) * 100);
+            const typeBadgesHtml = generateTypeBadges(p.types);
+            textDiv.innerHTML = `
+                <strong>${p.name.toUpperCase()} ${bonusIcons}</strong> ${shinyBadge}<br>
+                <div style="margin: 4px 0;">${typeBadgesHtml}</div>
+                <small>Lvl ${p.level} — HP: ${p.currentHp}/${p.maxHp} (${hpPct}%)</small><br>
+                <small>XP: ${currentXP}/${neededXP} (${xpPercent}%)</small>
+            `;
+            btn.appendChild(textDiv);
+            
+            // Number badge
+            const numberBadge = document.createElement('span');
+            numberBadge.style.marginLeft = '8px';
+            numberBadge.style.background = 'rgba(0,0,0,0.2)';
+            numberBadge.style.padding = '4px 10px';
+            numberBadge.style.borderRadius = '20px';
+            numberBadge.style.fontSize = '0.8rem';
+            numberBadge.style.fontWeight = 'bold';
+            numberBadge.style.minWidth = '32px';
+            numberBadge.style.textAlign = 'center';
+            numberBadge.innerText = `${buttons.length + 1}`;
+            btn.appendChild(numberBadge);
+            
+            btn.onclick = () => {
+                modal.classList.add('hidden');
+                removeModalKeyListener();
+                resolve(p);
+            };
+            listDiv.appendChild(btn);
+            buttons.push(btn);
         });
-    }
+        
+        function handleModalKeydown(e) {
+            const key = e.key;
+            const num = parseInt(key);
+            if (num >= 1 && num <= buttons.length) {
+                e.preventDefault();
+                const targetBtn = buttons[num - 1];
+                if (targetBtn && !targetBtn.disabled) {
+                    targetBtn.click();
+                }
+            } else if (key === 'Escape') {
+                e.preventDefault();
+                modal.classList.add('hidden');
+                removeModalKeyListener();
+                resolve(null);
+            }
+        }
+        
+        function removeModalKeyListener() {
+            window.removeEventListener('keydown', handleModalKeydown);
+        }
+        
+        window.addEventListener('keydown', handleModalKeydown);
+        
+        cancelBtn.onclick = () => {
+            modal.classList.add('hidden');
+            removeModalKeyListener();
+            resolve(null);
+        };
+        
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mut) => {
+                if (mut.attributeName === 'class' && modal.classList.contains('hidden')) {
+                    removeModalKeyListener();
+                    observer.disconnect();
+                }
+            });
+        });
+        observer.observe(modal, { attributes: true });
+        
+        modal.classList.remove('hidden');
+    });
+}
+  
 
-    async function attemptSwitch() {
+async function attemptSwitch() {
         if (!currentBattle || isProcessing) return;
         isProcessing = true;
         const btn = document.getElementById('switch-btn');

@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>PokeSim – Journey Guide (Taglish Edition)</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="stylesheet" href="./style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        .guide-container {
+            max-width: 1100px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+        .guide-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .guide-header h1 {
+            font-size: 2.2rem;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            display: inline-block;
+        }
+        .guide-card {
+            background: var(--card-bg);
+            border-radius: 28px;
+            border: 1px solid var(--border);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .guide-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-lg);
+        }
+        .guide-card h2 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.4rem;
+            color: var(--primary-dark);
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--primary);
+            padding-left: 1rem;
+        }
+        .tip-badge {
+            background: #fef9e3;
+            color: #b45309;
+            border-radius: 40px;
+            padding: 2px 10px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .faq-item {
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 0;
+        }
+        .faq-question {
+            font-weight: 800;
+            color: var(--primary-dark);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .faq-answer {
+            padding-top: 0.5rem;
+            color: var(--text-light);
+            display: none;
+        }
+        .faq-answer.show {
+            display: block;
+        }
+        .back-link {
+            text-align: center;
+            margin-top: 2rem;
+        }
+        .back-link a {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--primary);
+            color: white;
+            padding: 10px 24px;
+            border-radius: 40px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: 0.2s;
+        }
+        .back-link a:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+        .trainer-greeting {
+            background: linear-gradient(135deg, #fef9e3, #fffbeb);
+            border-left: 5px solid var(--primary);
+            padding: 1rem 1.5rem;
+            border-radius: 24px;
+            margin-bottom: 2rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+        body.dark-theme .trainer-greeting {
+            background: linear-gradient(135deg, #2d2f3e, #1e2230);
+            border-left-color: var(--primary);
+        }
+        .showdown-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2rem;
+            align-items: center;
+            justify-content: center;
+            margin: 1rem 0;
+        }
+        .preview-sprite-box {
+            text-align: center;
+            background: linear-gradient(145deg, #f8fafc, #eef2ff);
+            border-radius: 32px;
+            padding: 1.5rem;
+            flex: 1;
+            min-width: 200px;
+        }
+        body.dark-theme .preview-sprite-box {
+            background: linear-gradient(145deg, #1e2230, #2d2f3e);
+        }
+        .preview-sprite-box img {
+            width: 150px;
+            height: 150px;
+            object-fit: contain;
+            image-rendering: crisp-edges;
+        }
+        .preview-selector {
+            flex: 1;
+            min-width: 220px;
+        }
+        .preview-selector input {
+            width: 100%;
+            padding: 10px 16px;
+            border-radius: 40px;
+            border: 1px solid var(--border);
+            margin-bottom: 12px;
+        }
+        .weakness-chart {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 10px;
+            align-items: center;
+        }
+        .mock-battle-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 40px;
+            padding: 8px 20px;
+            margin-top: 12px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+        .mock-battle-btn:hover {
+            background: var(--primary-dark);
+            transform: scale(1.02);
+        }
+        .battle-message {
+            margin-top: 12px;
+            font-size: 0.85rem;
+            font-style: italic;
+            background: rgba(0,0,0,0.05);
+            padding: 8px 12px;
+            border-radius: 20px;
+        }
+        .sure-win-tip {
+            background: rgba(72, 187, 120, 0.1);
+            border-left: 4px solid var(--success);
+            padding: 12px 16px;
+            border-radius: 16px;
+            margin: 1rem 0;
+        }
+        .login-warning {
+            background: var(--danger);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 40px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="guide-container" id="guideContent" style="display: none;">
+    <div class="guide-header">
+        <h1><i class="fas fa-compass"></i> PokeSim Journey Guide</h1>
+        <p>Tips, tricks, at konting chismis para sure win ka! ✨</p>
+    </div>
+
+    <!-- Trainer Greeting Card (auto‑filled from Firebase) -->
+    <div class="trainer-greeting" id="greeting-card">
+        <div>
+            <i class="fas fa-smile-wink" style="font-size: 1.5rem; color: var(--primary);"></i>
+            <strong id="greeting-text">Hello, Trainer!</strong>
+            <span id="personalized-message"> Tara, sabay tayo mag-explore ng PokeSim world. 👋</span>
+        </div>
+    </div>
+
+    <!-- ========== WELCOME & BASICS ========== -->
+    <div class="guide-card">
+        <h2><i class="fas fa-flag-checkered"></i> 1. Simula ng Journey mo</h2>
+        <p>Welcome, <strong id="namePlaceholder">Trainer</strong>! Wag kang kabahan – madali lang ang PokeSim. Start ka sa isang starter Pokemon (level 10 agad!). Pwede kang mag-explore ng iba't ibang maps, lumaban sa wild Pokemon, at manghuli ng mga bagong kaibigan.</p>
+        <div class="sure-win-tip">
+            <i class="fas fa-trophy"></i> <strong>Sure‑win tip #1:</strong> Palaging dalhin ang pinakamalakas mong Pokemon sa team. Sa umpisa, focus ka sa isang Pokemon para lumakas agad. Huwag magpalit-palit masyado – sayang ang XP!
+        </div>
+    </div>
+
+    <!-- ========== MOVEMENT & BATTLES ========== -->
+    <div class="guide-card">
+        <h2><i class="fas fa-arrows-alt"></i> 2. Galaw–galaw, may makakasalubong!</h2>
+        <p>Gamitin ang <strong>arrow buttons</strong> sa screen (o keyboard arrows). Pag tumapak ka sa damuhan (<span class="type-badge" style="background: var(--grass);">grass</span>), may chance na may lumitaw na wild Pokemon. Kapag nagsawa ka na sa isang mapa, pindutin ang <strong>Byahe</strong> sa menu para lumipat sa ibang lugar.</p>
+        <div class="sure-win-tip">
+            <i class="fas fa-trophy"></i> <strong>Sure‑win tip #2:</strong> Gamitin ang diagonal arrows (↖ ↗ ↙ ↘) para mas mabilis kang makarating sa kabilang sulok. Mabilisang grinding lang yan!
+        </div>
+    </div>
+
+    <!-- ========== BATTLE PREVIEW (SHOWDOWN STYLE) ========== -->
+    <div class="guide-card">
+        <h2><i class="fas fa-tv"></i> 3. Kilalanin ang kalaban (Parang Pokemon Showdown!)</h2>
+        <p>Bago ka pumasok sa bakbakan, alam mo bang pwedeng i‑preview ang kahinaan ng Pokemon? I‑type ang pangalan o ID sa ibaba at kita agad ang <strong>type, animated sprite, at weakness chart</strong>.</p>
+        <div class="showdown-preview">
+            <div class="preview-sprite-box">
+                <img id="preview-animated-sprite" src="https://play.pokemonshowdown.com/sprites/ani/pikachu.gif" alt="Pokémon sprite">
+                <div id="preview-pokemon-name" style="font-weight: bold; margin-top: 8px;">Pikachu</div>
+                <div id="preview-pokemon-types" class="weakness-chart"></div>
+            </div>
+            <div class="preview-selector">
+                <input type="text" id="pokemon-search-input" placeholder="e.g. charizard, mewtwo, 150" value="pikachu">
+                <button id="load-pokemon-btn" class="mock-battle-btn"><i class="fas fa-search"></i> Load Pokémon</button>
+                <button id="mock-battle-btn" class="mock-battle-btn"><i class="fas fa-bolt"></i> Mock Battle (subukan ang atake!)</button>
+                <div id="mock-battle-message" class="battle-message">Click the button – random move, tignan natin kung super effective! 💥</div>
+                <div class="weakness-chart">
+                    <strong style="margin-right: 8px;">🤕 Kahinaan:</strong> <span id="weaknesses-list">Loading...</span>
+                </div>
+            </div>
+        </div>
+        <div class="sure-win-tip">
+            <i class="fas fa-trophy"></i> <strong>Sure‑win tip #3:</strong> Gamitin ang weakness chart! Kung ang kalaban ay <span class="type-badge" style="background: #78cd54;">GRASS</span>, gamitin ang <span class="type-badge" style="background: #ee8130;">FIRE</span> move – sure 2x damage yan. Walang paligoy‑ligoy!
+        </div>
+    </div>
+
+    <!-- ========== CATCHING & AUTO-CATCH ========== -->
+    <div class="guide-card">
+        <h2><i class="fas fa-pokeball"></i> 4. Manghuli ng Pokemon (hindi pusa, ah!)</h2>
+        <p>Para makahuli, kailangan <strong>level 10+</strong> ang active Pokemon mo at may <strong>10% XP bar</strong>. Kapag bumaba na ang HP ng wild Pokemon, mas mataas ang chance. Press <strong>Catch</strong> – magbabayad ka ng konting XP, pero sulit naman.</p>
+        <div class="sure-win-tip">
+            <i class="fas fa-trophy"></i> <strong>Sure‑win tip #4:</strong> Kapag na-encounter mo na ang parehong species ng <strong>5 beses</strong> sa mapa na may auto‑catch, automatic na sasama siya sa’yo pagkatapos ng laban! Tipid XP, tipid oras.
+        </div>
+    </div>
+
+    <!-- ========== TEAM & MOVES ========== -->
+    <div class="guide-card">
+        <h2><i class="fas fa-users"></i> 5. Team Mo, Pamilya Mo</h2>
+        <p>Pumunta sa <strong>Pokemon Team</strong> menu. Pwede kang maglagay ng hanggang 6 na Pokemon sa aktibong team. Yung may <strong>Active</strong> badge ay sumusunod sa’yo sa mapa – siya rin ang unang lumalaban sa wild.</p>
+        <div class="sure-win-tip">
+            <i class="fas fa-trophy"></i> <strong>Sure‑win tip #5:</strong> I‑edit ang moves! Pindutin ang ✏️ <strong>Moves</strong> sa card ng Pokemon. Pumili ng magkakaibang uri (Fire, Water, Electric, etc.) para laging may pangontra sa kahit anong kalaban. Malakas na, versatile pa!
+        </div>
+    </div>
+
+    <!-- ========== PROGRESSION & SHINIES ========== -->
+    <div class="guide-card">
+        <h2><i class="fas fa-star"></i> 6. Level Up, Shiny, at Bonus Stats</h2>
+        <p>Kapag nanalo ka sa laban, lahat ng sumali ay nakakakuha ng XP. ’Pag umabot na sa required level, mag‑e‑evolve ang Pokemon mo – may animation pa! Ang mga <strong>Shiny Pokemon</strong> (sobrang rare, 1/8192) ay may +15% HP bonus. At ’yung mga <strong>bonus stats</strong> (⚔️ ATK, 🛡️ DEF, 🏃 SPD) na makikita mo sa wild ay permanenteng 25% boost.</p>
+        <div class="sure-win-tip">
+            <i class="fas fa-trophy"></i> <strong>Sure‑win tip #6:</strong> Huwag mong hayaang mamatay ang iyong Pokemon nang walang switch. Kapag naramdaman mong matatalo na, <strong>mag‑switch ka agad</strong> sa mas malakas o may type advantage. Mas magandang mabuhay ang team kaysa ubos lahat!
+        </div>
+    </div>
+
+    <!-- ========== FAQ (TAGLISH HUMOUR) ========== -->
+    <div class="guide-card">
+        <h2><i class="fas fa-question-circle"></i> FAQ – Mga Madalas Itanong (with humor)</h2>
+        <div class="faq-item">
+            <div class="faq-question" onclick="toggleFAQ(this)">
+                <span>Bakit hindi ako makahuli? Gutom ba ang Pokemon?</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="faq-answer">Hindi dahil sa gutom (pero pwede rin). Requirement: active Pokemon mo dapat level 11+ at may XP bar na 10% man lang. Kung kulang, palakasin mo muna sa laban. ’Wag tipirin ang XP!</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-question" onclick="toggleFAQ(this)">
+                <span>Pwede bang manalo kahit mahina ang team ko?</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="faq-answer">Oo naman! Gamitin ang <strong>type effectiveness</strong>. Halimbawa, kung ang kalaban ay Bulbasaur (Grass/Poison), sunugin mo ng Fire move – isang bagsak lang, bye bye na siya. Strategy over brute force, bes!</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-question" onclick="toggleFAQ(this)">
+                <span>Ano ang mga orange pills na +ATK / +DEF / +SPD?</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="faq-answer">Bonus stats yan galing sa form (Mega, G-Max, Primal). Permanenteng boost! Halimbawa, +5% ATK. ’Yung green/red pills naman ay random wild bonus (+25%). Swertihan lang – pero pag nakuha mo, parang naka energy drink ang Pokemon mo.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-question" onclick="toggleFAQ(this)">
+                <span>May daily limit ba? Baka maubos ang reads/writes ko?</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="faq-answer">Meron – 500 reads, 200 writes, 200 deletes per day. Pero normal na laro hindi aabot diyan. Para iwas abala, iwasan ang pag‑refresh nang paulit‑ulit. Chill ka lang, mag‑grind nang mahinahon.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-question" onclick="toggleFAQ(this)">
+                <span>Pano magka‑shiny? Swertihan lang?</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="faq-answer">Swertihan, oo. 1/8192 chance. Pero ang maganda, once na may shiny ka na, makikita mo agad sa sprite at may golden border ang card. Bonus HP pa. Abangan mo ang sparkling ✨ – para kang nanalo sa lotto ng PokeSim!</div>
+        </div>
+    </div>
+
+    <div class="back-link">
+        <a href="index.html"><i class="fas fa-gamepad"></i> Balik sa Laro</a>
+    </div>
+</div>
+
+<div id="loginMessage" class="guide-container" style="text-align: center; margin-top: 80px;">
+    <div class="login-warning">
+        <i class="fas fa-exclamation-triangle"></i> Hmm, parang hindi ka pa naka‑log in!
+    </div>
+    <div class="guide-card">
+        <h2>🔐 Login Required</h2>
+        <p>Para ma‑access ang Journey Guide, kailangan mo munang mag‑log in sa iyong PokeSim account.<br>
+        I‑click ang button sa baba para bumalik sa game at mag‑sign in.</p>
+        <a href="index.html" class="btn btn-primary" style="margin-top: 20px; display: inline-block;">Go to Login / Game</a>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyDkCE0wBrsQ1s-7zplvTtWOSE28ISaCFfQ",
+        authDomain: "pokesim-7f9b7.firebaseapp.com",
+        projectId: "pokesim-7f9b7",
+        storageBucket: "pokesim-7f9b7.firebasestorage.app",
+        messagingSenderId: "1087100425430",
+        appId: "1:1087100425430:web:9558a79ee5330d4a792577"
+    };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const guideDiv = document.getElementById('guideContent');
+    const loginDiv = document.getElementById('loginMessage');
+    const greetingStrong = document.getElementById('greeting-text');
+    const namePlaceholderSpan = document.getElementById('namePlaceholder');
+    const personalizedMsgSpan = document.getElementById('personalized-message');
+
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            // Fetch trainer name from Firestore
+            try {
+                const userDoc = await getDoc(doc(db, "users", user.uid));
+                const data = userDoc.data();
+                let trainerName = data?.trainerName || user.email.split('@')[0] || "Trainer";
+                greetingStrong.innerHTML = `Hello, ${trainerName}! 👋`;
+                namePlaceholderSpan.innerText = trainerName;
+                personalizedMsgSpan.innerHTML = ` Tara, samahan kitang mag-explore sa PokeSim. Handang‑handang manalo?`;
+                guideDiv.style.display = 'block';
+                loginDiv.style.display = 'none';
+            } catch (err) {
+                console.error("Error fetching trainer name:", err);
+                greetingStrong.innerHTML = `Hello, Trainer! 👋`;
+                namePlaceholderSpan.innerText = "Trainer";
+                guideDiv.style.display = 'block';
+                loginDiv.style.display = 'none';
+            }
+        } else {
+            guideDiv.style.display = 'none';
+            loginDiv.style.display = 'block';
+        }
+    });
+
+    // ---------- SHOWDOWN PREVIEW (same as before, but works even if not logged in, because the preview is just a demo) ----------
+    const typeColors = {
+        normal: '#A8A77A', fire: '#EE8130', water: '#6390F0', electric: '#F7D02C',
+        grass: '#7AC74C', ice: '#96D9D6', fighting: '#C22E28', poison: '#A33EA1',
+        ground: '#E2BF65', flying: '#A98FF3', psychic: '#F95587', bug: '#A6B91A',
+        rock: '#B6A136', ghost: '#735797', dragon: '#6F35FC', dark: '#705746',
+        steel: '#B7B7CE', fairy: '#D685AD'
+    };
+    const allTypes = Object.keys(typeColors);
+    const effectiveness = {
+        normal: { rock:0.5, ghost:0, steel:0.5 },
+        fire: { fire:0.5, water:0.5, grass:2, ice:2, bug:2, rock:0.5, dragon:0.5, steel:2 },
+        water: { fire:2, water:0.5, grass:0.5, ground:2, rock:2, dragon:0.5 },
+        electric: { water:2, electric:0.5, grass:0.5, ground:0, flying:2, dragon:0.5 },
+        grass: { fire:0.5, water:2, grass:0.5, poison:0.5, ground:2, flying:0.5, bug:0.5, rock:2, dragon:0.5, steel:0.5 },
+        ice: { fire:0.5, water:0.5, grass:2, ice:0.5, ground:2, flying:2, dragon:2, steel:0.5 },
+        fighting: { normal:2, ice:2, rock:2, dark:2, steel:2, poison:0.5, flying:0.5, psychic:0.5, bug:0.5, ghost:0, fairy:0.5 },
+        poison: { grass:2, fairy:2, poison:0.5, ground:0.5, rock:0.5, ghost:0.5, steel:0 },
+        ground: { fire:2, electric:2, poison:2, rock:2, steel:2, grass:0.5, bug:0.5, flying:0 },
+        flying: { grass:2, fighting:2, bug:2, electric:0.5, rock:0.5, steel:0.5 },
+        psychic: { fighting:2, poison:2, psychic:0.5, dark:0, steel:0.5 },
+        bug: { grass:2, psychic:2, dark:2, fire:0.5, fighting:0.5, poison:0.5, flying:0.5, ghost:0.5, steel:0.5, fairy:0.5 },
+        rock: { fire:2, ice:2, flying:2, bug:2, fighting:0.5, ground:0.5, steel:0.5 },
+        ghost: { psychic:2, ghost:2, normal:0, dark:0.5 },
+        dragon: { dragon:2, steel:0.5, fairy:0 },
+        dark: { psychic:2, ghost:2, fighting:0.5, dark:0.5, fairy:0.5 },
+        steel: { ice:2, rock:2, fairy:2, fire:0.5, water:0.5, electric:0.5, steel:0.5 },
+        fairy: { fighting:2, dragon:2, dark:2, fire:0.5, poison:0.5, steel:0.5 }
+    };
+
+    function getEffectiveness(attackType, defenderTypes) {
+        let mult = 1;
+        for (let t of defenderTypes) {
+            const val = effectiveness[attackType]?.[t];
+            if (val !== undefined) mult *= val;
+        }
+        return mult;
+    }
+
+    function getWeaknesses(types) {
+        const weak = [];
+        for (let atk of allTypes) {
+            if (getEffectiveness(atk, types) >= 2) weak.push(atk);
+        }
+        return weak;
+    }
+
+    async function fetchPokemonData(query) {
+        try {
+            const url = `https://pokeapi.co/api/v2/pokemon/${query.toLowerCase()}`;
+            const res = await fetch(url);
+            if (!res.ok) throw new Error('Not found');
+            const data = await res.json();
+            return {
+                name: data.name,
+                id: data.id,
+                types: data.types.map(t => t.type.name),
+                sprite: `https://play.pokemonshowdown.com/sprites/ani/${data.name}.gif`
+            };
+        } catch (e) {
+            return null;
+        }
+    }
+
+    async function updatePreview() {
+        const input = document.getElementById('pokemon-search-input').value.trim();
+        if (!input) return;
+        const pokemon = await fetchPokemonData(input);
+        if (!pokemon) {
+            document.getElementById('preview-pokemon-name').innerText = 'Not found';
+            document.getElementById('preview-pokemon-types').innerHTML = '';
+            document.getElementById('weaknesses-list').innerHTML = '—';
+            document.getElementById('preview-animated-sprite').src = '';
+            return;
+        }
+        document.getElementById('preview-pokemon-name').innerText = pokemon.name.toUpperCase();
+        const img = document.getElementById('preview-animated-sprite');
+        img.src = pokemon.sprite;
+        img.onerror = () => {
+            img.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${pokemon.id}.png`;
+        };
+        const typesHtml = pokemon.types.map(t => `<span class="type-badge" style="background: ${typeColors[t]};">${t.toUpperCase()}</span>`).join('');
+        document.getElementById('preview-pokemon-types').innerHTML = typesHtml;
+        const weaknesses = getWeaknesses(pokemon.types);
+        if (weaknesses.length === 0) document.getElementById('weaknesses-list').innerHTML = 'None (puro neutral)';
+        else {
+            document.getElementById('weaknesses-list').innerHTML = weaknesses.map(t => `<span class="type-badge" style="background: ${typeColors[t]};">${t.toUpperCase()}</span>`).join(' ');
+        }
+        window.currentPreviewPokemon = pokemon;
+    }
+
+    function mockBattle() {
+        if (!window.currentPreviewPokemon) {
+            document.getElementById('mock-battle-message').innerHTML = '⚠️ Mag‑load muna ng Pokemon, pare!';
+            return;
+        }
+        const moves = [
+            { name: 'Flamethrower', type: 'fire' },
+            { name: 'Surf', type: 'water' },
+            { name: 'Thunderbolt', type: 'electric' },
+            { name: 'Psychic', type: 'psychic' },
+            { name: 'Earthquake', type: 'ground' }
+        ];
+        const randomMove = moves[Math.floor(Math.random() * moves.length)];
+        const eff = getEffectiveness(randomMove.type, window.currentPreviewPokemon.types);
+        let msg = `Ginamit ang ${randomMove.name}! `;
+        if (eff === 2) msg += "SUPER EFFECTIVE!!! 💥 SUNOG! (2x damage)";
+        else if (eff === 0.5) msg += "Hmm, parang hindi masyado masakit... halos walang epekto. 😬";
+        else if (eff === 0) msg += "Walang epekto! Immune ang Pokemon! 😱 Sayang ang galaw.";
+        else msg += "Normal na tama. Pwede na, pero hindi sure win.";
+        document.getElementById('mock-battle-message').innerHTML = msg;
+        const sprite = document.getElementById('preview-animated-sprite');
+        sprite.classList.add('shake-effect');
+        setTimeout(() => sprite.classList.remove('shake-effect'), 500);
+    }
+
+    document.getElementById('load-pokemon-btn')?.addEventListener('click', updatePreview);
+    document.getElementById('mock-battle-btn')?.addEventListener('click', mockBattle);
+    document.getElementById('pokemon-search-input')?.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') updatePreview();
+    });
+    window.addEventListener('DOMContentLoaded', updatePreview);
+
+    function toggleFAQ(element) {
+        const answer = element.nextElementSibling;
+        answer.classList.toggle('show');
+        const icon = element.querySelector('i');
+        if (answer.classList.contains('show')) {
+            icon.classList.remove('fa-chevron-down');
+            icon.classList.add('fa-chevron-up');
+        } else {
+            icon.classList.remove('fa-chevron-up');
+            icon.classList.add('fa-chevron-down');
+        }
+    }
+    window.toggleFAQ = toggleFAQ;
+</script>
+
+</body>
+</html>

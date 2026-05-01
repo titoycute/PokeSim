@@ -1465,7 +1465,21 @@ body.dark-theme #summary-details {
     animation: pokeballGlow 0.3s ease-in-out infinite;
 }
 
+/* Super Effective Stamp Style for Maps */
+.super-effective-stamp {
+    position: absolute;
+    font-family: 'Impact', 'Arial Black', sans-serif;
+    font-size: 1.6rem;
+    color: #fff;
+    text-shadow: 0 0 20px #44ff88, 0 0 40px #008800, 3px 3px 0 #004400; /* Green Glow */
+    pointer-events: none;
+    z-index: 1001;
+    animation: critStampAnim 1.2s ease-out forwards;
+    white-space: nowrap;
+}
 
+/* Enhanced Hard Shake */
+.shake-effect-hard { animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
@@ -2084,83 +2098,83 @@ function getTotalBadgeBonus(effectType, targetType) {
 
 
     // ========== ENHANCED BATTLE EFFECTS FUNCTION ==========
-function showFloatingDamageEnhanced(damage, spriteElement, isCritical = false, isHeal = false, isMiss = false, moveType = null) {
+
+function showFloatingDamageEnhanced(damage, spriteElement, isCritical = false, isSuperEffective = false, isHeal = false, isMiss = false, moveType = null) {
     if (!spriteElement || !document.body.contains(spriteElement)) return;
     const battleArea = document.getElementById('battle-area');
     if (!battleArea || battleArea.classList.contains('hidden')) return;
     
     const rect = spriteElement.getBoundingClientRect();
-    const containerRect = battleArea.getBoundingClientRect();
-    const cx = rect.left - containerRect.left + rect.width / 2;
-    const cy = rect.top - containerRect.top + rect.height / 2;
+    const battleRect = battleArea.getBoundingClientRect();
+    const cx = rect.left - battleRect.left + rect.width / 2;
+    const cy = rect.top - battleRect.top + rect.height / 2;
     
-    const typeColors = { fire:'#ff6600', water:'#3399ff', grass:'#44cc44', electric:'#ffdd00', psychic:'#ff44aa', ice:'#88eeff', dragon:'#6633ff', dark:'#554433', ghost:'#9955cc', poison:'#aa44aa', ground:'#cc9944', rock:'#aa8844', steel:'#aaaacc', fairy:'#ffaacc', fighting:'#cc4422', bug:'#88aa22', flying:'#aaaaff', normal:'#aaaaaa' };
-    const hitColor = moveType ? (typeColors[moveType] || '#ff8800') : (isCritical ? '#ffcc00' : '#ff6600');
+    const typeColors = {
+        fire:'#ff6600', water:'#3399ff', grass:'#44cc44', electric:'#ffdd00',
+        psychic:'#ff44aa', ice:'#88eeff', dragon:'#6633ff', dark:'#554433',
+        ghost:'#9955cc', poison:'#aa44aa', ground:'#cc9944', rock:'#aa8844',
+        steel:'#aaaacc', fairy:'#ffaacc', fighting:'#cc4422', bug:'#88aa22',
+        flying:'#aaaaff', normal:'#aaaaaa'
+    };
+
+    const hitColor = moveType ? (typeColors[moveType] || '#ff4444') : '#ff4444';
+
+    // Damage Number
+    const dmgNumber = document.createElement('div');
+    const moveIcon = TYPE_ICONS[moveType] || '💥';
+    dmgNumber.innerHTML = `<span style="font-size: 1.2rem; margin-right: 4px;">${moveIcon}</span>${damage}`;
+    dmgNumber.className = 'floating-damage' + (isCritical ? ' critical' : '');
     
-    // Floating Damage Number
-    const damageDiv = document.createElement('div');
-    damageDiv.className = `floating-damage ${isCritical ? 'critical' : ''} ${isHeal ? 'heal' : ''} ${isMiss ? 'miss' : ''}`;
-    damageDiv.textContent = isMiss ? 'MISS!' : (isHeal ? '+' + damage : String(damage));
-    damageDiv.style.left = (cx - 30) + 'px';
-    damageDiv.style.top = (cy - 50) + 'px';
-    battleArea.appendChild(damageDiv);
-    setTimeout(() => damageDiv.remove(), 1200);
+    // Dynamic Styling
+    dmgNumber.style.position = 'absolute';
+    dmgNumber.style.color = hitColor;
+    dmgNumber.style.textShadow = `0 0 15px ${hitColor}, 2px 2px 0 black`;
+    dmgNumber.style.left = `${cx - 30}px`;
+    dmgNumber.style.top = `${cy - 30}px`;
+    dmgNumber.style.zIndex = '1000';
+    battleArea.appendChild(dmgNumber);
     
-    if (isMiss) return;
-    
-    // Shockwave Ring
+    setTimeout(() => dmgNumber.remove(), 1000);
+
+    // Shockwave
     const wave = document.createElement('div');
     wave.className = 'hit-shockwave';
     wave.style.left = cx + 'px';
     wave.style.top = cy + 'px';
     wave.style.borderColor = hitColor;
-    wave.style.boxShadow = '0 0 12px ' + hitColor;
     battleArea.appendChild(wave);
     setTimeout(() => wave.remove(), 700);
-    
-    // Screen Flash
+
+    // Flash
     const flash = document.createElement('div');
     flash.className = 'hit-flash-overlay';
     flash.style.background = hitColor;
     battleArea.appendChild(flash);
     setTimeout(() => flash.remove(), 450);
-    
-    // Impact Particles
-    const particleCount = isCritical ? 14 : 8;
-    for (let i = 0; i < particleCount; i++) {
+
+    // Particles
+    for (let i = 0; i < 10; i++) {
         const p = document.createElement('div');
         p.className = 'impact-particle';
-        const angle = (i / particleCount) * 360;
-        const dist = 40 + Math.random() * 60;
-        const dx = Math.cos(angle * Math.PI / 180) * dist + 'px';
-        const dy = Math.sin(angle * Math.PI / 180) * dist + 'px';
-        const size = (isCritical ? 8 : 5) + Math.random() * 6;
-        p.style.cssText = `left:${cx}px;top:${cy}px;width:${size}px;height:${size}px;background:${hitColor};box-shadow:0 0 6px ${hitColor};--dx:${dx};--dy:${dy};`;
+        const angle = (i / 10) * Math.PI * 2;
+        const dx = Math.cos(angle) * 50 + 'px';
+        const dy = Math.sin(angle) * 50 + 'px';
+        p.style.cssText = `left:${cx}px;top:${cy}px;width:5px;height:5px;background:${hitColor};box-shadow:0 0 5px ${hitColor};--dx:${dx};--dy:${dy};`;
         battleArea.appendChild(p);
-        setTimeout(() => p.remove(), 900);
+        setTimeout(() => p.remove(), 800);
     }
-    
-    // Critical Stamp
+
     if (isCritical) {
         const stamp = document.createElement('div');
         stamp.className = 'crit-stamp';
         stamp.textContent = 'CRITICAL!';
         stamp.style.left = cx + 'px';
-        stamp.style.top = (cy - 20) + 'px';
+        stamp.style.top = (cy - 40) + 'px';
         battleArea.appendChild(stamp);
-        setTimeout(() => stamp.remove(), 1400);
-    }
-    
-    // Shake effect on sprite
-    if (spriteElement) {
-        spriteElement.classList.remove('shake-effect');
-        void spriteElement.offsetWidth;
-        spriteElement.classList.add('shake-effect');
-        setTimeout(() => spriteElement.classList.remove('shake-effect'), 650);
+        setTimeout(() => stamp.remove(), 1200);
     }
 }
-// ========== SPECIAL FORM BONUSES (percentage) ==========
-// ========== SPECIAL FORM BONUSES (percentage) ==========
+    // ========== SPECIAL FORM BONUSES (percentage) ==========
 function getSpecialFormBonuses(pokemonName, pokemonId) {
     const name = pokemonName.toLowerCase();
     let atk = 0, def = 0, spd = 0;
@@ -2347,186 +2361,37 @@ const LEGENDARY_MYTHICAL_IDS = new Set([
 
 function executeAttack(attacker, defender, move, isPlayerAttacking) {
     let eff = getTypeEffectiveness(move.type, defender.types);
-    let effText = "";
-    if (eff === 2) effText = "It's super effective!";
-    else if (eff === 0.5) effText = "It's not very effective...";
-    else if (eff === 0) effText = "It doesn't affect the wild Pokémon!";
+    let isSuperEffective = eff === 2;
+    let effText = isSuperEffective ? "It's super effective!" : (eff === 0.5 ? "It's not very effective..." : "");
     
-    // STAB (Same Type Attack Bonus)
+    let isCritical = Math.random() < 0.0625;
+    let critMult = isCritical ? 1.2 : 1;
     let stab = (attacker.types && attacker.types.includes(move.type)) ? 1.5 : 1;
     
-    let dmg = Math.floor((move.power / 5) * (attacker.level / 2) * eff * stab);
+    let dmg = Math.floor((move.power / 5) * (attacker.level / 2) * eff * stab * critMult);
     if (dmg < 1 && eff > 0) dmg = 1;
     dmg = applyDamageModifiers(dmg, attacker.bonusStats, defender.bonusStats);
     
-    // Badge effects (only for player's Pokémon)
-    if (isPlayerAttacking) {
-        const atkBonus = getTotalBadgeBonus('atk', move.type);
-        if (atkBonus > 0) {
-            dmg = Math.floor(dmg * (1 + atkBonus / 100));
-            addBattleLog(`⚔️ Badge boost: +${atkBonus}% damage (${move.type})!`);
-        }
-    } else {
-        const defBonus = getTotalBadgeBonus('def', move.type);
-        if (defBonus > 0) {
-            dmg = Math.floor(dmg * (1 - defBonus / 100));
-            addBattleLog(`🛡️ Badge protection: -${defBonus}% damage from ${move.type} moves!`);
-        }
-    }
-    
-    // ========== NEW: Critical hit calculation (adds visual flair only) ==========
-    let isCritical = (eff === 2) ? true : (Math.random() < 0.0625);
-    let finalDamage = dmg;
-    if (isCritical) {
-        finalDamage = Math.floor(dmg * 1.2);
-        addBattleLog(`✨ CRITICAL HIT! ✨`);
-    } else {
-        finalDamage = dmg;
-    }
-    // ========== END CRITICAL ADDITION ==========
-    
     const oldHp = defender.currentHp;
-    defender.currentHp = Math.max(0, defender.currentHp - finalDamage);
-    const actualDamage = oldHp - defender.currentHp;
+    defender.currentHp = Math.max(0, defender.currentHp - dmg);
+    const actualDmg = oldHp - defender.currentHp;
     
     const sprite = isPlayerAttacking ? document.getElementById('e-sprite-btl') : document.getElementById('p-sprite-btl');
-    if (sprite) {
-        sprite.classList.remove('shake-effect');
+    
+    if (sprite && actualDmg > 0) {
+        // Trigger visuals with actual damage and move.type
+        showFloatingDamageEnhanced(actualDmg, sprite, isCritical, isSuperEffective, false, false, move.type);
+        const shakeClass = (isCritical || isSuperEffective) ? 'shake-effect-hard' : 'shake-effect';
+        sprite.classList.remove('shake-effect', 'shake-effect-hard');
         void sprite.offsetWidth;
-        sprite.classList.add('shake-effect');
-        
-        // ========== UPGRADED: Enhanced floating damage with more effects ==========
-        const battleArea = document.getElementById('battle-area');
-        const rect = sprite.getBoundingClientRect();
-        const battleRect = battleArea.getBoundingClientRect();
-        const cx = rect.left - battleRect.left + rect.width / 2;
-        const cy = rect.top - battleRect.top + rect.height / 2;
-        
-        // 1. FLOATING DAMAGE NUMBER (enhanced with critical styling)
-        const dmgNumber = document.createElement('div');
-        const moveIcon = TYPE_ICONS[move.type] || '💥';
-        dmgNumber.innerHTML = `<span style="font-size: 1.5rem; margin-right: 6px;">${moveIcon}</span>${actualDamage}`;
-        dmgNumber.style.position = 'absolute';
-        dmgNumber.style.display = 'flex';
-        dmgNumber.style.alignItems = 'center';
-        dmgNumber.style.justifyContent = 'center';
-        dmgNumber.style.whiteSpace = 'nowrap';
-        dmgNumber.style.left = `${cx - 30}px`;
-        dmgNumber.style.top = `${cy - 30}px`;
-        dmgNumber.style.color = isCritical ? '#ffcc00' : '#ff4444';
-        dmgNumber.style.fontWeight = 'bold';
-        dmgNumber.style.fontSize = isCritical ? '2.2rem' : '1.8rem';
-        dmgNumber.style.textShadow = isCritical ? '0 0 15px rgba(255,200,0,1), 2px 2px 0 black' : '1px 1px 0 black';
-        dmgNumber.style.zIndex = '1000';
-        dmgNumber.style.pointerEvents = 'none';
-        dmgNumber.style.transition = 'all 0.6s ease-out';
-        dmgNumber.style.opacity = '1';
-        dmgNumber.style.transform = 'translateY(0)';
-        battleArea.appendChild(dmgNumber);
-        
-        requestAnimationFrame(() => {
-            dmgNumber.style.transform = 'translateY(-80px)';
-            dmgNumber.style.opacity = '0';
-        });
-        setTimeout(() => dmgNumber.remove(), 1000);
-        
-        // 2. NEW: SHOCKWAVE RING on impact
-        const wave = document.createElement('div');
-        wave.style.position = 'absolute';
-        wave.style.left = cx + 'px';
-        wave.style.top = cy + 'px';
-        wave.style.width = '20px';
-        wave.style.height = '20px';
-        wave.style.borderRadius = '50%';
-        wave.style.border = `3px solid ${isCritical ? '#ffcc00' : '#ff6600'}`;
-        wave.style.transform = 'translate(-50%, -50%) scale(0)';
-        wave.style.pointerEvents = 'none';
-        wave.style.zIndex = '999';
-        wave.style.animation = 'shockwaveExpand 0.6s ease-out forwards';
-        battleArea.appendChild(wave);
-        setTimeout(() => wave.remove(), 700);
-        
-        // 3. NEW: SCREEN FLASH
-        const flash = document.createElement('div');
-        flash.style.position = 'absolute';
-        flash.style.inset = '0';
-        flash.style.borderRadius = '24px';
-        flash.style.background = isCritical ? '#ffcc00' : '#ff6600';
-        flash.style.opacity = '0';
-        flash.style.pointerEvents = 'none';
-        flash.style.zIndex = '998';
-        flash.style.animation = 'hitFlash 0.4s ease-out forwards';
-        battleArea.appendChild(flash);
-        setTimeout(() => flash.remove(), 450);
-        
-        // 4. NEW: IMPACT PARTICLES
-        const particleCount = isCritical ? 12 : 8;
-        for (let i = 0; i < particleCount; i++) {
-            const p = document.createElement('div');
-            const angle = (i / particleCount) * Math.PI * 2;
-            const speed = 40 + Math.random() * 40;
-            const vx = Math.cos(angle) * speed;
-            const vy = Math.sin(angle) * speed;
-            p.style.position = 'absolute';
-            p.style.left = cx + 'px';
-            p.style.top = cy + 'px';
-            p.style.width = (isCritical ? 6 : 4) + Math.random() * 4 + 'px';
-            p.style.height = p.style.width;
-            p.style.borderRadius = '50%';
-            p.style.background = isCritical ? '#ffcc00' : '#ff6600';
-            p.style.boxShadow = `0 0 6px ${isCritical ? '#ffcc00' : '#ff6600'}`;
-            p.style.pointerEvents = 'none';
-            p.style.zIndex = '997';
-            p.style.opacity = '0.8';
-            battleArea.appendChild(p);
-            
-            let start = performance.now();
-            function animateParticle(now) {
-                const elapsed = now - start;
-                if (elapsed > 800) {
-                    p.remove();
-                    return;
-                }
-                const t = elapsed / 800;
-                const x = vx * t;
-                const y = vy * t;
-                p.style.transform = `translate(${x}px, ${y}px)`;
-                p.style.opacity = 1 - t;
-                requestAnimationFrame(animateParticle);
-            }
-            requestAnimationFrame(animateParticle);
-        }
-        
-        // 5. NEW: CRITICAL STAMP (only on critical hits)
-        if (isCritical) {
-            const stamp = document.createElement('div');
-            stamp.textContent = 'CRITICAL!';
-            stamp.style.position = 'absolute';
-            stamp.style.left = cx + 'px';
-            stamp.style.top = (cy - 40) + 'px';
-            stamp.style.transform = 'translate(-50%, -50%) scale(3)';
-            stamp.style.fontFamily = 'Impact, sans-serif';
-            stamp.style.fontSize = '1.8rem';
-            stamp.style.color = '#fff';
-            stamp.style.textShadow = '0 0 20px #ffaa00, 0 0 40px #ff6600, 3px 3px 0 #cc0000';
-            stamp.style.whiteSpace = 'nowrap';
-            stamp.style.pointerEvents = 'none';
-            stamp.style.zIndex = '1001';
-            stamp.style.animation = 'critStampAnim 1.2s ease-out forwards';
-            battleArea.appendChild(stamp);
-            setTimeout(() => stamp.remove(), 1400);
-        }
-        // ========== END ENHANCED EFFECTS ==========
+        sprite.classList.add(shakeClass);
     }
     
-    // Include STAB info in battle log (preserved)
-    let stabText = (stab > 1) ? " (STAB)" : "";
-    let critText = isCritical ? "CRITICAL HIT! " : "";
-    addBattleLog(`${attacker.name.toUpperCase()} used ${move.name.toUpperCase()}! ${critText}Deals ${actualDamage} dmg. ${effText}${stabText}`);
-    
+    addBattleLog(`${attacker.name.toUpperCase()} used ${move.name.toUpperCase()}! Deals ${actualDmg} dmg. ${effText}`);
     return defender.currentHp <= 0;
 }
-    const typeEffectiveness = {
+
+const typeEffectiveness = {
         normal: { rock: 0.5, steel: 0.5, ghost: 0 },
         fire: { fire: 0.5, water: 0.5, grass: 2, ice: 2, bug: 2, rock: 0.5, dragon: 0.5, steel: 2 },
         water: { fire: 2, water: 0.5, grass: 0.5, ground: 2, rock: 2, dragon: 0.5 },

@@ -1218,33 +1218,40 @@ document.addEventListener('DOMContentLoaded', createFlameParticles);
         return Math.floor(damage * multiplier);
     }
 
- function executeAttack(attacker, defender, move, isPlayerAttacking) {
+function executeAttack(attacker, defender, move, isPlayerAttacking) {
     let eff = getTypeEffectiveness(move.type, defender.types);
-    let effText = "";
-    if (eff === 2) effText = "It's super effective!";
-    else if (eff === 0.5) effText = "It's not very effective...";
-    else if (eff === 0) effText = "It doesn't affect the wild Pokémon!";
+    let isSuperEffective = eff === 2;
+    let effText = isSuperEffective ? "It's super effective!" : (eff === 0.5 ? "It's not very effective..." : (eff === 0 ? "No effect!" : ""));
     
-    // STAB (Same Type Attack Bonus)
+    let isCritical = Math.random() < 0.0625; 
+    let critMult = isCritical ? 1.2 : 1;
     let stab = (attacker.types && attacker.types.includes(move.type)) ? 1.5 : 1;
     
-    let dmg = Math.floor((move.power / 5) * (attacker.level / 2) * eff * stab);
+    let dmg = Math.floor((move.power / 5) * (attacker.level / 2) * eff * stab * critMult);
     if (dmg < 1 && eff > 0) dmg = 1;
     dmg = applyDamageModifiers(dmg, attacker.bonusStats, defender.bonusStats);
     
     defender.currentHp = Math.max(0, defender.currentHp - dmg);
     const sprite = isPlayerAttacking ? document.getElementById('e-sprite-btl') : document.getElementById('p-sprite-btl');
-    if (sprite) {
-        sprite.classList.remove('shake-effect');
-        void sprite.offsetWidth;
-        sprite.classList.add('shake-effect');
+    
+    if (dmg > 0) {
+        // Trigger colored visuals passing move.type
+        showFloatingDamage(dmg, sprite, isCritical, isSuperEffective, false, false, move.type);
+        const shakeClass = (isCritical || isSuperEffective) ? 'shake-effect-hard' : 'shake-effect';
+        if (sprite) {
+            sprite.classList.remove('shake-effect', 'shake-effect-hard');
+            void sprite.offsetWidth;
+            sprite.classList.add(shakeClass);
+        }
+    } else if (eff === 0) {
+        showFloatingDamage(0, sprite, false, false, false, true, move.type);
     }
     
-    let stabText = (stab > 1) ? " (STAB)" : "";
-    addBattleLog(`${attacker.name.toUpperCase()} used ${move.name.toUpperCase()}! Deals ${dmg} dmg. ${effText}${stabText}`);
+    addBattleLog(`${attacker.name.toUpperCase()} used ${move.name.toUpperCase()}! Deals ${dmg} dmg. ${effText}`);
     return defender.currentHp <= 0;
 }
-    // ========== GAME GLOBALS ==========
+
+// ========== GAME GLOBALS ==========
     const pokeDataCache = {};
     const speciesDataCache = {};
     let allUserRecords = [];
@@ -1329,7 +1336,97 @@ async function cachedFetch(url) {
     }
 }
     function loadImageWithFallback(img, urls) { let i=0; function next() { if(i>=urls.length) return; img.src=urls[i]; img.onerror=()=>{ i++; next(); }; } next(); }
-    const typeEffectiveness = { normal:{rock:0.5,ghost:0,steel:0.5}, fire:{fire:0.5,water:0.5,grass:2,ice:2,bug:2,rock:0.5,dragon:0.5,steel:2}, water:{fire:2,water:0.5,grass:0.5,ground:2,rock:2,dragon:0.5}, electric:{water:2,electric:0.5,grass:0.5,ground:0,flying:2,dragon:0.5}, grass:{fire:0.5,water:2,grass:0.5,poison:0.5,ground:2,flying:0.5,bug:0.5,rock:2,dragon:0.5,steel:0.5}, ice:{fire:0.5,water:0.5,grass:2,ice:0.5,ground:2,flying:2,dragon:2,steel:0.5}, fighting:{normal:2,ice:2,rock:2,dark:2,steel:2,poison:0.5,flying:0.5,psychic:0.5,bug:0.5,ghost:0,fairy:0.5}, poison:{grass:2,fairy:2,poison:0.5,ground:0.5,rock:0.5,ghost:0.5,steel:0}, ground:{fire:2,electric:2,poison:2,rock:2,steel:2,grass:0.5,bug:0.5,flying:0}, flying:{grass:2,fighting:2,bug:2,electric:0.5,rock:0.5,steel:0.5}, psychic:{fighting:2,poison:2,psychic:0.5,dark:0,steel:0.5}, bug:{grass:2,psychic:2,dark:2,fire:0.5,fighting:0.5,poison:0.5,flying:0.5,ghost:0.5,steel:0.5,fairy:0.5}, rock:{fire:2,ice:2,flying:2,bug:2,fighting:0.5,ground:0.5,steel:0.5}, ghost:{psychic:2,ghost:2,normal:0,dark:0.5}, dragon:{dragon:2,steel:0.5,fairy:0}, dark:{psychic:2,ghost:2,fighting:0.5,dark:0.5,fairy:0.5}, steel:{ice:2,rock:2,fairy:2,fire:0.5,water:0.5,electric:0.5,steel:0.5}, fairy:{fighting:2,dragon:2,dark:2,fire:0.5,poison:0.5,steel:0.5} };
+function showFloatingDamage(damage, spriteElement, isCritical = false, isSuperEffective = false, isHeal = false, isMiss = false, moveType = null) {
+    if (!spriteElement || !document.body.contains(spriteElement)) return;
+    const battleArea = document.getElementById('battle-area');
+    if (!battleArea || battleArea.classList.contains('hidden')) return;
+    
+    const rect = spriteElement.getBoundingClientRect();
+    const containerRect = battleArea.getBoundingClientRect();
+    const cx = rect.left - containerRect.left + rect.width / 2;
+    const cy = rect.top - containerRect.top + rect.height / 2;
+    
+    // Professional Type Color Map
+    const typeColors = {
+        fire:'#ff4422', water:'#3399ff', grass:'#44cc44', electric:'#ffdd00',
+        psychic:'#ff44aa', ice:'#88eeff', dragon:'#6633ff', dark:'#554433',
+        ghost:'#9955cc', poison:'#aa44aa', ground:'#cc9944', rock:'#aa8844',
+        steel:'#aaaacc', fairy:'#ffaacc', fighting:'#cc4422', bug:'#88aa22',
+        flying:'#aaaaff', normal:'#aaaaaa'
+    };
+
+    // Determine the theme color for this specific hit
+    let hitColor = moveType ? (typeColors[moveType] || '#ff4444') : '#ff4444';
+    if (isCritical && !moveType) hitColor = '#ffcc00'; // Fallback for non-typed crits
+
+    // --- Floating Damage Number ---
+    const damageDiv = document.createElement('div');
+    damageDiv.className = 'floating-damage' + (isCritical || isSuperEffective ? ' critical' : '') + (isHeal ? ' heal' : '') + (isMiss ? ' miss' : '');
+    damageDiv.textContent = isMiss ? 'MISS!' : isHeal ? '+' + damage : String(damage);
+    
+    // Apply dynamic colors
+    damageDiv.style.color = hitColor;
+    damageDiv.style.textShadow = `0 0 10px ${hitColor}, 2px 2px 0 rgba(0,0,0,0.9)`;
+    
+    damageDiv.style.left = (cx - 30) + 'px';
+    damageDiv.style.top = (cy - 50) + 'px';
+    battleArea.appendChild(damageDiv);
+    setTimeout(() => damageDiv.remove(), 1200);
+
+    if (isMiss) return;
+
+    // --- Shockwave Ring ---
+    const wave = document.createElement('div');
+    wave.className = 'hit-shockwave';
+    wave.style.left = cx + 'px';
+    wave.style.top = cy + 'px';
+    wave.style.borderColor = hitColor;
+    wave.style.boxShadow = `0 0 15px ${hitColor}`;
+    battleArea.appendChild(wave);
+    setTimeout(() => wave.remove(), 700);
+
+    // --- Screen Flash ---
+    const flash = document.createElement('div');
+    flash.className = 'hit-flash-overlay';
+    flash.style.background = hitColor;
+    battleArea.appendChild(flash);
+    setTimeout(() => flash.remove(), 450);
+
+    // --- Impact Particles ---
+    const particleCount = (isCritical || isSuperEffective) ? 14 : 8;
+    for (let i = 0; i < particleCount; i++) {
+        const p = document.createElement('div');
+        p.className = 'impact-particle';
+        const angle = (i / particleCount) * 360;
+        const dist = 40 + Math.random() * 60;
+        const dx = Math.cos(angle * Math.PI / 180) * dist + 'px';
+        const dy = Math.sin(angle * Math.PI / 180) * dist + 'px';
+        p.style.cssText = `left:${cx}px;top:${cy}px;width:6px;height:6px;background:${hitColor};box-shadow:0 0 8px ${hitColor};--dx:${dx};--dy:${dy};`;
+        battleArea.appendChild(p);
+        setTimeout(() => p.remove(), 900);
+    }
+
+    // Stamps
+    if (isCritical) {
+        const stamp = document.createElement('div');
+        stamp.className = 'crit-stamp';
+        stamp.textContent = 'CRITICAL HIT!';
+        stamp.style.left = cx + 'px';
+        stamp.style.top = (cy - 40) + 'px';
+        battleArea.appendChild(stamp);
+        setTimeout(() => stamp.remove(), 1400);
+    }
+    if (isSuperEffective) {
+        const stamp = document.createElement('div');
+        stamp.className = 'super-effective-stamp';
+        stamp.textContent = 'SUPER EFFECTIVE!';
+        stamp.style.left = cx + 'px';
+        stamp.style.top = (cy + 10) + 'px';
+        battleArea.appendChild(stamp);
+        setTimeout(() => stamp.remove(), 1400);
+    }
+}
+const typeEffectiveness = { normal:{rock:0.5,ghost:0,steel:0.5}, fire:{fire:0.5,water:0.5,grass:2,ice:2,bug:2,rock:0.5,dragon:0.5,steel:2}, water:{fire:2,water:0.5,grass:0.5,ground:2,rock:2,dragon:0.5}, electric:{water:2,electric:0.5,grass:0.5,ground:0,flying:2,dragon:0.5}, grass:{fire:0.5,water:2,grass:0.5,poison:0.5,ground:2,flying:0.5,bug:0.5,rock:2,dragon:0.5,steel:0.5}, ice:{fire:0.5,water:0.5,grass:2,ice:0.5,ground:2,flying:2,dragon:2,steel:0.5}, fighting:{normal:2,ice:2,rock:2,dark:2,steel:2,poison:0.5,flying:0.5,psychic:0.5,bug:0.5,ghost:0,fairy:0.5}, poison:{grass:2,fairy:2,poison:0.5,ground:0.5,rock:0.5,ghost:0.5,steel:0}, ground:{fire:2,electric:2,poison:2,rock:2,steel:2,grass:0.5,bug:0.5,flying:0}, flying:{grass:2,fighting:2,bug:2,electric:0.5,rock:0.5,steel:0.5}, psychic:{fighting:2,poison:2,psychic:0.5,dark:0,steel:0.5}, bug:{grass:2,psychic:2,dark:2,fire:0.5,fighting:0.5,poison:0.5,flying:0.5,ghost:0.5,steel:0.5,fairy:0.5}, rock:{fire:2,ice:2,flying:2,bug:2,fighting:0.5,ground:0.5,steel:0.5}, ghost:{psychic:2,ghost:2,normal:0,dark:0.5}, dragon:{dragon:2,steel:0.5,fairy:0}, dark:{psychic:2,ghost:2,fighting:0.5,dark:0.5,fairy:0.5}, steel:{ice:2,rock:2,fairy:2,fire:0.5,water:0.5,electric:0.5,steel:0.5}, fairy:{fighting:2,dragon:2,dark:2,fire:0.5,poison:0.5,steel:0.5} };
     function getTypeEffectiveness(at, def) { let m=1; for(let d of def) { const c=typeEffectiveness[at]; if(c&&c[d]!==undefined) m*=c[d]; } return m; }
     function getExpNeededForNextLevel(l) { return l*300; }
 

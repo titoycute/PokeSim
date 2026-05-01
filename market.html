@@ -309,6 +309,7 @@ body.dark-theme #toast.error { background: var(--danger); }
 }
 .shiny-badge { top: 8px; right: 8px; }
 .special-badge { top: 30px; right: 8px; }
+
 </style>
 </head>
 <body>
@@ -337,31 +338,34 @@ body.dark-theme #toast.error { background: var(--danger); }
   </div>
 
   <!-- SHOP TAB -->
-  <div id="shop-tab" class="tab-content">
-    <div class="section-top">
-      <div><h2><i class="fas fa-store"></i> PokéSim Market</h2><p>Buy Pokémon with your coins.</p></div>
-      <button id="admin-add-listing" class="btn btn-primary hidden"><i class="fas fa-plus"></i> Add Listing</button>
-    </div>
-    <div id="shop-listings" class="market-grid"></div>
+ <div id="shop-tab" class="tab-content">
+  <div class="section-top">
+    <div><h2><i class="fas fa-store"></i> PokéSim Market</h2><p>Buy Pokémon with your coins.</p></div>
+    <button id="admin-add-listing" class="btn btn-primary hidden"><i class="fas fa-plus"></i> Add Listing</button>
   </div>
+  <input id="shop-search" type="text" placeholder="🔍 Search Pokémon name..." class="move-search-input" style="margin-bottom:12px;">
+  <div id="shop-listings" class="market-grid"></div>
+</div>
 
   <!-- SELL TAB -->
-  <div id="sell-tab" class="tab-content hidden">
-    <div class="section-top">
-      <div><h2><i class="fas fa-tag"></i> Peso Market</h2><p>Sell your Pokémon to other trainers.</p></div>
-      <button id="create-sell-listing" class="btn btn-primary"><i class="fas fa-plus"></i> List Pokémon</button>
-    </div>
-    <div id="sell-listings" class="market-grid"></div>
+ <div id="sell-tab" class="tab-content hidden">
+  <div class="section-top">
+    <div><h2><i class="fas fa-tag"></i> Peso Market</h2><p>Sell your Pokémon to other trainers.</p></div>
+    <button id="create-sell-listing" class="btn btn-primary"><i class="fas fa-plus"></i> List Pokémon</button>
   </div>
+  <input id="sell-search" type="text" placeholder="🔍 Search Pokémon name..." class="move-search-input" style="margin-bottom:12px;">
+  <div id="sell-listings" class="market-grid"></div>
+</div>
 
   <!-- TRADE TAB -->
-  <div id="trade-tab" class="tab-content hidden">
-    <div class="section-top">
-      <div><h2><i class="fas fa-exchange-alt"></i> Trade Market</h2><p>Trade Pokémon with other trainers.</p></div>
-      <button id="create-trade-offer" class="btn btn-primary"><i class="fas fa-plus"></i> Create Trade</button>
-    </div>
-    <div id="trade-listings" class="market-grid"></div>
+<div id="trade-tab" class="tab-content hidden">
+  <div class="section-top">
+    <div><h2><i class="fas fa-exchange-alt"></i> Trade Market</h2><p>Trade Pokémon with other trainers.</p></div>
+    <button id="create-trade-offer" class="btn btn-primary"><i class="fas fa-plus"></i> Create Trade</button>
   </div>
+  <input id="trade-search" type="text" placeholder="🔍 Search Pokémon name..." class="move-search-input" style="margin-bottom:12px;">
+  <div id="trade-listings" class="market-grid"></div>
+</div>
 
   <!-- REDEEM TAB -->
   <div id="redeem-tab" class="tab-content hidden">
@@ -518,6 +522,9 @@ import { getFirestore, doc, getDoc, getDocs, setDoc, collection, addDoc, updateD
 const FB = {apiKey:"AIzaSyDkCE0wBrsQ1s-7zplvTtWOSE28ISaCFfQ",authDomain:"pokesim-7f9b7.firebaseapp.com",projectId:"pokesim-7f9b7",storageBucket:"pokesim-7f9b7.firebasestorage.app",messagingSenderId:"1087100425430",appId:"1:1087100425430:web:9558a79ee5330d4a792577"};
 const app=initializeApp(FB), auth=getAuth(app), db=getFirestore(app);
 
+let shopListingsCache  = [];
+let sellListingsCache  = [];
+let tradeListingsCache = [];
 let currentUser=null, userData=null, isAdmin=false;
 let moveDatabase=[], movesLoading=false;
 let allPokemonList=[];
@@ -1049,32 +1056,47 @@ async function loadShop() {
       ? query(collection(db, 'market_shop_listings'), limit(48))
       : query(collection(db, 'market_shop_listings'), where('stock', '>', 0), limit(24));
     const snap = await getDocs(q);
-    const listings = []; snap.forEach(d => listings.push({ id: d.id, ...d.data() }));
-    if (!listings.length) {
-      c.innerHTML = '<div class="empty-state"><p>No listings right now.</p></div>';
-      return;
-    }
-    c.innerHTML = '';
-    for (const l of listings) {
-      const outOfStock = l.stock <= 0;
-      const p = {
-        pokemonId: l.pokemonId, name: l.name, types: l.types, level: l.level,
-        moves: l.moves, bonusStats: l.bonusStats, price: l.price,
-        isSpecial: l.isSpecial, isShiny: l.isShiny || false
-      };
-      if (isAdmin) {
-        const stockLabel = outOfStock ? '<span style="color:var(--danger);">⚠️ OUT OF STOCK</span>' : `<span style="color:var(--success);">Stock: ${l.stock}</span>`;
-        const actions = [
-          { label: '✏️ Edit', cls: 'btn-outline btn-sm', fn: () => openShopModal(l) },
-          { label: '🗑️ Delete', cls: 'btn-danger btn-sm', fn: () => deleteShopListing(l.id) }
-        ];
-        const card = createPokemonCard(p, actions, `<div style="font-size:.78rem;margin-top:4px;">${stockLabel}</div>`);
-        c.appendChild(card);
-      } else if (!outOfStock) {
-        const actions = [{ label: 'Buy', cls: 'btn-primary', fn: () => buyShop(l.id, l.price) }];
-        const card = createPokemonCard(p, actions, `<div style="font-size:.78rem;color:var(--text-light);">Stock: ${l.stock}</div>`);
-        c.appendChild(card);
+    shopListingsCache = [];
+    snap.forEach(d => shopListingsCache.push({ id: d.id, ...d.data() }));
+
+    function applyShopSearch(searchVal) {
+      const q = searchVal.toLowerCase().trim();
+      const filtered = q
+        ? shopListingsCache.filter(l => (l.name || '').toLowerCase().includes(q))
+        : shopListingsCache;
+      c.innerHTML = '';
+      if (!filtered.length) {
+        c.innerHTML = '<div class="empty-state"><p>No Pokémon match your search.</p></div>';
+        return;
       }
+      for (const l of filtered) {
+        const outOfStock = l.stock <= 0;
+        const p = {
+          pokemonId: l.pokemonId, name: l.name, types: l.types, level: l.level,
+          moves: l.moves, bonusStats: l.bonusStats, price: l.price,
+          isSpecial: l.isSpecial, isShiny: l.isShiny || false
+        };
+        if (isAdmin) {
+          const stockLabel = outOfStock
+            ? '<span style="color:var(--danger);">⚠️ OUT OF STOCK</span>'
+            : `<span style="color:var(--success);">Stock: ${l.stock}</span>`;
+          const actions = [
+            { label: '✏️ Edit', cls: 'btn-outline btn-sm', fn: () => openShopModal(l) },
+            { label: '🗑️ Delete', cls: 'btn-danger btn-sm', fn: () => deleteShopListing(l.id) }
+          ];
+          c.appendChild(createPokemonCard(p, actions, `<div style="font-size:.78rem;margin-top:4px;">${stockLabel}</div>`));
+        } else if (!outOfStock) {
+          const actions = [{ label: 'Buy', cls: 'btn-primary', fn: () => buyShop(l.id, l.price) }];
+          c.appendChild(createPokemonCard(p, actions, `<div style="font-size:.78rem;color:var(--text-light);">Stock: ${l.stock}</div>`));
+        }
+      }
+    }
+
+    applyShopSearch('');
+    const searchInput = document.getElementById('shop-search');
+    if (searchInput) {
+      searchInput.value = '';
+      searchInput.oninput = (e) => applyShopSearch(e.target.value);
     }
   } catch (e) { console.error(e); c.innerHTML = '<div class="empty-state"><p>Failed to load.</p></div>'; }
 }
@@ -1185,19 +1207,35 @@ async function loadSell() {
   try {
     const q = query(collection(db, 'market_sell_listings'), limit(24));
     const snap = await getDocs(q);
-    const listings = []; snap.forEach(d => listings.push({ id: d.id, ...d.data() }));
-    c.innerHTML = '';
-    if (!listings.length) { c.innerHTML = '<div class="empty-state"><p>No items for sale.</p></div>'; return; }
-    for (const l of listings) {
-      const isOwn = l.ownerId === currentUser?.uid;
-      const actions = [{ label: 'Buy', cls: 'btn-primary', fn: () => buySell(l.id, l.price, l.ownerId) }];
-      if (isOwn) actions.push({ label: 'Cancel', cls: 'btn-danger', fn: () => cancelSell(l.id) });
-      const card = createPokemonCard({ ...l, isOwn }, actions);
-      c.appendChild(card);
-    }
-  } catch (e) { console.error(e); }
-}
+    sellListingsCache = [];
+    snap.forEach(d => sellListingsCache.push({ id: d.id, ...d.data() }));
 
+    function applySellSearch(searchVal) {
+      const q = searchVal.toLowerCase().trim();
+      const filtered = q
+        ? sellListingsCache.filter(l => (l.name || '').toLowerCase().includes(q))
+        : sellListingsCache;
+      c.innerHTML = '';
+      if (!filtered.length) {
+        c.innerHTML = '<div class="empty-state"><p>No Pokémon match your search.</p></div>';
+        return;
+      }
+      for (const l of filtered) {
+        const isOwn = l.ownerId === currentUser?.uid;
+        const actions = [{ label: 'Buy', cls: 'btn-primary', fn: () => buySell(l.id, l.price, l.ownerId) }];
+        if (isOwn) actions.push({ label: 'Cancel', cls: 'btn-danger', fn: () => cancelSell(l.id) });
+        c.appendChild(createPokemonCard({ ...l, isOwn }, actions));
+      }
+    }
+
+    applySellSearch('');
+    const searchInput = document.getElementById('sell-search');
+    if (searchInput) {
+      searchInput.value = '';
+      searchInput.oninput = (e) => applySellSearch(e.target.value);
+    }
+  } catch (e) { console.error(e); c.innerHTML = '<div class="empty-state"><p>Failed to load.</p></div>'; }
+}
 // ======================================================
 // SPRITE CACHE SYSTEM (Showdown animated GIF first, PNG fallback)
 // ======================================================
@@ -1449,34 +1487,49 @@ async function loadTrade() {
   try {
     const q = query(collection(db, 'market_trade_offers'), where('status', '==', 'open'));
     const snap = await getDocs(q);
-    const offers = []; snap.forEach(d => offers.push({ id: d.id, ...d.data() }));
-    if (!offers.length) {
-      c.innerHTML = '<div class="empty-state"><i class="fas fa-exchange-alt"></i><p>No open trades.</p></div>';
-      return;
+    tradeListingsCache = [];
+    snap.forEach(d => tradeListingsCache.push({ id: d.id, ...d.data() }));
+
+    function applyTradeSearch(searchVal) {
+      const q = searchVal.toLowerCase().trim();
+      const filtered = q
+        ? tradeListingsCache.filter(o => (o.pokemonName || '').toLowerCase().includes(q))
+        : tradeListingsCache;
+      c.innerHTML = '';
+      if (!filtered.length) {
+        c.innerHTML = '<div class="empty-state"><i class="fas fa-exchange-alt"></i><p>No Pokémon match your search.</p></div>';
+        return;
+      }
+      for (const o of filtered) {
+        const isOwn = o.ownerId === currentUser?.uid;
+        const p = {
+          pokemonId: o.pokemonId, name: o.pokemonName, types: o.pokemonTypes, level: o.pokemonLevel,
+          moves: o.pokemonMoves, bonusStats: o.pokemonBonusStats,
+          isSpecial: o.isSpecial, isShiny: o.isShiny || false, ownerName: o.ownerName, isOwn
+        };
+        const tags = [];
+        if (o.requestPokemonName) tags.push(`<span class="req-tag">Wants: ${o.requestPokemonName.toUpperCase()}</span>`);
+        if (o.minLevel) tags.push(`<span class="req-tag gold">Min Lv.${o.minLevel}</span>`);
+        if (o.requireAtk) tags.push(`<span class="req-tag">⚔️ ATK req.</span>`);
+        if (o.requireDef) tags.push(`<span class="req-tag">🛡️ DEF req.</span>`);
+        if (o.requireSpd) tags.push(`<span class="req-tag">🏃 SPD req.</span>`);
+        if (o.requireShiny) tags.push(`<span class="req-tag gold">✨ Shiny req.</span>`);
+        const extra = `<div class="req-tags">${tags.join('') || '<span class="req-tag">Accepts any Pokémon</span>'}</div>`;
+        const actions = [{ label: '<i class="fas fa-handshake"></i> Accept', cls: 'btn-primary', fn: () => openAcceptTradeModal(o) }];
+        if (isOwn) actions.push({ label: 'Cancel', cls: 'btn-danger', fn: () => cancelTrade(o.id) });
+        c.appendChild(createPokemonCard(p, actions, extra));
+      }
     }
-    c.innerHTML = '';
-    for (const o of offers) {
-      const isOwn = o.ownerId === currentUser?.uid;
-      const p = {
-        pokemonId: o.pokemonId, name: o.pokemonName, types: o.pokemonTypes, level: o.pokemonLevel,
-        moves: o.pokemonMoves, bonusStats: o.pokemonBonusStats,
-        isSpecial: o.isSpecial, isShiny: o.isShiny || false, ownerName: o.ownerName, isOwn
-      };
-      const tags = [];
-      if (o.requestPokemonName) tags.push(`<span class="req-tag">Wants: ${o.requestPokemonName.toUpperCase()}</span>`);
-      if (o.minLevel) tags.push(`<span class="req-tag gold">Min Lv.${o.minLevel}</span>`);
-      if (o.requireAtk) tags.push(`<span class="req-tag">⚔️ ATK req.</span>`);
-      if (o.requireDef) tags.push(`<span class="req-tag">🛡️ DEF req.</span>`);
-      if (o.requireSpd) tags.push(`<span class="req-tag">🏃 SPD req.</span>`);
-      if (o.requireShiny) tags.push(`<span class="req-tag gold">✨ Shiny req.</span>`);
-      const extra = `<div class="req-tags">${tags.join('') || '<span class="req-tag">Accepts any Pokémon</span>'}</div>`;
-      const actions = [{ label: '<i class="fas fa-handshake"></i> Accept', cls: 'btn-primary', fn: () => openAcceptTradeModal(o) }];
-      if (isOwn) actions.push({ label: 'Cancel', cls: 'btn-danger', fn: () => cancelTrade(o.id) });
-      const card = createPokemonCard(p, actions, extra);
-      c.appendChild(card);
+
+    applyTradeSearch('');
+    const searchInput = document.getElementById('trade-search');
+    if (searchInput) {
+      searchInput.value = '';
+      searchInput.oninput = (e) => applyTradeSearch(e.target.value);
     }
   } catch (e) { c.innerHTML = '<div class="empty-state"><p>Failed to load.</p></div>'; }
 }
+
 async function openTradeModal(){
   const owned=await getUserPokemon();
   if(!owned.length){toast('No Pokémon to trade.','error');return;}

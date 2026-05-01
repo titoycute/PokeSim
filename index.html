@@ -650,9 +650,10 @@
                 <a href="map.html" class="nav-link">🚗 Byahe</a>
                 <a href="market.html" id="merkado-link" class="nav-link" style="display: none;">🛒 Merkado</a>
                 <a href="battle.html" class="nav-link">🏆 Gym Battles</a>
+                <a href="boss.html" class="nav-link boss-raid-link">🔥 Boss Raid</a>
                 <button class="nav-link" onclick="window.switchView('team')">⚔️ Pokemon Team</button>
                 <button class="nav-link" onclick="window.switchView('collection')">📦 Caught Pokemon</button>
-                <button class="nav-link" onclick="window.switchView('records')">📖 Encountered Pokemon</button>
+            
                 
             </div>
         </div>
@@ -667,11 +668,12 @@
                 <div id="level-display" class="nav-item">⭐ Lv. <span id="trainer-level">0</span></div>
                 <div id="coin-display" class="nav-item">💰 <span id="coin-amount">0</span></div>
                 <button id="referral-btn" class="nav-link hidden" title="Invite Friends"><i class="fas fa-gift"></i> Referral</button>
-                <button class="btn btn-outline nav-item" id="logout-btn">Logout</button>
                  <button id="zoom-out-btn" class="volume-btn nav-item" title="Zoom Out">−</button>
                 <button id="zoom-in-btn" class="volume-btn nav-item" title="Zoom In">+</button>
                 <button id="volume-toggle" class="volume-btn nav-item" title="Mute/Unmute">🔊 Mute</button>
                 <button id="theme-toggle" class="volume-btn nav-item" title="Dark/Light mode">🌙 </button>
+                <button class="nav-link" onclick="window.switchView('records')">📖 Encountered Pokemon</button>
+                 <button class="btn btn-outline nav-item" id="logout-btn">Logout</button>
                 
             </div>
         </div>
@@ -1163,6 +1165,38 @@ const LEGENDARY_MYTHICAL_IDS = new Set([
     return { atk, def, spd };
 }
 
+// ========== FLAME PARTICLES FOR BOSS RAID LINK ==========
+function createFlameParticles() {
+    const bossLink = document.querySelector('.boss-raid-link');
+    if (!bossLink) return;
+    
+    // Create wrapper if not exists
+    let wrapper = bossLink.parentElement;
+    if (!wrapper.classList.contains('boss-raid-wrapper')) {
+        wrapper = document.createElement('div');
+        wrapper.className = 'boss-raid-wrapper';
+        bossLink.parentNode.insertBefore(wrapper, bossLink);
+        wrapper.appendChild(bossLink);
+    }
+    
+    // Create floating particles
+    setInterval(() => {
+        const rect = bossLink.getBoundingClientRect();
+        const particle = document.createElement('div');
+        particle.className = 'flame-particle';
+        particle.style.left = (rect.left + Math.random() * rect.width) + 'px';
+        particle.style.top = (rect.top + Math.random() * rect.height) + 'px';
+        particle.style.animationDuration = (0.8 + Math.random() * 1) + 's';
+        particle.style.width = (2 + Math.random() * 4) + 'px';
+        particle.style.height = particle.style.width;
+        document.body.appendChild(particle);
+        
+        setTimeout(() => particle.remove(), 1500);
+    }, 300);
+}
+
+// Run when page loads
+document.addEventListener('DOMContentLoaded', createFlameParticles);
     function getEffectiveSpeed(pokemon) {
         let speed = pokemon.level;
         if (pokemon.bonusStats?.spd) speed = Math.floor(speed * 1.25);

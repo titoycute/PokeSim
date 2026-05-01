@@ -50,10 +50,195 @@
         input, select, textarea { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 20px; background: var(--bg); color: var(--text-dark); }
         .type-badge { display: inline-block; padding: 2px 8px; border-radius: 16px; font-size: 0.7rem; font-weight: bold; color: white; margin-right: 4px; }
         .reward-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
-        .battle-ui-container { background: linear-gradient(145deg, #87CEEB 0%, #c0e0ff 40%, #78c850 100%); border-radius: 24px; overflow: hidden; max-width: 700px; margin: 0 auto; }
-        .battle-header { background: var(--primary-dark); color: white; text-align: center; padding: 12px; font-weight: bold; }
-        .battle-ui { padding: 20px; display: flex; flex-direction: column; gap: 20px; }
-        .stat-box { background: rgba(255,255,255,0.9); backdrop-filter: blur(4px); padding: 12px 16px; border-radius: 20px; width: 220px; border-left: 4px solid var(--primary); }
+        /* ========== DARK SCARY BATTLE BACKGROUND ========== */
+.battle-ui-container {
+    background: linear-gradient(145deg, #0a0a1a 0%, #1a0a2a 40%, #0d0d0d 100%);
+    border-radius: 24px;
+    overflow: hidden;
+    max-width: 700px;
+    margin: 0 auto;
+    position: relative;
+    box-shadow: 0 0 30px rgba(255,0,0,0.2), inset 0 0 50px rgba(0,0,0,0.5);
+    border: 1px solid rgba(255,0,0,0.3);
+}
+
+/* Dark atmospheric overlay */
+.battle-ui-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at 30% 40%, rgba(255,0,0,0.15), transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Blood red mist effect */
+.battle-ui-container::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 40%;
+    background: linear-gradient(to top, rgba(139,0,0,0.3), transparent);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.battle-header {
+    background: linear-gradient(135deg, #1a0000, #3a0000, #1a0000);
+    color: #ff4444;
+    text-align: center;
+    padding: 12px;
+    font-weight: bold;
+    font-size: 1rem;
+    text-shadow: 0 0 10px rgba(255,0,0,0.5);
+    letter-spacing: 2px;
+    border-bottom: 2px solid #ff0000;
+    position: relative;
+    z-index: 1;
+}
+
+.battle-ui {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    position: relative;
+    z-index: 1;
+}
+
+/* Dark stat boxes */
+.stat-box {
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(8px);
+    padding: 12px 16px;
+    border-radius: 20px;
+    width: 220px;
+    border-left: 4px solid #ff0000;
+    color: #ffcccc;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    border-right: 1px solid rgba(255,0,0,0.3);
+}
+
+.stat-box strong {
+    color: #ff6666;
+}
+
+.stat-box .type-badge {
+    text-shadow: none;
+}
+
+/* Dark HP bar */
+.hp-bar {
+    background: #330000;
+    height: 8px;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 8px;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.5);
+}
+
+.hp-fill {
+    height: 100%;
+    background: #ff0000;
+    width: 100%;
+    box-shadow: 0 0 5px #ff0000;
+}
+
+/* Dark battle log */
+#battle-log {
+    background: rgba(0,0,0,0.9);
+    color: #ff9999;
+    padding: 12px;
+    font-family: monospace;
+    height: 80px;
+    overflow-y: auto;
+    border-radius: 16px;
+    margin: 10px 0;
+    border: 1px solid rgba(255,0,0,0.3);
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+    text-shadow: 0 0 3px rgba(255,0,0,0.3);
+}
+
+/* Dark move buttons with scary colors */
+.move-btn {
+    background: linear-gradient(135deg, #2a0a0a, #1a0505);
+    border: 1px solid rgba(255,0,0,0.4);
+    border-radius: 32px;
+    padding: 12px;
+    color: #ffaaaa;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: all 0.2s;
+    text-shadow: 0 0 3px rgba(0,0,0,0.5);
+}
+
+.move-btn:hover {
+    background: linear-gradient(135deg, #3a1010, #2a0808);
+    border-color: #ff0000;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 0 15px rgba(255,0,0,0.3);
+}
+
+/* Dark catch area buttons */
+.catch-area .btn {
+    background: linear-gradient(135deg, #2a0a0a, #1a0505);
+    border: 1px solid rgba(255,0,0,0.4);
+    color: #ffaaaa;
+}
+
+.catch-area .btn:hover {
+    background: linear-gradient(135deg, #3a1010, #2a0808);
+    border-color: #ff0000;
+    color: white;
+    box-shadow: 0 0 10px rgba(255,0,0,0.3);
+}
+
+/* Dark mode compatibility - keep scary even in light mode */
+body:not(.dark-theme) .battle-ui-container {
+    background: linear-gradient(145deg, #0a0a1a 0%, #1a0a2a 40%, #0d0d0d 100%);
+}
+
+/* Scary floating particles (optional) */
+.battle-ui-container {
+    position: relative;
+    overflow: hidden;
+}
+
+.battle-ui-container .particle {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    background: rgba(255,0,0,0.5);
+    border-radius: 50%;
+    pointer-events: none;
+    animation: floatUp 8s linear infinite;
+}
+
+@keyframes floatUp {
+    0% {
+        transform: translateY(100%) translateX(0);
+        opacity: 0;
+    }
+    10% {
+        opacity: 0.8;
+    }
+    90% {
+        opacity: 0.8;
+    }
+    100% {
+        transform: translateY(-100%) translateX(20px);
+        opacity: 0;
+    }
+} .stat-box { background: rgba(255,255,255,0.9); backdrop-filter: blur(4px); padding: 12px 16px; border-radius: 20px; width: 220px; border-left: 4px solid var(--primary); }
         .hp-bar { background: #e2e8f0; height: 8px; border-radius: 10px; overflow: hidden; margin-top: 8px; }
         .hp-fill { height: 100%; background: var(--success); width: 100%; }
         #battle-log { background: rgba(0,0,0,0.7); color: #e0e0e0; padding: 12px; font-family: monospace; height: 80px; overflow-y: auto; border-radius: 16px; margin: 10px 0; }
@@ -368,7 +553,248 @@
         ::-webkit-scrollbar-track { background: var(--border); border-radius: 10px; }
         ::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--primary-dark); }
-        
+        /* ========== SWITCH MODAL & POKEMON SELECT RESPONSIVE ========== */
+
+/* Modal container - fits screen but shows full content */
+#switch-pokemon-modal .modal-box,
+#pre-battle-select-modal .modal-box {
+    max-width: 500px;
+    width: 95%;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+#switch-pokemon-modal .modal-body,
+#pre-battle-select-modal .modal-body {
+    padding: 16px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+/* Pokémon select item - clean layout */
+.pokemon-select-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 12px;
+    background: var(--card-bg);
+    border-radius: 20px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: 0.2s;
+    border: 1px solid var(--border);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.pokemon-select-item:hover {
+    background: #eef2ff;
+    transform: translateX(4px);
+}
+
+.pokemon-select-item img {
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 4px;
+    flex-shrink: 0;
+}
+
+.pokemon-select-info {
+    flex: 1;
+    text-align: left;
+    min-width: 0; /* Allows content to shrink */
+}
+
+.pokemon-select-info strong {
+    font-size: 0.9rem;
+    display: inline-block;
+}
+
+/* Mobile responsive - fits 300px width */
+@media (max-width: 480px) {
+    #switch-pokemon-modal .modal-box,
+    #pre-battle-select-modal .modal-box {
+        width: 98%;
+        max-width: none;
+    }
+    
+    .pokemon-select-item {
+        gap: 10px;
+        padding: 10px;
+    }
+    
+    .pokemon-select-item img {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .pokemon-select-info strong {
+        font-size: 0.8rem;
+    }
+    
+    .pokemon-select-info .type-badge {
+        font-size: 0.55rem;
+        padding: 1px 5px;
+    }
+    
+    .move-list-small .move-badge {
+        font-size: 0.55rem;
+        padding: 1px 5px;
+    }
+    
+    .pokemon-select-info small {
+        font-size: 0.65rem;
+    }
+}
+
+/* For very small screens (under 350px) - stack vertically */
+@media (max-width: 360px) {
+    .pokemon-select-item {
+        flex-direction: column;
+        text-align: center;
+        gap: 8px;
+    }
+    
+    .pokemon-select-item img {
+        width: 55px;
+        height: 55px;
+    }
+    
+    .pokemon-select-info {
+        text-align: center;
+        width: 100%;
+    }
+    
+    .pokemon-select-info strong {
+        display: block;
+        margin-bottom: 4px;
+    }
+    
+    .move-list-small {
+        justify-content: center;
+    }
+}
+
+/* ========== TOP NAVIGATION RESPONSIVE FIX ========== */
+
+.top-bar {
+    background: var(--card-bg);
+    padding: 12px 16px;
+    border-radius: 40px;
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    border: 1px solid var(--border);
+    width: 100%;
+    box-sizing: border-box;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+}
+
+/* Logo area */
+.top-bar > div:first-child {
+    flex-shrink: 0;
+}
+
+.top-bar > div:first-child img {
+    height: 32px;
+    width: auto;
+}
+
+/* Right side buttons container */
+.top-bar > div:last-child {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+}
+
+/* All buttons and chips inside top bar */
+.top-bar .btn-sm,
+.top-bar .user-chip,
+.top-bar .btn-outline {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+/* Mobile view - scroll horizontally if needed */
+@media (max-width: 768px) {
+    .top-bar {
+        padding: 10px 12px;
+        border-radius: 30px;
+        gap: 8px;
+    }
+    
+    .top-bar > div:first-child img {
+        height: 28px;
+    }
+    
+    .top-bar > div:last-child {
+        gap: 6px;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding-bottom: 4px;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .top-bar > div:last-child::-webkit-scrollbar {
+        display: none; /* Hide scrollbar on mobile but keep functionality */
+    }
+    
+    .user-chip {
+        font-size: 0.7rem;
+        padding: 4px 10px;
+        white-space: nowrap;
+    }
+    
+    .btn-sm {
+        padding: 4px 10px;
+        font-size: 0.7rem;
+        white-space: nowrap;
+    }
+}
+
+/* Very small phones - stack vertically */
+@media (max-width: 550px) {
+    .top-bar {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+    }
+    
+    .top-bar > div:first-child {
+        text-align: center;
+    }
+    
+    .top-bar > div:last-child {
+        justify-content: center;
+        flex-wrap: wrap;
+        overflow-x: visible;
+    }
+}
+
+/* Desktop - normal layout */
+@media (min-width: 769px) {
+    .top-bar {
+        padding: 12px 24px;
+    }
+    
+    .top-bar > div:last-child {
+        flex-wrap: wrap;
+        overflow-x: visible;
+    }
+}
         /* Reduce motion */
         @media (prefers-reduced-motion: reduce) { * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; } }
     </style>
@@ -376,7 +802,8 @@
 <body>
 <div class="top-bar">
     <div><img src="PokeSim Word.png" style="height: 38px;" alt="logo"></div>
-    <div style="display: flex; gap: 8px; align-items: center;">
+    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+        <button id="battle-music-toggle" class="btn btn-outline btn-sm"><i class="fas fa-music"></i> Music</button>
         <button id="theme-toggle-btn" class="btn btn-outline btn-sm"><i class="fas fa-moon"></i> Dark</button>
         <div class="user-chip"><i class="fas fa-user"></i> <span id="trainer-name">Trainer</span></div>
         <div class="user-chip"><i class="fas fa-chart-line"></i> Lv.<span id="trainer-level">0</span></div>
@@ -474,6 +901,9 @@
 </div>
 
 <div id="toast" class="toast"></div>
+<!-- Battle Music -->
+<audio id="boss-battle-music" src="montogoronto-dark-fight-music-boss-142794.mp3" loop preload="auto"></audio>
+<audio id="battle-victory-sound" src="mixkit-small-win-2020.wav" preload="auto"></audio>
 <footer>PokeSim World Boss System – Accumulated Damage Leaderboard</footer>
 
 <script type="module">
@@ -493,6 +923,10 @@ let battleProcessing = false;
 let currentTurnTimeout = null;
 let raidsUnsub = null;
 let leaderboardUnsubs = new Map();
+
+// Music control variables
+let isMusicMuted = false;
+let currentBattleMusic = null;
 const pokemonNameCache = new Map();
 
 // ========== BADGE EFFECTS (from map.html) ==========
@@ -580,6 +1014,68 @@ function showFloatingDamage(damage, spriteElement, isCritical = false, isHeal = 
     setTimeout(() => {
         if (damageDiv && damageDiv.parentNode) damageDiv.remove();
     }, 800);
+}
+
+// ========// ========== BATTLE MUSIC FUNCTIONS ==========
+
+// Play boss battle music
+function playBossBattleMusic() {
+    if (isMusicMuted) return;
+    
+    const music = document.getElementById('boss-battle-music');
+    if (music) {
+        music.currentTime = 0;
+        music.volume = 0.5;
+        music.play().catch(e => console.log('Music autoplay blocked:', e));
+        currentBattleMusic = music;
+    }
+}
+
+// Stop battle music
+function stopBossBattleMusic() {
+    if (currentBattleMusic) {
+        currentBattleMusic.pause();
+        currentBattleMusic.currentTime = 0;
+        currentBattleMusic = null;
+    }
+}
+
+// Play victory sound
+function playVictorySound() {
+    if (isMusicMuted) return;
+    
+    const victory = document.getElementById('battle-victory-sound');
+    if (victory) {
+        victory.currentTime = 0;
+        victory.volume = 0.6;
+        victory.play().catch(e => console.log('Victory sound error:', e));
+    }
+}
+
+// Toggle music mute
+function toggleBattleMusic() {
+    isMusicMuted = !isMusicMuted;
+    const musicBtn = document.getElementById('battle-music-toggle');
+    
+    if (isMusicMuted) {
+        stopBossBattleMusic();
+        if (musicBtn) {
+            musicBtn.innerHTML = '<i class="fas fa-volume-mute"></i> Music';
+            musicBtn.style.background = '#ff4444';
+            musicBtn.style.color = 'white';
+        }
+        localStorage.setItem('pokesim_boss_music_muted', 'true');
+    } else {
+        if (currentRaidBattle && !document.getElementById('battle-screen').classList.contains('hidden')) {
+            playBossBattleMusic();
+        }
+        if (musicBtn) {
+            musicBtn.innerHTML = '<i class="fas fa-music"></i> Music';
+            musicBtn.style.background = '';
+            musicBtn.style.color = '';
+        }
+        localStorage.setItem('pokesim_boss_music_muted', 'false');
+    }
 }
 // ========== UTILITIES ==========
 function typeColor(t) {
@@ -671,6 +1167,13 @@ function loadCustomSprites() {
             console.log(`Loaded ${customSpriteCache.size} custom sprite overrides`);
         }
     } catch(e) { console.warn('Failed to load custom sprites', e); }
+}
+// Load saved mute preference
+const savedMute = localStorage.getItem('pokesim_boss_music_muted');
+if (savedMute === 'true') {
+    isMusicMuted = true;
+    const musicBtn = document.getElementById('battle-music-toggle');
+    if (musicBtn) musicBtn.innerHTML = '<i class="fas fa-volume-mute"></i> Music Off';
 }
 
 // Save custom sprite mapping
@@ -1054,8 +1557,22 @@ async function showFullLeaderboard(raidId){
 // ---------- BATTLE LOGIC ----------
 function getTypeId(type){ const map={normal:1,fighting:2,flying:3,poison:4,ground:5,rock:6,bug:7,ghost:8,steel:9,fire:10,water:11,grass:12,electric:13,psychic:14,ice:15,dragon:16,dark:17,fairy:18}; return map[type]||1; }
 
-function showBattleScreen(){ document.getElementById('raid-list-container').classList.add('hidden'); document.getElementById('admin-toolbar').classList.add('hidden'); document.getElementById('battle-screen').classList.remove('hidden'); }
-function hideBattleScreen(){ document.getElementById('raid-list-container').classList.remove('hidden'); document.getElementById('admin-toolbar').classList.toggle('hidden',!isAdmin); document.getElementById('battle-screen').classList.add('hidden'); if(currentRaidBattle) currentRaidBattle=null; if(currentTurnTimeout) clearTimeout(currentTurnTimeout); battleProcessing=false; }
+function showBattleScreen() {
+    document.getElementById('raid-list-container').classList.add('hidden');
+    document.getElementById('admin-toolbar').classList.add('hidden');
+    document.getElementById('battle-screen').classList.remove('hidden');
+    playBossBattleMusic();
+}
+
+function hideBattleScreen() {
+    document.getElementById('raid-list-container').classList.remove('hidden');
+    document.getElementById('admin-toolbar').classList.toggle('hidden', !isAdmin);
+    document.getElementById('battle-screen').classList.add('hidden');
+    stopBossBattleMusic();
+    if (currentRaidBattle) currentRaidBattle = null;
+    if (currentTurnTimeout) clearTimeout(currentTurnTimeout);
+    battleProcessing = false;
+}
 function addBattleLog(msg){ const log=document.getElementById('battle-log'); log.innerHTML+=`<div>> ${msg}</div>`; log.scrollTop=log.scrollHeight; }
 function toggleBattleUI(disabled){ document.querySelectorAll('.move-btn').forEach(b=>b.disabled=disabled); document.getElementById('switch-btn').disabled=disabled; document.getElementById('escape-btn').disabled=disabled; }
 
@@ -1357,21 +1874,27 @@ async function handlePlayerFaint() {
 }
 
 
-async function endRaidBattle(isVictory){ 
-    if(!currentRaidBattle) return;
-    if(currentTurnTimeout) clearTimeout(currentTurnTimeout);
-    const b=currentRaidBattle;
-    const partRef=doc(db,'raid_participants',`${b.raidId}_${currentUser.uid}`);
-    await runTransaction(db,async (tx)=>{ 
-        const snap=await tx.get(partRef); 
-        let attemptsUsed=snap.exists()?snap.data().attemptsUsed||0:0; 
-        if(attemptsUsed<5) tx.update(partRef,{ attemptsUsed:increment(1), lastAttempt:new Date() }); 
-        else throw new Error('attempt limit'); 
+async function endRaidBattle(isVictory) {
+    if (!currentRaidBattle) return;
+    if (currentTurnTimeout) clearTimeout(currentTurnTimeout);
+    const b = currentRaidBattle;
+    const partRef = doc(db, 'raid_participants', `${b.raidId}_${currentUser.uid}`);
+    
+    await runTransaction(db, async (tx) => {
+        const snap = await tx.get(partRef);
+        let attemptsUsed = snap.exists() ? snap.data().attemptsUsed || 0 : 0;
+        if (attemptsUsed < 5) tx.update(partRef, { attemptsUsed: increment(1), lastAttempt: new Date() });
+        else throw new Error('attempt limit');
     });
+    
     addBattleLog(`Battle ended! Your total damage: ${b.totalDamageAcc.toLocaleString()}. Attempt used.`);
+    
+    // Play victory sound when battle ends
+    playVictorySound();
+    
     hideBattleScreen();
-    loadRaids(); 
-    updateNav(); 
+    loadRaids();
+    updateNav();
 }
 
 async function startRaidBattle(raidId){ 
@@ -1913,6 +2436,25 @@ function renderRewardTiers() {
     attachRewardEventListeners();
 }
 
+// Music toggle button
+const musicToggleBtn = document.getElementById('battle-music-toggle');
+if (musicToggleBtn) {
+    musicToggleBtn.onclick = toggleBattleMusic;
+}
+// Load saved mute preference
+const savedMute = localStorage.getItem('pokesim_boss_music_muted');
+if (savedMute === 'true') {
+    isMusicMuted = true;
+    const musicBtn = document.getElementById('battle-music-toggle');
+    if (musicBtn) {
+        musicBtn.innerHTML = '<i class="fas fa-volume-mute"></i> Music';
+        musicBtn.style.background = '#ff4444';
+        musicBtn.style.color = 'white';
+    }
+}
+
+
+
 function attachRewardEventListeners() {
     // Rank change
     document.querySelectorAll('.reward-rank').forEach(select => {
@@ -2386,6 +2928,27 @@ async function setGlobalCustomSprite(pokemonId, customUrl, isShiny = false) {
     }
 }
 
+// ========== SCARY FLOATING PARTICLES ==========
+function addScaryParticles() {
+    const container = document.querySelector('.battle-ui-container');
+    if (!container || container.querySelector('.particle')) return;
+    
+    for (let i = 0; i < 30; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        particle.style.left = Math.random() * 100 + '%';
+        particle.style.animationDelay = Math.random() * 8 + 's';
+        particle.style.animationDuration = 5 + Math.random() * 5 + 's';
+        particle.style.width = (2 + Math.random() * 4) + 'px';
+        particle.style.height = particle.style.width;
+        particle.style.opacity = 0.3 + Math.random() * 0.5;
+        container.appendChild(particle);
+    }
+}
+
+// Call this when battle starts
+
+
 // Load global custom sprites from Firebase
 async function loadGlobalCustomSprites() {
     try {
@@ -2428,6 +2991,8 @@ document.getElementById('apply-custom-sprite')?.addEventListener('click', async 
     loadRaids();
     if (currentRaidBattle) renderBattleUI();
 });
+
+
 </script>
 </body>
 </html>

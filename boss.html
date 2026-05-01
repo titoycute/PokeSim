@@ -1887,10 +1887,14 @@ async function renderRaidList(raids) {
             <div style="padding:12px; border-top:1px solid var(--border); display:flex; gap:8px; flex-wrap:wrap;">
                 <button class="btn btn-primary btn-sm view-leaderboard" data-id="${raid.id}">🏆 Leaderboard</button>
                 <button class="btn btn-gold btn-sm raid-battle-btn" data-id="${raid.id}" 
-    ${raid.attemptsLeft === 0 || !isActive || (raid.bossCurrentHp <= 0) ? 'disabled' : ''}>
+                
+                ${raid.attemptsLeft === 0 || !isActive || (raid.bossCurrentHp <= 0) ? 'disabled' : ''}>
     ${raid.bossCurrentHp <= 0 ? '☠️ Boss Defeated' : '⚔️ Battle'}
-</button>${isAdmin ? `
-                <button class="btn btn-outline btn-sm view-rewards-btn" data-id="${raid.id}" data-rewards='${JSON.stringify(raid.rewardTiers||[])}'>🎁 Rewards</button>
+</button>
+ <button class="btn btn-outline btn-sm view-rewards-btn" data-id="${raid.id}" data-rewards='${JSON.stringify(raid.rewardTiers||[])}'>🎁 Rewards</button>
+
+${isAdmin ? `
+               
                 <button class="btn btn-outline btn-sm edit-boss-btn" data-id="${raid.id}">✏️ Edit</button>
                 <button class="btn btn-danger btn-sm delete-boss-btn" data-id="${raid.id}">🗑️ Delete</button>
                 <button class="btn btn-warning btn-sm toggle-active-btn" data-id="${raid.id}" data-active="${isActive}" style="background: ${isActive ? '#f39c12' : '#2ecc71'}; color: white; border: none;">${isActive ? '🔒 Deactivate' : '✅ Activate'}</button>

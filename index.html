@@ -4595,6 +4595,7 @@ async function attemptEvolution(pokemonId, speciesId) {
     }
 
     // 2. Gather all possible evolutions (normal + special)
+     const baseId = await getBaseSpeciesId(pokemon.pokemonId);
     let normalTargets = await getAllEvolutionTargets(pokemon);
     let specialTargets = await getSpecialEvolutionTargets(pokemon);
 
@@ -4863,7 +4864,8 @@ async function getAllEvolutionTargets(pokemon) {
 }
 
 async function getSpecialEvolutionTargets(pokemon) {
-    const speciesId = pokemon.pokemonId;
+    // RESOLVE TO ORIGIN: Always look at the base species, even if already Mega/Special
+    const speciesId = await getBaseSpeciesId(pokemon.pokemonId); 
     const level = pokemon.level;
     const targets = [];
 
@@ -4873,7 +4875,9 @@ async function getSpecialEvolutionTargets(pokemon) {
 
         for (const variety of species.varieties) {
             const formName = variety.pokemon.name;
-            if (formName === species.name) continue;
+            
+            // Allow evolving to a different form of the same species
+            if (formName === pokemon.name) continue; 
 
             let requiredLevel = null;
             let type = null;
@@ -4890,8 +4894,7 @@ async function getSpecialEvolutionTargets(pokemon) {
             } else if (formName.includes('-origin')) {
                 type = 'origin';
                 requiredLevel = 300; 
-            }
-            else {
+            } else {
                 continue;
             }
 
@@ -5010,7 +5013,7 @@ async function performEvolution(pokemon, targetId, targetName, targetData) {
         loadingDiv.style.display = 'none';
         continueBtn.style.display = 'block';
 
-        const displayNewName = targetName.replace(/-mega/gi, '').replace(/-gmax/gi, '').toUpperCase();
+        const displayNewName = targetName.split('-')[0].toUpperCase();
         evoTitle.innerText = `Congratulations! ${oldName.toUpperCase()} evolved into ${displayNewName}!`;
 
         continueBtn.onclick = async () => {

@@ -1222,6 +1222,7 @@ let currentRaidBattle = null;
 let battleProcessing = false;
 let currentTurnTimeout = null;
 let raidsUnsub = null;
+let bossDocUnsub = null;
 let leaderboardUnsubs = new Map();
 
 // Music control variables
@@ -2081,20 +2082,22 @@ function showBattleScreen() {
 }
 
 function hideBattleScreen() {
+    // Kill the real-time listener
+    if (bossDocUnsub) {
+        bossDocUnsub();
+        bossDocUnsub = null;
+    }
+
     document.getElementById('raid-list-container').classList.remove('hidden');
-    document.getElementById('admin-toolbar').classList.toggle('hidden', !isAdmin);
+    document.getElementById('admin-toolbar').classList.toggle('hidden',!isAdmin);
     document.getElementById('battle-screen').classList.add('hidden');
     stopBossBattleMusic();
-    // Clean up aura
-    const container = document.querySelector('.battle-ui-container');
-    if (container) {
-        container.classList.remove('battle-aura-legendary','battle-aura-void','battle-aura-cosmic','battle-aura-blaze');
-        container.querySelectorAll('.aura-particle, .particle').forEach(p => p.remove());
-    }
+    
     if (currentRaidBattle) currentRaidBattle = null;
     if (currentTurnTimeout) clearTimeout(currentTurnTimeout);
     battleProcessing = false;
 }
+
 function addBattleLog(msg) {
     const log = document.getElementById('battle-log');
     let cls = 'log-system', icon = '\u25b8';
@@ -2324,68 +2327,69 @@ return defender.currentHp <= 0;
 async function runRaidTurn(selectedMove){ 
     if(battleProcessing) return; 
     
-    // ========== ADD CONCENTRATING MESSAGE ==========
     addBattleLog(`🧠 ${currentRaidBattle.playerTeam[currentRaidBattle.activePlayerIdx].name.toUpperCase()} is concentrating...`);
     
-    battleProcessing=true; 
+    battleProcessing = true; 
     toggleBattleUI(true);
+    
     if(currentTurnTimeout) clearTimeout(currentTurnTimeout);
     
-    currentTurnTimeout=setTimeout(async ()=>{
-        if(!currentRaidBattle){ battleProcessing=false; toggleBattleUI(false); return; }
-        const b=currentRaidBattle;
-        const player=b.playerTeam[b.activePlayerIdx];
-        const bossData=b.bossData;
-        const fakeBoss={ name:bossData.customName||bossData.name, types:bossData.types, level:bossData.level||70, currentHp:99999, maxHp:99999, moves:bossData.moves||[], bonusStats:bossData.bonusStats||{} };
+    currentTurnTimeout = setTimeout(async ()=>{
+        if(!currentRaidBattle) { battleProcessing=false; toggleBattleUI(false); return; }
         
-        // Calculate speed to determine who attacks first
+        const b = currentRaidBattle;
+        const player = b.playerTeam[b.activePlayerIdx];
+        const bossData = b.bossData;
+
+        // Uses ACTUAL HP values updated by the onSnapshot listener
+        const fakeBoss = { 
+            name: bossData.customName || bossData.name, 
+            types: bossData.types, 
+            level: bossData.level || 70, 
+            currentHp: b.bossCurrentHp, 
+            maxHp: b.bossMaxHp, 
+            moves: bossData.moves || [], 
+            bonusStats: bossData.bonusStats || {} 
+        };
+        
         const playerSpeed = getEffectiveSpeedWithBadges(player, true);
         const bossSpeed = getEffectiveSpeedWithBadges(fakeBoss, false);
-        let firstAttacker;
-        if (playerSpeed > bossSpeed) {
-            firstAttacker = 'player';
-        } else if (bossSpeed > playerSpeed) {
-            firstAttacker = 'boss';
-        } else {
-            firstAttacker = Math.random() < 0.5 ? 'player' : 'boss';
-        }
-        addBattleLog(`⚡ Speed: ${player.name} (${playerSpeed}) vs ${fakeBoss.name} (${bossSpeed}) - ${firstAttacker.toUpperCase()} attacks first!`);
+        let firstAttacker = (playerSpeed >= bossSpeed) ? 'player' : 'boss';
+        if (playerSpeed === bossSpeed) firstAttacker = Math.random() < 0.5 ? 'player' : 'boss';
+
+        addBattleLog(`⚡ Speed: ${player.name} (${playerSpeed}) vs Boss (${bossSpeed})`);
         
-        if(firstAttacker==='player'){
-           const bossFaint = executeRaidAttack(player, fakeBoss, selectedMove, true);
-renderBattleUI();
-
-// Check if boss is actually dead (real HP pool)
-if (currentRaidBattle.bossCurrentHp <= 0) {
-    addBattleLog(`🏆 The boss has been DEFEATED! You dealt the finishing blow!`);
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    await endRaidBattle(true);
-    return;
-}
-
-if (bossFaint === false) setTimeout(async () => {
-    if(!currentRaidBattle) return;
-    addBattleLog(`⚔️ The boss prepares to counterattack! ⚔️`);
-    await new Promise(resolve => setTimeout(resolve, 500));
-    const randomMove=fakeBoss.moves[Math.floor(Math.random()*fakeBoss.moves.length)];
-    const playerFaint=executeRaidAttack(fakeBoss,player,randomMove,false);
-    renderBattleUI();
-    if(playerFaint) await handlePlayerFaint();
-    else { battleProcessing=false; toggleBattleUI(false); currentTurnTimeout=null; }
-},1000);
-            else { battleProcessing=false; toggleBattleUI(false); currentTurnTimeout=null; }
-        } else {
-            const randomMove=fakeBoss.moves[Math.floor(Math.random()*fakeBoss.moves.length)];
-            const playerFaint=executeRaidAttack(fakeBoss,player,randomMove,false);
+        if(firstAttacker === 'player'){
+            executeRaidAttack(player, fakeBoss, selectedMove, true);
             renderBattleUI();
-            if(playerFaint) { await handlePlayerFaint(); battleProcessing=false; toggleBattleUI(false); return; }
+
+            if (currentRaidBattle.bossCurrentHp <= 0) {
+                addBattleLog(`🏆 DEFEATED! You dealt the finishing blow!`);
+                setTimeout(() => endRaidBattle(true), 2000);
+                return;
+            }
+
+            setTimeout(async () => {
+                if(!currentRaidBattle) return;
+                const randomMove = fakeBoss.moves[Math.floor(Math.random()*fakeBoss.moves.length)];
+                const playerFaint = executeRaidAttack(fakeBoss, player, randomMove, false);
+                renderBattleUI();
+                if(playerFaint) await handlePlayerFaint();
+                else { battleProcessing = false; toggleBattleUI(false); }
+            }, 1000);
+        } else {
+            const randomMove = fakeBoss.moves[Math.floor(Math.random()*fakeBoss.moves.length)];
+            const playerFaint = executeRaidAttack(fakeBoss, player, randomMove, false);
+            renderBattleUI();
+            if(playerFaint) { await handlePlayerFaint(); return; }
+            
             setTimeout(async ()=>{
                 if(!currentRaidBattle) return;
-                const bossFaint=executeRaidAttack(player,fakeBoss,selectedMove,true);
+                executeRaidAttack(player, fakeBoss, selectedMove, true);
                 renderBattleUI();
-                battleProcessing=false; toggleBattleUI(false);
-                currentTurnTimeout=null;
-            },1000);
+                battleProcessing = false; 
+                toggleBattleUI(false);
+            }, 1000);
         }
     }, 2500);
 }
@@ -2478,33 +2482,62 @@ async function endRaidBattle(isVictory) {
 
 async function startRaidBattle(raidId){ 
     if(!currentUser) return; 
-    const bossSnap=await getDoc(doc(db,'raid_bosses',raidId)); 
-    if(!bossSnap.exists()||!bossSnap.data().isActive){ toast('Raid not active','error'); return; }
-   
-if((bossSnap.data().bossCurrentHp ?? 1) <= 0){ toast('This boss has already been defeated!','error'); return; }
-    const partRef=doc(db,'raid_participants',`${raidId}_${currentUser.uid}`); 
-    const partSnap=await getDoc(partRef); 
-    let attemptsUsed=partSnap.exists()?partSnap.data().attemptsUsed||0:0; 
-    if(attemptsUsed>=5){ toast('No attempts left for this boss','error'); return; }
-    const team=await getUserTeam(); 
-    if(team.length===0){ toast('You have no Pokémon in team','error'); return; }
-    const boss=bossSnap.data();
+    const bossRef = doc(db, 'raid_bosses', raidId);
+    const bossSnap = await getDoc(bossRef); 
+    
+    if(!bossSnap.exists() || !bossSnap.data().isActive){ toast('Raid not active','error'); return; }
+    if((bossSnap.data().bossCurrentHp ?? 1) <= 0){ toast('This boss has already been defeated!','error'); return; }
+
+    const partRef = doc(db, 'raid_participants', `${raidId}_${currentUser.uid}`); 
+    const partSnap = await getDoc(partRef); 
+    let attemptsUsed = partSnap.exists() ? partSnap.data().attemptsUsed || 0 : 0; 
+    if(attemptsUsed >= 5){ toast('No attempts left for this boss','error'); return; }
+
+    const team = await getUserTeam(); 
+    if(team.length === 0){ toast('You have no Pokémon in team','error'); return; }
+
+    const boss = bossSnap.data();
     const selected = await showPreBattleSelectModal(team);
     if(!selected) return;
-    const activeIdx=team.findIndex(p=>p.id===selected.id);
-    team[activeIdx].currentHp=team[activeIdx].maxHp;
-    let totalDamageThisAttempt=0;
-    if(partSnap.exists()) totalDamageThisAttempt=partSnap.data().totalDamage||0;
-    const bossMaxHp = boss.bossMaxHp || 100000;
-const bossCurrentHp = boss.bossCurrentHp || bossMaxHp;
-currentRaidBattle={ raidId, bossData:boss, playerTeam:team, activePlayerIdx:activeIdx, totalDamageAcc:totalDamageThisAttempt, attemptDamageDelta:0, bossCurrentHp, bossMaxHp };
-    if(!partSnap.exists()) await setDoc(partRef,{ raidId, userId:currentUser.uid, trainerName:userData?.trainerName||'Trainer', totalDamage:0, attemptsUsed:0, updatedAt:serverTimestamp() });
+
+    const activeIdx = team.findIndex(p => p.id === selected.id);
+    team[activeIdx].currentHp = team[activeIdx].maxHp;
+    
+    let totalDamageThisAttempt = partSnap.exists() ? partSnap.data().totalDamage || 0 : 0;
+
+    // Initialize local battle object
+    currentRaidBattle = { 
+        raidId, 
+        bossData: boss, 
+        playerTeam: team, 
+        activePlayerIdx: activeIdx, 
+        totalDamageAcc: totalDamageThisAttempt, 
+        attemptDamageDelta: 0, 
+        bossCurrentHp: boss.bossCurrentHp || boss.bossMaxHp, 
+        bossMaxHp: boss.bossMaxHp || 100000 
+    };
+
+    // START REAL-TIME BOSS HP LISTENER
+    if (bossDocUnsub) bossDocUnsub();
+    bossDocUnsub = onSnapshot(bossRef, (doc) => {
+        if (doc.exists() && currentRaidBattle) {
+            const data = doc.data();
+            currentRaidBattle.bossCurrentHp = data.bossCurrentHp;
+            renderBattleUI(); // Update HP bar in real-time
+            
+            if (data.bossCurrentHp <= 0 && !battleProcessing) {
+                addBattleLog("📢 The World Boss has been defeated by the community!");
+                setTimeout(() => endRaidBattle(true), 2000);
+            }
+        }
+    });
+
+    if(!partSnap.exists()) await setDoc(partRef, { raidId, userId: currentUser.uid, trainerName: userData?.trainerName || 'Trainer', totalDamage: 0, attemptsUsed: 0, updatedAt: serverTimestamp() });
+    
     showBattleScreen();
     renderBattleUI();
-    addBattleLog(`⚔️ RAID BATTLE: ${boss.customName||boss.name} ⚔️`);
-    addBattleLog(`Each attack adds to global damage!`);
+    addBattleLog(`⚔️ RAID BATTLE: ${boss.customName || boss.name} ⚔️`);
 }
-
 // ---------- MODALS ----------
 async function showPreBattleSelectModal(team){
     return new Promise((resolve)=>{

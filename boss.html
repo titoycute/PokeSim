@@ -2200,128 +2200,80 @@ loadImageWithCustomFallback(playerSprite, playerUrls, player.pokemonId, player.i
 }
 
 async function updateRaidDamage(incrementDamage){ 
-    if(!currentRaidBattle||incrementDamage<=0) return; 
-    const {raidId}=currentRaidBattle; 
-    const partRef=doc(db,'raid_participants',`${raidId}_${currentUser.uid}`); 
-    try{ 
-      await updateDoc(partRef, { totalDamage: increment(incrementDamage), updatedAt: serverTimestamp() });
-await updateDoc(doc(db, 'raid_bosses', raidId), { bossCurrentHp: increment(-incrementDamage) });
+    if(!currentRaidBattle || incrementDamage <= 0) return; 
+    
+    const { raidId } = currentRaidBattle; 
+    const partRef = doc(db, 'raid_participants', `${raidId}_${currentUser.uid}`); 
+    const bossRef = doc(db, 'raid_bosses', raidId);
 
-currentRaidBattle.totalDamageAcc+=incrementDamage; 
-        currentRaidBattle.attemptDamageDelta+=incrementDamage; 
-        document.getElementById('e-damage-text').innerHTML=`Total Damage: ${currentRaidBattle.totalDamageAcc.toLocaleString()}`; 
-       currentRaidBattle.bossCurrentHp = Math.max(0, currentRaidBattle.bossCurrentHp - incrementDamage);
-    }catch(e){ console.warn(e); } 
+    try { 
+        // We do NOT set the HP. We tell the server: "Subtract this amount from whatever the current total is."
+        const batch = writeBatch(db);
+        
+        // 1. Increment player's total contribution
+        batch.update(partRef, { 
+            totalDamage: increment(incrementDamage), 
+            updatedAt: serverTimestamp() 
+        });
+
+        // 2. Atomically subtract from Boss HP
+        batch.update(bossRef, { 
+            bossCurrentHp: increment(-incrementDamage) 
+        });
+
+        await batch.commit();
+
+        // Update local UI counters (Visual only, onSnapshot will override this shortly)
+        currentRaidBattle.totalDamageAcc += incrementDamage; 
+        currentRaidBattle.attemptDamageDelta += incrementDamage; 
+        
+    } catch(e) { 
+        console.error("Atomic Update Failed:", e); 
+    } 
 }
 
 const typeEffectiveness = { normal:{rock:0.5,ghost:0,steel:0.5}, fire:{fire:0.5,water:0.5,grass:2,ice:2,bug:2,rock:0.5,dragon:0.5,steel:2}, water:{fire:2,water:0.5,grass:0.5,ground:2,rock:2,dragon:0.5}, electric:{water:2,electric:0.5,grass:0.5,ground:0,flying:2,dragon:0.5}, grass:{fire:0.5,water:2,grass:0.5,poison:0.5,ground:2,flying:0.5,bug:0.5,rock:2,dragon:0.5,steel:0.5}, ice:{fire:0.5,water:0.5,grass:2,ice:0.5,ground:2,flying:2,dragon:2,steel:0.5}, fighting:{normal:2,ice:2,rock:2,dark:2,steel:2,poison:0.5,flying:0.5,psychic:0.5,bug:0.5,ghost:0,fairy:0.5}, poison:{grass:2,fairy:2,poison:0.5,ground:0.5,rock:0.5,ghost:0.5,steel:0}, ground:{fire:2,electric:2,poison:2,rock:2,steel:2,grass:0.5,bug:0.5,flying:0}, flying:{grass:2,fighting:2,bug:2,electric:0.5,rock:0.5,steel:0.5}, psychic:{fighting:2,poison:2,psychic:0.5,dark:0,steel:0.5}, bug:{grass:2,psychic:2,dark:2,fire:0.5,fighting:0.5,poison:0.5,flying:0.5,ghost:0.5,steel:0.5,fairy:0.5}, rock:{fire:2,ice:2,flying:2,bug:2,fighting:0.5,ground:0.5,steel:0.5}, ghost:{psychic:2,ghost:2,normal:0,dark:0.5}, dragon:{dragon:2,steel:0.5,fairy:0}, dark:{fighting:0.5,psychic:2,ghost:2,dark:0.5,fairy:0.5}, steel:{ice:2,rock:2,fairy:2,fire:0.5,water:0.5,electric:0.5,steel:0.5}, fairy:{fighting:2,dragon:2,dark:2,fire:0.5,poison:0.5,steel:0.5} };
 function getTypeEffectiveness(atk, def){ let m=1; for(let d of def) if(typeEffectiveness[atk] && typeEffectiveness[atk][d]) m*=typeEffectiveness[atk][d]; return m; }
 
 function executeRaidAttack(attacker, defender, move, isPlayerAttacking) {
-    // Get type effectiveness
     let eff = getTypeEffectiveness(move.type, defender.types);
     let effText = eff === 2 ? 'Super effective!' : (eff === 0.5 ? 'Not very effective...' : (eff === 0 ? 'No effect' : ''));
     let isCritical = eff === 2;
     
-    // Calculate base damage
     let dmg = Math.floor((move.power / 5) * (attacker.level / 2) * eff);
     if (dmg < 1 && eff > 0) dmg = 1;
     
-    // STAB (Same Type Attack Bonus)
-    let stab = 1;
-    if (attacker.types && attacker.types.includes(move.type)) {
-        stab = 1.5;
-        addBattleLog(`✨ STAB: ${move.type.toUpperCase()} move matches ${attacker.name.toUpperCase()}'s type!`);
-    }
-    dmg = Math.floor(dmg * stab);
+    // STAB and Bonuses
+    if (attacker.types && attacker.types.includes(move.type)) dmg = Math.floor(dmg * 1.5);
+    if (attacker.bonusStats?.atk) dmg = Math.floor(dmg * 1.25);
+    if (defender.bonusStats?.def) dmg = Math.floor(dmg * 0.75);
     
-    // Wild bonuses
-    if (attacker.bonusStats?.atk) {
-        dmg = Math.floor(dmg * 1.25);
-        addBattleLog(`⚔️ Wild ATK bonus: +25% damage!`);
-    }
-    if (defender.bonusStats?.def) {
-        dmg = Math.floor(dmg * 0.75);
-        addBattleLog(`🛡️ Wild DEF bonus: -25% damage taken!`);
-    }
-    
-    // Form bonuses
     const formBonuses = getSpecialFormBonuses(attacker.name, attacker.pokemonId);
-    if (formBonuses.atk > 0) {
-        dmg = Math.floor(dmg * (1 + formBonuses.atk / 100));
-        addBattleLog(`✨ Form bonus: +${formBonuses.atk}% damage!`);
-    }
-    
-    const defenderFormBonuses = getSpecialFormBonuses(defender.name, defender.pokemonId);
-    if (defenderFormBonuses.def > 0) {
-        dmg = Math.floor(dmg * (1 - defenderFormBonuses.def / 100));
-        addBattleLog(`🛡️ Form defense: -${defenderFormBonuses.def}% damage taken!`);
-    }
-    
-    // Badge effects
-    if (isPlayerAttacking) {
-        const atkBonus = getTotalBadgeBonus('atk', move.type);
-        if (atkBonus > 0) {
-            dmg = Math.floor(dmg * (1 + atkBonus / 100));
-            addBattleLog(`⚔️ Badge boost: +${atkBonus}% damage (${move.type})!`);
-        }
-        const universalAtkBonus = getTotalBadgeBonus('atk', '');
-        if (universalAtkBonus > 0 && atkBonus === 0) {
-            dmg = Math.floor(dmg * (1 + universalAtkBonus / 100));
-            addBattleLog(`⚔️ Badge boost: +${universalAtkBonus}% damage (all types)!`);
-        }
-    } else {
-        const defBonus = getTotalBadgeBonus('def', move.type);
-        if (defBonus > 0) {
-            dmg = Math.floor(dmg * (1 - defBonus / 100));
-            addBattleLog(`🛡️ Badge protection: -${defBonus}% damage from ${move.type} moves!`);
-        }
-    }
-    
-    // Apply damage
-    const oldHp = defender.currentHp;
-    defender.currentHp = Math.max(0, Math.floor(defender.currentHp - dmg));
-    const actualDamage = oldHp - defender.currentHp;
-    
-    // Show floating damage on sprite
-    const targetSprite = isPlayerAttacking ? document.getElementById('e-sprite-btl') : document.getElementById('p-sprite-btl');
-    if (actualDamage > 0) {
-        showFloatingDamage(actualDamage, targetSprite, isCritical, false, false, move.type);
-    } else if (eff === 0) {
-        showFloatingDamage(0, targetSprite, false, false, true, move.type);
-    }
-    
-    // Log the attack
-    if (isPlayerAttacking) {
-        updateRaidDamage(actualDamage);
-        addBattleLog(`${attacker.name.toUpperCase()} used ${move.name.toUpperCase()}! Deals ${actualDamage} dmg! ${effText} (+${actualDamage} raid dmg)`);
-    } else {
-        addBattleLog(`${attacker.name.toUpperCase()} used ${move.name.toUpperCase()}! Deals ${actualDamage} dmg! ${effText}`);
-    }
-    
-    // Shake effect on hit
-    if (targetSprite && actualDamage > 0) {
-        const shakeClass = isCritical ? 'shake-effect-hard' : 'shake-effect';
-        targetSprite.classList.remove('shake-effect', 'shake-effect-hard');
-        void targetSprite.offsetWidth;
-        targetSprite.classList.add(shakeClass);
-        setTimeout(() => { if (targetSprite) targetSprite.classList.remove(shakeClass, 'shake-effect', 'shake-effect-hard'); }, 650);
-    }
-    
-    // Faint check
-    // Faint check — skip for boss (boss HP is tracked globally, not here)
-if (defender.currentHp <= 0 && !isPlayerAttacking) {
-    addBattleLog(`💀 ${defender.name.toUpperCase()} has fainted! 💀`);
-    if (targetSprite) {
-        targetSprite.style.transition = 'opacity 0.5s';
-        targetSprite.style.opacity = '0.5';
-        setTimeout(() => {
-            if (targetSprite) targetSprite.style.opacity = '1';
-        }, 500);
-    }
-}
+    if (formBonuses.atk > 0) dmg = Math.floor(dmg * (1 + formBonuses.atk / 100));
 
-return defender.currentHp <= 0;
+    // APPLY DAMAGE
+    if (isPlayerAttacking) {
+        // IMPORTANT: We do NOT subtract from defender.currentHp here manually
+        // We only trigger the atomic database update
+        updateRaidDamage(dmg);
+        addBattleLog(`${attacker.name.toUpperCase()} used ${move.name.toUpperCase()}! Deals ${dmg} dmg! ${effText}`);
+    } else {
+        // Player HP is local to you, so we subtract normally
+        defender.currentHp = Math.max(0, Math.floor(defender.currentHp - dmg));
+        addBattleLog(`💥 Boss used ${move.name.toUpperCase()}! Deals ${dmg} dmg!`);
+    }
+    
+    // Visual Effects
+    const targetSprite = isPlayerAttacking ? document.getElementById('e-sprite-btl') : document.getElementById('p-sprite-btl');
+    showFloatingDamage(dmg, targetSprite, isCritical, false, (eff === 0), move.type);
+    
+    if (targetSprite && dmg > 0) {
+        const shakeClass = isCritical ? 'shake-effect-hard' : 'shake-effect';
+        targetSprite.classList.add(shakeClass);
+        setTimeout(() => targetSprite.classList.remove(shakeClass), 650);
+    }
+    
+    return defender.currentHp <= 0;
 }
 
 async function runRaidTurn(selectedMove){ 
@@ -2361,23 +2313,27 @@ async function runRaidTurn(selectedMove){
         
         if(firstAttacker === 'player'){
             executeRaidAttack(player, fakeBoss, selectedMove, true);
-            renderBattleUI();
-
-            if (currentRaidBattle.bossCurrentHp <= 0) {
-                addBattleLog(`🏆 DEFEATED! You dealt the finishing blow!`);
-                setTimeout(() => endRaidBattle(true), 2000);
-                return;
-            }
-
+            
+            // Give the server a moment to process the increment and fire the onSnapshot
             setTimeout(async () => {
                 if(!currentRaidBattle) return;
+
+                // Check global HP instead of local fakeBoss HP
+                if (currentRaidBattle.bossCurrentHp <= 0) {
+                    addBattleLog(`🏆 DEFEATED! The boss has fallen!`);
+                    setTimeout(() => endRaidBattle(true), 2000);
+                    return;
+                }
+
                 const randomMove = fakeBoss.moves[Math.floor(Math.random()*fakeBoss.moves.length)];
                 const playerFaint = executeRaidAttack(fakeBoss, player, randomMove, false);
                 renderBattleUI();
+                
                 if(playerFaint) await handlePlayerFaint();
                 else { battleProcessing = false; toggleBattleUI(false); }
-            }, 1000);
-        } else {
+            }, 1200); // 1.2s delay to let onSnapshot catch up
+        }else {
+          
             const randomMove = fakeBoss.moves[Math.floor(Math.random()*fakeBoss.moves.length)];
             const playerFaint = executeRaidAttack(fakeBoss, player, randomMove, false);
             renderBattleUI();

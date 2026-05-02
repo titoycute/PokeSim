@@ -1820,7 +1820,7 @@ async function openRedeemModal(existing=null){
       const sp=await fetchSpecies(pid).catch(()=>({is_legendary:false,is_mythical:false}));
       let moves=[...selMoves];
       while(moves.length<4)moves.push({name:'tackle',type:'normal',power:40,accuracy:100,effect:'-',effectAccuracy:'-',icon:'🔘'});
-      const data={pokemonId:pid,name:p.name,types:p.types.map(t=>t.type.name),level,moves:moves.slice(0,4),stock,bonusStats:{atk,def,spd},isShiny,isSpecial:sp.is_legendary||sp.is_mythical};
+      const data={code: isEdit ? existing.code : genCode().toUpperCase(),pokemonId:pid,name:p.name,types:p.types.map(t=>t.type.name),level,moves:moves.slice(0,4),stock,bonusStats:{atk,def,spd},isShiny,isSpecial:sp.is_legendary||sp.is_mythical};
       if(expiryStr)data.expiry=new Date(expiryStr); else data.expiry=null;
       if(isEdit){
         await updateDoc(doc(db,'redeem_codes',existing.id),{pokemonId:data.pokemonId,name:data.name,types:data.types,level:data.level,moves:data.moves,stock:data.stock,bonusStats:data.bonusStats,isShiny:data.isShiny,isSpecial:data.isSpecial,expiry:data.expiry});
@@ -1837,39 +1837,84 @@ async function openRedeemModal(existing=null){
 function genCode(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<8;i++)s+=c[Math.floor(Math.random()*c.length)];return s;}
 async function deleteRedeem(id){if(!confirm('Delete this code?'))return;await deleteDoc(doc(db,'redeem_codes',id));loadRedeem();toast('Deleted.','success');}
 
-async function redeemByCode(codeStr){
-  const code=codeStr.trim().toUpperCase();
-  if(!code){toast('Enter a code.','error');return false;}
-  try{
-    const q=query(collection(db,'redeem_codes'),where('code','==',code));
-    const snap=await getDocs(q);
-    if(snap.empty){toast('Invalid or expired code.','error');return false;}
-    const codeDoc=snap.docs[0]; const cd=codeDoc.data();
-    const now=new Date(); const exp=cd.expiry?cd.expiry.toDate():null;
-    if(cd.stock<=0){toast('No stock remaining.','error');return false;}
-    if(exp&&exp<now){toast('Code expired.','error');return false;}
+async function redeemByCode(codeStr) {
+  const code = codeStr.trim().toUpperCase(); // Ensure input is Uppercase
+  if (!code) { toast('Please enter a code.', 'error'); return false; }
+
+  try {
+    // 1. Find the code document
+    const q = query(collection(db, 'redeem_codes'), where('code', '==', code));
+    const snap = await getDocs(q);
+
+    if (snap.empty) {
+      toast('Invalid or expired code. (Check for typos!)', 'error');
+      return false;
+    }
+
+    const codeDoc = snap.docs[0];
+    const cd = codeDoc.data();
+    const now = new Date();
+    const exp = cd.expiry ? cd.expiry.toDate() : null;
+
+    // 2. Immediate checks before starting transaction (Saves usage)
+    if (cd.stock <= 0) { toast('This code has run out of stock.', 'error'); return false; }
+    if (exp && exp < now) { toast('This code has expired.', 'error'); return false; }
+
+    // 3. Check if user already claimed this specific code
     const claimRef = doc(db, 'redeem_codes', codeDoc.id, 'claims', currentUser.uid);
-let redeemed;
-await runTransaction(db, async tx => {
-    // ✅ Check claim INSIDE transaction — prevents double-redeem on fast double-tap
-    const claimSnap = await tx.get(claimRef);
-    if (claimSnap.exists()) throw new Error('Already redeemed.');
+    const claimSnap = await getDoc(claimRef);
+    if (claimSnap.exists()) {
+      toast('You have already redeemed this code!', 'error');
+      return false;
+    }
 
-    const ref = doc(db, 'redeem_codes', codeDoc.id);
-    const s2 = await tx.get(ref); if (!s2.exists()) throw new Error('Gone.');
-    const d = s2.data();
-    const np = { pokemonId: d.pokemonId, name: d.name, level: d.level, exp: 0, moves: d.moves, types: d.types, inTeam: false, capturedAt: new Date(), bonusStats: d.bonusStats, isSpecial: d.isSpecial || false, isShiny: d.isShiny || false };
-    tx.set(doc(collection(db, 'users', currentUser.uid, 'pokemon')), np);
-    d.stock === 1 ? tx.delete(ref) : tx.update(ref, { stock: increment(-1) });
-    tx.set(claimRef, { redeemedAt: serverTimestamp() });
-    redeemed = np;
-});
-    showReward(redeemed,'🎉 Code Redeemed!','Pokémon added to your collection!');
-    invalidatePokeCache(); loadRedeem(); updateNav(true);
+    let redeemedPokemon;
+
+    // 4. Atomic Transaction for stock reduction and pokemon delivery
+    await runTransaction(db, async (tx) => {
+      const freshCodeRef = doc(db, 'redeem_codes', codeDoc.id);
+      const s2 = await tx.get(freshCodeRef);
+      
+      if (!s2.exists()) throw new Error('Code no longer exists.');
+      const d = s2.data();
+      if (d.stock <= 0) throw new Error('Stock ran out just now!');
+
+      // Create the Pokemon data
+      redeemedPokemon = {
+        pokemonId: d.pokemonId,
+        name: d.name,
+        level: d.level || 50,
+        exp: 0,
+        moves: d.moves || [],
+        types: d.types || [],
+        inTeam: false,
+        capturedAt: new Date(),
+        bonusStats: d.bonusStats || { atk: false, def: false, spd: false },
+        isSpecial: d.isSpecial || false,
+        isShiny: d.isShiny || false,
+        capturedBy: userData?.trainerName || 'System',
+        capturedOnMap: 'Redeem Code'
+      };
+
+      // Apply Updates
+      tx.set(doc(collection(db, 'users', currentUser.uid, 'pokemon')), redeemedPokemon);
+      tx.update(freshCodeRef, { stock: increment(-1) });
+      tx.set(claimRef, { redeemedAt: serverTimestamp(), trainerName: userData?.trainerName });
+    });
+
+    // 5. Success UI
+    showReward(redeemedPokemon, '🎉 Code Redeemed!', `You received ${redeemedPokemon.name.toUpperCase()}!`);
+    invalidatePokeCache(); 
+    loadRedeem(); 
+    updateNav(true);
     return true;
-  }catch(e){toast(e.message,'error');return false;}
-}
 
+  } catch (e) {
+    console.error("Redeem Error:", e);
+    toast(e.message || 'Redemption failed.', 'error');
+    return false;
+  }
+}
 // ══════════════════════════════════════
 // AUCTION TAB
 // ══════════════════════════════════════

@@ -645,7 +645,20 @@ async function ensureMoveDB(){
     for(let i=0;i<list.length;i+=50){
       const batch=list.slice(i,i+50).map(m=>cachedFetch(m.url).catch(()=>null)); // ✅ cachedFetch
       const results=await Promise.all(batch);
-      for(const d of results){ if(d&&d.power&&d.accuracy&&d.power>0&&d.accuracy>0){ details.push({name:d.name,type:d.type.name,power:d.power,accuracy:d.accuracy}); } }
+    // --- Inside ensureMoveDB() loop ---
+for (const d of results) {
+  // Logic: Include anything that is NOT a "status" move.
+  // This captures Z-Moves, Max Moves, and Fixed-Damage moves.
+  if (d && d.damage_class && d.damage_class.name !== 'status') { 
+    details.push({
+      name: d.name,
+      type: d.type.name,
+      // Fallback to 0 for power (like Seismic Toss) or 100 for accuracy (like Swift)
+      power: d.power || 0, 
+      accuracy: d.accuracy || 100 
+    });
+  }
+}
     }
     moveDatabase=details;
     // ✅ Save to localStorage — next visit skips all 2000+ fetches
@@ -717,29 +730,37 @@ function renderMoveSelector(containerId, currentMoves, onChange){
       renderTable(); updatePreview(); if(onChange)onChange(selected);
     };});
   };
-  const renderTable=()=>{
-    const q=search.value.toLowerCase();
-    const list=moveDatabase.filter(m=>m.name.includes(q)).slice(0,150);
-    if(!list.length&&!moveDatabase.length){
-      tbody.innerHTML=`<tr><td colspan="5" style="text-align:center;padding:16px;color:var(--text-light);">⌛ Move database loading... type a move name to search.</td></tr>`;
+ const renderTable=()=>{
+    const q=search.value.toLowerCase().trim();
+    // Search by move name or move type
+    const list=moveDatabase.filter(m=>m.name.includes(q) || m.type.includes(q)).slice(0, 150);
+    
+    if(!list.length && moveDatabase.length > 0){
+      tbody.innerHTML=`<tr><td colspan="5" style="text-align:center;padding:16px;color:var(--text-light);">No moves found matching "${q}"</td></tr>`;
       return;
     }
+    
     tbody.innerHTML=list.map(m=>`
       <tr data-name="${m.name}">
-        <td>${m.name.toUpperCase()}</td>
+        <td style="font-weight:600;">${m.name.toUpperCase().replace(/-/g, ' ')}</td>
         <td><span class="type-badge" style="background:${typeColor(m.type)}">${m.type.toUpperCase()}</span></td>
-        <td>${m.power}</td>
-        <td>${m.accuracy}%</td>
+        <td style="text-align:center;">${m.power > 0 ? m.power : '—'}</td>
+        <td style="text-align:center;">${m.accuracy ? m.accuracy + '%' : '∞'}</td>
         <td class="move-check"><input type="checkbox" ${selected.some(s=>s.name===m.name)?'checked':''}></td>
       </tr>`).join('');
+    
+    // Re-attach event listeners
     tbody.querySelectorAll('tr').forEach(tr=>{
       const name=tr.dataset.name;
       const move=list.find(m=>m.name===name);
       tr.querySelector('input').onchange=e=>{
         if(e.target.checked){
           if(selected.length>=4){toast('Max 4 moves.','error');e.target.checked=false;return;}
-          selected.push({name:move.name,type:move.type,power:move.power,accuracy:move.accuracy,effect:'-',effectAccuracy:'-',icon:'✨'});
-        }else{const i=selected.findIndex(s=>s.name===name);if(i!==-1)selected.splice(i,1);}
+          selected.push({name:move.name,type:move.type,power:move.power,accuracy:move.accuracy,icon:'✨'});
+        }else{
+          const i=selected.findIndex(s=>s.name===name);
+          if(i!==-1)selected.splice(i,1);
+        }
         updatePreview(); if(onChange)onChange(selected);
       };
     });
@@ -754,7 +775,25 @@ function renderMoveSelector(containerId, currentMoves, onChange){
 function getSpecialFormBonuses(pokemonName, pokemonId) {
     const name = pokemonName.toLowerCase();
     let atk = 0, def = 0, spd = 0;
+// --- Inside getSpecialFormBonuses(pokemonName, pokemonId) ---
 
+// Terapagos Forms
+if (name.includes('terapagos-stellar') || pokemonId === 10277) {
+    return { atk: 15, def: 15, spd: 15 }; // Stellar Form (+15% massive boost)
+}
+if (name.includes('terapagos-terastal') || pokemonId === 10276) {
+    return { atk: 10, def: 10, spd: 10 }; // Terastal Form (+10% boost)
+}
+
+// Ogerpon Masks (Standard boost for special forms)
+if (name.includes('ogerpon-wellspring') || name.includes('ogerpon-hearthflame') || name.includes('ogerpon-cornerstone')) {
+    return { atk: 5, def: 3, spd: 3 };
+}
+
+// Palafin Hero Form
+if (name === 'palafin-hero' || pokemonId === 10252) {
+    return { atk: 12, def: 5, spd: 5 };
+}
     // Gigantamax / Dynamax
     if (name.includes('-gmax') || name === 'dynamax') {
         atk = 10; def = 10; spd = 10;
@@ -823,6 +862,8 @@ function getSpecialFormBonuses(pokemonName, pokemonId) {
 function getSpecialBadgeInfo(pokemonId, pokemonName) {
     const name = pokemonName.toLowerCase();
     
+// --- Inside getSpecialBadgeInfo(pokemonId, pokemonName) ---
+
     // Mega
     if (name.includes('-mega')) return { text: 'MEGA', style: 'background: linear-gradient(135deg, #3399ff, #1a66cc);' };
     // Gigantamax
@@ -2637,6 +2678,8 @@ document.querySelectorAll('.tab').forEach(btn=>btn.onclick=()=>switchTab(btn.dat
 // AUTH
 // ══════════════════════════════════════
 onAuthStateChanged(auth, async(user)=>{
+ // Add this line at the start of onAuthStateChanged to clear old move data
+localStorage.removeItem('pokesim_move_db_mrkt_v1');
   if(!user){window.location.href='index.html';return;}
   currentUser=user;
   const ud=(await getDoc(doc(db,'users',user.uid))).data();

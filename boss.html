@@ -1784,23 +1784,48 @@ function loadRaids(){
         q = query(collection(db, 'raid_bosses'), where('isActive', '==', true));
     }
     
-    raidsUnsub = onSnapshot(q, async (snap)=>{ 
-        const raids=[]; 
-        for(const docSnap of snap.docs){ 
-            const boss={ id:docSnap.id, ...docSnap.data() }; 
-            if(currentUser){ 
-                const partRef=doc(db,'raid_participants',`${boss.id}_${currentUser.uid}`); 
-                const partSnap=await getDoc(partRef); 
-                boss.userDamage=partSnap.exists()?partSnap.data().totalDamage||0:0; 
-                boss.attemptsLeft = Math.max(0, 5 - (partSnap.exists()?partSnap.data().attemptsUsed||0:0)); 
-            } else { 
-                boss.userDamage=0; 
-                boss.attemptsLeft=0; 
-            } 
-            raids.push(boss); 
+    // --- Inside loadRaids snapshot loop ---
+raidsUnsub = onSnapshot(q, async (snap) => { 
+    const raids = []; 
+    for (const docSnap of snap.docs) { 
+        const boss = { id: docSnap.id, ...docSnap.data() }; 
+        if (currentUser) { 
+            const partRef = doc(db, 'raid_participants', `${boss.id}_${currentUser.uid}`); 
+            const partSnap = await getDoc(partRef); 
+            
+            if (partSnap.exists()) {
+                const pData = partSnap.data();
+                const lastDate = pData.lastAttempt ? pData.lastAttempt.toDate().toDateString() : null;
+                const today = new Date().toDateString();
+
+                // AUTOMATIC RESET LOGIC: If the last attempt was not today, reset count to 0
+                if (lastDate && lastDate !== today) {
+                  boss.attemptsLeft = 5;
+                } else {
+                  boss.attemptsLeft = Math.max(0, 5 - (pData.attemptsUsed || 0));
+if (boss.attemptsLeft === 0) {
+    const now = new Date();
+    const midnight = new Date();
+    midnight.setHours(24, 0, 0, 0); // next midnight
+    const diffMs = midnight - now;
+    const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    boss.resetCountdown = `${diffHrs}h ${diffMins}m`;
+}
+                }
+                boss.userDamage = pData.totalDamage || 0; 
+            } else {
+                boss.userDamage = 0;
+                boss.attemptsLeft = 5;
+            }
+        } else { 
+            boss.userDamage = 0; 
+            boss.attemptsLeft = 0; 
         } 
-        renderRaidList(raids); 
-    }); 
+        raids.push(boss); 
+    } 
+    renderRaidList(raids); 
+});
 }
 
 async function renderRaidList(raids) {
@@ -1882,7 +1907,13 @@ async function renderRaidList(raids) {
             <div class="raid-stats">
                 <div class="raid-damage"><i class="fas fa-bolt"></i> Your dmg: ${(raid.userDamage || 0).toLocaleString()}</div>
                 <div><br></div>
-                <div class="raid-attempts"><i class="fas fa-fist-raised"></i> Attempts left: ${raid.attemptsLeft}/5</div>
+               <div class="raid-attempts">
+    <i class="fas fa-fist-raised"></i> Attempts left: ${raid.attemptsLeft}/5
+    ${raid.attemptsLeft === 0 ? `
+        <div style="font-size:0.65rem; color:#ff9966; margin-top:4px;">
+            🕛 Resets at midnight (${raid.resetCountdown})
+        </div>` : ''}
+</div>
             </div>
             <div id="leaderboard-${raid.id}" class="leaderboard-preview">Loading rankings...</div>
             <div style="padding:12px; border-top:1px solid var(--border); display:flex; gap:8px; flex-wrap:wrap;">
@@ -2419,13 +2450,28 @@ async function endRaidBattle(isVictory) {
     const b = currentRaidBattle;
     const partRef = doc(db, 'raid_participants', `${b.raidId}_${currentUser.uid}`);
     
-    await runTransaction(db, async (tx) => {
+await runTransaction(db, async (tx) => {
         const snap = await tx.get(partRef);
-        let attemptsUsed = snap.exists() ? snap.data().attemptsUsed || 0 : 0;
-        if (attemptsUsed < 5) tx.update(partRef, { attemptsUsed: increment(1), lastAttempt: new Date() });
-        else throw new Error('attempt limit');
+        // We update the timestamp every single time an attempt is recorded
+        if (snap.exists()) {
+            tx.update(partRef, { 
+                attemptsUsed: increment(1), 
+                lastAttempt: serverTimestamp() // <--- Ensure this is recorded
+            });
+        } else {
+            // Should not happen if startRaidBattle worked, but for safety:
+            tx.set(partRef, {
+                raidId: b.raidId,
+                userId: currentUser.uid,
+                trainerName: userData?.trainerName || 'Trainer',
+                totalDamage: b.attemptDamageDelta,
+                attemptsUsed: 1,
+                lastAttempt: serverTimestamp(),
+                updatedAt: serverTimestamp()
+            });
+        }
     });
-    
+  
     addBattleLog(`Battle ended! Your total damage: ${b.totalDamageAcc.toLocaleString()}. Attempt used.`);
     
     // Play victory sound when battle ends
@@ -2446,8 +2492,26 @@ async function startRaidBattle(raidId){
 
     const partRef = doc(db, 'raid_participants', `${raidId}_${currentUser.uid}`); 
     const partSnap = await getDoc(partRef); 
-    let attemptsUsed = partSnap.exists() ? partSnap.data().attemptsUsed || 0 : 0; 
-    if(attemptsUsed >= 5){ toast('No attempts left for this boss','error'); return; }
+let attemptsUsed = 0;
+
+    if (partSnap.exists()) {
+        const pData = partSnap.data();
+        const lastDate = pData.lastAttempt ? pData.lastAttempt.toDate().toDateString() : null;
+        const today = new Date().toDateString();
+
+        if (lastDate && lastDate !== today) {
+            // It's a new day! Reset attempts in database
+            await updateDoc(partRef, { attemptsUsed: 0 });
+            attemptsUsed = 0;
+        } else {
+            attemptsUsed = pData.attemptsUsed || 0;
+        }
+    }
+
+    if (attemptsUsed >= 5) { 
+        toast('No attempts left for today. Come back tomorrow!', 'error'); 
+        return; 
+    }
 
     const team = await getUserTeam(); 
     if(team.length === 0){ toast('You have no Pokémon in team','error'); return; }
@@ -2489,7 +2553,8 @@ async function startRaidBattle(raidId){
     });
 
     if(!partSnap.exists()) await setDoc(partRef, { raidId, userId: currentUser.uid, trainerName: userData?.trainerName || 'Trainer', totalDamage: 0, attemptsUsed: 0, updatedAt: serverTimestamp() });
-    
+    // Stamp the attempt start time immediately so the date is always today's date
+await updateDoc(partRef, { lastAttempt: serverTimestamp() });
     showBattleScreen();
     renderBattleUI();
     addBattleLog(`⚔️ RAID BATTLE: ${boss.customName || boss.name} ⚔️`);

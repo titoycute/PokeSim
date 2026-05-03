@@ -722,6 +722,7 @@
         <div id="p-xp-text" style="font-size:0.7rem; margin-top:4px;"></div>
     </div>
 </div>
+<div id="battle-team-icons" style="display: flex; justify-content: flex-end; gap: 6px; margin-bottom: 8px;"></div>
 <div id="battle-log"></div>
             <div id="battle-moves"></div>
             <div class="catch-area">
@@ -1367,12 +1368,16 @@ function executeAttack(attacker, defender, move, isPlayerAttacking) {
     if (dmg < 1 && eff > 0) dmg = 1;
     dmg = applyDamageModifiers(dmg, attacker.bonusStats, defender.bonusStats);
     
+    const oldHp = defender.currentHp;
     defender.currentHp = Math.max(0, defender.currentHp - dmg);
-    const sprite = isPlayerAttacking ? document.getElementById('e-sprite-btl') : document.getElementById('p-sprite-btl');
+    const actualDamage = oldHp - defender.currentHp;
     
-    if (dmg > 0) {
-        // Trigger colored visuals passing move.type
-        showFloatingDamage(dmg, sprite, isCritical, isSuperEffective, false, false, move.type);
+    const sprite = isPlayerAttacking ? document.getElementById('e-sprite-btl') : document.getElementById('p-sprite-btl');
+    if (currentBattle) {
+        renderTeamIcons();
+    }
+    if (actualDamage > 0) {
+        showFloatingDamage(actualDamage, sprite, isCritical, isSuperEffective, false, false, move.type);
         const shakeClass = (isCritical || isSuperEffective) ? 'shake-effect-hard' : 'shake-effect';
         if (sprite) {
             sprite.classList.remove('shake-effect', 'shake-effect-hard');
@@ -1383,7 +1388,17 @@ function executeAttack(attacker, defender, move, isPlayerAttacking) {
         showFloatingDamage(0, sprite, false, false, false, true, move.type);
     }
     
-    addBattleLog(`${attacker.name.toUpperCase()} used ${move.name.toUpperCase()}! Deals ${dmg} dmg. ${effText}`);
+    addBattleLog(`${attacker.name.toUpperCase()} used ${move.name.toUpperCase()}! Deals ${actualDamage} dmg. ${effText}`);
+    
+    // ✅ CRITICAL FIX: If defender is a player Pokémon and fainted, update the team array
+    if (!isPlayerAttacking && defender.currentHp <= 0 && currentBattle) {
+        const defenderIndex = currentBattle.playerTeam.findIndex(p => p.id === defender.id);
+        if (defenderIndex !== -1) {
+            currentBattle.playerTeam[defenderIndex].currentHp = 0;
+            console.log(`[Battle] ${defender.name} fainted, marked as HP=0 in team array`);
+        }
+    }
+    
     return defender.currentHp <= 0;
 }
 
@@ -2333,23 +2348,42 @@ textDiv.innerHTML = `
         modal.classList.remove('hidden');
     });
 }
-    async function handlePlayerFaint(battle) {
-        const available = battle.playerTeam.filter(p => p.currentHp > 0);
-        if (available.length === 0) { showBattleSummary('defeat'); return null; }
-        addBattleLog(`${battle.player.name.toUpperCase()} fainted! Choose another.`);
-        const selected = await showSwitchPokemonModal(available, true); // true = forced switch, cancel disabled
-        if (!selected) { showBattleSummary('defeat'); return null; }
-        const newIdx = battle.playerTeam.findIndex(p => p.id === selected.id);
-        battle.activePokemonIndex = newIdx;
-        battle.player = battle.playerTeam[newIdx];
-        battle.player.currentHp = battle.player.maxHp;
-        renderBattleUI();
-        addBattleLog(`Go! ${battle.player.name.toUpperCase()}!`);
-        isProcessing = false;
-        toggleBattleUI(false);
-        return newIdx;
+
+async function handlePlayerFaint(battle) {
+    // Mark the fainted Pokémon
+    const faintedIndex = battle.playerTeam.findIndex(p => p.id === battle.player.id);
+    if (faintedIndex !== -1) {
+        battle.playerTeam[faintedIndex].currentHp = 0;
     }
     
+    const available = battle.playerTeam.filter(p => p.currentHp > 0);
+    if (available.length === 0) { 
+        showBattleSummary('defeat'); 
+        return null; 
+    }
+    addBattleLog(`${battle.player.name.toUpperCase()} fainted! Choose another.`);
+    const selected = await showSwitchPokemonModal(available, true);
+    if (!selected) { 
+        showBattleSummary('defeat'); 
+        return null; 
+    }
+    
+    // Register the new Pokémon as a participant
+    battle.participants.add(selected.id);
+    
+    const newIdx = battle.playerTeam.findIndex(p => p.id === selected.id);
+    battle.activePokemonIndex = newIdx;
+    battle.player = battle.playerTeam[newIdx];
+    
+    // ✅ REMOVE THIS LINE - DO NOT reset HP to full!
+    // battle.player.currentHp = battle.player.maxHp; // ❌ DELETE THIS LINE
+    
+    renderBattleUI();
+    addBattleLog(`Go! ${battle.player.name.toUpperCase()}!`);
+    isProcessing = false;
+    toggleBattleUI(false);
+    return newIdx;
+}
 async function getTrainerName() {
     if (cachedTrainerName) return cachedTrainerName;
     const user = auth.currentUser;
@@ -3578,6 +3612,7 @@ if (encounterCount === undefined) {
                     playerTeam: team,
                     activePokemonIndex: activeIndex,
                     player: team[activeIndex],
+            
                     participants: new Set([selectedPokemon.id]),
                     wild: {
                         pokemonId: wildId,
@@ -3760,8 +3795,46 @@ if (encounterCount === undefined) {
         btn.onclick = () => runTurn(m);
         movesDiv.appendChild(btn);
     });
+    renderTeamIcons();
 }
-    // ---------- Mobile Navigation Toggle ----------
+   
+function renderTeamIcons() {
+    const container = document.getElementById('battle-team-icons');
+    if (!container || !currentBattle) return;
+
+    const b = currentBattle;
+    container.innerHTML = '';
+
+    b.playerTeam.forEach(p => {
+        const wrap = document.createElement('div');
+        wrap.className = 'team-icon-wrap';
+        wrap.title = `${p.name.toUpperCase()} — HP: ${p.currentHp}/${p.maxHp}`;
+
+        const img = document.createElement('img');
+        // Use the sprite URL - fallback to official artwork
+        const spriteUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.pokemonId}.png`;
+        img.src = spriteUrl;
+        img.alt = p.name;
+        img.onerror = () => {
+            img.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${p.pokemonId}.png`;
+        };
+
+        wrap.appendChild(img);
+
+        // Add appropriate class based on status
+        if (p.currentHp <= 0) {
+            wrap.classList.add('is-fainted');
+        } else if (p.id === b.player.id) {
+            wrap.classList.add('is-active');
+        }
+
+        // Optional: Click to show info
+        wrap.onclick = () => showInfo(p.pokemonId);
+
+        container.appendChild(wrap);
+    });
+}
+// ---------- Mobile Navigation Toggle ----------
 const navToggle = document.getElementById('nav-toggle');
 const navCollapsible = document.getElementById('nav-collapsible');
 
@@ -3838,6 +3911,72 @@ window.addEventListener('keydown', (e) => {
             case '3': clickMoveButton(3); break;
             case '4': clickMoveButton(4); break;
         }
+    }
+});
+
+// ========== KEYBOARD SHORTCUTS FOR BATTLE ==========
+document.addEventListener('keydown', (e) => {
+    // Don't fire shortcuts when typing in inputs
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+    
+    // Handle Continue button on Summary Modal with Space
+    const summaryModal = document.getElementById('battle-summary-modal');
+    if (summaryModal && !summaryModal.classList.contains('hidden')) {
+        if (e.code === 'Space') {
+            e.preventDefault();
+            const continueBtn = document.getElementById('close-summary-btn');
+            if (continueBtn && !continueBtn.disabled) continueBtn.click();
+        }
+        return;
+    }
+
+    const battleArea = document.getElementById('battle-area');
+    const isBattleVisible = battleArea && !battleArea.classList.contains('hidden');
+    const switchModal = document.getElementById('switch-pokemon-modal');
+    const isSwitchModalOpen = switchModal && !switchModal.classList.contains('hidden');
+    
+    if (!isBattleVisible) return;
+
+    // Space = Catch
+    if (e.code === 'Space') {
+        e.preventDefault();
+        const catchBtn = document.getElementById('catch-btn');
+        if (catchBtn && !catchBtn.disabled && !isProcessing) catchBtn.click();
+        return;
+    }
+
+    // Q = Switch Pokémon
+    if (e.code === 'KeyQ') {
+        e.preventDefault();
+        if (!isSwitchModalOpen && !isProcessing) {
+            const switchBtn = document.getElementById('switch-btn');
+            if (switchBtn && !switchBtn.disabled) switchBtn.click();
+        }
+        return;
+    }
+
+    // Escape = Run Away (Takas Na)
+    if (e.code === 'Escape') {
+        e.preventDefault();
+        if (!isSwitchModalOpen && !isProcessing) {
+            const escapeBtn = document.getElementById('escape-btn');
+            if (escapeBtn && !escapeBtn.disabled) escapeBtn.click();
+        }
+        return;
+    }
+
+    // Number keys 1-4 for moves
+    if (e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3' || e.code === 'Digit4') {
+        if (!isSwitchModalOpen && !isProcessing) {
+            e.preventDefault();
+            const moveIndex = parseInt(e.code.replace('Digit', ''));
+            const moveBtns = document.querySelectorAll('#battle-moves .move-btn');
+            if (moveBtns.length >= moveIndex) {
+                const btn = moveBtns[moveIndex - 1];
+                if (btn && !btn.disabled) btn.click();
+            }
+        }
+        return;
     }
 });
 
@@ -4206,7 +4345,6 @@ async function attemptSwitch() {
     if (!currentBattle || isProcessing) return;
     isProcessing = true;
 
-    // UI Buttons
     const btn = document.getElementById('switch-btn');
     const catchBtn = document.getElementById('catch-btn');
     const escapeBtn = document.getElementById('escape-btn');
@@ -4257,9 +4395,8 @@ async function attemptSwitch() {
     // --- SUCCESSFUL SWITCH ---
     addBattleLog(`Come back, ${b.player.name.toUpperCase()}!`);
     
-    // CRITICAL: Remove Terastal effect from the OUTGOING player Pokémon
+    // Remove Terastal effect from outgoing Pokémon
     stopTerastalCanvas('tera-canvas-player');
-    
     const outgoingSprite = document.getElementById('p-sprite-btl');
     if (outgoingSprite) {
         outgoingSprite.classList.remove('terastal-sprite');
@@ -4268,19 +4405,16 @@ async function attemptSwitch() {
         outgoingSprite.style.removeProperty('--tera-filter-high');
     }
 
+    // ✅ Register the new Pokémon as a participant
     b.participants.add(selected.id);
+    
     const newIdx = b.playerTeam.findIndex(p => p.id === selected.id);
     b.activePokemonIndex = newIdx;
+    b.player = b.playerTeam[newIdx];
     
-    // CRITICAL: The new player object MUST preserve its isTerastal value from Firestore
-    // Your database stores isTerastal per Pokémon, so it should already be correct
-    b.player = {
-        ...b.playerTeam[newIdx],
-        // Explicitly preserve the isTerastal flag (this is the key fix)
-        isTerastal: b.playerTeam[newIdx].isTerastal === true
-    };
-
-    // Re-render the UI - this will apply Terastal ONLY if the new Pokémon has isTerastal = true
+    // ✅ REMOVE THIS LINE - DO NOT reset HP to full!
+    // b.player.currentHp = b.player.maxHp; // ❌ DELETE THIS LINE
+    
     renderBattleUI();
     addBattleLog(`Go! ${b.player.name.toUpperCase()}!`);
 

@@ -2715,17 +2715,17 @@ async function showSwitchPokemonModal(availablePokemon, isForced = false) {
         listDiv.innerHTML = '';
         
         // Instruction line
-       const instruction = document.createElement('div');
-instruction.style.background = 'var(--card-bg)';
-instruction.style.border = '1px solid var(--border)';
-instruction.style.borderRadius = '12px';
-instruction.style.padding = '8px 12px';
-instruction.style.marginBottom = '12px';
-instruction.style.fontSize = '0.8rem';
-instruction.style.textAlign = 'center';
-instruction.style.color = 'var(--text-dark)';
-instruction.innerHTML = '💡 <strong>Tip:</strong> Press number keys <kbd style="background:var(--border); padding:2px 6px; border-radius:6px; font-weight:bold;">1</kbd>–<kbd style="background:var(--border); padding:2px 6px; border-radius:6px; font-weight:bold;">6</kbd> to switch quickly.';
-listDiv.appendChild(instruction);
+        const instruction = document.createElement('div');
+        instruction.style.background = 'var(--card-bg)';
+        instruction.style.border = '1px solid var(--border)';
+        instruction.style.borderRadius = '12px';
+        instruction.style.padding = '8px 12px';
+        instruction.style.marginBottom = '12px';
+        instruction.style.fontSize = '0.8rem';
+        instruction.style.textAlign = 'center';
+        instruction.style.color = 'var(--text-dark)';
+        instruction.innerHTML = '💡 <strong>Tip:</strong> Press number keys <kbd style="background:var(--border); padding:2px 6px; border-radius:6px; font-weight:bold;">1</kbd>–<kbd style="background:var(--border); padding:2px 6px; border-radius:6px; font-weight:bold;">6</kbd> to switch quickly.';
+        listDiv.appendChild(instruction);
         
         if (isForced) {
             cancelBtn.classList.add('hidden');
@@ -2760,7 +2760,14 @@ listDiv.appendChild(instruction);
             if (p.bonusStats?.spd) bonusIcons += '🏃';
             let shinyBadge = '';
             if (p.isShiny) shinyBadge = '<span style="background:#ffcc00;color:#333;padding:2px 6px;border-radius:20px;font-size:0.6rem;margin-left:8px;">✨ SHINY</span>';
-              let teraBadge = p.isTerastal ? '<span style="background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.6rem; font-weight: bold; margin-left: 5px; border: 1px solid white;">💠 TERA</span>' : '';
+            let teraBadge = p.isTerastal ? '<span style="background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.6rem; font-weight: bold; margin-left: 5px; border: 1px solid white;">💠 TERA</span>' : '';
+
+            // ✅ FIXED: These 3 variables were missing, causing a ReferenceError crash
+            const textDiv = document.createElement('div');
+            textDiv.style.flex = '1';
+            textDiv.style.textAlign = 'left';
+            const hpPct = Math.floor((p.currentHp / p.maxHp) * 100);
+            const typeBadgesHtml = generateTypeBadges(p.types);
 
             textDiv.innerHTML = `
                 <strong>${p.name.toUpperCase()} ${bonusIcons}</strong> ${shinyBadge} ${teraBadge}<br>

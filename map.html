@@ -1806,6 +1806,7 @@ body.dark-theme #summary-details {
                       <div id="p-hp-text" style="font-size:0.7rem; margin-top:4px;"></div>
     <div id="p-xp-text" style="font-size:0.7rem; margin-top:2px;"></div>
                     </div></div>
+                   <div id="battle-team-icons"></div>
                     <div id="battle-log"></div>
                     <div id="battle-moves"></div>
                     <div class="catch-area">
@@ -2456,6 +2457,11 @@ function executeAttack(attacker, defender, move, isPlayerAttacking) {
     
     const oldHp = defender.currentHp;
     defender.currentHp = Math.max(0, defender.currentHp - dmg);
+if (currentBattle && !isPlayerAttacking) {
+    const teamSlot = currentBattle.playerTeam.find(p => p.id === defender.id);
+    if (teamSlot) teamSlot.currentHp = defender.currentHp;
+}
+
     const actualDamage = oldHp - defender.currentHp;
     
     const sprite = isPlayerAttacking ? document.getElementById('e-sprite-btl') : document.getElementById('p-sprite-btl');
@@ -2872,6 +2878,7 @@ async function handlePlayerFaint(battle) {
     if (currentTurnTimeout) clearTimeout(currentTurnTimeout);
     return newIdx;
 }
+
 async function resolveBattle(win) {
     if (currentTurnTimeout) clearTimeout(currentTurnTimeout);
     isProcessing = true;
@@ -4259,6 +4266,37 @@ async function runTurn(selectedMove) {
     }, 3000);
 }
 
+function renderTeamIcons() {
+    const container = document.getElementById('battle-team-icons');
+    if (!container || !currentBattle) return;
+
+    const b = currentBattle;
+    container.innerHTML = '';
+
+    b.playerTeam.forEach(p => {
+        const wrap = document.createElement('div');
+        wrap.className = 'team-icon-wrap';
+        wrap.title = `${p.name.toUpperCase()} — HP: ${p.currentHp}/${p.maxHp}`;
+
+        const img = document.createElement('img');
+        img.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.pokemonId}.png`;
+        img.alt = p.name;
+        img.onerror = () => {
+            img.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.pokemonId}.png`;
+        };
+
+        wrap.appendChild(img);
+
+        if (p.currentHp <= 0) {
+            wrap.classList.add('is-fainted');
+        } else if (p.id === b.player.id) {
+            wrap.classList.add('is-active');
+        }
+
+        container.appendChild(wrap);
+    });
+}
+
     function updateCatchChance() {
         if (!currentBattle || !currentMap) return;
         const b = currentBattle;
@@ -4448,6 +4486,7 @@ function renderBattleUI() {
         btn.onclick = () => runTurn(m);
         movesDiv.appendChild(btn);
     });
+    renderTeamIcons();
 }
 
     async function trackRecord(id, name) {
@@ -4864,13 +4903,12 @@ const count = await trackRecord(wildId, wildData.name);
                     return;
                 }
                 team[activeIndex].currentHp = team[activeIndex].maxHp;
+                team[activeIndex].isTerastal = team[activeIndex].isTerastal === true;
                 currentBattle = {
                       playerTeam: team,
     activePokemonIndex: activeIndex,
-    player: {
-        ...team[activeIndex],
-        isTerastal: team[activeIndex].isTerastal === true
-    },
+   player: team[activeIndex],  
+       
     participants: new Set([selectedPokemon.id]),
                     wild: {
                         pokemonId: wildId,

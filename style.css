@@ -1969,3 +1969,265 @@ body.dark-theme footer .support-section a:hover {
     20% { transform: translate(6px,5px) rotate(2deg); }
     100% { transform: translate(0,0) rotate(0); }
 }
+
+
+
+/* Drag and Drop Professional Styles */
+.poke-card[draggable="true"] {
+    cursor: grab;
+    user-select: none;
+}
+.poke-card.dragging {
+    opacity: 0.5;
+    transform: scale(0.98);
+    border: 2px dashed var(--primary) !important;
+    background: rgba(59, 76, 202, 0.05);
+}
+#team-list {
+    min-height: 100px;
+    transition: all 0.3s ease;
+}
+
+/* Terastal Crystalline Glow */
+
+
+/* Badge for UI */
+.badge-terastal {
+    background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+    color: white;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    border: 1px solid rgba(255,255,255,0.4);
+}
+
+/* Crystallized effect for the small card images */
+.poke-card.is-terastal .poke-card-img-wrap img {
+    filter: drop-shadow(0 0 5px #aa88ff);
+    animation: tera-pulse 3s infinite alternate ease-in-out;
+}
+
+/* Specific styling for the TERA pin */
+/* Corner badges on cards */
+.poke-card-corner-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.6rem;
+    font-weight: 800;
+    z-index: 10;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Specific glow for Terastal cards in collection */
+.poke-card.is-terastal {
+    border-color: #a29bfe !important;
+    box-shadow: 0 0 10px rgba(108, 92, 231, 0.3);
+}
+
+.poke-card.is-terastal .poke-card-img-wrap {
+    background: radial-gradient(circle, #f3f0ff 0%, #e0d7ff 100%);
+    position: relative;
+}
+
+/* Subtle sparkle animation for the card image */
+.poke-card.is-terastal .poke-card-img-wrap img {
+    filter: drop-shadow(0 0 4px #6c5ce7);
+    animation: card-tera-sparkle 3s infinite alternate;
+}
+
+@keyframes card-tera-sparkle {
+    from { filter: drop-shadow(0 0 2px #6c5ce7) brightness(1); }
+    to { filter: drop-shadow(0 0 8px #a29bfe) brightness(1.1); }
+}
+
+
+/* --- Overwrite in <style> block --- */
+.terastal-sprite {
+    animation: teraGlowAnim 2s infinite alternate ease-in-out !important;
+}
+
+@keyframes teraGlowAnim {
+    from { filter: var(--tera-filter-low) brightness(1); }
+    to { filter: var(--tera-filter-high) brightness(1.3); }
+}
+
+/* Battle Sprite Sizing - Player Pokémon Larger */
+#battle-area .player-side .btl-sprite {
+    width: 180px !important;
+    height: 180px !important;
+    transform: scale(1.1);
+    transition: transform 0.3s ease;
+}
+
+#battle-area .enemy-side .btl-sprite {
+    width: 130px !important;
+    height: 130px !important;
+}
+
+/* Responsive sizing for mobile */
+@media (max-width: 768px) {
+    #battle-area .player-side .btl-sprite {
+        width: 140px !important;
+        height: 140px !important;
+    }
+    #battle-area .enemy-side .btl-sprite {
+        width: 100px !important;
+        height: 100px !important;
+    }
+}
+
+/*gds gfdfg dfgd */
+
+/* Subtle sway for player Pokémon */
+.player-side .btl-sprite {
+    animation: subtleSway 4s ease-in-out infinite;
+}
+
+@keyframes subtleSway {
+    0%, 100% {
+        transform: scale(1.1) rotate(0deg);
+    }
+    50% {
+        transform: scale(1.12) rotate(2deg);
+    }
+}
+
+/* Enemy Pokémon slight sway in opposite direction */
+.enemy-side .btl-sprite {
+    animation: subtleSwayEnemy 4s ease-in-out infinite;
+}
+
+@keyframes subtleSwayEnemy {
+    0%, 100% {
+        transform: rotate(0deg);
+    }
+    50% {
+        transform: rotate(-2deg);
+    }
+}
+
+/* Tera Card Styling */
+.poke-card.is-terastal {
+    border: 2px solid #a855f7;
+    box-shadow: 0 0 15px rgba(168, 85, 247, 0.3);
+    background: linear-gradient(135deg, var(--card-bg) 0%, rgba(168, 85, 247, 0.05) 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+.poke-card.is-terastal::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(168, 85, 247, 0.15) 0%, transparent 70%);
+    animation: teraPulse 3s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes teraPulse {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(1.1); }
+}
+
+/* Shiny Card Styling */
+.poke-card.is-shiny {
+    border: 2px solid #ffd700;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+    background: linear-gradient(135deg, var(--card-bg) 0%, rgba(255, 215, 0, 0.08) 100%);
+}
+
+.poke-card.is-shiny::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255, 215, 0, 0.15) 0%, transparent 70%);
+    animation: shinySparkle 2s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes shinySparkle {
+    0%, 100% { opacity: 0.2; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.05); }
+}
+
+/* ULTRA RARE: Shiny + Tera Combined */
+.poke-card.is-shiny.is-terastal {
+    border: 3px solid #ffd700;
+    box-shadow: 0 0 25px rgba(255, 215, 0, 0.5), 0 0 15px rgba(168, 85, 247, 0.4);
+    background: linear-gradient(135deg, var(--card-bg) 0%, rgba(255, 215, 0, 0.1) 50%, rgba(168, 85, 247, 0.1) 100%);
+    animation: ultraRarePulse 2s ease-in-out infinite;
+    position: relative;
+    overflow: hidden;
+}
+
+.poke-card.is-shiny.is-terastal::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255, 215, 0, 0.2) 0%, rgba(168, 85, 247, 0.2) 50%, transparent 80%);
+    animation: ultraRareGlow 2.5s ease-in-out infinite;
+    pointer-events: none;
+}
+
+.poke-card.is-shiny.is-terastal::after {
+    content: '🌟✨';
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    font-size: 1rem;
+    opacity: 0.8;
+    animation: starSpin 3s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes ultraRarePulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 20px rgba(255, 215, 0, 0.4), 0 0 10px rgba(168, 85, 247, 0.3); }
+    50% { transform: scale(1.01); box-shadow: 0 0 35px rgba(255, 215, 0, 0.7), 0 0 20px rgba(168, 85, 247, 0.6); }
+}
+
+@keyframes ultraRareGlow {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.15); }
+}
+
+@keyframes starSpin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Corner badge for Tera */
+.poke-card-corner-badge.badge-tera {
+    background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+    color: white;
+    border: 1px solid white;
+}
+
+/* Corner badge for Shiny+Tera combo */
+.poke-card-corner-badge.badge-shiny-tera {
+    background: linear-gradient(135deg, #ffd700, #6c5ce7);
+    color: white;
+    border: 1px solid #ffd700;
+    animation: badgePulse 1.5s ease-in-out infinite;
+}
+
+@keyframes badgePulse {
+    0%, 100% { box-shadow: 0 0 5px rgba(255, 215, 0, 0.5); }
+    50% { box-shadow: 0 0 15px rgba(255, 215, 0, 0.8), 0 0 5px rgba(168, 85, 247, 0.8); }
+}
+
+/* Tera pill in bonus section */
+.bonus-pill.tera {
+    background: linear-gradient(135deg, #6c5ce7, #8b5cf6);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}

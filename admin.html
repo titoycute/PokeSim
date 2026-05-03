@@ -1282,7 +1282,7 @@ function renderPokemonSearchResults(results) {
             <thead><tr>
                 <th>Owner</th><th>Pokémon</th><th>Level</th><th>Bonus Stats</th><th>Shiny</th><th>Location</th><th>Origin</th><th>Actions</th>
             </tr></thead><tbody>`;
-    for (const r of results) {
+      for (const r of results) {
         const bonusIcons = [
             r.bonusStats?.atk ? '<span class="badge" style="background:#fff1f2;color:#c0392b;border:1px solid #fca5a5;">⚔️ ATK</span>' : '',
             r.bonusStats?.def ? '<span class="badge" style="background:#eef2ff;color:#3730a3;border:1px solid #a5b4fc;">🛡️ DEF</span>' : '',
@@ -1292,6 +1292,9 @@ function renderPokemonSearchResults(results) {
         const displayName = r.nameDisplay || r.name || '';
         const safeOwnerId = escHtml(r.ownerId||'');
         const safeOrigId  = escHtml(r.originalDocId||'');
+        
+        // Add Terastal badge if present
+        const teraBadge = r.isTerastal ? '<span class="badge" style="background:linear-gradient(135deg,#6c5ce7,#a29bfe);color:white;">💠 TERA</span>' : '';
         html += `
             <tr>
                 <td>
@@ -1307,11 +1310,13 @@ function renderPokemonSearchResults(results) {
                     <div style="display:flex;align-items:center;gap:8px;">
                         <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${r.pokemonId}.png"
                              style="width:36px;height:36px;object-fit:contain;image-rendering:pixelated;" onerror="this.style.display='none'">
-                        <div>
+                         <div>
                             <strong>${escHtml(displayName.toUpperCase())}</strong>
                             <span style="color:var(--text-light);"> #${r.pokemonId}</span>
                             ${r.isShiny ? '<span class="badge" style="background:#ecc94b;color:#744210;">✨ SHINY</span>' : ''}
+                            ${teraBadge}
                         </div>
+                        
                     </div>
                 </td>
                 <td><strong>Lv.${r.level}</strong></td>
@@ -2032,6 +2037,7 @@ window.openEditGymPokemonModal = async function(idx) {
                 spd: document.getElementById('egm-spd').checked
             },
             isShiny: document.getElementById('egm-shiny').checked,
+             isTerastal: document.getElementById('egm-terastal').checked,
             effect: effectDropdown.value
         };
 
@@ -2409,12 +2415,13 @@ async function openEditPokemonModal(pokemonId, uid) {
     form.appendChild(grid);
     const bonusDiv = document.createElement('div'); bonusDiv.className = 'form-group';
     bonusDiv.innerHTML = `
-        <label>Bonus Stats</label>
+        <label>Bonus Stats &amp; Visuals</label>
         <div class="checkbox-group">
-            <label class="checkbox-label"><input type="checkbox" id="edit-atk" ${p.bonusStats?.atk?'checked':''}> +ATK</label>
-            <label class="checkbox-label"><input type="checkbox" id="edit-def" ${p.bonusStats?.def?'checked':''}> +DEF</label>
-            <label class="checkbox-label"><input type="checkbox" id="edit-spd" ${p.bonusStats?.spd?'checked':''}> +SPD</label>
-            <label class="checkbox-label"><input type="checkbox" id="edit-shiny" ${p.isShiny?'checked':''}> Shiny</label>
+            <label class="checkbox-label"><input type="checkbox" id="edit-atk" ${p.bonusStats?.atk?'checked':''}> ⚔️ +ATK</label>
+            <label class="checkbox-label"><input type="checkbox" id="edit-def" ${p.bonusStats?.def?'checked':''}> 🛡️ +DEF</label>
+            <label class="checkbox-label"><input type="checkbox" id="edit-spd" ${p.bonusStats?.spd?'checked':''}> 🏃 +SPD</label>
+            <label class="checkbox-label"><input type="checkbox" id="edit-shiny" ${p.isShiny?'checked':''}> ✨ Shiny</label>
+            <label class="checkbox-label"><input type="checkbox" id="edit-terastal" ${p.isTerastal?'checked':''}> 💠 Terastal</label>
         </div>
     `;
     form.appendChild(bonusDiv);
@@ -2434,8 +2441,13 @@ async function openEditPokemonModal(pokemonId, uid) {
             level: parseInt(document.getElementById('edit-level').value),
             exp: parseInt(document.getElementById('edit-exp').value),
             types: selSpecies.types, moves: finalMoves.slice(0,4),
-            bonusStats: { atk:document.getElementById('edit-atk').checked, def:document.getElementById('edit-def').checked, spd:document.getElementById('edit-spd').checked },
-            isShiny: document.getElementById('edit-shiny').checked
+            bonusStats: { 
+                atk: document.getElementById('edit-atk').checked, 
+                def: document.getElementById('edit-def').checked, 
+                spd: document.getElementById('edit-spd').checked 
+            },
+            isShiny: document.getElementById('edit-shiny').checked,
+            isTerastal: document.getElementById('edit-terastal').checked
         };
         await updateDoc(doc(db,'users',uid,'pokemon',pokemonId), updateData);
         // Also update all_pokemon index entry
@@ -2444,9 +2456,15 @@ async function openEditPokemonModal(pokemonId, uid) {
             await setDoc(doc(db,'all_pokemon',`${uid}_${pokemonId}`), {
                 ownerId: uid, ownerName: user?.name||'', ownerEmail: user?.email||'',
                 pokemonId: selSpeciesId, name: selSpecies.name.toLowerCase(),
-                nameDisplay: selSpecies.name, level: parseInt(document.getElementById('edit-level').value),
+                nameDisplay: selSpecies.name, 
+                level: parseInt(document.getElementById('edit-level').value),
                 isShiny: document.getElementById('edit-shiny').checked,
-                bonusStats: { atk:document.getElementById('edit-atk').checked, def:document.getElementById('edit-def').checked, spd:document.getElementById('edit-spd').checked },
+                isTerastal: document.getElementById('edit-terastal').checked,
+                bonusStats: { 
+                    atk: document.getElementById('edit-atk').checked, 
+                    def: document.getElementById('edit-def').checked, 
+                    spd: document.getElementById('edit-spd').checked 
+                },
                 inTeam: p.inTeam||false, capturedAt: p.capturedAt||null, capturedBy: p.capturedBy||null,
                 capturedOnMap: p.capturedOnMap||null, originalDocId: pokemonId, syncedAt: new Date()
             }, { merge: true });
@@ -2458,6 +2476,7 @@ async function openEditPokemonModal(pokemonId, uid) {
     };
 }
 
+// ══ ADD POKEMON MODAL ══
 // ══ ADD POKEMON MODAL ══
 async function openAddPokemonModal(uid) {
     if (!isMoveDatabaseLoaded) { showToast('Loading move database...'); await loadMoveDatabase(); }
@@ -2474,13 +2493,14 @@ async function openAddPokemonModal(uid) {
     form.appendChild(grid);
     const bonusDiv = document.createElement('div'); bonusDiv.className = 'form-group';
     bonusDiv.innerHTML = `
-        <label>Bonus Stats &amp; Options</label>
+        <label>Bonus Stats &amp; Visuals</label>
         <div class="checkbox-group">
-            <label class="checkbox-label"><input type="checkbox" id="add-atk"> +ATK</label>
-            <label class="checkbox-label"><input type="checkbox" id="add-def"> +DEF</label>
-            <label class="checkbox-label"><input type="checkbox" id="add-spd"> +SPD</label>
-            <label class="checkbox-label"><input type="checkbox" id="add-shiny"> Shiny</label>
-            <label class="checkbox-label"><input type="checkbox" id="add-to-team" checked> Add to Team</label>
+            <label class="checkbox-label"><input type="checkbox" id="add-atk"> ⚔️ +ATK</label>
+            <label class="checkbox-label"><input type="checkbox" id="add-def"> 🛡️ +DEF</label>
+            <label class="checkbox-label"><input type="checkbox" id="add-spd"> 🏃 +SPD</label>
+            <label class="checkbox-label"><input type="checkbox" id="add-shiny"> ✨ Shiny</label>
+            <label class="checkbox-label"><input type="checkbox" id="add-terastal"> 💠 Terastal</label>
+            <label class="checkbox-label"><input type="checkbox" id="add-to-team" checked> 📦 Add to Team</label>
         </div>
     `;
     form.appendChild(bonusDiv);
@@ -2501,8 +2521,13 @@ async function openAddPokemonModal(uid) {
             level: parseInt(document.getElementById('add-level').value),
             exp: parseInt(document.getElementById('add-exp').value),
             moves: finalMoves.slice(0,4), types: selSpecies.types, inTeam,
-            bonusStats: { atk:document.getElementById('add-atk').checked, def:document.getElementById('add-def').checked, spd:document.getElementById('add-spd').checked },
-            isShiny: document.getElementById('add-shiny').checked
+            bonusStats: { 
+                atk: document.getElementById('add-atk').checked, 
+                def: document.getElementById('add-def').checked, 
+                spd: document.getElementById('add-spd').checked 
+            },
+            isShiny: document.getElementById('add-shiny').checked,
+            isTerastal: document.getElementById('add-terastal').checked
         });
         // Write to all_pokemon index immediately
         try {
@@ -2513,7 +2538,12 @@ async function openAddPokemonModal(uid) {
                 nameDisplay: selSpecies.name,
                 level: parseInt(document.getElementById('add-level').value),
                 isShiny: document.getElementById('add-shiny').checked,
-                bonusStats: { atk:document.getElementById('add-atk').checked, def:document.getElementById('add-def').checked, spd:document.getElementById('add-spd').checked },
+                isTerastal: document.getElementById('add-terastal').checked,
+                bonusStats: { 
+                    atk: document.getElementById('add-atk').checked, 
+                    def: document.getElementById('add-def').checked, 
+                    spd: document.getElementById('add-spd').checked 
+                },
                 inTeam, capturedAt: null, capturedBy: uid, capturedOnMap: 'Admin',
                 originalDocId: newDocRef.id, syncedAt: new Date()
             });
@@ -2524,6 +2554,7 @@ async function openAddPokemonModal(uid) {
         openManageUserModal(uid);
     };
 }
+
 
 // ══ MAP MANAGEMENT ══
 let allMaps = [], editingMapId = null;

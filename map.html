@@ -1482,7 +1482,7 @@ body.dark-theme #summary-details {
 .shake-effect-hard { animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-
+     <link rel="stylesheet" href="./tera.css">
     
 </head>
 <body>
@@ -1752,14 +1752,16 @@ body.dark-theme #summary-details {
     <div id="game-screen" class="hidden">
         <div style="background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 12px 5%; display: flex; justify-content: space-between; align-items: center;">
             <div class="logo"><img src="PokeSim Word.png" alt="PokeSim"></div>
-            <div>
-                
-                 <div id="level-display">⭐ Lv. <span id="trainer-level">0</span></div>
-                    
-                 <button id="back-to-maps-btn" class="btn btn-outline"><i class="fas fa-arrow-left"></i> Change Map</button>
-                <button id="volume-toggle" class="volume-btn" style="background: none; border: none; font-size: 1.2rem;">🔊</button>
-                
-            </div>
+            <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+    <div id="level-display" style="background: #fef9e3; color: #b45309; padding: 4px 12px; border-radius: 40px; font-weight: bold; font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
+        ⭐ Lv. <span id="trainer-level">0</span>
+    </div>
+    <div id="coin-display" style="background: #e8f5e9; color: #2e7d32; padding: 4px 12px; border-radius: 40px; font-weight: bold; font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
+        💰 <span id="coin-amount">0</span>
+    </div>
+    <button id="back-to-maps-btn" class="btn btn-outline"><i class="fas fa-arrow-left"></i> Change Map</button>
+    <button id="volume-toggle" class="volume-btn" style="background: none; border: none; font-size: 1.2rem;">🔊</button>
+</div>
             
         </div>
         <div id="view-explore">
@@ -1780,7 +1782,11 @@ body.dark-theme #summary-details {
             <div id="battle-area" class="hidden">
                 <div class="battle-header">⚔️ WILD BATTLE ⚔️</div>
                 <div class="battle-ui">
-                    <div class="side enemy-side"><img id="e-sprite-btl" class="btl-sprite">
+                   <div class="side enemy-side">
+    <div id="enemy-sprite-wrapper" style="position:relative; display:inline-block;">
+        <img id="e-sprite-btl" class="btl-sprite">
+        <canvas id="tera-canvas-enemy" style="position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:3;"></canvas>
+    </div>
                         <div class="stat-box">
                             <strong id="e-name"></strong>
                             <span id="e-types-icons"></span><br>
@@ -1791,7 +1797,12 @@ body.dark-theme #summary-details {
                              <div id="e-hp-text" style="font-size:0.7rem; margin-top:4px;"></div>
                         </div>
                     </div>
-                    <div class="side player-side"><img id="p-sprite-btl" class="btl-sprite"><div class="stat-box"><strong id="p-name"></strong> <span id="p-types-icons"></span><br><small id="p-lvl"></small><div class="hp-bar"><div id="p-hp-fill" class="hp-fill"></div></div>
+                    <div class="side player-side">
+    <div id="player-sprite-wrapper" style="position:relative; display:inline-block;">
+        <img id="p-sprite-btl" class="btl-sprite">
+        <canvas id="tera-canvas-player" style="position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:3;"></canvas>
+    </div>
+    <div class="stat-box"><strong id="p-name"></strong> <span id="p-types-icons"></span><br><small id="p-lvl"></small><div class="hp-bar"><div id="p-hp-fill" class="hp-fill"></div></div>
                       <div id="p-hp-text" style="font-size:0.7rem; margin-top:4px;"></div>
     <div id="p-xp-text" style="font-size:0.7rem; margin-top:2px;"></div>
                     </div></div>
@@ -1878,8 +1889,17 @@ body.dark-theme #summary-details {
     const db = getFirestore(app);
 
     // ========== SHINY RATE ==========
-    const SHINY_RATE = 8192; // 1/8192 chance – change to 1 for testing
+    const SHINY_RATE = 8192; 
+    const TERASTAL_RATE = 10000; 
 
+        const TERA_TYPE_COLORS = {
+            fire:     '#ff6600', water:    '#3399ff', grass:    '#44cc44',
+            electric: '#ffdd00', psychic:  '#ff44aa', ice:      '#88eeff',
+            dragon:   '#6633ff', dark:     '#554433', ghost:    '#9955cc',
+            poison:   '#aa44aa', ground:   '#cc9944', rock:     '#aa8844',
+            steel:    '#aaaacc', fairy:    '#ffaacc', fighting: '#cc4422',
+            bug:      '#88aa22', flying:   '#aaaaff', normal:   '#aaaaaa'
+        };
     // ========== GLOBALS ==========
     let playerPos = { x: 25, y: 25 };
     let mapData = [];
@@ -2029,7 +2049,8 @@ function getTotalBadgeBonus(effectType, targetType) {
             bonusStats: p.bonusStats || { atk: false, def: false, spd: false },
             maxHp: getMaxHp(p.level, p.isShiny || false),
             currentHp: getMaxHp(p.level, p.isShiny || false),
-            isShiny: p.isShiny || false
+            isShiny: p.isShiny || false,
+              isTerastal: p.isTerastal || false 
         });
     });
 
@@ -2038,7 +2059,157 @@ function getTotalBadgeBonus(effectType, targetType) {
     return team;
 }
     // ========== UTILITY FUNCTIONS ==========
-    function getTypeColor(type) {
+
+const terastalAnimations = new Map(); // canvasId → animationFrameId
+
+function startTerastalCanvas(canvasId, spriteEl, color) {
+    stopTerastalCanvas(canvasId);
+
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+
+    // Size canvas to match sprite
+    function resizeCanvas() {
+        canvas.width  = spriteEl.offsetWidth  || 96;
+        canvas.height = spriteEl.offsetHeight || 96;
+    }
+    resizeCanvas();
+
+    const ctx = canvas.getContext('2d');
+    const particles = [];
+
+    // Parse color to RGB for canvas use
+    const hexToRgb = (hex) => {
+        const r = parseInt(hex.slice(1,3),16);
+        const g = parseInt(hex.slice(3,5),16);
+        const b = parseInt(hex.slice(5,7),16);
+        return {r,g,b};
+    };
+    const rgb = hexToRgb(color.length === 7 ? color : '#aa88ff');
+
+    // Spawn a new sparkle particle
+    function spawnParticle() {
+        const x = Math.random() * canvas.width;
+        const y = Math.random() * canvas.height;
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 0.4 + Math.random() * 0.8;
+        const size  = 2 + Math.random() * 5;
+        const life  = 0.6 + Math.random() * 0.6; // seconds
+        const isWhite = Math.random() > 0.45;
+        particles.push({ x, y, vx: Math.cos(angle)*speed, vy: Math.sin(angle)*speed, size, life, maxLife: life, isWhite, rotation: Math.random()*Math.PI*2, rotSpeed: (Math.random()-0.5)*0.15 });
+    }
+
+    let lastTime = null;
+    let spawnAccum = 0;
+
+    function draw(timestamp) {
+        if (!document.body.contains(canvas)) {
+            stopTerastalCanvas(canvasId);
+            return;
+        }
+
+        resizeCanvas();
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const dt = lastTime ? (timestamp - lastTime) / 1000 : 0.016;
+        lastTime = timestamp;
+
+        // --- Shimmer layer: masked to sprite using destination-in ---
+        // Draw sprite into offscreen to get alpha mask
+        if (spriteEl.complete && spriteEl.naturalWidth > 0) {
+            ctx.save();
+            // Shimmer moves across sprite
+            const shimmerX = (Math.sin(timestamp * 0.001) * 0.5 + 0.5) * canvas.width;
+            const shimmerY = (Math.cos(timestamp * 0.0008) * 0.5 + 0.5) * canvas.height;
+            const grad = ctx.createRadialGradient(shimmerX, shimmerY, 0, shimmerX, shimmerY, canvas.width * 0.6);
+            grad.addColorStop(0, `rgba(255,255,255,0.5)`);
+            grad.addColorStop(0.4, `rgba(${rgb.r},${rgb.g},${rgb.b},0.25)`);
+            grad.addColorStop(1, `rgba(0,0,0,0)`);
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Mask to sprite alpha — only show shimmer where sprite pixels are
+            ctx.globalCompositeOperation = 'destination-in';
+            ctx.drawImage(spriteEl, 0, 0, canvas.width, canvas.height);
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.restore();
+        }
+
+        // --- Sparkle particles ---
+        spawnAccum += dt;
+        if (spawnAccum > 0.10) { // spawn every 100ms
+            spawnParticle();
+            if (Math.random() > 0.6) spawnParticle(); // burst
+            spawnAccum = 0;
+        }
+
+        for (let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i];
+            p.life -= dt;
+            if (p.life <= 0) { particles.splice(i, 1); continue; }
+
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy -= 0.015; // slight upward drift
+            p.rotation += p.rotSpeed;
+
+            const alpha = p.life / p.maxLife;
+
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rotation);
+            ctx.globalAlpha = alpha;
+
+            if (p.isWhite) {
+                // White star/diamond sparkle
+                ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+                ctx.shadowColor = '#ffffff';
+                ctx.shadowBlur = 6;
+                // Draw 4-point star
+                ctx.beginPath();
+                const s = p.size;
+                ctx.moveTo(0, -s);
+                ctx.lineTo(s*0.25, -s*0.25);
+                ctx.lineTo(s, 0);
+                ctx.lineTo(s*0.25, s*0.25);
+                ctx.lineTo(0, s);
+                ctx.lineTo(-s*0.25, s*0.25);
+                ctx.lineTo(-s, 0);
+                ctx.lineTo(-s*0.25, -s*0.25);
+                ctx.closePath();
+                ctx.fill();
+            } else {
+                // Colored round glitter dot
+                ctx.fillStyle = `rgba(${rgb.r},${rgb.g},${rgb.b},${alpha})`;
+                ctx.shadowColor = color;
+                ctx.shadowBlur = 8;
+                ctx.beginPath();
+                ctx.arc(0, 0, p.size * 0.7, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            ctx.restore();
+        }
+
+        terastalAnimations.set(canvasId, requestAnimationFrame(draw));
+    }
+
+    terastalAnimations.set(canvasId, requestAnimationFrame(draw));
+}
+
+function stopTerastalCanvas(canvasId) {
+    if (terastalAnimations.has(canvasId)) {
+        cancelAnimationFrame(terastalAnimations.get(canvasId));
+        terastalAnimations.delete(canvasId);
+    }
+    const canvas = document.getElementById(canvasId);
+    if (canvas) {
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+}
+
+function getTypeColor(type) {
         const colors = {
             normal: '#A8A77A', fire: '#EE8130', water: '#6390F0', electric: '#F7D02C',
             grass: '#7AC74C', ice: '#96D9D6', fighting: '#C22E28', poison: '#A33EA1',
@@ -2054,27 +2225,61 @@ function getTotalBadgeBonus(effectType, targetType) {
     }
 
     function getStaticSpriteUrl(id) { return [`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`, `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`]; }
-    function getBattleSpriteUrl(id, side='front') { const base = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown`; if(side==='back') return [`${base}/back/${id}.gif`, `${base}/${id}.gif`, `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/${id}.png`, getStaticSpriteUrl(id)[0]]; else return [`${base}/${id}.gif`, ...getStaticSpriteUrl(id)]; }
-    function getShinyBattleSpriteUrl(pokemonName, id, side = 'front') {
-        const name = pokemonName.toLowerCase();
-        const officialShiny = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/shiny/${id}.png`;
-        if (side === 'back') {
-            return [
-                `https://play.pokemonshowdown.com/sprites/ani-back-shiny/${name}.gif`,
-                officialShiny,
-                `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/shiny/${id}.png`,
-                getStaticSpriteUrl(id)[0]
-            ];
-        } else {
-            return [
-                `https://play.pokemonshowdown.com/sprites/ani-shiny/${name}.gif`,
-                officialShiny,
-                `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/shiny/${id}.gif`,
-                getStaticSpriteUrl(id)[0]
-            ];
-        }
+function getBattleSpriteUrl(pokemonName, id, side = 'front') {
+    // SAFETY CHECK: If name is missing or is a number, convert to string
+    let n = (typeof pokemonName === 'string') ? pokemonName : String(id);
+    
+    const name = n.toLowerCase()
+        .replace('-mega-x', '-megax')
+        .replace('-mega-y', '-megay');
+        
+    const officialArtwork = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
+
+    if(side === 'back') {
+        return [
+            `https://play.pokemonshowdown.com/sprites/ani-back/${name}.gif`,
+            `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/back/${id}.gif`,
+            `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/${id}.png`,
+            officialArtwork
+        ];
+    } else {
+        return [
+            `https://play.pokemonshowdown.com/sprites/ani/${name}.gif`,
+            `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/${id}.gif`,
+            officialArtwork,
+            `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`
+        ];
     }
-    function loadImageWithFallback(img, urls) { let i=0; function next() { if(i>=urls.length) return; img.src=urls[i]; img.onerror=()=>{ i++; next(); }; } next(); }
+}
+
+function getShinyBattleSpriteUrl(pokemonName, id, side = 'front') {
+    // SAFETY CHECK: If name is missing or is a number, convert to string
+    let n = (typeof pokemonName === 'string') ? pokemonName : String(id);
+
+    const name = n.toLowerCase()
+        .replace('-mega-x', '-megax')
+        .replace('-mega-y', '-megay');
+
+    const officialShiny = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/shiny/${id}.png`;
+    
+    if (side === 'back') {
+        return [
+            `https://play.pokemonshowdown.com/sprites/ani-back-shiny/${name}.gif`,
+            officialShiny,
+            `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/shiny/${id}.png`,
+            `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/${id}.png`
+        ];
+    } else {
+        return [
+            `https://play.pokemonshowdown.com/sprites/ani-shiny/${name}.gif`,
+            officialShiny,
+            `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/shiny/${id}.gif`,
+            `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/${id}.png`
+        ];
+    }
+}
+
+function loadImageWithFallback(img, urls) { let i=0; function next() { if(i>=urls.length) return; img.src=urls[i]; img.onerror=()=>{ i++; next(); }; } next(); }
 
     // Bonus stats helpers
     function generateWildBonusStats() {
@@ -2109,202 +2314,75 @@ function showFloatingDamageEnhanced(damage, spriteElement, isCritical = false, i
     const cx = rect.left - battleRect.left + rect.width / 2;
     const cy = rect.top - battleRect.top + rect.height / 2;
     
-    const typeColors = {
-        fire:'#ff6600', water:'#3399ff', grass:'#44cc44', electric:'#ffdd00',
-        psychic:'#ff44aa', ice:'#88eeff', dragon:'#6633ff', dark:'#554433',
-        ghost:'#9955cc', poison:'#aa44aa', ground:'#cc9944', rock:'#aa8844',
-        steel:'#aaaacc', fairy:'#ffaacc', fighting:'#cc4422', bug:'#88aa22',
-        flying:'#aaaaff', normal:'#aaaaaa'
-    };
-
-    const hitColor = moveType ? (typeColors[moveType] || '#ff4444') : '#ff4444';
-
-    // Damage Number
-    const dmgNumber = document.createElement('div');
-    const moveIcon = TYPE_ICONS[moveType] || '💥';
-    dmgNumber.innerHTML = `<span style="font-size: 1.2rem; margin-right: 4px;">${moveIcon}</span>${damage}`;
-    dmgNumber.className = 'floating-damage' + (isCritical ? ' critical' : '');
+    const typeColors = { fire:'#ff6600', water:'#3399ff', grass:'#44cc44', electric:'#ffdd00', psychic:'#ff44aa', ice:'#88eeff', dragon:'#6633ff', dark:'#554433', ghost:'#9955cc', poison:'#aa44aa', ground:'#cc9944', rock:'#aa8844', steel:'#aaaacc', fairy:'#ffaacc', fighting:'#cc4422', bug:'#88aa22', flying:'#aaaaff', normal:'#aaaaaa' };
+    const hitColor = moveType ? (typeColors[moveType] || '#ff8800') : (isCritical ? '#ffcc00' : '#ff6600');
     
-    // Dynamic Styling
-    dmgNumber.style.position = 'absolute';
-    dmgNumber.style.color = hitColor;
-    dmgNumber.style.textShadow = `0 0 15px ${hitColor}, 2px 2px 0 black`;
-    dmgNumber.style.left = `${cx - 30}px`;
-    dmgNumber.style.top = `${cy - 30}px`;
-    dmgNumber.style.zIndex = '1000';
-    battleArea.appendChild(dmgNumber);
-    
-    setTimeout(() => dmgNumber.remove(), 1000);
+    // 1. Damage Number
+    const damageDiv = document.createElement('div');
+    damageDiv.className = `floating-damage ${isCritical || isSuperEffective ? 'critical' : ''}`;
+    damageDiv.textContent = isMiss ? 'MISS!' : (isHeal ? '+' + damage : String(damage));
+    damageDiv.style.cssText = `left:${cx - 30}px; top:${cy - 50}px; color:${hitColor}; text-shadow: 0 0 10px ${hitColor}, 2px 2px 0 black;`;
+    battleArea.appendChild(damageDiv);
+    setTimeout(() => damageDiv.remove(), 1200);
 
-    // Shockwave
+    if (isMiss) return;
+
+    // 2. Shockwave
     const wave = document.createElement('div');
     wave.className = 'hit-shockwave';
-    wave.style.left = cx + 'px';
-    wave.style.top = cy + 'px';
-    wave.style.borderColor = hitColor;
+    wave.style.cssText = `left:${cx}px; top:${cy}px; border-color:${hitColor}; box-shadow: 0 0 12px ${hitColor};`;
     battleArea.appendChild(wave);
     setTimeout(() => wave.remove(), 700);
 
-    // Flash
+    // 3. Screen Flash
     const flash = document.createElement('div');
     flash.className = 'hit-flash-overlay';
     flash.style.background = hitColor;
     battleArea.appendChild(flash);
     setTimeout(() => flash.remove(), 450);
 
-    // Particles
-    for (let i = 0; i < 10; i++) {
-        const p = document.createElement('div');
-        p.className = 'impact-particle';
-        const angle = (i / 10) * Math.PI * 2;
-        const dx = Math.cos(angle) * 50 + 'px';
-        const dy = Math.sin(angle) * 50 + 'px';
-        p.style.cssText = `left:${cx}px;top:${cy}px;width:5px;height:5px;background:${hitColor};box-shadow:0 0 5px ${hitColor};--dx:${dx};--dy:${dy};`;
-        battleArea.appendChild(p);
-        setTimeout(() => p.remove(), 800);
-    }
-
+    // 4. Stamps
     if (isCritical) {
         const stamp = document.createElement('div');
         stamp.className = 'crit-stamp';
-        stamp.textContent = 'CRITICAL!';
-        stamp.style.left = cx + 'px';
-        stamp.style.top = (cy - 40) + 'px';
+        stamp.textContent = 'CRITICAL HIT!';
+        stamp.style.cssText = `left:${cx}px; top:${cy - 40}px;`;
         battleArea.appendChild(stamp);
-        setTimeout(() => stamp.remove(), 1200);
+        setTimeout(() => stamp.remove(), 1400);
+    }
+    if (isSuperEffective) {
+        const stamp = document.createElement('div');
+        stamp.className = 'super-effective-stamp';
+        stamp.textContent = 'SUPER EFFECTIVE!';
+        stamp.style.cssText = `left:${cx}px; top:${cy + 10}px;`;
+        battleArea.appendChild(stamp);
+        setTimeout(() => stamp.remove(), 1400);
     }
 }
-    // ========== SPECIAL FORM BONUSES (percentage) ==========
+
+// ========== SPECIAL FORM BONUSES (percentage) ==========
 function getSpecialFormBonuses(pokemonName, pokemonId) {
     const name = pokemonName.toLowerCase();
     let atk = 0, def = 0, spd = 0;
- if (LEGENDARY_MYTHICAL_IDS.has(pokemonId)) {
-        atk += 5;
-        def += 2;
-        spd += 2;
-    }
-    // ----- Gigantamax / Dynamax -----
-    if (name.includes('-gmax') || name === 'dynamax') {
-        atk = 10; def = 10; spd = 10;
-    }
-    // ----- Primal Kyogre & Primal Groudon -----
-    else if (name === 'kyogre-primal' || name === 'groudon-primal' || 
-             (pokemonId === 382 && name.includes('primal')) || 
-             (pokemonId === 383 && name.includes('primal'))) {
-        atk = 5; def = 5; spd = 5;
-    }
-    // ----- Origin Forme Dialga & Palkia -----
-    else if (name === 'dialga-origin' || name === 'palkia-origin') {
-        atk = 5; def = 5; spd = 5;
-    }
-    // ----- Mega Evolutions (any -mega suffix OR ID range 10001-10255) -----
-    else if (name.includes('-mega') || (pokemonId > 10000 && pokemonId < 10256)) {
-        atk = 3; def = 3; spd = 3;
-    }
+    if (LEGENDARY_MYTHICAL_IDS.has(pokemonId)) { atk += 5; def += 2; spd += 2; }
+    if (name.includes('-gmax') || name === 'dynamax') { atk = 10; def = 10; spd = 10; }
+    else if (name.includes('primal')) { atk = 5; def = 5; spd = 5; }
+    else if (name.includes('-origin')) { atk = 5; def = 5; spd = 5; }
+    else if (name.includes('-mega') || (pokemonId > 10000 && pokemonId < 10256)) { atk = 3; def = 3; spd = 3; }
+    
+    // Terapagos & Modern Forms
+    if (name.includes('terapagos-stellar') || pokemonId === 10277) return { atk: 15, def: 15, spd: 15 };
+    if (name.includes('terapagos-terastal') || pokemonId === 10276) return { atk: 10, def: 10, spd: 10 };
+    if (name.includes('palafin-hero')) return { atk: 12, def: 5, spd: 5 };
+    if (name.includes('ogerpon')) return { atk: 5, def: 3, spd: 3 };
 
-    // ========== NEW ADDITIONS ==========
-
-    // ----- Ultra Beasts (UB) -----
-    // Known UB IDs: 793-799, 803-806, & some newer (list all)
-    const ultraBeastIds = new Set([
-        793, 794, 795, 796, 797, 798, 799, 803, 804, 805, 806,
-        10025, 10026, 10027, 10028, 10029, 10030 // add any missing UB IDs
-    ]);
-    if (ultraBeastIds.has(pokemonId) || name.includes('-ub') || name.includes('ultra') || 
-        (name.includes('beast') && !name.includes('beast'))) {
-        atk = 3; def = 0; spd = 3;  // glass cannon
-    }
-
-    // ----- Alolan Forms -----
-    if (name.includes('-alola')) {
-        if (name === 'ninetales-alola' || name === 'alolan-ninetales') {
-            spd = 2;
-        } else if (name === 'sandslash-alola' || name === 'alolan-sandslash') {
-            atk = 2; def = 2;
-        }
-        // other Alolan forms default to no bonus unless specified
-    }
-
-    // ----- Galarian Forms -----
-    if (name.includes('-galar')) {
-        if (name === 'darmanitan-galar-zen' || name.includes('galarian-darmanitan-zen')) {
-            atk = 5;
-        } else if (name === 'slowbro-galar' || name === 'galarian-slowbro') {
-            def = 2;
-        }
-        // Galarian Darmanitan regular (non-Zen) – no bonus
-    }
-
-    // ----- Hisuian Forms -----
-    if (name.includes('-hisui')) {
-        if (name === 'zoroark-hisui' || name === 'hisuian-zoroark') {
-            atk = 3; spd = 3;
-        } else if (name === 'arcanine-hisui' || name === 'hisuian-arcanine') {
-            atk = 3; def = 2;
-        }
-    }
-
-    // ----- Specific Legendaries & Mythicals -----
-    // Giratina‑Origin
-    if (name === 'giratina-origin') {
-        atk = 5; def = 3; spd = 3;
-    }
-    // Deoxys forms
-    else if (name === 'deoxys-attack') {
-        atk = 5; spd = 5;
-    } else if (name === 'deoxys-defense') {
-        def = 5;
-    } else if (name === 'deoxys-speed') {
-        spd = 5;
-    }
-    // Shaymin‑Sky
-    else if (name === 'shaymin-sky') {
-        atk = 3; spd = 5;
-    }
-    // Keldeo‑Resolute
-    else if (name === 'keldeo-resolute') {
-        atk = 3; spd = 3;
-    }
-    // Hoopa‑Unbound
-    else if (name === 'hoopa-unbound') {
-        atk = 5; def = 3; spd = 5;
-    }
-    // Necrozma forms
-    else if (name === 'necrozma-dusk-mane') {
-        atk = 5; def = 5;
-    } else if (name === 'necrozma-dawn-wings') {
-        atk = 5; spd = 5;
-    }
-    // Zacian & Zamazenta (Crowned)
-    else if (name === 'zacian-crowned') {
-        atk = 5; spd = 3;
-    } else if (name === 'zamazenta-crowned') {
-        def = 5; spd = 3;
-    }
-    // Eternatus‑Eternamax
-    else if (name === 'eternatus-eternamax') {
-        atk = 5; def = 5; spd = 5;
-    }
-    // Zygarde forms
-    else if (name === 'zygarde-10') {
-        // no bonus by default
-    } else if (name === 'zygarde-50') {
-        atk = 2; def = 2; spd = 2;
-    } else if (name === 'zygarde-complete' || name === 'zygarde-100') {
-        atk = 5; def = 5; spd = 5;
-    }
-    // Aegislash‑Blade
-    else if (name === 'aegislash-blade') {
-        atk = 5; spd = 3;
-    }
-    // Wishiwashi‑School
-    else if (name === 'wishiwashi-school') {
-        atk = 3; def = 3; spd = 3;
-    }
-
+    const ultraBeastIds = new Set([793,794,795,796,797,798,799,803,804,805,806]);
+    if (ultraBeastIds.has(pokemonId) || name.includes('-ub')) { atk = 3; def = 0; spd = 3; }
+    if (name.includes('-alola')) { if (name.includes('ninetales')) spd = 2; else { atk = 2; def = 2; } }
+    if (name.includes('-galar')) { if (name.includes('darmanitan-zen')) atk = 5; else def = 2; }
+    if (name.includes('-hisui')) { atk = 3; spd = 3; }
     return { atk, def, spd };
 }
-
 // Legendary & Mythical Pokémon IDs (base forms – includes all gens up to Gen 9)
 const LEGENDARY_MYTHICAL_IDS = new Set([
     // Gen 1
@@ -2361,33 +2439,39 @@ const LEGENDARY_MYTHICAL_IDS = new Set([
 
 function executeAttack(attacker, defender, move, isPlayerAttacking) {
     let eff = getTypeEffectiveness(move.type, defender.types);
+    let effText = "";
+    
     let isSuperEffective = eff === 2;
-    let effText = isSuperEffective ? "It's super effective!" : (eff === 0.5 ? "It's not very effective..." : "");
+    if (eff === 2) effText = "It's super effective!";
+    else if (eff === 0.5) effText = "It's not very effective...";
+    else if (eff === 0) effText = "No effect!";
     
-    let isCritical = Math.random() < 0.0625;
-    let critMult = isCritical ? 1.2 : 1;
-    let stab = (attacker.types && attacker.types.includes(move.type)) ? 1.5 : 1;
+    let isCritical = Math.random() < 0.10; 
+    let critMultiplier = isCritical ? 1.5 : 1;
+    let stab = (attacker.types && attacker.types.includes(move.type)) ? 1.3 : 1;
     
-    let dmg = Math.floor((move.power / 5) * (attacker.level / 2) * eff * stab * critMult);
+    let dmg = Math.floor((move.power / 5) * (attacker.level / 2) * eff * stab * critMultiplier);
     if (dmg < 1 && eff > 0) dmg = 1;
     dmg = applyDamageModifiers(dmg, attacker.bonusStats, defender.bonusStats);
     
     const oldHp = defender.currentHp;
     defender.currentHp = Math.max(0, defender.currentHp - dmg);
-    const actualDmg = oldHp - defender.currentHp;
+    const actualDamage = oldHp - defender.currentHp;
     
     const sprite = isPlayerAttacking ? document.getElementById('e-sprite-btl') : document.getElementById('p-sprite-btl');
-    
-    if (sprite && actualDmg > 0) {
-        // Trigger visuals with actual damage and move.type
-        showFloatingDamageEnhanced(actualDmg, sprite, isCritical, isSuperEffective, false, false, move.type);
-        const shakeClass = (isCritical || isSuperEffective) ? 'shake-effect-hard' : 'shake-effect';
-        sprite.classList.remove('shake-effect', 'shake-effect-hard');
-        void sprite.offsetWidth;
-        sprite.classList.add(shakeClass);
+    if (sprite) {
+        if (actualDamage > 0) {
+            showFloatingDamageEnhanced(actualDamage, sprite, isCritical, isSuperEffective, false, false, move.type);
+            const shakeClass = (isCritical || isSuperEffective) ? 'shake-effect-hard' : 'shake-effect';
+            sprite.classList.remove('shake-effect', 'shake-effect-hard');
+            void sprite.offsetWidth;
+            sprite.classList.add(shakeClass);
+        } else if (eff === 0) {
+            showFloatingDamageEnhanced(0, sprite, false, false, false, true, move.type);
+        }
     }
     
-    addBattleLog(`${attacker.name.toUpperCase()} used ${move.name.toUpperCase()}! Deals ${actualDmg} dmg. ${effText}`);
+    addBattleLog(`${attacker.name.toUpperCase()} used ${move.name.toUpperCase()}! Deals ${actualDamage} dmg. ${effText}`);
     return defender.currentHp <= 0;
 }
 
@@ -2513,9 +2597,11 @@ listDiv.appendChild(instruction);
             const typeBadgesHtml = generateTypeBadges(p.types);
             let shinyBadge = '';
             if (p.isShiny) shinyBadge = '<span style="background: #ffcc00; color: #333; padding: 2px 6px; border-radius: 20px; font-size: 0.6rem; margin-left: 8px;">✨ SHINY</span>';
-            
+
+            let teraBadge = p.isTerastal ? '<span style="background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.6rem; font-weight: bold; margin-left: 5px; border: 1px solid white;">💠 TERA</span>' : '';
+
             textDiv.innerHTML = `
-                <strong>${p.name.toUpperCase()} ${bonusIcons}</strong> ${shinyBadge}<br>
+                <strong>${p.name.toUpperCase()} ${bonusIcons}</strong> ${shinyBadge} ${teraBadge}<br>
                 <div style="margin: 4px 0;">${typeBadgesHtml}</div>
                 <small>Lvl ${p.level} — HP: ${p.currentHp}/${p.maxHp} (${hpPct}%)</small><br>
                 <small>XP: ${currentXP}/${neededXP} (${xpPercent}%)</small>
@@ -2674,14 +2760,10 @@ listDiv.appendChild(instruction);
             if (p.bonusStats?.spd) bonusIcons += '🏃';
             let shinyBadge = '';
             if (p.isShiny) shinyBadge = '<span style="background:#ffcc00;color:#333;padding:2px 6px;border-radius:20px;font-size:0.6rem;margin-left:8px;">✨ SHINY</span>';
-            
-            const textDiv = document.createElement('div');
-            textDiv.style.flex = '1';
-            textDiv.style.textAlign = 'left';
-            const hpPct = Math.floor((p.currentHp / p.maxHp) * 100);
-            const typeBadgesHtml = generateTypeBadges(p.types);
+              let teraBadge = p.isTerastal ? '<span style="background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.6rem; font-weight: bold; margin-left: 5px; border: 1px solid white;">💠 TERA</span>' : '';
+
             textDiv.innerHTML = `
-                <strong>${p.name.toUpperCase()} ${bonusIcons}</strong> ${shinyBadge}<br>
+                <strong>${p.name.toUpperCase()} ${bonusIcons}</strong> ${shinyBadge} ${teraBadge}<br>
                 <div style="margin: 4px 0;">${typeBadgesHtml}</div>
                 <small>Lvl ${p.level} — HP: ${p.currentHp}/${p.maxHp} (${hpPct}%)</small>
             `;
@@ -2803,60 +2885,50 @@ async function resolveBattle(win) {
         const recordSnap = await getDoc(recordRef);
         const encounterCount = recordSnap.exists() ? recordSnap.data().count : 0;
       
-        // === AUTO‑CATCH ON 5TH ENCOUNTER (ONCE PER SPECIES) ===
-        // ── MAP‑CONFIGURABLE AUTO‑CATCH ──
-const autoCatchEnabled = currentMap?.autoCatchEnabled === true;
-const autoCatchThreshold = currentMap?.autoCatchThreshold || 5;
-const alreadyAutoCaught = recordSnap.exists() && (recordSnap.data().autoCaught === true || recordSnap.data().autoCaught5th === true);
+        // === FIXED AUTO-CATCH: ONE-TIME POKEDEX REWARD ===
+        const autoCatchEnabled = currentMap?.autoCatchEnabled === true;
+        const autoCatchThreshold = currentMap?.autoCatchThreshold || 5;
+        const recordData = recordSnap.exists() ? recordSnap.data() : {};
+        
+        const alreadyClaimed = recordData.autoCaught === true;
+        const alreadyOwned = ownedPokemonIds.has(b.wild.pokemonId);
 
-// === AUTO‑CATCH BLOCK (patch) ===
-if (autoCatchEnabled && encounterCount >= autoCatchThreshold && !alreadyAutoCaught) {
-    addBattleLog(`🎉 ${b.wild.name.toUpperCase()} has been encountered ${encounterCount} times on this map! It automatically joins your team!`);
+        if (autoCatchEnabled && encounterCount >= autoCatchThreshold && !alreadyClaimed && !alreadyOwned) {
+            addBattleLog(`🎉 NEW DISCOVERY: ${b.wild.name.toUpperCase()} joins your team!`);
 
-    // 1. Save the new Pokémon (as before)
-    const trainerName = await getTrainerName();
-    const newPokemon = {
-        pokemonId: b.wild.pokemonId,
-        name: b.wild.name,
-        level: b.wild.level,
-        exp: 0,
-        moves: b.wild.moves,
-        types: b.wild.types,
-        inTeam: false,
-        capturedAt: new Date(),
-        capturedBy: trainerName,
-        capturedOnMap: currentMap?.name || "Unknown Map",
-        bonusStats: b.wild.bonusStats,
-        isShiny: b.wild.isShiny
-    };
-    await addDoc(collection(db, "users", userId, "pokemon"), newPokemon);
-    ownedPokemonIds.add(b.wild.pokemonId);
-    await updateUserTotalLevels(userId, b.wild.level);
-    await updateDoc(recordRef, { autoCaught: true });
-    invalidateTeamCache();
+            const trainerName = await getTrainerName();
+            const newPokemon = {
+                pokemonId: b.wild.pokemonId, name: b.wild.name, level: b.wild.level, exp: 0,
+                moves: b.wild.moves, types: b.wild.types, inTeam: false, capturedAt: new Date(),
+                capturedBy: trainerName, capturedOnMap: currentMap?.name || "Discovery",
+                bonusStats: b.wild.bonusStats, isShiny: b.wild.isShiny, isTerastal: b.wild.isTerastal || false
+            };
 
-    // 2. Force stop battle music and hide battle UI to avoid overlay conflicts
-    stopBattleMusic();
-    document.getElementById('battle-area').classList.add('hidden');
+            await addDoc(collection(db, "users", userId, "pokemon"), newPokemon);
+            ownedPokemonIds.add(b.wild.pokemonId);
+            await updateDoc(recordRef, { autoCaught: true }); // SET PERMANENT FLAG
+            await updateUserTotalLevels(userId, b.wild.level);
+            invalidateTeamCache();
 
-    // 3. Use a reliable custom modal (or fallback alert)
-    const autoCatchModal = document.createElement('div');
-    autoCatchModal.className = 'overlay'; // reuses your overlay style
-    autoCatchModal.innerHTML = `
-        <div class="modal" style="max-width: 400px; text-align: center;">
-            <h2>🎉 AUTO‑CATCH SUCCESS!</h2>
-            <img src="${getStaticSpriteUrl(b.wild.pokemonId)[0]}" style="width: 120px;">
-            <p><strong>${b.wild.name.toUpperCase()}</strong> automatically joined your team!</p>
-            <button class="btn btn-primary" id="close-auto-catch">Continue</button>
-        </div>
-    `;
-    document.body.appendChild(autoCatchModal);
-    document.getElementById('close-auto-catch').onclick = () => {
-        autoCatchModal.remove();
-        endBattleCleanup();  // cleans up currentBattle
-    };
-    return;
-}
+            stopBattleMusic();
+            stopTerastalCanvas('tera-canvas-enemy');
+            stopTerastalCanvas('tera-canvas-player');
+            document.getElementById('battle-area').classList.add('hidden');
+
+            const autoCatchModal = document.createElement('div');
+            autoCatchModal.className = 'overlay';
+            autoCatchModal.innerHTML = `
+                <div class="modal" style="max-width: 400px; text-align: center; border: 4px solid var(--success);">
+                    <h2>✨ POKÉDEX REWARD! ✨</h2>
+                    <img src="${getStaticSpriteUrl(b.wild.pokemonId)[0]}" style="width: 120px;">
+                    <p>You tracked <b>${b.wild.name.toUpperCase()}</b> ${encounterCount} times!</p>
+                    <p style="font-size: 0.8rem; color: var(--text-light);">It has joined your team as a one-time reward.</p>
+                    <button class="btn btn-primary" id="close-auto-catch" style="margin-top:15px; width:100%;">Continue</button>
+                </div>`;
+            document.body.appendChild(autoCatchModal);
+            document.getElementById('close-auto-catch').onclick = () => { autoCatchModal.remove(); endBattleCleanup(); };
+            return;
+        }
         // ---- Normal win: distribute XP among participants ----
         const xpMultiplier = currentMap?.xpMultiplier || 1.0;
 const coinMultiplier = currentMap?.coinMultiplier || 1.0;
@@ -3075,7 +3147,7 @@ async function showBadgeRequirementModal(map) {
             const p = await pokemonRes.json();
             const s = await speciesRes.json();
             const desc = s.flavor_text_entries.find(e => e.language.name === 'en')?.flavor_text.replace(/\f/g, ' ') || 'No description available.';
-            loadImageWithFallback(document.getElementById('info-img'), getBattleSpriteUrl(id, 'front'));
+           loadImageWithFallback(document.getElementById('info-img'), getBattleSpriteUrl(p.name, id, 'front'));
             document.getElementById('info-name').innerText = p.name.toUpperCase();
             document.getElementById('info-desc').innerText = `"${desc}"`;
             document.getElementById('info-stats').innerHTML = `Height: ${p.height/10}m | Weight: ${p.weight/10}kg | Types: ${p.types.map(t=>t.type.name).join('/')}`;
@@ -3100,11 +3172,23 @@ async function showBadgeRequirementModal(map) {
     invalidateTeamCache(); // ← ADD THIS LINE
     document.getElementById('battle-summary-modal').classList.add('hidden');
     document.getElementById('battle-area').classList.add('hidden');
+    stopTerastalCanvas('tera-canvas-enemy');
+    stopTerastalCanvas('tera-canvas-player');
+    const sprites = [document.getElementById('e-sprite-btl'), document.getElementById('p-sprite-btl')];
+    sprites.forEach(s => {
+        if (s) {
+            s.classList.remove('terastal-sprite');
+            s.style.filter = '';
+            s.style.removeProperty('--tera-filter-low');
+            s.style.removeProperty('--tera-filter-high');
+        }
+    });
     currentBattle = null;
     isProcessing = false;
     toggleBattleUI(false);
     stopBattleMusic();
     encounterCooldown = true;
+
     setTimeout(() => {
         encounterCooldown = false;
         if (!currentBattle) addBattleLog("You are ready for another encounter.");
@@ -3136,10 +3220,11 @@ spriteContainer.style.boxShadow = "0 0 30px rgba(255,68,68,0.5)";
 spriteContainer.classList.add('pokeball-bg-spin');
     
     if (b.player.isShiny) {
-        loadImageWithFallback(sprite, getShinyBattleSpriteUrl(b.player.name, b.player.pokemonId, 'front'));
-    } else {
-        loadImageWithFallback(sprite, getBattleSpriteUrl(b.player.pokemonId, 'front'));
-    }
+    loadImageWithFallback(sprite, getShinyBattleSpriteUrl(b.player.name, b.player.pokemonId, 'front'));
+} else {
+    // FIXED LINE BELOW: added b.player.name
+    loadImageWithFallback(sprite, getBattleSpriteUrl(b.player.name, b.player.pokemonId, 'front'));
+}
     let pIcons = '';
     let displayName = b.player.name.toUpperCase();
     if (b.player.isShiny) displayName = '✨ SHINY ' + displayName;
@@ -3296,9 +3381,10 @@ spriteContainer.classList.add('pokeball-bg-spin');
         // ========== LOAD SPRITE WITH POP EFFECT ==========
         if (b.wild.isShiny) {
             loadImageWithFallback(sprite, getShinyBattleSpriteUrl(b.wild.name, b.wild.pokemonId, 'front'));
-        } else {
-            loadImageWithFallback(sprite, getBattleSpriteUrl(b.wild.pokemonId, 'front'));
-        }
+    } else {
+        // FIXED LINE BELOW: added b.wild.name
+        loadImageWithFallback(sprite, getBattleSpriteUrl(b.wild.name, b.wild.pokemonId, 'front'));
+    }
         sprite.className = "catch-pop-in";
         sprite.style.imageRendering = "pixelated";
         sprite.style.width = "110px";
@@ -3415,10 +3501,12 @@ spriteContainer.classList.add('pokeball-bg-spin');
     if (b.wild.isShiny) {
         loadImageWithFallback(sprite, getShinyBattleSpriteUrl(b.wild.name, b.wild.pokemonId, 'front'));
     } else {
-        loadImageWithFallback(sprite, getBattleSpriteUrl(b.wild.pokemonId, 'front'));
+        // FIXED LINE BELOW: ensure b.wild.name is there
+        loadImageWithFallback(sprite, getBattleSpriteUrl(b.wild.name, b.wild.pokemonId, 'front'));
     }
     let displayName = b.wild.name.toUpperCase();
     if (b.wild.isShiny) displayName = '✨ SHINY ' + displayName;
+    if (b.wild.isTerastal) displayName = '💠 TERASTAL ' + displayName;
     name.innerText = displayName;
     info.innerText = `Level ${b.wild.level}`;
     typesDiv.innerHTML = generateTypeBadges(b.wild.types);
@@ -3687,7 +3775,8 @@ battleArea.appendChild(catchContainer);
                     def: b.wild.wildBonuses.def > 0,
                     spd: b.wild.wildBonuses.spd > 0
                 },
-                isShiny: b.wild.isShiny
+                isShiny: b.wild.isShiny,
+                isTerastal: b.wild.isTerastal || false
             };
             await addDoc(collection(db, "users", auth.currentUser.uid, "pokemon"), newPokemon);
             ownedPokemonIds.add(b.wild.pokemonId);
@@ -3887,13 +3976,15 @@ listDiv.appendChild(instruction);
             let shinyBadge = '';
             if (p.isShiny) shinyBadge = '<span style="background:#ffcc00;color:#333;padding:2px 6px;border-radius:20px;font-size:0.6rem;margin-left:8px;">✨ SHINY</span>';
             
+             let teraBadge = p.isTerastal ? '<span style="background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.6rem; font-weight: bold; margin-left: 5px; border: 1px solid white;">💠 TERA</span>' : '';
+            
             const textDiv = document.createElement('div');
             textDiv.style.flex = '1';
             textDiv.style.textAlign = 'left';
             const hpPct = Math.floor((p.currentHp / p.maxHp) * 100);
             const typeBadgesHtml = generateTypeBadges(p.types);
             textDiv.innerHTML = `
-                <strong>${p.name.toUpperCase()} ${bonusIcons}</strong> ${shinyBadge}<br>
+                <strong>${p.name.toUpperCase()} ${bonusIcons}</strong> ${shinyBadge} ${teraBadge}<br>
                 <div style="margin: 4px 0;">${typeBadgesHtml}</div>
                 <small>Lvl ${p.level} — HP: ${p.currentHp}/${p.maxHp} (${hpPct}%)</small>
             `;
@@ -3964,80 +4055,110 @@ listDiv.appendChild(instruction);
 }
 
 async function attemptSwitch() {
-    // Clear any pending turn timeout
-    if (currentTurnTimeout) {
-        clearTimeout(currentTurnTimeout);
-        currentTurnTimeout = null;
-    }
     if (!currentBattle || isProcessing) return;
+    isProcessing = true;
+
+    // UI Buttons
+    const btn = document.getElementById('switch-btn');
+    const catchBtn = document.getElementById('catch-btn');
+    const escapeBtn = document.getElementById('escape-btn');
+    if (btn) btn.disabled = true;
+    if (catchBtn) catchBtn.disabled = true;
+    if (escapeBtn) escapeBtn.disabled = true;
 
     const b = currentBattle;
     const available = b.playerTeam.filter(p => p.currentHp > 0 && p.id !== b.player.id);
+
     if (available.length === 0) {
         addBattleLog("No other Pokémon can switch in!");
+        isProcessing = false;
+        if (btn) btn.disabled = false;
+        if (catchBtn) catchBtn.disabled = false;
+        if (escapeBtn) escapeBtn.disabled = false;
         return;
     }
-
-    isProcessing = true;
-    toggleBattleUI(true);
 
     const selected = await showSwitchModal(available, b.player.id);
 
     if (!selected) {
-        // ---------- CANCEL: enemy gets a free attack ----------
-        addBattleLog(`You cancelled the switch! ${b.wild.name.toUpperCase()} attacks!`);
+        // User cancelled switch -> enemy gets a free turn
+        addBattleLog("Switch cancelled! The wild Pokémon attacks!");
         const wM = b.wild.moves[Math.floor(Math.random() * b.wild.moves.length)];
-        const effWild = getTypeEffectiveness(wM.type, b.player.types);
-        let wDmg = Math.floor((wM.power / 5) * (b.wild.level / 2) * effWild);
-        if (wDmg < 1 && effWild > 0) wDmg = 1;
-        b.player.currentHp = Math.max(0, b.player.currentHp - wDmg);
-        addBattleLog(`Wild ${b.wild.name} used ${wM.name.toUpperCase()}! Deals ${wDmg} dmg.`);
+        executeAttack(b.wild, b.player, wM, false);
         renderBattleUI();
+        updateCatchChance();
 
-        // Check if player fainted after the attack
         if (b.player.currentHp <= 0) {
-            await handlePlayerFaint(b);
-        } else {
-            // Re‑enable UI so player can choose a move
-            isProcessing = false;
-            toggleBattleUI(false);
-            // Explicitly enable all move buttons and action buttons
-            document.querySelectorAll('.move-btn').forEach(btn => btn.disabled = false);
-            document.getElementById('catch-btn').disabled = false;
-            document.getElementById('escape-btn').disabled = false;
-            document.getElementById('switch-btn').disabled = false;
+            const nextIdx = await handlePlayerFaint(b);
+            if (nextIdx === null) {
+                addBattleLog("All your Pokémon have fainted! You black out...");
+                stopTerastalCanvas('tera-canvas-enemy');
+                stopTerastalCanvas('tera-canvas-player');
+                currentBattle = null;
+                document.getElementById('battle-area').classList.add('hidden');
+                stopBattleMusic();
+            }
         }
+        isProcessing = false;
+        if (btn) btn.disabled = false;
+        if (catchBtn) catchBtn.disabled = false;
+        if (escapeBtn) escapeBtn.disabled = false;
         return;
     }
+
+    // --- SUCCESSFUL SWITCH ---
+    addBattleLog(`Come back, ${b.player.name.toUpperCase()}!`);
+    
+    // CRITICAL: Remove Terastal effect from the OUTGOING player Pokémon
+    stopTerastalCanvas('tera-canvas-player');
+    
+    const outgoingSprite = document.getElementById('p-sprite-btl');
+    if (outgoingSprite) {
+        outgoingSprite.classList.remove('terastal-sprite');
+        outgoingSprite.style.filter = '';
+        outgoingSprite.style.removeProperty('--tera-filter-low');
+        outgoingSprite.style.removeProperty('--tera-filter-high');
+    }
+
     b.participants.add(selected.id);
     const newIdx = b.playerTeam.findIndex(p => p.id === selected.id);
     b.activePokemonIndex = newIdx;
-    b.player = b.playerTeam[newIdx];
+    
+    // CRITICAL: The new player object MUST preserve its isTerastal value from Firestore
+    // Your database stores isTerastal per Pokémon, so it should already be correct
+    b.player = {
+        ...b.playerTeam[newIdx],
+        // Explicitly preserve the isTerastal flag (this is the key fix)
+        isTerastal: b.playerTeam[newIdx].isTerastal === true
+    };
 
-   
-    // Update companion sprite to reflect switched-in Pokémon
-    if (cachedActivePokemon) {
-        cachedActivePokemon.pokemonId = b.player.pokemonId;
-        cachedActivePokemon.isShiny = b.player.isShiny;
-        updatePlayerLabel();
-    }
+    // Re-render the UI - this will apply Terastal ONLY if the new Pokémon has isTerastal = true
     renderBattleUI();
     addBattleLog(`Go! ${b.player.name.toUpperCase()}!`);
 
-    // After switch, enemy attacks immediately
-    setTimeout(async () => {                          // ✅ async added
+    // Wild Pokémon counter-attacks after switch
+    setTimeout(async () => {
         if (!currentBattle) return;
         const wM = b.wild.moves[Math.floor(Math.random() * b.wild.moves.length)];
         executeAttack(b.wild, b.player, wM, false);
         renderBattleUI();
+        updateCatchChance();
+
         if (b.player.currentHp <= 0) {
-            await handlePlayerFaint(b);              // ✅ properly awaited now
-        } else {
-            isProcessing = false;
-            toggleBattleUI(false);
-            if (currentTurnTimeout) clearTimeout(currentTurnTimeout);
-            currentTurnTimeout = null;
+            const nextIdx = await handlePlayerFaint(b);
+            if (nextIdx === null) {
+                addBattleLog("All your Pokémon have fainted! You black out...");
+                stopTerastalCanvas('tera-canvas-enemy');
+                stopTerastalCanvas('tera-canvas-player');
+                currentBattle = null;
+                document.getElementById('battle-area').classList.add('hidden');
+                stopBattleMusic();
+            }
         }
+        isProcessing = false;
+        if (btn) btn.disabled = false;
+        if (catchBtn) catchBtn.disabled = false;
+        if (escapeBtn) escapeBtn.disabled = false;
     }, 1000);
 }
 
@@ -4163,72 +4284,142 @@ function renderBattleUI() {
 
     // ----- Enemy Sprite -----
     const enemySprite = document.getElementById('e-sprite-btl');
-    enemySprite.classList.remove('gmax-sprite', 'legendary-sprite', 'mythical-sprite', 'mega-sprite', 'ub-sprite');
-    if (b.wild.specialCategory) enemySprite.classList.add(`${b.wild.specialCategory}-sprite`);
+    if (enemySprite) {
+        enemySprite.classList.remove('terastal-sprite');
+        enemySprite.style.filter = '';
+        enemySprite.style.removeProperty('--tera-filter-low');
+        enemySprite.style.removeProperty('--tera-filter-high');
+    }
+    stopTerastalCanvas('tera-canvas-enemy');
+    
     if (b.wild.isShiny) {
         loadImageWithFallback(enemySprite, getShinyBattleSpriteUrl(b.wild.name, b.wild.pokemonId, 'front'));
     } else {
-        loadImageWithFallback(enemySprite, getBattleSpriteUrl(b.wild.pokemonId, 'front'));
+        loadImageWithFallback(enemySprite, getBattleSpriteUrl(b.wild.name, b.wild.pokemonId, 'front'));
+    }
+
+    if (b.wild.isTerastal) {
+        const teraColor = TERA_TYPE_COLORS[b.wild.types[0]] || '#aa88ff';
+        enemySprite.style.setProperty('--tera-filter-low', `drop-shadow(0 0 8px ${teraColor})`);
+        enemySprite.style.setProperty('--tera-filter-high', `drop-shadow(0 0 25px ${teraColor}) brightness(1.2)`);
+        enemySprite.classList.add('terastal-sprite');
+        if (enemySprite.complete) startTerastalCanvas('tera-canvas-enemy', enemySprite, teraColor);
+        else enemySprite.onload = () => startTerastalCanvas('tera-canvas-enemy', enemySprite, teraColor);
     }
     enemySprite.onclick = () => showInfo(b.wild.pokemonId);
 
-    // ----- Player Sprite -----
+    // ----- Player Sprite (CRITICAL - from index.html) -----
     const playerSprite = document.getElementById('p-sprite-btl');
+    
+    // CRITICAL: Stop player Terastal animation BEFORE making any changes
+    stopTerastalCanvas('tera-canvas-player');
+    
+    // Reset ALL player sprite visual properties to default
+    if (playerSprite) {
+        playerSprite.classList.remove('terastal-sprite');
+        playerSprite.style.filter = '';
+        playerSprite.style.removeProperty('--tera-filter-low');
+        playerSprite.style.removeProperty('--tera-filter-high');
+    }
+
+    // Load the sprite (shiny or normal)
     if (b.player.isShiny) {
         loadImageWithFallback(playerSprite, getShinyBattleSpriteUrl(b.player.name, b.player.pokemonId, 'back'));
     } else {
-        loadImageWithFallback(playerSprite, getBattleSpriteUrl(b.player.pokemonId, 'back'));
+        loadImageWithFallback(playerSprite, getBattleSpriteUrl(b.player.name, b.player.pokemonId, 'back'));
     }
+
+    // Apply Terastal effect ONLY if the NEW player Pokémon has isTerastal = true
+    if (b.player.isTerastal === true) {
+        const teraColor = TERA_TYPE_COLORS[b.player.types[0]] || '#aa88ff';
+        playerSprite.style.setProperty('--tera-filter-low', `drop-shadow(0 0 8px ${teraColor})`);
+        playerSprite.style.setProperty('--tera-filter-high', `drop-shadow(0 0 25px ${teraColor}) brightness(1.2)`);
+        playerSprite.classList.add('terastal-sprite');
+        startTerastalCanvas('tera-canvas-player', playerSprite, teraColor);
+    }
+    // If isTerastal is false, do NOTHING - no glow, no canvas, no filters
     playerSprite.onclick = () => showInfo(b.player.pokemonId);
 
-    // ----- Enemy Stat Box (new layout) -----
+    // ----- Enemy Stat Box -----
+        // ----- Enemy Stat Box (with Shiny and Tera badges in header row) -----
+        // ----- Enemy Stat Box (combine Terastal with special badge) -----
     const enemyStatBox = document.querySelector('#battle-area .enemy-side .stat-box');
-if (enemyStatBox) {
-    const shinyIcon = b.wild.isShiny ? '✨ ' : '';
-    // Show icons ONLY for random wild bonuses (+25% flags)
-    let bonusIcons = '';
-    if (b.wild.wildBonuses?.atk) bonusIcons += '⚔️';
-    if (b.wild.wildBonuses?.def) bonusIcons += '🛡️';
-    if (b.wild.wildBonuses?.spd) bonusIcons += '🏃';
-    const specialBadge = b.wild.specialBadge || '';
-    const hpPercent = (b.wild.currentHp / b.wild.maxHp) * 100;
+    if (enemyStatBox) {
+        const shinyIcon = b.wild.isShiny ? '✨ ' : '';
+        const shinyPin = b.wild.isShiny ? '<span style="background: #ffcc00; color: #333; padding: 2px 6px; border-radius: 20px; font-size: 0.6rem; font-weight: bold; margin-right: 4px;">✨ SHINY</span>' : '';
+        
+        // Combine Terastal with special badge
+        let combinedBadge = '';
+        if (b.wild.isTerastal && b.wild.specialBadge) {
+            combinedBadge = `<span style="background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.6rem; font-weight: bold; margin-right: 4px; border: 1px solid white;">💠 TERA ${b.wild.specialBadge}</span>`;
+        } else if (b.wild.isTerastal) {
+            combinedBadge = `<span style="background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.6rem; font-weight: bold; margin-right: 4px; border: 1px solid white;">💠 TERA</span>`;
+        } else if (b.wild.specialBadge) {
+            combinedBadge = `<span class="special-badge" style="font-size:0.6rem; padding:2px 6px;">${b.wild.specialBadge}</span>`;
+        }
+        
+        let bonusIcons = '';
+        if (b.wild.bonusStats?.atk) bonusIcons += '⚔️';
+        if (b.wild.bonusStats?.def) bonusIcons += '🛡️';
+        if (b.wild.bonusStats?.spd) bonusIcons += '🏃';
+        
+        const hpPercent = (b.wild.currentHp / b.wild.maxHp) * 100;
+        
+        enemyStatBox.innerHTML = `
+            <div><strong>${shinyIcon}${b.wild.name.toUpperCase()}</strong> | Lv.${b.wild.level}</div>
+            <div>${generateTypeBadges(b.wild.types)}</div>
+            <div style="margin: 4px 0; display: flex; gap: 4px; flex-wrap: wrap; align-items: center;">
+                ${shinyPin}
+                ${combinedBadge}
+                ${bonusIcons ? `<span style="font-size: 0.8rem;">${bonusIcons}</span>` : ''}
+            </div>
+            <div class="hp-bar"><div class="hp-fill" style="width: ${hpPercent}%; background: var(--success);"></div></div>
+            <div style="font-size:0.7rem; margin-top:4px;">❤️ HP: ${b.wild.currentHp}/${b.wild.maxHp}</div>
+        `;
+    }
 
-    enemyStatBox.innerHTML = `
-        <div><strong>${shinyIcon}${b.wild.name.toUpperCase()}</strong> | Lv.${b.wild.level}</div>
-        ${specialBadge ? `<div style="font-size:0.7rem; margin-top:2px;">${specialBadge}</div>` : ''}
-        ${bonusIcons ? `<div style="font-size:0.9rem; margin-top:2px;">${bonusIcons}</div>` : ''}
-        <div>${generateTypeBadges(b.wild.types)}</div>
-        <div class="hp-bar"><div class="hp-fill" style="width: ${hpPercent}%; background: var(--success);"></div></div>
-        <div style="font-size:0.7rem; margin-top:4px;">❤️ HP: ${b.wild.currentHp}/${b.wild.maxHp}</div>
-    `;
-}
-
-    // ----- Player Stat Box (new layout) -----
+    // ----- Player Stat Box -----
+        // ----- Player Stat Box (combine Terastal with special badge) -----
     const playerStatBox = document.querySelector('#battle-area .player-side .stat-box');
     if (playerStatBox) {
         const shinyIcon = b.player.isShiny ? '✨ ' : '';
+        const shinyPin = b.player.isShiny ? '<span style="background: #ffcc00; color: #333; padding: 2px 6px; border-radius: 20px; font-size: 0.6rem; font-weight: bold; margin-right: 4px;">✨ SHINY</span>' : '';
+        
+        // Combine Terastal with special badge
+        let combinedBadge = '';
+        if (b.player.isTerastal && b.player.specialBadge) {
+            combinedBadge = `<span style="background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.6rem; font-weight: bold; margin-right: 4px; border: 1px solid white;">💠 TERA ${b.player.specialBadge}</span>`;
+        } else if (b.player.isTerastal) {
+            combinedBadge = `<span style="background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.6rem; font-weight: bold; margin-right: 4px; border: 1px solid white;">💠 TERA</span>`;
+        } else if (b.player.specialBadge) {
+            combinedBadge = `<span class="special-badge" style="font-size:0.6rem; padding:2px 6px;">${b.player.specialBadge}</span>`;
+        }
+        
         let bonusIcons = '';
         if (b.player.bonusStats?.atk) bonusIcons += '⚔️';
         if (b.player.bonusStats?.def) bonusIcons += '🛡️';
         if (b.player.bonusStats?.spd) bonusIcons += '🏃';
-        const specialBadge = b.player.specialBadge || ''; // players don't usually have special badges, but for consistency
+        
         const hpPercent = (b.player.currentHp / b.player.maxHp) * 100;
         const neededXP = getExpNeededForNextLevel(b.player.level);
         const currentXP = b.player.exp || 0;
         const xpPercent = Math.floor((currentXP / neededXP) * 100);
-
+        
         playerStatBox.innerHTML = `
             <div><strong>${shinyIcon}${b.player.name.toUpperCase()}</strong> | Lv.${b.player.level}</div>
-            ${specialBadge ? `<div style="font-size:0.7rem; margin-top:2px;">${specialBadge}</div>` : ''}
-            ${bonusIcons ? `<div style="font-size:0.9rem; margin-top:2px;">${bonusIcons}</div>` : ''}
             <div>${generateTypeBadges(b.player.types)}</div>
+            <div style="margin: 4px 0; display: flex; gap: 4px; flex-wrap: wrap; align-items: center;">
+                ${shinyPin}
+                ${combinedBadge}
+                ${bonusIcons ? `<span style="font-size: 0.8rem;">${bonusIcons}</span>` : ''}
+            </div>
             <div class="hp-bar"><div class="hp-fill" style="width: ${hpPercent}%; background: var(--success);"></div></div>
             <div style="font-size:0.7rem; margin-top:4px;">❤️ HP: ${b.player.currentHp}/${b.player.maxHp}</div>
             <div style="font-size:0.7rem; margin-top:2px;">⭐ XP: ${currentXP}/${neededXP} (${xpPercent}%)</div>
         `;
     }
 
-    // ----- Move Buttons (unchanged) -----
+    // ----- Move Buttons -----
     const typeToId = { normal:1, fighting:2, flying:3, poison:4, ground:5, rock:6, bug:7, ghost:8, steel:9, fire:10, water:11, grass:12, electric:13, psychic:14, ice:15, dragon:16, dark:17, fairy:18 };
     const movesDiv = document.getElementById('battle-moves');
     movesDiv.innerHTML = "";
@@ -4252,7 +4443,7 @@ if (enemyStatBox) {
     });
 }
 
-async function trackRecord(id, name) {
+    async function trackRecord(id, name) {
     try {
         const userId = auth.currentUser.uid;
         const batch = writeBatch(db);
@@ -4535,6 +4726,8 @@ rawMoves = baseData.moves;
 
             const mapShinyRate = currentMap?.shinyRate || SHINY_RATE;
             const isShiny = Math.random() < 1 / mapShinyRate;
+            const mapTeraRate = currentMap?.teraRate || 10000; // Default 1/10000 if not set
+            const isTerastal = Math.random() < 1 / mapTeraRate;
 
             const ps = document.getElementById('preview-sprite');
             ps.classList.remove('gmax-sprite', 'legendary-sprite', 'mythical-sprite', 'mega-sprite', 'ub-sprite');
@@ -4543,26 +4736,59 @@ rawMoves = baseData.moves;
                 loadImageWithFallback(ps, getShinyBattleSpriteUrl(wildData.name, wildId, 'front'));
                 document.getElementById('preview-name').innerText = '✨ SHINY ' + wildData.name.toUpperCase();
             } else {
-                loadImageWithFallback(ps, getBattleSpriteUrl(wildId, 'front'));
+               loadImageWithFallback(ps, getBattleSpriteUrl(wildData.name, wildId, 'front'));
                 document.getElementById('preview-name').innerText = wildData.name.toUpperCase();
             }
+            if (isTerastal) {
+                const teraColor = TERA_TYPE_COLORS[wildData.types[0]?.type?.name] || '#aa88ff';
+                ps.style.setProperty('--tera-filter-low', `drop-shadow(0 0 6px ${teraColor}) drop-shadow(0 0 12px ${teraColor}88)`);
+                ps.style.setProperty('--tera-filter-high', `drop-shadow(0 0 18px ${teraColor}) drop-shadow(0 0 35px ${teraColor}) drop-shadow(0 0 55px ${teraColor}88)`);
+                ps.classList.add('terastal-sprite');
+            } else {
+                ps.classList.remove('terastal-sprite');
+                ps.style.removeProperty('--tera-filter-low');
+                ps.style.removeProperty('--tera-filter-high');
+            }
+
+
             let badgesHtml = wildData.types.map(t => `<span class="type-badge" style="background: ${getTypeColor(t.type.name)};">${t.type.name.toUpperCase()}</span>`).join('');
             if (specialBadge) badgesHtml += `<span class="special-badge" style="background: ${specialCategory === 'gmax' ? 'red' : (specialCategory === 'mega' ? '#3399ff' : (specialCategory === 'ub' ? '#33cc99' : (specialCategory === 'legendary' ? '#ffaa33' : (specialCategory === 'mythical' ? '#ff66cc' : '#aa66ff'))))}; color: white;">${specialBadge}</span>`;
             document.getElementById('preview-badges').innerHTML = badgesHtml;
             const card = document.getElementById('encounter-card');
             if (isSpecial || isGmax) card.classList.add('special'); else card.classList.remove('special');
 
-           const owned = ownedPokemonIds.has(wildId);
+            const owned = ownedPokemonIds.has(wildId);
             let encounterCount = encounterCountsCache.get(wildId);
             if (encounterCount === undefined) {
                 encounterCount = await getEncounterCount(wildId);
             }
+
+            // --- AUTO-CATCH PROGRESS UI ---
+            const recordRef = doc(db, "users", auth.currentUser.uid, "records", wildId.toString());
+            const recordSnap = await getDoc(recordRef);
+            const recordData = recordSnap.exists() ? recordSnap.data() : {};
+            const rewardClaimed = recordData.autoCaught === true;
+            const autoCatchThreshold = currentMap?.autoCatchThreshold || 5;
+
+            let statusText = '';
+            if (rewardClaimed) {
+                statusText = `<br><span style="color:var(--success); font-weight:bold;">✅ Pokedex Reward Claimed</span>`;
+            } else if (owned) {
+                statusText = `<br><span style="color:var(--text-light);">Species already in collection</span>`;
+            } else {
+                const rem = autoCatchThreshold - encounterCount;
+                statusText = rem > 0 
+                    ? `<br><span style="color:var(--warning);">Track ${rem} more for a free catch!</span>`
+                    : `<br><span style="color:var(--success); font-weight:bold;">✨ Victory = Guaranteed Catch!</span>`;
+            }
+
             const allTypes = ['normal','fire','water','electric','grass','ice','fighting','poison','ground','flying','psychic','bug','rock','ghost','dragon','dark','steel','fairy'];
             const wildTypes = wildData.types.map(t => t.type.name);
             const weaknesses = allTypes.filter(t => getTypeEffectiveness(t, wildTypes) > 1);
+            
             document.getElementById('preview-weaknesses').innerHTML = weaknesses.length > 0 ? `<strong>Weaknesses:</strong> ${weaknesses.map(t => `<span class="type-badge" style="background: ${getTypeColor(t)};">${t.toUpperCase()}</span>`).join(' ')}` : `<strong>Weaknesses:</strong> None (or neutral)`;
             document.getElementById('preview-capture-status').innerHTML = owned ? `<span style="color: var(--success);">✓ Already captured</span>` : `<span style="color: var(--danger);">✗ Not yet captured</span>`;
-            document.getElementById('preview-encounter-count').innerHTML = `📖 Encountered ${encounterCount} time${encounterCount !== 1 ? 's' : ''} before this battle.`;
+            document.getElementById('preview-encounter-count').innerHTML = `📖 Encountered ${encounterCount} times ${statusText}`;
             // Calculate level BEFORE showing preview so we can display it
             let wildLevel;
             const wildBonus = generateWildBonusStats();
@@ -4632,10 +4858,13 @@ const count = await trackRecord(wildId, wildData.name);
                 }
                 team[activeIndex].currentHp = team[activeIndex].maxHp;
                 currentBattle = {
-                    playerTeam: team,
-                    activePokemonIndex: activeIndex,
-                     player: team[activeIndex],
-                    participants: new Set([selectedPokemon.id]),  
+                      playerTeam: team,
+    activePokemonIndex: activeIndex,
+    player: {
+        ...team[activeIndex],
+        isTerastal: team[activeIndex].isTerastal === true
+    },
+    participants: new Set([selectedPokemon.id]),
                     wild: {
                         pokemonId: wildId,
                         name: wildData.name,
@@ -4648,11 +4877,9 @@ const count = await trackRecord(wildId, wildData.name);
                         isSpecial: isSpecial,
                         specialCategory: specialCategory,
                         specialBadge: specialBadge,
+                        isTerastal: isTerastal,    
                         bonusStats: {
-                            atk: wildBonus.atk,        // just the random flag
-                            def: wildBonus.def,
-                            spd: wildBonus.spd,
-                            atkPct: totalAtkPct,       // keep full percentages for damage calculations
+                            atkPct: totalAtkPct,
                             defPct: totalDefPct,
                             spdPct: totalSpdPct
                         },
@@ -4864,7 +5091,7 @@ function renderMapCards() {
                     : `<div>✨ Auto‑catch: ❌ DISABLED</div>`}
                 
                 ${isAdmin ? `<div style="color: #6c5ce7; font-weight: bold;">💎 Admin Shiny rate: 1/${map.shinyRate || 8192}</div>` : ''}
-                
+                ${isAdmin ? `<div style="color: #3399ff; font-weight: bold;">💠 Admin Tera rate: 1/${map.teraRate || 10000}</div>` : ''}
                 <div>📈 Wild levels: ${map.specialLevelRange?.enabled 
                     ? `${map.specialLevelRange.min} – ${map.specialLevelRange.max}` 
                     : `Around active Pokémon (±10)`}</div>
@@ -5029,6 +5256,10 @@ async function openMapEditModal(map = null) {
 </div>
 
                 <div class="form-group"><label>✨ Shiny Rate (1 in N) — Admin Only</label><input type="number" id="map-shiny-rate" value="${mapData.shinyRate || 8192}" min="1" placeholder="e.g. 592 means 1/592 chance"></div>
+                <div class="form-group">
+                    <label>💠 Terastal Rate (1 in N)</label>
+                    <input type="number" id="map-tera-rate" value="${mapData.teraRate || 10000}" min="1" placeholder="e.g. 1 means 100% chance">
+                </div>
                 <div class="form-group"><label>Pokémon ID Min</label><input type="number" id="map-pokemon-min" value="${mapData.pokemonMin}" min="0" max="20000"></div>
                 <div class="form-group"><label>Pokémon ID Max</label><input type="number" id="map-pokemon-max" value="${mapData.pokemonMax}" min="0" max="20000"></div>
                 <div class="form-group"><label>Map Image (filename from map1.png to map15.png)</label><input type="text" id="map-image" value="${mapData.imageUrl || 'map1.png'}"></div>
@@ -5357,6 +5588,7 @@ async function loadBadgeCheckboxes(selectedIds) {
                 requiredExpPercent: parseInt(modal.querySelector('#map-req-xp').value) || 10,
                 catchXpPenaltyPercent: parseInt(modal.querySelector('#map-catch-penalty').value) || 10,
                 shinyRate: parseInt(modal.querySelector('#map-shiny-rate').value) || 8192,
+                teraRate: parseInt(modal.querySelector('#map-tera-rate').value) || 10000,
                 pokemonMin: pokemonMin,
                 pokemonMax: pokemonMax,
                 imageUrl: modal.querySelector('#map-image').value.trim(),

@@ -909,9 +909,15 @@ const POKE_SESSION_TTL = 20000; // 20 seconds
 async function getUserPokemon(forceRefresh = false){
   const now = Date.now();
   if (!forceRefresh && _userPokeCache && (now - _userPokeCacheTs) < POKE_SESSION_TTL) return _userPokeCache;
-  const snap=await getDocs(collection(db,'users',currentUser.uid,'pokemon'));
-  const list=[];snap.forEach(d=>list.push({id:d.id,...d.data()}));
-  _userPokeCache = list; _userPokeCacheTs = now;
+  const snap = await getDocs(collection(db, 'users', currentUser.uid, 'pokemon'));
+  const list = [];
+  snap.forEach(d => list.push({ 
+    id: d.id, 
+    ...d.data(),
+    isTerastal: d.data().isTerastal || false  // ✅ Add this line
+  }));
+  _userPokeCache = list; 
+  _userPokeCacheTs = now;
   return list;
 }
 
@@ -990,6 +996,10 @@ function createPokemonCard(poke, actions, extraSlot = null) {
   let shinyPill = '';
   if (poke.isShiny) {
     shinyPill = `<div class="shiny-bonus-pill">✨ SHINY +15% HP</div>`;
+  }
+  let teraBadgeHtml = '';
+  if (poke.isTerastal) {
+    teraBadgeHtml = `<span class="card-badge terastal-badge">💠 TERA</span>`;
   }
 
   // --- Build three lines (wild, form, shiny) ---
@@ -1202,6 +1212,7 @@ async function openShopModal(existing=null){
         <label class="chk-label"><input type="checkbox" id="sm-def" ${existing?.bonusStats?.def?'checked':''}> 🛡️ +DEF</label>
         <label class="chk-label"><input type="checkbox" id="sm-spd" ${existing?.bonusStats?.spd?'checked':''}> 🏃 +SPD</label>
         <label class="chk-label"><input type="checkbox" id="sm-shiny" ${existing?.isShiny?'checked':''}> ✨ Shiny</label>
+        <label class="chk-label"><input type="checkbox" id="sm-terastal" ${existing?.isTerastal?'checked':''}> 💠 Terastal</label>
       </div>
     </div>
     <div class="form-group"><label>Moves (up to 4)</label><div id="sm-moves"></div></div>`;
@@ -1209,7 +1220,8 @@ async function openShopModal(existing=null){
   // Live preview
   const pidEl=body.querySelector('#sm-pid');
   const shinyEl=body.querySelector('#sm-shiny');
-  const updatePreview=()=>renderPokePreview('sm-preview',parseInt(pidEl.value),shinyEl.checked);
+  const isTerastal= body.querySelector('#sm-terastal')
+  const updatePreview=()=>renderPokePreview('sm-preview',parseInt(pidEl.value),shinyEl.checked,isTerastal.checked);
   pidEl.addEventListener('input',updatePreview); shinyEl.addEventListener('change',updatePreview);
   if(existing)renderPokePreview('sm-preview',existing.pokemonId,existing.isShiny);
 
@@ -1246,15 +1258,18 @@ async function loadSell() {
   const c = document.getElementById('sell-listings');
   c.innerHTML = `<div class="loading-state"><div class="spin"></div><p>Loading...</p></div>`;
   try {
-    const q = query(collection(db, 'market_sell_listings'), limit(24));
+    const q = query(collection(db, 'market_sell_listings'), limit(50));
     const snap = await getDocs(q);
     sellListingsCache = [];
-    snap.forEach(d => sellListingsCache.push({ id: d.id, ...d.data() }));
+    snap.forEach(d => {
+      // No filtering needed since we delete listings when purchased
+      sellListingsCache.push({ id: d.id, ...d.data() });
+    });
 
     function applySellSearch(searchVal) {
-      const q = searchVal.toLowerCase().trim();
-      const filtered = q
-        ? sellListingsCache.filter(l => (l.name || '').toLowerCase().includes(q))
+      const searchTerm = searchVal.toLowerCase().trim();
+      const filtered = searchTerm
+        ? sellListingsCache.filter(l => (l.name || '').toLowerCase().includes(searchTerm))
         : sellListingsCache;
       c.innerHTML = '';
       if (!filtered.length) {
@@ -1273,11 +1288,14 @@ async function loadSell() {
     const searchInput = document.getElementById('sell-search');
     if (searchInput) {
       searchInput.value = '';
+      searchInput.onclick = (e) => { if (searchInput.value) applySellSearch(searchInput.value); };
       searchInput.oninput = (e) => applySellSearch(e.target.value);
     }
-  } catch (e) { console.error(e); c.innerHTML = '<div class="empty-state"><p>Failed to load.</p></div>'; }
-}
-// ======================================================
+  } catch (e) { 
+    console.error(e); 
+    c.innerHTML = '<div class="empty-state"><p>Failed to load.</p></div>'; 
+  }
+}// ======================================================
 // SPRITE CACHE SYSTEM (Showdown animated GIF first, PNG fallback)
 // ======================================================
 // const spriteCache = new Map();
@@ -1345,6 +1363,7 @@ async function renderSellPokemonList(containerId, onSelect) {
     container.innerHTML = `<div class="empty-state" style="padding:20px;"><i class="fas fa-box-open"></i><p>No Pokémon available to sell.</p></div>`;
     return;
   }
+  
   container.innerHTML = `
     <div class="form-group" style="margin-bottom:10px;">
       <input type="text" id="sell-search-input" placeholder="🔍 Search your Pokémon..." style="width:100%; padding:8px 12px;">
@@ -1361,29 +1380,22 @@ async function renderSellPokemonList(containerId, onSelect) {
       return;
     }
     listContainer.innerHTML = filtered.map(p => {
-      const showdownUrl = p.isShiny
-        ? `https://play.pokemonshowdown.com/sprites/ani-shiny/${p.name.toLowerCase()}.gif`
-        : `https://play.pokemonshowdown.com/sprites/ani/${p.name.toLowerCase()}.gif`;
-      const officialUrl = p.isShiny
-        ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/shiny/${p.pokemonId}.png`
-        : `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${p.pokemonId}.png`;
-      const defaultUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.pokemonId}.png`;
-      const mainOnError = `this.onerror=null; this.src='${officialUrl}'; this.onerror=()=>this.src='${defaultUrl}';`;
-      const miniOnError = `this.onerror=null; this.src='${defaultUrl}';`;
+      const teraBadge = p.isTerastal ? '<span class="bonus-pill tera" style="font-size:0.55rem; padding:2px 6px;">💠 TERA</span>' : '';
       return `
         <div class="selectable-poke" data-id="${p.id}" style="display:flex; align-items:center; gap:12px; padding:10px; background:var(--card-bg); border:1px solid var(--border); border-radius:16px; cursor:pointer;">
           <div style="position:relative;">
-            <img src="${officialUrl}" onerror="${miniOnError}" style="position:absolute; top:-2px; left:-2px; width:24px; height:24px; object-fit:contain; image-rendering:pixelated; z-index:2; border-radius:4px;">
-            <img src="${showdownUrl}" onerror="${mainOnError}" style="width:56px; height:56px; object-fit:contain; image-rendering:pixelated;">
+            <img src="${getOfficialArtworkUrl(p.pokemonId, p.isShiny)}" style="position:absolute; top:-2px; left:-2px; width:24px; height:24px; object-fit:contain; image-rendering:pixelated; z-index:2; border-radius:4px;">
+            <img src="${getShowdownUrl(p.pokemonId, p.isShiny, p.name)}" style="width:56px; height:56px; object-fit:contain; image-rendering:pixelated;">
           </div>
           <div style="flex:1;">
-            <div style="font-weight:800;">${p.name.toUpperCase()} ${p.isShiny ? '✨' : ''} ${bonusIcons(p.bonusStats)}</div>
+            <div style="font-weight:800;">${p.name.toUpperCase()} ${p.isShiny ? '✨' : ''} ${teraBadge} ${bonusIcons(p.bonusStats)}</div>
             <div class="types-row">${typeBadges(p.types || [])}</div>
             <div style="font-size:0.75rem;">Lv.${p.level} · XP:${p.exp || 0}</div>
             <div class="moves-row">${(p.moves || []).slice(0,2).map(m => `<span class="move-pill" style="background:${typeColor(m.type)}">${m.name.toUpperCase()}</span>`).join('')}${(p.moves?.length || 0) > 2 ? ' +' : ''}</div>
           </div>
         </div>`;
     }).join('');
+    
     listContainer.querySelectorAll('.selectable-poke').forEach(el => {
       el.onclick = () => {
         const id = el.dataset.id;
@@ -1394,11 +1406,11 @@ async function renderSellPokemonList(containerId, onSelect) {
       };
     });
   }
+  
   const searchInput = container.querySelector('#sell-search-input');
   searchInput.addEventListener('input', () => renderFiltered(searchInput.value));
   renderFiltered('');
 }
-
 // ========== UPDATED openSellModal (uses cached sprites and the new list) ==========
 async function openSellModal() {
   const owned = await getUserPokemon();
@@ -1423,6 +1435,7 @@ async function openSellModal() {
   `;
   let selectedPokemon = null;
 
+  // Render Pokémon list with Terastal indicator
   await renderSellPokemonList('sell-pokemon-list', async (poke) => {
     selectedPokemon = poke;
     const showdownUrl = getShowdownUrl(poke.pokemonId, poke.isShiny, poke.name);
@@ -1430,96 +1443,205 @@ async function openSellModal() {
     const defaultUrl = getDefaultSpriteUrl(poke.pokemonId);
     const mainSprite = await getCachedImageUrl(showdownUrl);
     const miniSprite = await getCachedImageUrl(officialUrl);
-    const mainOnError = `this.onerror=null; this.src='${officialUrl}'; this.onerror=()=>this.src='${defaultUrl}';`;
-    const miniOnError = `this.onerror=null; this.src='${defaultUrl}';`;
+    const teraBadge = poke.isTerastal ? '<span style="background:linear-gradient(135deg,#6c5ce7,#a29bfe);color:white;padding:2px 8px;border-radius:4px;font-size:0.6rem;font-weight:bold;margin-left:5px;border:1px solid white;">💠 TERA</span>' : '';
+    
     const previewDiv = document.getElementById('sell-detailed-preview');
     previewDiv.innerHTML = `
       <div style="background:${poke.isShiny ? '#fffff0' : '#f8fafc'}; border:2px solid ${poke.isShiny ? '#ecc94b' : 'var(--primary)'}; border-radius:16px; padding:12px; display:flex; gap:12px;">
         <div style="position:relative;">
-          <img src="${miniSprite}" onerror="${miniOnError}" style="position:absolute; top:-4px; left:-4px; width:24px; height:24px; object-fit:contain; image-rendering:pixelated; z-index:2; border-radius:4px;">
-          <img src="${mainSprite}" onerror="${mainOnError}" style="width:80px; height:80px; object-fit:contain; image-rendering:pixelated;">
+          <img src="${miniSprite}" style="width:24px;height:24px;object-fit:contain;image-rendering:pixelated;position:absolute;top:-4px;left:-4px;z-index:2;border-radius:4px;">
+          <img src="${mainSprite}" style="width:80px;height:80px;object-fit:contain;image-rendering:pixelated;">
         </div>
         <div style="flex:1;">
-          <div style="font-weight:800; font-size:1rem;">${poke.name.toUpperCase()} ${poke.isShiny ? '✨' : ''} ${bonusIcons(poke.bonusStats)}</div>
+          <div style="font-weight:800; font-size:1rem;">${poke.name.toUpperCase()} ${poke.isShiny ? '✨' : ''} ${teraBadge} ${bonusIcons(poke.bonusStats)}</div>
           <div class="types-row">${typeBadges(poke.types || [])}</div>
           <div style="font-size:0.8rem;">Level ${poke.level} · XP: ${poke.exp || 0}</div>
           <div class="moves-row" style="margin-top:6px;">${(poke.moves || []).map(m => `<span class="move-pill" style="background:${typeColor(m.type)}">${m.name.toUpperCase()}</span>`).join('')}</div>
           ${poke.bonusStats?.atk ? '<span class="bonus-icons">⚔️ +ATK</span>' : ''}
           ${poke.bonusStats?.def ? '<span class="bonus-icons">🛡️ +DEF</span>' : ''}
           ${poke.bonusStats?.spd ? '<span class="bonus-icons">🏃 +SPD</span>' : ''}
+          ${poke.isTerastal ? '<span class="bonus-pill tera">💠 TERASTAL Pokemon</span>' : ''}
         </div>
       </div>
     `;
   });
 
   document.getElementById('sell-modal').classList.remove('hidden');
+  
   document.getElementById('sell-modal-save').onclick = async () => {
     if (!selectedPokemon) { toast('Please select a Pokémon.', 'error'); return; }
     const price = parseInt(document.getElementById('sell-price').value);
     if (!price || price < 1) { toast('Enter a valid price (minimum 1 coin).', 'error'); return; }
+    
     const btn = document.getElementById('sell-modal-save');
-    btn.disabled = true; btn.innerHTML = '<div class="loading-spinner"></div> Listing...';
+    btn.disabled = true;
+    btn.innerHTML = '<div class="loading-spinner"></div> Listing...';
+    
     try {
       await runTransaction(db, async (tx) => {
         const pokeRef = doc(db, 'users', currentUser.uid, 'pokemon', selectedPokemon.id);
         const pokeSnap = await tx.get(pokeRef);
         if (!pokeSnap.exists()) throw new Error('Pokémon already sold or moved.');
+        
         const pd = pokeSnap.data();
         const listing = {
-          ownerId: currentUser.uid, ownerName: userData?.trainerName || currentUser.email,
-          originalPokemonId: selectedPokemon.id, pokemonId: pd.pokemonId, name: pd.name,
-          types: pd.types, level: pd.level, exp: pd.exp || 0, moves: pd.moves,
-          bonusStats: pd.bonusStats, isSpecial: pd.isSpecial || false, isShiny: pd.isShiny || false,
-          price: price, createdAt: new Date()
+          ownerId: currentUser.uid,
+          ownerName: userData?.trainerName || currentUser.email,
+          originalPokemonId: selectedPokemon.id,
+          pokemonId: pd.pokemonId,
+          name: pd.name,
+          types: pd.types,
+          level: pd.level,
+          exp: pd.exp || 0,
+          moves: pd.moves,
+          bonusStats: pd.bonusStats,
+          isSpecial: pd.isSpecial || false,
+          isShiny: pd.isShiny || false,
+          isTerastal: pd.isTerastal || false,  // ✅ Add Terastal
+          price: price,
+          createdAt: new Date()
         };
+        
         tx.delete(pokeRef);
         tx.set(doc(collection(db, 'market_sell_listings')), listing);
       });
+      
       closeModal('sell-modal');
       loadSell();
       updateNav(true);
+      invalidatePokeCache();
       toast(`✅ ${selectedPokemon.name.toUpperCase()} listed for ${price} coins!`, 'success');
-    } catch (err) { toast(err.message, 'error'); }
-    finally { btn.disabled = false; btn.innerHTML = 'List for Sale'; }
+      
+    } catch (err) {
+      toast(err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = 'List for Sale';
+    }
   };
 }
 
 
-async function cancelSell(id){
-  if(!confirm('Remove listing? Pokémon will return.'))return;
-  await runTransaction(db,async tx=>{
-    const ref=doc(db,'market_sell_listings',id);
-    const snap=await tx.get(ref); if(!snap.exists())throw new Error('Listing gone.');
-    const l=snap.data();
-    if(l.ownerId!==currentUser.uid)throw new Error('Not yours.');
-    tx.set(doc(collection(db,'users',currentUser.uid,'pokemon')),{pokemonId:l.pokemonId,name:l.name,level:l.level,exp:0,moves:l.moves,types:l.types,inTeam:false,capturedAt:new Date(),bonusStats:l.bonusStats,isSpecial:l.isSpecial||false,isShiny:l.isShiny||false});
-    tx.delete(ref);
-  });
-  loadSell(); updateNav(); toast('Listing cancelled.','success');
-}
-
-async function buySell(id, price, sellerId){
-  if(sellerId===currentUser.uid){toast("Can't buy your own listing.",'error');return;}
-  try{
-    let purchased;
-    await runTransaction(db,async tx=>{
-      const ref=doc(db,'market_sell_listings',id);
-      const snap=await tx.get(ref); if(!snap.exists())throw new Error('Listing gone.');
-      const l=snap.data();
-      const buyer=await tx.get(doc(db,'users',currentUser.uid));
-      if((buyer.data()?.coins||0)<l.price)throw new Error('Insufficient coins.');
-      purchased=l;
-      tx.update(doc(db,'users',sellerId),{coins:increment(l.price)});
-      tx.update(doc(db,'users',currentUser.uid),{coins:increment(-l.price)});
-      tx.set(doc(collection(db,'users',currentUser.uid,'pokemon')),{pokemonId:l.pokemonId,name:l.name,level:l.level,exp:0,moves:l.moves,types:l.types,inTeam:false,capturedAt:new Date(),bonusStats:l.bonusStats,isSpecial:l.isSpecial||false,isShiny:l.isShiny||false});
-      tx.delete(ref);
+async function cancelSell(id) {
+  if (!confirm('Remove your listing? The Pokémon will be returned to your collection.')) return;
+  
+  try {
+    await runTransaction(db, async (tx) => {
+      const listingRef = doc(db, 'market_sell_listings', id);
+      const listingSnap = await tx.get(listingRef);
+      if (!listingSnap.exists()) throw new Error('Listing not found.');
+      
+      const listing = listingSnap.data();
+      if (listing.sold) throw new Error('This Pokémon has already been sold and cannot be cancelled.');
+      if (listing.ownerId !== currentUser.uid) throw new Error('You can only cancel your own listings.');
+      
+      // Return Pokémon to seller's collection
+      const pokemonRef = doc(collection(db, 'users', currentUser.uid, 'pokemon'));
+      tx.set(pokemonRef, {
+        pokemonId: listing.pokemonId,
+        name: listing.name,
+        level: listing.level,
+        exp: listing.exp || 0,
+        moves: listing.moves,
+        types: listing.types,
+        inTeam: false,
+        capturedAt: new Date(),
+        bonusStats: listing.bonusStats || { atk: false, def: false, spd: false },
+        isSpecial: listing.isSpecial || false,
+        isShiny: listing.isShiny || false,
+        isTerastal: listing.isTerastal || false
+      });
+      
+      // Delete the listing
+      tx.delete(listingRef);
     });
-    showReward({...purchased,exp:0},'🛒 Purchased!','Added to your collection!');
-    loadSell(); updateNav();
-  }catch(e){toast(e.message,'error');}
+    
+    loadSell();
+    invalidatePokeCache();
+    toast('✅ Listing cancelled. Pokémon returned to your collection.', 'success');
+    
+  } catch (e) {
+    console.error('Cancel error:', e);
+    toast(e.message || 'Failed to cancel listing.', 'error');
+  }
 }
 
-// ══════════════════════════════════════
+async function buySell(id, price, sellerId) {
+  if (sellerId === currentUser?.uid) {
+    toast("Can't buy your own listing.", 'error');
+    return;
+  }
+  
+  // Disable all buy buttons to prevent double-click
+  const allBuyBtns = document.querySelectorAll('#sell-listings .btn-primary');
+  allBuyBtns.forEach(b => b.disabled = true);
+  
+  try {
+    let purchased;
+    await runTransaction(db, async (tx) => {
+      const listingRef = doc(db, 'market_sell_listings', id);
+      const listingSnap = await tx.get(listingRef);
+      if (!listingSnap.exists()) throw new Error('Listing no longer exists.');
+      
+      const listing = listingSnap.data();
+      
+      const buyerRef = doc(db, 'users', currentUser.uid);
+      const buyerSnap = await tx.get(buyerRef);
+      const buyerCoins = buyerSnap.data()?.coins || 0;
+      if (buyerCoins < price) throw new Error(`You need ${price.toLocaleString()} coins. You have ${buyerCoins.toLocaleString()}.`);
+      
+      purchased = listing;
+      
+      // Transfer coins from buyer to seller
+      const sellerRef = doc(db, 'users', sellerId);
+      tx.update(sellerRef, { coins: increment(price) });
+      tx.update(buyerRef, { coins: increment(-price) });
+      
+      // Transfer Pokémon to buyer's collection
+      const newPokemonRef = doc(collection(db, 'users', currentUser.uid, 'pokemon'));
+      tx.set(newPokemonRef, {
+        pokemonId: listing.pokemonId,
+        name: listing.name,
+        level: listing.level,
+        exp: listing.exp || 0,
+        moves: listing.moves,
+        types: listing.types,
+        inTeam: false,
+        capturedAt: new Date(),
+        bonusStats: listing.bonusStats || { atk: false, def: false, spd: false },
+        isSpecial: listing.isSpecial || false,
+        isShiny: listing.isShiny || false,
+        isTerastal: listing.isTerastal || false,
+        capturedBy: currentUser.displayName || currentUser.email,
+        capturedOnMap: 'Peso Market'
+      });
+      
+      // ✅ DELETE the listing (this works with the new rules)
+      tx.delete(listingRef);
+    });
+    
+    // Show success modal with the purchased Pokémon
+    showReward({
+      ...purchased,
+      exp: 0,
+      isTerastal: purchased.isTerastal || false
+    }, '🛒 Purchase Successful!', `${purchased.name.toUpperCase()} has been added to your collection!`);
+    
+    // Refresh the display
+    loadSell();
+    updateNav(true);
+    invalidatePokeCache();
+    toast(`✅ ${purchased.name.toUpperCase()} purchased successfully!`, 'success');
+    
+  } catch (e) {
+    console.error('Buy error:', e);
+    toast(e.message || 'Purchase failed. Please try again.', 'error');
+  } finally {
+    // Re-enable all buy buttons
+    allBuyBtns.forEach(b => b.disabled = false);
+  }
+}
+
 // TRADE TAB
 // ══════════════════════════════════════
 async function loadTrade() {

@@ -5934,6 +5934,54 @@ document.getElementById('map-search-input')?.addEventListener('input', (e) => {
     document.getElementById('catch-btn')?.addEventListener('click', attemptCatch);
     document.getElementById('escape-btn')?.addEventListener('click', attemptEscape);
     document.getElementById('switch-btn')?.addEventListener('click', attemptSwitch);
+
+    // ========== BATTLE KEYBOARD SHORTCUTS ==========
+document.addEventListener('keydown', (e) => {
+    // Don't fire shortcuts when the player is typing in any input/textarea
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+    const battleArea = document.getElementById('battle-area');
+    const summaryModal = document.getElementById('battle-summary-modal');
+    const switchModal = document.getElementById('switch-pokemon-modal');
+    const isBattleVisible = battleArea && !battleArea.classList.contains('hidden');
+    const isSummaryVisible = summaryModal && !summaryModal.classList.contains('hidden');
+    const isSwitchModalOpen = switchModal && !switchModal.classList.contains('hidden');
+
+    // SPACE — Catch (during battle) or Continue Adventure (on summary screen)
+    if (e.code === 'Space') {
+        e.preventDefault(); // prevent page scroll
+        if (isSummaryVisible) {
+            const continueBtn = document.getElementById('close-summary-btn');
+            if (continueBtn && !continueBtn.disabled) continueBtn.click();
+            return;
+        }
+        if (isBattleVisible && !isSwitchModalOpen) {
+            const catchBtn = document.getElementById('catch-btn');
+            if (catchBtn && !catchBtn.disabled) catchBtn.click();
+        }
+        return;
+    }
+
+    // ESCAPE — Takas Na / Escape battle (during battle only, not while switch modal is open)
+    if (e.code === 'Escape') {
+        if (isSwitchModalOpen) return; // let the modal's own Escape handler deal with it
+        if (isBattleVisible) {
+            const escapeBtn = document.getElementById('escape-btn');
+            if (escapeBtn && !escapeBtn.disabled) escapeBtn.click();
+        }
+        return;
+    }
+
+    // Q — Switch Pokémon (during battle only, not while switch modal is already open)
+    if (e.code === 'KeyQ') {
+        if (isBattleVisible && !isSwitchModalOpen) {
+            const switchBtn = document.getElementById('switch-btn');
+            if (switchBtn && !switchBtn.disabled) switchBtn.click();
+        }
+        return;
+    }
+});
+
     document.getElementById('volume-toggle')?.addEventListener('click', () => {
         isMuted = !isMuted;
         const v = document.getElementById('volume-toggle');

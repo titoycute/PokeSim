@@ -218,3 +218,61 @@ body.dark-theme #coin-display {
     color: rgba(255,80,80,0.9);
     text-shadow: 0 1px 2px rgba(0,0,0,0.8);
 }
+
+/* ========== DATA SAVER MODE ========== */
+/* Data Saver Mode - Reduces data usage */
+body.data-saver-mode .btl-sprite,
+body.data-saver-mode .encounter-sprite,
+body.data-saver-mode .poke-card-img-wrap img {
+    image-rendering: crisp-edges;
+    filter: none !important;
+}
+
+/* Disable all battle effects */
+body.data-saver-mode .floating-damage,
+body.data-saver-mode .hit-shockwave,
+body.data-saver-mode .hit-flash-overlay,
+body.data-saver-mode .impact-particle,
+body.data-saver-mode .crit-stamp,
+body.data-saver-mode .super-effective-stamp {
+    display: none !important;
+}
+
+/* Disable animations */
+body.data-saver-mode .terastal-sprite,
+body.data-saver-mode .evolution-animate,
+body.data-saver-mode .shake-effect,
+body.data-saver-mode .shake-effect-hard {
+    animation: none !important;
+}
+
+/* Simplify damage numbers */
+body.data-saver-mode .floating-damage {
+    display: block !important;
+    font-size: 0.9rem !important;
+    background: rgba(0,0,0,0.7);
+    padding: 2px 6px;
+    border-radius: 4px;
+    animation: none !important;
+}
+
+/* Disable background effects */
+body.data-saver-mode .hit-flash-overlay {
+    display: none !important;
+}
+
+/* Use lower quality images */
+body.data-saver-mode img {
+    image-rendering: pixelated;
+}
+
+/* Disable particle effects */
+body.data-saver-mode .impact-particle,
+body.data-saver-mode .hit-shockwave {
+    display: none !important;
+}
+
+/* Disable music prompt animation */
+body.data-saver-mode .music-prompt {
+    animation: none !important;
+}

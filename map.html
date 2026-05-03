@@ -1759,6 +1759,9 @@ body.dark-theme #summary-details {
     <div id="coin-display" style="background: #e8f5e9; color: #2e7d32; padding: 4px 12px; border-radius: 40px; font-weight: bold; font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
         💰 <span id="coin-amount">0</span>
     </div>
+     <button id="data-saver-toggle" class="btn btn-outline" style="background: #4a5568; color: white; border-radius: 40px; padding: 6px 12px;">
+            📱 Data Saver: OFF
+        </button>
     <button id="back-to-maps-btn" class="btn btn-outline"><i class="fas fa-arrow-left"></i> Change Map</button>
     <button id="volume-toggle" class="volume-btn" style="background: none; border: none; font-size: 1.2rem;">🔊</button>
 </div>
@@ -2280,7 +2283,27 @@ function getShinyBattleSpriteUrl(pokemonName, id, side = 'front') {
     }
 }
 
-function loadImageWithFallback(img, urls) { let i=0; function next() { if(i>=urls.length) return; img.src=urls[i]; img.onerror=()=>{ i++; next(); }; } next(); }
+// Find this function in your code and update it
+function loadImageWithFallback(img, urls) {
+    // ✅ If data saver is enabled, skip high-quality images
+    if (dataSaverEnabled && urls.length > 1) {
+        // Use the smallest/fallback image only
+        urls = [urls[urls.length - 1]];
+    }
+    
+    let i = 0;
+    function next() {
+        if (i >= urls.length) return;
+        img.src = urls[i];
+        img.loading = 'lazy'; // Add lazy loading
+        img.onerror = () => {
+            i++;
+            next();
+        };
+    }
+    next();
+}
+// function loadImageWithFallback(img, urls) { let i=0; function next() { if(i>=urls.length) return; img.src=urls[i]; img.onerror=()=>{ i++; next(); }; } next(); }
 
     // Bonus stats helpers
     function generateWildBonusStats() {
@@ -6186,6 +6209,110 @@ window.addEventListener('beforeunload', () => {
 window.addEventListener('resize', () => {
     if (currentMap) renderPlayer();
 });
+
+// ========== DATA SAVER MODE ==========
+let dataSaverEnabled = localStorage.getItem('pokesim_dataSaver') === 'true';
+
+// Apply data saver mode on page load
+if (dataSaverEnabled) {
+    document.body.classList.add('data-saver-mode');
+    updateDataSaverButton(true);
+}
+
+function toggleDataSaverMode() {
+    dataSaverEnabled = !dataSaverEnabled;
+    
+    if (dataSaverEnabled) {
+        document.body.classList.add('data-saver-mode');
+        localStorage.setItem('pokesim_dataSaver', 'true');
+        
+        // Mute audio if playing
+        if (typeof isMuted !== 'undefined' && !isMuted) {
+            // Find and mute all audio elements
+            const audios = document.querySelectorAll('audio');
+            audios.forEach(audio => {
+                audio.pause();
+                audio.muted = true;
+            });
+            if (typeof toggleMute === 'function') toggleMute();
+        }
+        
+        showDataSaverToast('📱 Data Saver ON - Reduced data usage', '#2ecc71');
+        
+    } else {
+        document.body.classList.remove('data-saver-mode');
+        localStorage.setItem('pokesim_dataSaver', 'false');
+        showDataSaverToast('📱 Data Saver OFF - Full experience restored', '#4a5568');
+    }
+    
+    updateDataSaverButton(dataSaverEnabled);
+}
+
+function updateDataSaverButton(enabled) {
+    const btn = document.getElementById('data-saver-toggle');
+    if (btn) {
+        if (enabled) {
+            btn.innerHTML = '📱 Data Saver: ON ✓';
+            btn.style.background = '#2ecc71';
+            btn.style.color = 'white';
+            btn.style.border = 'none';
+        } else {
+            btn.innerHTML = '📱 Data Saver: OFF';
+            btn.style.background = '#4a5568';
+            btn.style.color = 'white';
+            btn.style.border = 'none';
+        }
+    }
+}
+
+function showDataSaverToast(message, bgColor) {
+    // Use existing toast or create one
+    let toast = document.getElementById('data-saver-toast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'data-saver-toast';
+        toast.style.position = 'fixed';
+        toast.style.bottom = '80px';
+        toast.style.left = '50%';
+        toast.style.transform = 'translateX(-50%)';
+        toast.style.padding = '10px 20px';
+        toast.style.borderRadius = '40px';
+        toast.style.color = 'white';
+        toast.style.fontSize = '0.9rem';
+        toast.style.zIndex = '10001';
+        toast.style.transition = 'opacity 0.3s';
+        toast.style.opacity = '0';
+        document.body.appendChild(toast);
+    }
+    
+    toast.style.backgroundColor = bgColor;
+    toast.textContent = message;
+    toast.style.opacity = '1';
+    
+    setTimeout(() => {
+        toast.style.opacity = '0';
+    }, 3000);
+}
+
+// Attach click event to the button
+document.getElementById('data-saver-toggle')?.addEventListener('click', toggleDataSaverMode);
+
+// Optional: Show data saved statistics (adds a fun element)
+let totalDataSaved = parseInt(localStorage.getItem('pokesim_dataSaved') || '0');
+
+function trackDataSaved(mb) {
+    if (dataSaverEnabled) {
+        totalDataSaved += mb;
+        localStorage.setItem('pokesim_dataSaved', totalDataSaved);
+        
+        // Show achievement every 10MB saved
+        if (totalDataSaved > 0 && totalDataSaved % 10 < 1) {
+            setTimeout(() => {
+                showDataSaverToast(`💾 You've saved ${totalDataSaved}MB of data!`, '#3498db');
+            }, 1000);
+        }
+    }
+}
 </script>
 </body>
 </html>

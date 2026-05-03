@@ -2231,3 +2231,138 @@ body.dark-theme footer .support-section a:hover {
     color: white;
     border: 1px solid rgba(255, 255, 255, 0.3);
 }
+
+/* ===== TEAM ICONS BAR ===== */
+#battle-team-icons {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px 2px;
+    margin-top: 5px;
+}
+
+.team-icon-wrap {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.6);
+    overflow: hidden;
+    background: rgba(0,0,0,0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: filter 0.3s, border-color 0.3s, transform 0.2s;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    position: relative;
+    cursor: pointer;
+}
+
+.team-icon-wrap:hover {
+    transform: scale(1.08);
+    border-color: rgba(255,255,255,0.9);
+}
+
+.team-icon-wrap img {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    image-rendering: pixelated;
+}
+
+/* Active pokemon gets a glowing white border */
+.team-icon-wrap.is-active {
+    border-color: #ffffff;
+    box-shadow: 0 0 0 2px rgba(255,255,255,0.8), 0 2px 8px rgba(0,0,0,0.4);
+    transform: scale(1.12);
+}
+
+/* Fainted pokemon turns gray with X overlay */
+.team-icon-wrap.is-fainted {
+    filter: grayscale(100%) brightness(0.5);
+    border-color: rgba(255,255,255,0.2);
+    box-shadow: none;
+}
+
+.team-icon-wrap.is-fainted::after {
+    content: '✕';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 900;
+    color: rgba(255,80,80,0.9);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+}
+
+/* Dark theme adjustments */
+body.dark-theme .team-icon-wrap {
+    background: rgba(0,0,0,0.5);
+    border-color: rgba(255,255,255,0.3);
+}
+
+body.dark-theme .team-icon-wrap.is-active {
+    border-color: #6c5ce7;
+    box-shadow: 0 0 0 2px rgba(108,92,231,0.6);
+}
+
+/* ========== DATA SAVER MODE ========== */
+/* Data Saver Mode - Reduces data usage */
+body.data-saver-mode .btl-sprite,
+body.data-saver-mode .encounter-sprite,
+body.data-saver-mode .poke-card-img-wrap img {
+    image-rendering: crisp-edges;
+    filter: none !important;
+}
+
+/* Disable all battle effects */
+body.data-saver-mode .floating-damage,
+body.data-saver-mode .hit-shockwave,
+body.data-saver-mode .hit-flash-overlay,
+body.data-saver-mode .impact-particle,
+body.data-saver-mode .crit-stamp,
+body.data-saver-mode .super-effective-stamp {
+    display: none !important;
+}
+
+/* Disable animations */
+body.data-saver-mode .terastal-sprite,
+body.data-saver-mode .evolution-animate,
+body.data-saver-mode .shake-effect,
+body.data-saver-mode .shake-effect-hard {
+    animation: none !important;
+}
+
+/* Simplify damage numbers */
+body.data-saver-mode .floating-damage {
+    display: block !important;
+    font-size: 0.9rem !important;
+    background: rgba(0,0,0,0.7);
+    padding: 2px 6px;
+    border-radius: 4px;
+    animation: none !important;
+}
+
+/* Disable background effects */
+body.data-saver-mode .hit-flash-overlay {
+    display: none !important;
+}
+
+/* Use lower quality images */
+body.data-saver-mode img {
+    image-rendering: pixelated;
+}
+
+/* Disable particle effects */
+body.data-saver-mode .impact-particle,
+body.data-saver-mode .hit-shockwave {
+    display: none !important;
+}
+
+/* Disable music prompt animation */
+body.data-saver-mode .music-prompt {
+    animation: none !important;
+}

@@ -158,3 +158,63 @@ body.dark-theme #coin-display {
     color: #ffd700;
     border: 1px solid #ffd70033;
 }
+
+/* ===== TEAM ICONS BAR ===== */
+#battle-team-icons {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px 2px;
+}
+
+.team-icon-wrap {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.6);
+    overflow: hidden;
+    background: rgba(0,0,0,0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: filter 0.3s, border-color 0.3s, transform 0.2s;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    position: relative;
+}
+
+.team-icon-wrap img {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    image-rendering: pixelated;
+}
+
+/* Active pokemon gets a glowing white border */
+.team-icon-wrap.is-active {
+    border-color: #ffffff;
+    box-shadow: 0 0 0 2px rgba(255,255,255,0.8), 0 2px 8px rgba(0,0,0,0.4);
+    transform: scale(1.12);
+}
+
+/* Fainted pokemon turns gray */
+.team-icon-wrap.is-fainted {
+    filter: grayscale(100%) brightness(0.5);
+    border-color: rgba(255,255,255,0.2);
+    box-shadow: none;
+}
+
+/* Small fainted X overlay */
+.team-icon-wrap.is-fainted::after {
+    content: '✕';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 900;
+    color: rgba(255,80,80,0.9);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+}

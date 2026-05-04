@@ -1155,7 +1155,16 @@ function stopTerastalCanvas(canvasId) {
 function getSpecialFormBonuses(pokemonName, pokemonId) {
     const name = pokemonName.toLowerCase();
     let atk = 0, def = 0, spd = 0;
-
+ // ========== TERAPAGOS FORMS (MUST BE FIRST) ==========
+    // Terapagos-Stellar Form - +15% to all stats
+    if (name === 'terapagos-stellar' || name.includes('terapagos-stellar') || pokemonId === 10277) {
+        return { atk: 15, def: 15, spd: 15 };
+    }
+    // Terapagos-Terastal Form - +10% to all stats
+    if (name === 'terapagos-terastal' || name.includes('terapagos-terastal') || pokemonId === 10276) {
+        return { atk: 10, def: 10, spd: 10 };
+    }
+    
     // ----- Gigantamax / Dynamax -----
     if (name.includes('-gmax') || name === 'dynamax') {
         atk = 10; def = 10; spd = 10;
@@ -1496,10 +1505,12 @@ function getShinyBattleSpriteUrl(pokemonName, id, side = 'front') {
     }
 }
     // Find this function in your code and update it
+// Find this function in map.html
 function loadImageWithFallback(img, urls) {
     // ✅ If data saver is enabled, skip high-quality images
     if (dataSaverEnabled && urls.length > 1) {
-        // Use the smallest/fallback image only
+        // Use ONLY the smallest/fallback image (the pixelated default PNG)
+        // The last URL in the array is usually the smallest
         urls = [urls[urls.length - 1]];
     }
     
@@ -1507,7 +1518,7 @@ function loadImageWithFallback(img, urls) {
     function next() {
         if (i >= urls.length) return;
         img.src = urls[i];
-        img.loading = 'lazy'; // Add lazy loading
+        img.loading = 'lazy';
         img.onerror = () => {
             i++;
             next();

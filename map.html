@@ -2428,6 +2428,14 @@ function showFloatingDamageEnhanced(damage, spriteElement, isCritical = false, i
 function getSpecialFormBonuses(pokemonName, pokemonId) {
     const name = pokemonName.toLowerCase();
     let atk = 0, def = 0, spd = 0;
+
+      if (name === 'terapagos-stellar' || name.includes('terapagos-stellar') || pokemonId === 10277) {
+        return { atk: 15, def: 15, spd: 15 };
+    }
+    // Terapagos-Terastal Form - +10% to all stats
+    if (name === 'terapagos-terastal' || name.includes('terapagos-terastal') || pokemonId === 10276) {
+        return { atk: 10, def: 10, spd: 10 };
+    }
     if (LEGENDARY_MYTHICAL_IDS.has(pokemonId)) { atk += 5; def += 2; spd += 2; }
     if (name.includes('-gmax') || name === 'dynamax') { atk = 10; def = 10; spd = 10; }
     else if (name.includes('primal')) { atk = 5; def = 5; spd = 5; }

@@ -2237,18 +2237,39 @@ function getTypeColor(type) {
         return types.map(t => `<span class="type-badge" style="background: ${getTypeColor(t)};">${t.toUpperCase()}</span>`).join('');
     }
 
-    function getStaticSpriteUrl(id) { return [`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`, `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`]; }
+    // Find this function in map.html
+function getStaticSpriteUrl(id) {
+    if (dataSaverEnabled) {
+        // ✅ Use smallest sprite in data saver mode
+        return [`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`];
+    }
+    return [
+        `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`,
+        `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`
+    ];
+}
+   // Find this function in map.html (around line 420-440)
 function getBattleSpriteUrl(pokemonName, id, side = 'front') {
-    // SAFETY CHECK: If name is missing or is a number, convert to string
     let n = (typeof pokemonName === 'string') ? pokemonName : String(id);
-    
     const name = n.toLowerCase()
         .replace('-mega-x', '-megax')
         .replace('-mega-y', '-megay');
-        
+    
     const officialArtwork = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
-
-    if(side === 'back') {
+    const showdownSprite = `https://play.pokemonshowdown.com/sprites/ani/${name}.gif`;
+    const defaultSprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
+    
+    if (dataSaverEnabled) {
+        // ✅ In data saver mode, ONLY use the smallest default PNG
+        if (side === 'back') {
+            return [`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/${id}.png`];
+        } else {
+            return [defaultSprite];
+        }
+    }
+    
+    // Normal mode - try high-quality first
+    if (side === 'back') {
         return [
             `https://play.pokemonshowdown.com/sprites/ani-back/${name}.gif`,
             `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/back/${id}.gif`,
@@ -2260,21 +2281,31 @@ function getBattleSpriteUrl(pokemonName, id, side = 'front') {
             `https://play.pokemonshowdown.com/sprites/ani/${name}.gif`,
             `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/${id}.gif`,
             officialArtwork,
-            `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`
+            defaultSprite
         ];
     }
 }
 
+// Find this function in map.html
 function getShinyBattleSpriteUrl(pokemonName, id, side = 'front') {
-    // SAFETY CHECK: If name is missing or is a number, convert to string
     let n = (typeof pokemonName === 'string') ? pokemonName : String(id);
-
     const name = n.toLowerCase()
         .replace('-mega-x', '-megax')
         .replace('-mega-y', '-megay');
 
     const officialShiny = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/shiny/${id}.png`;
+    const defaultShiny = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/${id}.png`;
     
+    if (dataSaverEnabled) {
+        // ✅ In data saver mode, ONLY use the smallest default shiny PNG
+        if (side === 'back') {
+            return [`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/shiny/${id}.png`];
+        } else {
+            return [defaultShiny];
+        }
+    }
+    
+    // Normal mode
     if (side === 'back') {
         return [
             `https://play.pokemonshowdown.com/sprites/ani-back-shiny/${name}.gif`,
@@ -2287,7 +2318,7 @@ function getShinyBattleSpriteUrl(pokemonName, id, side = 'front') {
             `https://play.pokemonshowdown.com/sprites/ani-shiny/${name}.gif`,
             officialShiny,
             `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/shiny/${id}.gif`,
-            `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/${id}.png`
+            defaultShiny
         ];
     }
 }

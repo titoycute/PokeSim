@@ -1756,9 +1756,16 @@ body.dark-theme #summary-details {
 <nav class="card-nav">
     <div class="nav-header">
         <div class="logo"><img src="PokeSim Word.png" alt="PokeSim"></div>
-        <button id="nav-toggle" class="hamburger" aria-label="Menu">
-            <span></span><span></span><span></span>
-        </button>
+        <div style="display: flex; gap: 8px;">
+            <!-- Desktop Collapse/Expand Button -->
+            <button id="nav-collapse-toggle" class="nav-collapse-btn" title="Toggle Navigation">
+                <i class="fas fa-chevron-up"></i>
+            </button>
+            <!-- Mobile Hamburger Button -->
+            <button id="nav-toggle" class="hamburger" aria-label="Menu">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
     </div>
 
     <div id="nav-collapsible" class="nav-collapsible">
@@ -1787,8 +1794,6 @@ body.dark-theme #summary-details {
                     📱 Data Saver: OFF
                 </button>
                 <button id="volume-toggle" class="volume-btn nav-item" title="Mute/Unmute">🔊</button>
-                <button id="theme-toggle" class="volume-btn nav-item" title="Dark/Light mode">🌙</button>
-            </div>
         </div>
 
         <!-- Card 3: User Info -->
@@ -1811,8 +1816,10 @@ body.dark-theme #summary-details {
     </div>
 </nav>
 
+
+
 <!-- Keep the map name display for the main area -->
-<div id="current-map-name" style="text-align:center; margin: 10px 0;"></div>
+ <div id="current-map-name" style="text-align:center; margin: 10px 0; font-weight: bold; font-size: 1.3rem; color: var(--primary-dark);"></div>
 
         <div id="view-explore">
     <div style="text-align: center; margin: 10px 0;">
@@ -2617,6 +2624,7 @@ const typeEffectiveness = {
 let navCacheTimestamp = 0;
 const NAV_CACHE_TTL = 300000; // 5 minutes
 
+
 async function updateNavDisplay(forceRefresh = false) {
     if (!auth.currentUser) return;
     const now = Date.now();
@@ -2629,31 +2637,30 @@ async function updateNavDisplay(forceRefresh = false) {
     }
     const data = cachedNavData;
     
-    // Update all display elements
+    // Update trainer name
     const trainerNameSpan = document.getElementById('trainer-name');
-    if (trainerNameSpan) trainerNameSpan.textContent = data?.trainerName || auth.currentUser.email.split('@')[0];
+    if (trainerNameSpan) {
+        trainerNameSpan.textContent = data?.trainerName || auth.currentUser.email.split('@')[0];
+    }
     
+    // Update level
     const levelSpan = document.getElementById('trainer-level');
     if (levelSpan) levelSpan.innerText = data?.totalLevels || 0;
     
+    // Update coins
     const coinSpan = document.getElementById('coin-amount');
     if (coinSpan) coinSpan.innerText = (data?.coins || 0).toLocaleString();
     
-    // Update the map name display
-   document.getElementById('current-map-name').innerText = map.name;
-    
-    // Update the nav display with current map name
+    // ✅ FIXED: Use currentMap, not 'map' variable
     const mapNameDisplay = document.getElementById('current-map-name-display');
-    if (mapNameDisplay) {
-        mapNameDisplay.innerHTML = `<i class="fas fa-map-marker-alt"></i> ${map.name}`;
+    if (mapNameDisplay && currentMap) {
+        mapNameDisplay.innerHTML = `<i class="fas fa-map-marker-alt"></i> ${currentMap.name}`;
     }
-    
-    currentMap = map;
-    document.getElementById('map-selection-container').classList.add('hidden');
-    document.getElementById('game-screen').classList.remove('hidden');
     
     isAdmin = data?.role === 'admin';
 }
+
+
 
 async function updateUserTotalLevels(userId, delta) {
         await updateDoc(doc(db, "users", userId), { totalLevels: increment(delta) });
@@ -4596,82 +4603,140 @@ function renderBattleUI() {
     // ----- Enemy Stat Box -----
         // ----- Enemy Stat Box (with Shiny and Tera badges in header row) -----
         // ----- Enemy Stat Box (combine Terastal with special badge) -----
-    const enemyStatBox = document.querySelector('#battle-area .enemy-side .stat-box');
-    if (enemyStatBox) {
-        const shinyIcon = b.wild.isShiny ? '✨ ' : '';
-        const shinyPin = b.wild.isShiny ? '<span style="background: #ffcc00; color: #333; padding: 2px 6px; border-radius: 20px; font-size: 0.6rem; font-weight: bold; margin-right: 4px;">✨ SHINY</span>' : '';
-        
-        // Combine Terastal with special badge
-        let combinedBadge = '';
-        if (b.wild.isTerastal && b.wild.specialBadge) {
-            combinedBadge = `<span style="background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.6rem; font-weight: bold; margin-right: 4px; border: 1px solid white;">💠 TERA ${b.wild.specialBadge}</span>`;
-        } else if (b.wild.isTerastal) {
-            combinedBadge = `<span style="background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.6rem; font-weight: bold; margin-right: 4px; border: 1px solid white;">💠 TERA</span>`;
-        } else if (b.wild.specialBadge) {
-            combinedBadge = `<span class="special-badge" style="font-size:0.6rem; padding:2px 6px;">${b.wild.specialBadge}</span>`;
-        }
-        
-        let bonusIcons = '';
-        if (b.wild.bonusStats?.atk) bonusIcons += '⚔️';
-        if (b.wild.bonusStats?.def) bonusIcons += '🛡️';
-        if (b.wild.bonusStats?.spd) bonusIcons += '🏃';
-        
-        const hpPercent = (b.wild.currentHp / b.wild.maxHp) * 100;
-        
-        enemyStatBox.innerHTML = `
-            <div><strong>${shinyIcon}${b.wild.name.toUpperCase()}</strong> | Lv.${b.wild.level}</div>
-            <div>${generateTypeBadges(b.wild.types)}</div>
-            <div style="margin: 4px 0; display: flex; gap: 4px; flex-wrap: wrap; align-items: center;">
-                ${shinyPin}
-                ${combinedBadge}
-                ${bonusIcons ? `<span style="font-size: 0.8rem;">${bonusIcons}</span>` : ''}
-            </div>
-            <div class="hp-bar"><div class="hp-fill" style="width: ${hpPercent}%; background: var(--success);"></div></div>
-            <div style="font-size:0.7rem; margin-top:4px;">❤️ HP: ${b.wild.currentHp}/${b.wild.maxHp}</div>
-        `;
+   // ----- Enemy Stat Box (Enhanced with all badges) -----
+const enemyStatBox = document.querySelector('#battle-area .enemy-side .stat-box');
+if (enemyStatBox) {
+    const shinyIcon = b.wild.isShiny ? '✨ ' : '';
+    const hpPercent = (b.wild.currentHp / b.wild.maxHp) * 100;
+    
+    let hpBarColor = 'var(--success)';
+    if (hpPercent < 25) hpBarColor = 'var(--danger)';
+    else if (hpPercent < 50) hpBarColor = 'var(--warning)';
+    
+    // Collect all badges in a single line
+    let badgesRow = '';
+    
+    // Shiny badge
+    if (b.wild.isShiny) {
+        badgesRow += '<span style="background: #ffd700; color: #333; padding: 2px 8px; border-radius: 20px; font-size: 0.6rem; font-weight: bold;">✨ SHINY</span>';
     }
-
+    
+    // Terastal badge (TS)
+    if (b.wild.isTerastal) {
+        badgesRow += '<span style="background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.6rem; font-weight: bold; border: 1px solid rgba(255,255,255,0.3);">💠 TERASTAL</span>';
+    }
+    
+    // Special badge (Legendary, Mythical, etc.)
+    if (b.wild.specialBadge) {
+        let specialColor = '';
+        if (b.wild.specialCategory === 'legendary') specialColor = 'linear-gradient(135deg, #ffaa33, #cc8800)';
+        else if (b.wild.specialCategory === 'mythical') specialColor = 'linear-gradient(135deg, #ff66cc, #cc3399)';
+        else if (b.wild.specialCategory === 'paradox') specialColor = 'linear-gradient(135deg, #ff44cc, #aa22ff)';
+        else if (b.wild.specialCategory === 'ub') specialColor = 'linear-gradient(135deg, #00cc99, #008866)';
+        else if (b.wild.specialCategory === 'gmax') specialColor = 'linear-gradient(135deg, #ff4444, #cc0000)';
+        else if (b.wild.specialCategory === 'mega') specialColor = 'linear-gradient(135deg, #3399ff, #1a66cc)';
+        else specialColor = 'linear-gradient(135deg, #888, #555)';
+        
+        badgesRow += `<span style="background: ${specialColor}; color: white; padding: 2px 8px; border-radius: 20px; font-size: 0.6rem; font-weight: bold;">${b.wild.specialBadge}</span>`;
+    }
+    
+    // Wild bonus icons
+    let bonusIcons = '';
+    if (b.wild.bonusStats?.atk) bonusIcons += '⚔️';
+    if (b.wild.bonusStats?.def) bonusIcons += '🛡️';
+    if (b.wild.bonusStats?.spd) bonusIcons += '🏃';
+    
+    enemyStatBox.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 4px;">
+            <strong>${shinyIcon}${b.wild.name.toUpperCase()}</strong>
+            <span style="font-size: 0.75rem; color: var(--text-light);">Lv. ${b.wild.level}</span>
+        </div>
+        <div style="margin: 6px 0;">${generateTypeBadges(b.wild.types)}</div>
+        ${badgesRow ? `<div style="margin: 6px 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">${badgesRow}</div>` : ''}
+        ${bonusIcons ? `<div style="margin: 4px 0; font-size: 0.8rem; color: var(--text-light);">${bonusIcons}</div>` : ''}
+        <div class="hp-bar-container" style="margin: 8px 0;">
+            <div class="hp-bar-label" style="display: flex; justify-content: space-between; font-size: 0.7rem; margin-bottom: 2px;">
+                <span>❤️ HP</span>
+                <span>${b.wild.currentHp}/${b.wild.maxHp} (${Math.floor(hpPercent)}%)</span>
+            </div>
+            <div class="hp-bar" style="background: #e2e8f0; height: 8px; border-radius: 10px; overflow: hidden;">
+                <div class="hp-fill" style="width: ${hpPercent}%; background: ${hpBarColor}; height: 100%; transition: width 0.3s;"></div>
+            </div>
+        </div>
+    `;
+}
     // ----- Player Stat Box -----
         // ----- Player Stat Box (combine Terastal with special badge) -----
-    const playerStatBox = document.querySelector('#battle-area .player-side .stat-box');
-    if (playerStatBox) {
-        const shinyIcon = b.player.isShiny ? '✨ ' : '';
-        const shinyPin = b.player.isShiny ? '<span style="background: #ffcc00; color: #333; padding: 2px 6px; border-radius: 20px; font-size: 0.6rem; font-weight: bold; margin-right: 4px;">✨ SHINY</span>' : '';
-        
-        // Combine Terastal with special badge
-        let combinedBadge = '';
-        if (b.player.isTerastal && b.player.specialBadge) {
-            combinedBadge = `<span style="background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.6rem; font-weight: bold; margin-right: 4px; border: 1px solid white;">💠 TERA ${b.player.specialBadge}</span>`;
-        } else if (b.player.isTerastal) {
-            combinedBadge = `<span style="background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.6rem; font-weight: bold; margin-right: 4px; border: 1px solid white;">💠 TERA</span>`;
-        } else if (b.player.specialBadge) {
-            combinedBadge = `<span class="special-badge" style="font-size:0.6rem; padding:2px 6px;">${b.player.specialBadge}</span>`;
-        }
-        
-        let bonusIcons = '';
-        if (b.player.bonusStats?.atk) bonusIcons += '⚔️';
-        if (b.player.bonusStats?.def) bonusIcons += '🛡️';
-        if (b.player.bonusStats?.spd) bonusIcons += '🏃';
-        
-        const hpPercent = (b.player.currentHp / b.player.maxHp) * 100;
-        const neededXP = getExpNeededForNextLevel(b.player.level);
-        const currentXP = b.player.exp || 0;
-        const xpPercent = Math.floor((currentXP / neededXP) * 100);
-        
-        playerStatBox.innerHTML = `
-            <div><strong>${shinyIcon}${b.player.name.toUpperCase()}</strong> | Lv.${b.player.level}</div>
-            <div>${generateTypeBadges(b.player.types)}</div>
-            <div style="margin: 4px 0; display: flex; gap: 4px; flex-wrap: wrap; align-items: center;">
-                ${shinyPin}
-                ${combinedBadge}
-                ${bonusIcons ? `<span style="font-size: 0.8rem;">${bonusIcons}</span>` : ''}
-            </div>
-            <div class="hp-bar"><div class="hp-fill" style="width: ${hpPercent}%; background: var(--success);"></div></div>
-            <div style="font-size:0.7rem; margin-top:4px;">❤️ HP: ${b.player.currentHp}/${b.player.maxHp}</div>
-            <div style="font-size:0.7rem; margin-top:2px;">⭐ XP: ${currentXP}/${neededXP} (${xpPercent}%)</div>
-        `;
+  // ----- Player Stat Box (Enhanced with all badges) -----
+const playerStatBox = document.querySelector('#battle-area .player-side .stat-box');
+if (playerStatBox) {
+    const shinyIcon = b.player.isShiny ? '✨ ' : '';
+    const hpPercent = (b.player.currentHp / b.player.maxHp) * 100;
+    const neededXP = getExpNeededForNextLevel(b.player.level);
+    const currentXP = b.player.exp || 0;
+    const xpPercent = Math.floor((currentXP / neededXP) * 100);
+    
+    let hpBarColor = 'var(--success)';
+    if (hpPercent < 25) hpBarColor = 'var(--danger)';
+    else if (hpPercent < 50) hpBarColor = 'var(--warning)';
+    
+    // Collect all badges
+    let badgesRow = '';
+    
+    if (b.player.isShiny) {
+        badgesRow += '<span style="background: #ffd700; color: #333; padding: 2px 8px; border-radius: 20px; font-size: 0.6rem; font-weight: bold;">✨ SHINY</span>';
     }
-
+    
+    if (b.player.isTerastal) {
+        badgesRow += '<span style="background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.6rem; font-weight: bold; border: 1px solid rgba(255,255,255,0.3);">💠 TERASTAL</span>';
+    }
+    
+    if (b.player.specialBadge) {
+        let specialColor = '';
+        if (b.player.specialCategory === 'legendary') specialColor = 'linear-gradient(135deg, #ffaa33, #cc8800)';
+        else if (b.player.specialCategory === 'mythical') specialColor = 'linear-gradient(135deg, #ff66cc, #cc3399)';
+        else if (b.player.specialCategory === 'paradox') specialColor = 'linear-gradient(135deg, #ff44cc, #aa22ff)';
+        else if (b.player.specialCategory === 'ub') specialColor = 'linear-gradient(135deg, #00cc99, #008866)';
+        else if (b.player.specialCategory === 'gmax') specialColor = 'linear-gradient(135deg, #ff4444, #cc0000)';
+        else if (b.player.specialCategory === 'mega') specialColor = 'linear-gradient(135deg, #3399ff, #1a66cc)';
+        else specialColor = 'linear-gradient(135deg, #888, #555)';
+        
+        badgesRow += `<span style="background: ${specialColor}; color: white; padding: 2px 8px; border-radius: 20px; font-size: 0.6rem; font-weight: bold;">${b.player.specialBadge}</span>`;
+    }
+    
+    let bonusIcons = '';
+    if (b.player.bonusStats?.atk) bonusIcons += '⚔️';
+    if (b.player.bonusStats?.def) bonusIcons += '🛡️';
+    if (b.player.bonusStats?.spd) bonusIcons += '🏃';
+    
+    playerStatBox.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 4px;">
+            <strong>${shinyIcon}${b.player.name.toUpperCase()}</strong>
+            <span style="font-size: 0.75rem; color: var(--text-light);">Lv. ${b.player.level}</span>
+        </div>
+        <div style="margin: 6px 0;">${generateTypeBadges(b.player.types)}</div>
+        ${badgesRow ? `<div style="margin: 6px 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">${badgesRow}</div>` : ''}
+        ${bonusIcons ? `<div style="margin: 4px 0; font-size: 0.8rem; color: var(--text-light);">${bonusIcons}</div>` : ''}
+        <div class="hp-bar-container" style="margin: 8px 0;">
+            <div class="hp-bar-label" style="display: flex; justify-content: space-between; font-size: 0.7rem; margin-bottom: 2px;">
+                <span>❤️ HP</span>
+                <span>${b.player.currentHp}/${b.player.maxHp} (${Math.floor(hpPercent)}%)</span>
+            </div>
+            <div class="hp-bar" style="background: #e2e8f0; height: 8px; border-radius: 10px; overflow: hidden;">
+                <div class="hp-fill" style="width: ${hpPercent}%; background: ${hpBarColor}; height: 100%; transition: width 0.3s;"></div>
+            </div>
+        </div>
+        <div class="exp-bar-container" style="margin: 8px 0;">
+            <div class="exp-bar-label" style="display: flex; justify-content: space-between; font-size: 0.7rem; margin-bottom: 2px;">
+                <span>⭐ EXP</span>
+                <span>${currentXP}/${neededXP} (${xpPercent}%)</span>
+            </div>
+            <div class="exp-bar" style="background: #e2e8f0; height: 6px; border-radius: 10px; overflow: hidden;">
+                <div class="exp-fill" style="width: ${xpPercent}%; background: #a855f7; height: 100%; transition: width 0.3s;"></div>
+            </div>
+        </div>
+    `;
+}
     // ----- Move Buttons -----
     const typeToId = { normal:1, fighting:2, flying:3, poison:4, ground:5, rock:6, bug:7, ghost:8, steel:9, fire:10, water:11, grass:12, electric:13, psychic:14, ice:15, dragon:16, dark:17, fairy:18 };
     const movesDiv = document.getElementById('battle-moves');
@@ -5961,8 +6026,19 @@ async function startGameWithMap(map) {
     }
     
     // --- START THE MAP ---
-    document.getElementById('current-map-name').innerText = map.name;
+    // ✅ Set the map name display in the main area
+    const mapNameElement = document.getElementById('current-map-name');
+    if (mapNameElement) mapNameElement.innerText = map.name;
+    
+    // ✅ Set the currentMap variable (THIS IS KEY)
     currentMap = map;
+    
+    // Update the nav display with current map name
+    const mapNameDisplay = document.getElementById('current-map-name-display');
+    if (mapNameDisplay) {
+        mapNameDisplay.innerHTML = `<i class="fas fa-map-marker-alt"></i> ${map.name}`;
+    }
+    
     document.getElementById('map-selection-container').classList.add('hidden');
     document.getElementById('game-screen').classList.remove('hidden');
     
@@ -6811,9 +6887,69 @@ if (typeof window.toggleMute === 'function') {
     };
 }
 
-// ========== MOBILE NAVIGATION TOGGLE ==========
+
+
+// ========== DESKTOP NAVIGATION COLLAPSE TOGGLE ==========
+const navCollapseBtn = document.getElementById('nav-collapse-toggle');
+const NAV_COLLAPSE_KEY = 'pokesim_nav_collapsed';
+
+// Load saved preference
+if (localStorage.getItem(NAV_COLLAPSE_KEY) === 'true') {
+    document.body.classList.add('nav-collapsed');
+    if (navCollapseBtn) navCollapseBtn.innerHTML = '<i class="fas fa-chevron-down"></i>';
+} else {
+    if (navCollapseBtn) navCollapseBtn.innerHTML = '<i class="fas fa-chevron-up"></i>';
+}
+
+function toggleNavCollapse() {
+    if (document.body.classList.contains('nav-collapsed')) {
+        document.body.classList.remove('nav-collapsed');
+        localStorage.setItem(NAV_COLLAPSE_KEY, 'false');
+        if (navCollapseBtn) navCollapseBtn.innerHTML = '<i class="fas fa-chevron-up"></i>';
+    } else {
+        document.body.classList.add('nav-collapsed');
+        localStorage.setItem(NAV_COLLAPSE_KEY, 'true');
+        if (navCollapseBtn) navCollapseBtn.innerHTML = '<i class="fas fa-chevron-down"></i>';
+    }
+}
+
+if (navCollapseBtn) {
+    navCollapseBtn.addEventListener('click', toggleNavCollapse);
+}
+
+// ========== MOBILE NAVIGATION TOGGLE (Hamburger) ==========
 const navToggle = document.getElementById('nav-toggle');
 const navCollapsible = document.getElementById('nav-collapsible');
+
+if (navToggle && navCollapsible) {
+    navToggle.addEventListener('click', () => {
+        navCollapsible.classList.toggle('open');
+        navToggle.classList.toggle('open');
+    });
+
+    // Close menu when a link/button inside is clicked (on mobile)
+    const navLinks = navCollapsible.querySelectorAll('.nav-link, .nav-item, .btn-outline, .volume-btn');
+    navLinks.forEach(link => {
+        link.addEventListener('click', () => {
+            if (window.innerWidth <= 768) {
+                navCollapsible.classList.remove('open');
+                navToggle.classList.remove('open');
+            }
+        });
+    });
+}
+
+// On window resize, reset mobile menu state if switching to desktop
+window.addEventListener('resize', () => {
+    if (window.innerWidth > 768) {
+        // On desktop, ensure mobile menu is closed
+        if (navCollapsible) navCollapsible.classList.remove('open');
+        if (navToggle) navToggle.classList.remove('open');
+    }
+});
+// ========== MOBILE NAVIGATION TOGGLE ==========
+// const navToggle = document.getElementById('nav-toggle');
+// const navCollapsible = document.getElementById('nav-collapsible');
 
 if (navToggle && navCollapsible) {
     navToggle.addEventListener('click', () => {
@@ -6832,6 +6968,40 @@ if (navToggle && navCollapsible) {
         });
     });
 }
+
+// Wait for DOM to be fully loaded
+document.addEventListener('DOMContentLoaded', function() {
+    const navToggle = document.getElementById('nav-toggle');
+    const navCollapsible = document.getElementById('nav-collapsible');
+
+    if (navToggle && navCollapsible) {
+        console.log('Toggle button and collapsible found!');
+        
+        navToggle.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            navCollapsible.classList.toggle('open');
+            navToggle.classList.toggle('open');
+            console.log('Menu toggled, open class:', navCollapsible.classList.contains('open'));
+        });
+
+        // Close menu when a link/button inside is clicked (on mobile)
+        const navLinks = navCollapsible.querySelectorAll('.nav-link, .nav-item, .btn-outline, .volume-btn');
+        navLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 768) {
+                    navCollapsible.classList.remove('open');
+                    navToggle.classList.remove('open');
+                }
+            });
+        });
+    } else {
+        console.error('Navigation elements not found!');
+        console.log('navToggle:', navToggle);
+        console.log('navCollapsible:', navCollapsible);
+    }
+});
+
 
 </script>
 </body>

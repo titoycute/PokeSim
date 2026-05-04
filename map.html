@@ -1854,10 +1854,10 @@ body.dark-theme #summary-details {
         </div>
     </div>
 
-    <audio id="bg-music" src="music3.mp3" loop preload="auto"></audio>
-    <audio id="battle-music" src="music2.mp3" loop preload="auto"></audio>
-    <audio id="special-music" src="music4.mp3" loop preload="auto"></audio>
-    <audio id="victory-sound" src="mixkit-small-win-2020.wav" preload="auto"></audio>
+<audio id="bg-music" src="music3.mp3" loop preload="none"></audio>
+<audio id="battle-music" src="music2.mp3" loop preload="none"></audio>
+<audio id="special-music" src="music4.mp3" loop preload="none"></audio>
+<audio id="victory-sound" src="mixkit-small-win-2020.wav" preload="none"></audio>
 
 <footer>
     Created by Tootzkie Custodio <span id="app-version"></span>
@@ -6611,6 +6611,30 @@ document.getElementById('auto-catch-toggle')?.addEventListener('click', toggleAu
         return cached;
     };
 })();
+
+// Lazy load audio only when needed
+function lazyLoadAudio() {
+    const audios = document.querySelectorAll('audio');
+    audios.forEach(audio => {
+        if (audio.preload !== 'auto') {
+            audio.preload = 'auto';
+            audio.load();
+        }
+    });
+}
+
+// Modify your volume toggle to load audio first time
+const originalToggleMute = window.toggleMute;
+if (typeof window.toggleMute === 'function') {
+    window.toggleMute = function() {
+        // Load audio if not already loaded and not in data saver mode
+        if (!dataSaverEnabled && !audioLoaded) {
+            lazyLoadAudio();
+            audioLoaded = true;
+        }
+        originalToggleMute();
+    };
+}
 </script>
 </body>
 </html>

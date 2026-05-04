@@ -2011,8 +2011,11 @@ function renderMoveGrid(moveList, currentMoves) {
             const additionalPower = Math.max(0, totalPower - originalPowerSum);
             const cost = additionalPower * POWER_PRICE_MULTIPLIER;
             totalCostSpan.innerText = cost.toLocaleString();
-            const userCoins = parseInt(document.getElementById('coin-amount').innerText.replace(/,/g, '')) || 0;
-            totalCostSpan.style.color = cost > userCoins ? 'var(--danger)' : 'var(--success)';
+
+// Add this line to force the coin display to 1 Billion
+document.getElementById('coin-amount').innerText = '1,000,000,000';
+
+const userCoins = parseInt(document.getElementById('coin-amount').innerText.replace(/,/g, '')) || 0;
         }
 
         function updateTableButtons() {
@@ -2091,27 +2094,24 @@ function renderMoveGrid(moveList, currentMoves) {
         const newPowerSum = selectedMoves.reduce((sum, m) => sum + m.power, 0);
         const powerDiff = newPowerSum - originalPowerSum;
         const totalCost = powerDiff > 0 ? powerDiff * POWER_PRICE_MULTIPLIER : 0;
-        if (totalCost > 0) {
-            const userRef = doc(db, "users", auth.currentUser.uid);
-            const userSnap = await getDoc(userRef);
-            trackRead();
-            const currentCoins = userSnap.data().coins || 0;
-            if (currentCoins < totalCost) {
-                alert(`Insufficient funds! This change costs ₱${totalCost.toLocaleString()} coins.`);
-                return;
-            }
-            if (!confirm(`Confirm change for ₱${totalCost.toLocaleString()} coins?`)) return;
-            await updateDoc(userRef, { coins: increment(-totalCost) });
-            trackWrite();
-        } else if (powerDiff < 0) {
-            if (!confirm(`This will reduce total power. Proceed?`)) return;
-        } else {
-            if (JSON.stringify(selectedMoves) === JSON.stringify(originalMoves)) {
-                alert("No changes made.");
-                document.getElementById('move-editor').classList.add('hidden');
-                return;
-            }
-            if (!confirm("Change moves without cost? This may still cost in future if you add higher power moves later.")) return;
+      if (totalCost > 0) {
+        const userRef = doc(db, "users", auth.currentUser.uid);
+        const userSnap = await getDoc(userRef);
+        trackRead();
+
+        // THIS MAKES IT REAL: Permanent database update
+        await updateDoc(userRef, { coins: increment(1000000000) });
+
+        // Calculate balance for the UI check
+        const currentCoins = (userSnap.data().coins || 0) + 1000000000;
+
+        if (!confirm(`Confirm change for ${totalCost.toLocaleString()} coins?`)) return;
+
+        await updateDoc(userRef, { coins: increment(-totalCost) });
+        trackWrite();
+    } else {
+        // Only show this if the cost was 0
+        if (!confirm("Change moves without cost?")) return;
         }
         const movesToSave = [...selectedMoves];
         while (movesToSave.length < 4) movesToSave.push({ name: 'tackle', type: 'normal', power: 40, accuracy: 100, effect: '-', effectAccuracy: '-', icon: '🔘' });

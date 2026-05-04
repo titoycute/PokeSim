@@ -1159,63 +1159,64 @@ async function buyShop(id, price) {
     allBuyBtns.forEach(b => b.disabled = true);
     
     try {
-        let purchased;
+        // 1. First, check if user has enough coins
+        const userRef = doc(db, 'users', currentUser.uid);
+        const userSnap = await getDoc(userRef);
+        const coins = userSnap.data()?.coins || 0;
         
-        await runTransaction(db, async (tx) => {
-            // 1. Get the listing
-            const listingRef = doc(db, 'market_shop_listings', id);
-            const listingSnap = await tx.get(listingRef);
-            
-            if (!listingSnap.exists()) throw new Error('Listing no longer exists.');
-            const listing = listingSnap.data();
-            if (listing.stock <= 0) throw new Error('Out of stock.');
-            
-            // 2. Check if user has enough coins
-            const userRef = doc(db, 'users', currentUser.uid);
-            const userSnap = await tx.get(userRef);
-            const coins = userSnap.data()?.coins || 0;
-            if (coins < price) throw new Error(`Need ${price} coins. You have ${coins}.`);
-            
-            purchased = listing;
-            
-            // 3. Deduct coins from buyer
-            tx.update(userRef, { coins: increment(-price) });
-            
-            // 4. Add Pokémon to buyer's collection
-            const newPokemonRef = doc(collection(db, 'users', currentUser.uid, 'pokemon'));
-            tx.set(newPokemonRef, {
-                pokemonId: listing.pokemonId,
-                name: listing.name,
-                level: listing.level,
-                exp: 0,
-                moves: listing.moves,
-                types: listing.types,
-                inTeam: false,
-                capturedAt: new Date(),
-                bonusStats: listing.bonusStats || { atk: false, def: false, spd: false },
-                isShiny: listing.isShiny || false,
-                isSpecial: listing.isSpecial || false,
-                isTerastal: listing.isTerastal || false
-            });
-            
-            // 5. Update or delete the listing (ONLY modify stock field)
-            if (listing.stock === 1) {
-                tx.delete(listingRef);
-            } else {
-                tx.update(listingRef, { stock: listing.stock - 1 });
-            }
+        if (coins < price) { 
+            toast(`Need ${price} coins. You have ${coins}.`, 'error'); 
+            allBuyBtns.forEach(b => b.disabled = false); 
+            return; 
+        }
+        
+        // 2. Get the listing
+        const listingRef = doc(db, 'market_shop_listings', id);
+        const listingSnap = await getDoc(listingRef);
+        
+        if (!listingSnap.exists()) throw new Error('Listing no longer exists.');
+        const listing = listingSnap.data();
+        if (listing.stock <= 0) throw new Error('Out of stock.');
+        
+        // 3. Deduct coins from buyer
+        await updateDoc(userRef, { coins: increment(-price) });
+        
+        // 4. Add Pokémon to buyer's collection
+        const newPokemonRef = doc(collection(db, 'users', currentUser.uid, 'pokemon'));
+        await setDoc(newPokemonRef, {
+            pokemonId: listing.pokemonId,
+            name: listing.name,
+            level: listing.level,
+            exp: 0,
+            moves: listing.moves,
+            types: listing.types,
+            inTeam: false,
+            capturedAt: new Date(),
+            bonusStats: listing.bonusStats || { atk: false, def: false, spd: false },
+            isShiny: listing.isShiny || false,
+            isSpecial: listing.isSpecial || false,
+            isTerastal: listing.isTerastal || false
         });
+        
+        // 5. Update stock (set to 0 if last item, or decrement)
+        const newStock = listing.stock - 1;
+        if (newStock === 0) {
+            // ✅ Update stock to 0 instead of deleting
+            await updateDoc(listingRef, { stock: 0 });
+        } else {
+            await updateDoc(listingRef, { stock: newStock });
+        }
         
         // Show success
         showReward({
-            ...purchased,
+            ...listing,
             exp: 0,
-            isTerastal: purchased.isTerastal || false
-        }, '💰 Purchase Complete!', `${purchased.name.toUpperCase()} has been added to your collection!`);
+            isTerastal: listing.isTerastal || false
+        }, '💰 Purchase Complete!', `${listing.name.toUpperCase()} has been added to your collection!`);
         
         invalidatePokeCache();
         updateNav(true);
-        loadShop(); // Refresh
+        loadShop(); // Refresh (this will hide items with stock <= 0)
         
     } catch (e) {
         console.error('Buy error:', e);

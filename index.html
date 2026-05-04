@@ -2318,16 +2318,28 @@ async function handlePlayerFaint(battle) {
     const faintedIndex = battle.playerTeam.findIndex(p => p.id === battle.player.id);
     if (faintedIndex !== -1) {
         battle.playerTeam[faintedIndex].currentHp = 0;
+        console.log(`[Battle] ${battle.player.name} fainted, marked as HP=0 in team array`);
     }
     
     const available = battle.playerTeam.filter(p => p.currentHp > 0);
     if (available.length === 0) { 
+        addBattleLog("❌ All your Pokémon have fainted! You black out...");
         showBattleSummary('defeat'); 
         return null; 
     }
-    addBattleLog(`${battle.player.name.toUpperCase()} fainted! Choose another.`);
-    const selected = await showSwitchPokemonModal(available, true);
+    
+    addBattleLog(`💀 ${battle.player.name.toUpperCase()} fainted! Choose another.`);
+    
+    // Clear any pending turn timeout
+    if (currentTurnTimeout) {
+        clearTimeout(currentTurnTimeout);
+        currentTurnTimeout = null;
+    }
+    
+    // ✅ FIXED: Use showSwitchModal
+    const selected = await showSwitchModal(available, battle.player.id);
     if (!selected) { 
+        addBattleLog("❌ No Pokémon selected! You black out...");
         showBattleSummary('defeat'); 
         return null; 
     }
@@ -2339,15 +2351,17 @@ async function handlePlayerFaint(battle) {
     battle.activePokemonIndex = newIdx;
     battle.player = battle.playerTeam[newIdx];
     
-    // ✅ REMOVE THIS LINE - DO NOT reset HP to full!
-    // battle.player.currentHp = battle.player.maxHp; // ❌ DELETE THIS LINE
-    
     renderBattleUI();
-    addBattleLog(`Go! ${battle.player.name.toUpperCase()}!`);
+    addBattleLog(`✨ Go! ${battle.player.name.toUpperCase()}! ✨`);
+    
+    // Reset processing state
     isProcessing = false;
     toggleBattleUI(false);
+    
     return newIdx;
 }
+
+
 async function getTrainerName() {
     if (cachedTrainerName) return cachedTrainerName;
     const user = auth.currentUser;
@@ -3227,6 +3241,30 @@ async function loadDefaultMap() {
         }).catch(e => console.warn("Position save failed:", e));
     }
 
+
+    // Add this function near the top of your script
+function isCustomPokemonId(id) {
+    // IDs above 10256 are custom forms (Mega, G-Max, Terapagos, etc.)
+    // Also exclude Paradox Pokémon (984-995, 1005-1010, 1020-1023)
+    const customRanges = [
+        { min: 10000, max: 10256 },  // Mega Evolutions
+        { min: 10276, max: 10277 },  // Terapagos forms
+        // Add other custom ranges as needed
+    ];
+    
+    // Standard Pokémon IDs are 1-1025
+    if (id >= 1 && id <= 1025) return false;
+    
+    // Check custom ranges
+    for (const range of customRanges) {
+        if (id >= range.min && id <= range.max) return true;
+    }
+    
+    // Also check specific special form IDs
+    const specialIds = new Set([10276, 10277, 10025, 10026, 10027, 10028, 10029, 10030]);
+    return specialIds.has(id);
+}
+
     // Save position to localStorage (every move, no Firebase cost)
 function savePlayerPositionLocal() {
     if (!currentMap) return;
@@ -3989,66 +4027,80 @@ async function runTurn(selectedMove) {
     if (isProcessing) return;
     isProcessing = true;
     toggleBattleUI(true);
-    addBattleLog("Trainer is concentrating...");
-    setTimeout(async () => {
+    addBattleLog("🧠 Trainer is concentrating...");
+
+    // Clear any existing timeout
+    if (currentTurnTimeout) clearTimeout(currentTurnTimeout);
+
+    currentTurnTimeout = setTimeout(async () => {
         if (!currentBattle) {
             isProcessing = false;
             toggleBattleUI(false);
             return;
         }
+        
         const b = currentBattle;
         const first = getFirstAttacker(b.player, b.wild);
+        
         const getRandomMove = (pokemon) => {
             const available = pokemon.moves.filter(m => m.power > 0);
             if (!available.length) return { name: "Struggle", power: 50, type: "normal" };
             return available[Math.floor(Math.random() * available.length)];
         };
+        
         if (first === 'player') {
             // Player attacks first
             const wildFainted = executeAttack(b.player, b.wild, selectedMove, true);
             renderBattleUI();
             updateCatchChance();
+            
             if (wildFainted) {
-                addBattleLog("Wild Pokemon fainted! Victory!");
+                addBattleLog("🎉 Wild Pokemon fainted! Victory!");
                 await resolveBattle(true);
+                isProcessing = false;
+                toggleBattleUI(false);
                 return;
             }
+            
             // Opponent counter-attacks
             setTimeout(async () => {
                 if (!currentBattle) return;
                 const playerFainted = executeAttack(b.wild, b.player, getRandomMove(b.wild), false);
                 renderBattleUI();
                 updateCatchChance();
+                
                 if (playerFainted) {
                     await handlePlayerFaint(b);
-                    isProcessing = false;
-                    toggleBattleUI(false);
+                    // After handling faint, we're done - no further moves
                 } else {
                     isProcessing = false;
                     toggleBattleUI(false);
                 }
             }, 1000);
+            
         } else {
             // Opponent attacks first
             const playerFainted = executeAttack(b.wild, b.player, getRandomMove(b.wild), false);
             renderBattleUI();
             updateCatchChance();
+            
             if (playerFainted) {
-                // Player fainted – handle it and do NOT schedule the player's attack
                 await handlePlayerFaint(b);
-                isProcessing = false;
-                toggleBattleUI(false);
-                return; // Critical: exit here, no counter-attack
+                return;
             }
-            // Player did not faint, now player counter-attacks
+            
+            // Player counter-attacks
             setTimeout(async () => {
                 if (!currentBattle) return;
                 const wildFainted = executeAttack(b.player, b.wild, selectedMove, true);
                 renderBattleUI();
                 updateCatchChance();
+                
                 if (wildFainted) {
-                    addBattleLog("Wild Pokemon fainted! Victory!");
+                    addBattleLog("🎉 Wild Pokemon fainted! Victory!");
                     await resolveBattle(true);
+                } else if (b.player.currentHp <= 0) {
+                    await handlePlayerFaint(b);
                 } else {
                     isProcessing = false;
                     toggleBattleUI(false);
@@ -4057,6 +4109,7 @@ async function runTurn(selectedMove) {
         }
     }, 3000);
 }
+
 
     function updateCatchChance() {
         if (!currentBattle || !currentMap) return;
@@ -4377,7 +4430,7 @@ async function attemptSwitch() {
     const available = b.playerTeam.filter(p => p.currentHp > 0 && p.id !== b.player.id);
 
     if (available.length === 0) {
-        addBattleLog("No other Pokémon can switch in!");
+        addBattleLog("❌ No other Pokémon can switch in!");
         isProcessing = false;
         if (btn) btn.disabled = false;
         if (catchBtn) catchBtn.disabled = false;
@@ -4385,11 +4438,19 @@ async function attemptSwitch() {
         return;
     }
 
+    // Clear any pending turn timeout during switch
+    if (currentTurnTimeout) {
+        clearTimeout(currentTurnTimeout);
+        currentTurnTimeout = null;
+    }
+
+    // ✅ FIXED: Use showSwitchModal (not showSwitchPokemonModal)
     const selected = await showSwitchModal(available, b.player.id);
 
     if (!selected) {
         // User cancelled switch -> enemy gets a free turn
-        addBattleLog("Switch cancelled! The wild Pokémon attacks!");
+        addBattleLog("❌ Switch cancelled! The wild Pokémon attacks!");
+        
         const wM = b.wild.moves[Math.floor(Math.random() * b.wild.moves.length)];
         executeAttack(b.wild, b.player, wM, false);
         renderBattleUI();
@@ -4398,7 +4459,7 @@ async function attemptSwitch() {
         if (b.player.currentHp <= 0) {
             const nextIdx = await handlePlayerFaint(b);
             if (nextIdx === null) {
-                addBattleLog("All your Pokémon have fainted! You black out...");
+                addBattleLog("💀 All your Pokémon have fainted! You black out...");
                 stopTerastalCanvas('tera-canvas-enemy');
                 stopTerastalCanvas('tera-canvas-player');
                 currentBattle = null;
@@ -4414,7 +4475,7 @@ async function attemptSwitch() {
     }
 
     // --- SUCCESSFUL SWITCH ---
-    addBattleLog(`Come back, ${b.player.name.toUpperCase()}!`);
+    addBattleLog(`🔄 Come back, ${b.player.name.toUpperCase()}!`);
     
     // Remove Terastal effect from outgoing Pokémon
     stopTerastalCanvas('tera-canvas-player');
@@ -4426,18 +4487,15 @@ async function attemptSwitch() {
         outgoingSprite.style.removeProperty('--tera-filter-high');
     }
 
-    // ✅ Register the new Pokémon as a participant
+    // Register the new Pokémon as a participant
     b.participants.add(selected.id);
     
     const newIdx = b.playerTeam.findIndex(p => p.id === selected.id);
     b.activePokemonIndex = newIdx;
     b.player = b.playerTeam[newIdx];
     
-    // ✅ REMOVE THIS LINE - DO NOT reset HP to full!
-    // b.player.currentHp = b.player.maxHp; // ❌ DELETE THIS LINE
-    
     renderBattleUI();
-    addBattleLog(`Go! ${b.player.name.toUpperCase()}!`);
+    addBattleLog(`✨ Go! ${b.player.name.toUpperCase()}! ✨`);
 
     // Wild Pokémon counter-attacks after switch
     setTimeout(async () => {
@@ -4448,22 +4506,18 @@ async function attemptSwitch() {
         updateCatchChance();
 
         if (b.player.currentHp <= 0) {
-            const nextIdx = await handlePlayerFaint(b);
-            if (nextIdx === null) {
-                addBattleLog("All your Pokémon have fainted! You black out...");
-                stopTerastalCanvas('tera-canvas-enemy');
-                stopTerastalCanvas('tera-canvas-player');
-                currentBattle = null;
-                document.getElementById('battle-area').classList.add('hidden');
-                stopBattleMusic();
-            }
+            await handlePlayerFaint(b);
+        } else {
+            isProcessing = false;
+            toggleBattleUI(false);
         }
-        isProcessing = false;
         if (btn) btn.disabled = false;
         if (catchBtn) catchBtn.disabled = false;
         if (escapeBtn) escapeBtn.disabled = false;
     }, 1000);
 }
+
+
 
 async function trackRecord(id, name) {
     const userId = auth.currentUser.uid;
@@ -5569,11 +5623,30 @@ async function performEvolution(pokemon, targetId, targetName, targetData) {
 
     // 4. After 1.5s, show the new sprite
     setTimeout(async () => {
-        if (pokemon.isShiny) {
-            loadImageWithFallback(newSprite, getShinyBattleSpriteUrl(targetName, targetId, 'front'));
-        } else {
-            loadImageWithFallback(newSprite, getBattleSpriteUrl(targetId, 'front'));
+    // Load new sprite with proper error handling
+    if (pokemon.isShiny) {
+        // ✅ Use a try-catch for the URL generation
+        try {
+            const shinyUrls = getShinyBattleSpriteUrl(targetName, targetId, 'front');
+            loadImageWithFallback(newSprite, shinyUrls);
+        } catch (err) {
+            console.warn("Shiny sprite failed, using default:", err);
+            loadImageWithFallback(newSprite, [`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/${targetId}.png`]);
         }
+    } else {
+        try {
+            // Handle potential invalid name
+            let spriteName = targetName;
+            if (typeof targetName !== 'string' || targetName.trim() === '') {
+                spriteName = String(targetId);
+            }
+            const normalUrls = getBattleSpriteUrl(spriteName, targetId, 'front');
+            loadImageWithFallback(newSprite, normalUrls);
+        } catch (err) {
+            console.warn("Normal sprite failed, using default:", err);
+            loadImageWithFallback(newSprite, [`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${targetId}.png`]);
+        }
+    }
 
         newSprite.style.display = 'block';
         oldSprite.classList.remove('evolution-animate');

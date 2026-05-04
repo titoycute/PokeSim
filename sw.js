@@ -1,4 +1,7 @@
-const CACHE_NAME = 'pokesim-v1.7.2';   // increment version
+const CACHE_NAME = 'pokesim-v1.7.3';   // Increment version
+const AUDIO_CACHE_NAME = 'pokesim-audio-v1'; // Separate cache for audio
+const SPRITE_CACHE_NAME = 'pokesim-sprites-v1'; // Separate cache for sprites
+
 const assets = [
   'index.html',
   'map.html',
@@ -8,24 +11,28 @@ const assets = [
   'admin.html',
   'market.html',
   'ranking.html',
+  'guide.html',
+  'updates.html',
+  'support.html',
   'manifest.json',
   'favicon.ico',
   'PokeSim_Pokemon.png',
   'PokeSim Word.png',
   'PokeSim_Icon.png',
+  'download.png',
+  'Byahe.png',
+  'Map_0.jpg'
+];
+
+// Audio files - will be cached separately with longer TTL
+const audioAssets = [
   'music1.mp3',
   'music2.mp3',
   'music3.mp3',
   'music4.mp3',
-  'music5.mp3'
-];
-
-const urlsToCache = [
-  './',
-  'poke.html',
-  'PokeSim Word.png',
-  'your-css.css',
-  'your-js.js'
+  'music5.mp3',
+  'evolution.mp3',
+  'mixkit-small-win-2020.wav'
 ];
 
 // Patterns for external sprite URLs that should be cached
@@ -35,12 +42,19 @@ const SPRITE_PATTERNS = [
   'https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/'
 ];
 
-// Install: cache static assets
+// Install: cache static assets AND audio files separately
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(assets);
-    })
+    Promise.all([
+      // Cache main assets
+      caches.open(CACHE_NAME).then(cache => {
+        return cache.addAll(assets);
+      }),
+      // Cache audio files separately
+      caches.open(AUDIO_CACHE_NAME).then(cache => {
+        return cache.addAll(audioAssets);
+      })
+    ])
   );
   self.skipWaiting();
 });
@@ -50,16 +64,39 @@ self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys => {
       return Promise.all(
-        keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
+        keys.filter(key => {
+          // Keep our current caches, delete old versions
+          return key !== CACHE_NAME && 
+                 key !== AUDIO_CACHE_NAME && 
+                 key !== SPRITE_CACHE_NAME;
+        }).map(key => caches.delete(key))
       );
     })
   );
   e.waitUntil(clients.claim());
 });
 
-// Fetch: cache static assets and sprite images (only status 200)
+// Helper: Check if request is for audio file
+function isAudioRequest(url) {
+  return url.match(/\.(mp3|wav|ogg)$/i);
+}
+
+// Helper: Check if request is for sprite/image
+function isSpriteRequest(url) {
+  return SPRITE_PATTERNS.some(pattern => url.startsWith(pattern));
+}
+
+// Helper: Check if request is for same origin static asset
+function isStaticAsset(url) {
+  const staticExtensions = /\.(html|css|js|png|jpg|jpeg|gif|ico|json|txt)$/i;
+  return staticExtensions.test(url);
+}
+
+// Fetch: intelligent caching strategy
 self.addEventListener('fetch', e => {
   const request = e.request;
+  const url = new URL(request.url);
+  const isSameOrigin = url.origin === self.location.origin;
 
   // Skip non-GET requests
   if (request.method !== 'GET') {
@@ -67,45 +104,56 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  const url = new URL(request.url);
-  const isSameOrigin = url.origin === self.location.origin;
-
-  // 1. Cache external sprite images (Pokémon sprites)
-  if (SPRITE_PATTERNS.some(pattern => request.url.startsWith(pattern))) {
+  // 1. AUDIO FILES: Cache First (always serve from cache after first download)
+  if (isAudioRequest(request.url) || (isSameOrigin && audioAssets.some(audio => url.pathname.endsWith(audio)))) {
     e.respondWith(
-      caches.match(request).then(cachedResponse => {
-        if (cachedResponse) {
-          return cachedResponse; // serve from cache
-        }
-        // Fetch from network and cache for future
-        return fetch(request).then(networkResponse => {
-          // ✅ Only cache complete responses (status 200)
-          if (networkResponse.status === 200) {
-            const clone = networkResponse.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
+      caches.open(AUDIO_CACHE_NAME).then(cache => {
+        return cache.match(request).then(cachedResponse => {
+          if (cachedResponse) {
+            // ✅ Serve from cache - NO DOWNLOAD!
+            return cachedResponse;
           }
-          return networkResponse;
-        }).catch(() => {
-  return caches.match(request).then(response => {
-    // If file exists in cache → use it
-    if (response) return response;
-
-    // If not → show fallback page
-    return caches.match('pokesim_offline.html');
-  });
-});
+          // First time - fetch and cache permanently
+          return fetch(request).then(networkResponse => {
+            if (networkResponse.ok) {
+              const clone = networkResponse.clone();
+              cache.put(request, clone);
+            }
+            return networkResponse;
+          });
+        });
       })
     );
     return;
   }
 
-  // 2. For same-origin requests (your own files): network first, fallback to cache
-  if (isSameOrigin) {
+  // 2. SPRITE IMAGES: Cache First (sprites change rarely)
+  if (isSpriteRequest(request.url)) {
+    e.respondWith(
+      caches.open(SPRITE_CACHE_NAME).then(cache => {
+        return cache.match(request).then(cachedResponse => {
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+          return fetch(request).then(networkResponse => {
+            if (networkResponse.ok) {
+              const clone = networkResponse.clone();
+              cache.put(request, clone);
+            }
+            return networkResponse;
+          });
+        });
+      })
+    );
+    return;
+  }
+
+  // 3. SAME-ORIGIN STATIC ASSETS: Network First, fallback to cache
+  if (isSameOrigin && isStaticAsset(url.pathname)) {
     e.respondWith(
       fetch(request)
         .then(response => {
-          // ✅ Only cache complete responses (status 200)
-          if (response.status === 200) {
+          if (response.ok) {
             const responseClone = response.clone();
             caches.open(CACHE_NAME).then(cache => {
               cache.put(request, responseClone);
@@ -113,31 +161,95 @@ self.addEventListener('fetch', e => {
           }
           return response;
         })
-        .catch(() => {
+        .catch(async () => {
           // Network failed – serve from cache
-          return caches.match(request);
+          const cached = await caches.match(request);
+          if (cached) return cached;
+          
+          // If requesting an HTML page and no cache, show offline page
+          if (request.headers.get('Accept').includes('text/html')) {
+            return caches.match('pokesim_offline.html');
+          }
+          return new Response('Offline - Content not available', { status: 404 });
         })
     );
     return;
   }
 
-  // 3. For all other external requests (PokeAPI JSON, Firebase, etc.) – just fetch, no caching
+  // 4. API CALLS (PokeAPI, Firebase): Network Only, no caching (data changes often)
+  if (request.url.includes('pokeapi.co') || request.url.includes('firebase')) {
+    e.respondWith(
+      fetch(request).catch(() => {
+        return new Response(JSON.stringify({ error: 'Network error' }), {
+          status: 503,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      })
+    );
+    return;
+  }
+
+  // 5. EVERYTHING ELSE: Cache with network fallback
   e.respondWith(
-  caches.match(request).then(cached => {
-    return cached || fetch(request).then(res => {
-      if (res.status === 200) {
-        const clone = res.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
+    caches.match(request).then(cachedResponse => {
+      if (cachedResponse) {
+        return cachedResponse;
       }
-      return res;
-    }).catch(() => cached);
-  })
-);
+      return fetch(request).then(networkResponse => {
+        if (networkResponse.ok) {
+          const clone = networkResponse.clone();
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(request, clone);
+          });
+        }
+        return networkResponse;
+      });
+    }).catch(() => {
+      // Ultimate fallback
+      return caches.match('pokesim_offline.html');
+    })
+  );
 });
 
 // Listen for version requests from the page
 self.addEventListener('message', event => {
   if (event.data && event.data.type === 'GET_VERSION') {
     event.ports[0].postMessage({ version: CACHE_NAME });
+  }
+  
+  // Optional: Force refresh of audio cache
+  if (event.data && event.data.type === 'REFRESH_AUDIO') {
+    event.waitUntil(
+      caches.open(AUDIO_CACHE_NAME).then(cache => {
+        return Promise.all(
+          audioAssets.map(audio => {
+            return fetch(audio).then(response => {
+              if (response.ok) {
+                cache.put(audio, response);
+              }
+            });
+          })
+        );
+      })
+    );
+  }
+});
+
+// Background sync for when offline (optional)
+self.addEventListener('sync', event => {
+  if (event.tag === 'sync-audio') {
+    event.waitUntil(
+      caches.open(AUDIO_CACHE_NAME).then(cache => {
+        return Promise.all(
+          audioAssets.map(audio => {
+            return fetch(audio).then(response => {
+              if (response.ok) {
+                cache.put(audio, response);
+              }
+            }).catch(() => {});
+          })
+        );
+      })
+    );
   }
 });

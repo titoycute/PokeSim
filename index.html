@@ -626,6 +626,7 @@
    <nav class="card-nav">
     <div class="nav-header">
         <div class="logo"><img src="PokeSim Word.png" alt="PokeSim"></div>
+       
         <button id="nav-toggle" class="hamburger" aria-label="Menu">
             <span></span><span></span><span></span>
         </button>
@@ -6287,6 +6288,57 @@ let dataSaverEnabled = localStorage.getItem('pokesim_dataSaver') === 'true';
 if (dataSaverEnabled) {
     document.body.classList.add('data-saver-mode');
     updateDataSaverButton(true);
+    
+    // Mute all audio immediately on page load
+    muteAllAudio();
+}
+
+function muteAllAudio() {
+    // Mute background music
+    const bgMusic = document.getElementById('bg-music');
+    const battleMusic = document.getElementById('battle-music');
+    const specialMusic = document.getElementById('special-music');
+    const evolutionSound = document.getElementById('evolution-sound');
+    const victorySound = document.getElementById('victory-sound');
+    
+    const audios = [bgMusic, battleMusic, specialMusic, evolutionSound, victorySound];
+    audios.forEach(audio => {
+        if (audio) {
+            audio.pause();
+            audio.muted = true;
+            audio.currentTime = 0;
+        }
+    });
+    
+    // Update global mute state if it exists
+    if (typeof isMuted !== 'undefined') {
+        window.isMuted = true;
+    }
+    
+    // Update volume button text if it exists
+    const volumeBtn = document.getElementById('volume-toggle');
+    if (volumeBtn) {
+        volumeBtn.innerText = '🔇';
+    }
+}
+
+function unmuteAllAudio() {
+    // Only unmute if data saver is OFF
+    if (!dataSaverEnabled) {
+        const audios = document.querySelectorAll('audio');
+        audios.forEach(audio => {
+            audio.muted = false;
+        });
+        
+        if (typeof isMuted !== 'undefined') {
+            window.isMuted = false;
+        }
+        
+        const volumeBtn = document.getElementById('volume-toggle');
+        if (volumeBtn) {
+            volumeBtn.innerText = '🔊';
+        }
+    }
 }
 
 function toggleDataSaverMode() {
@@ -6296,23 +6348,27 @@ function toggleDataSaverMode() {
         document.body.classList.add('data-saver-mode');
         localStorage.setItem('pokesim_dataSaver', 'true');
         
-        // Mute audio if playing
-        if (typeof isMuted !== 'undefined' && !isMuted) {
-            // Find and mute all audio elements
-            const audios = document.querySelectorAll('audio');
-            audios.forEach(audio => {
-                audio.pause();
-                audio.muted = true;
-            });
-            if (typeof toggleMute === 'function') toggleMute();
+        // ✅ CRITICAL: Mute all audio (biggest data saver!)
+        muteAllAudio();
+        
+        // Use smaller quality sprites
+        if (typeof window !== 'undefined') {
+            window.USE_LOW_QUALITY_SPRITES = true;
         }
         
-        showDataSaverToast('📱 Data Saver ON - Reduced data usage', '#2ecc71');
+        showDataSaverToast('📱 Data Saver ON - Music OFF, reduced image quality', '#2ecc71');
         
     } else {
         document.body.classList.remove('data-saver-mode');
         localStorage.setItem('pokesim_dataSaver', 'false');
-        showDataSaverToast('📱 Data Saver OFF - Full experience restored', '#4a5568');
+        
+        // Restore audio (but don't auto-play, let user click volume button)
+        if (typeof window !== 'undefined') {
+            window.USE_LOW_QUALITY_SPRITES = false;
+        }
+        
+        // Don't auto-unmute - let user click volume button to enable
+        showDataSaverToast('📱 Data Saver OFF - Full experience restored (click 🔊 to enable music)', '#4a5568');
     }
     
     updateDataSaverButton(dataSaverEnabled);
@@ -6326,17 +6382,18 @@ function updateDataSaverButton(enabled) {
             btn.style.background = '#2ecc71';
             btn.style.color = 'white';
             btn.style.border = 'none';
+            btn.title = 'Data Saver active - Music disabled';
         } else {
             btn.innerHTML = '📱 Data Saver: OFF';
             btn.style.background = '#4a5568';
             btn.style.color = 'white';
             btn.style.border = 'none';
+            btn.title = 'Click to enable Data Saver mode';
         }
     }
 }
 
 function showDataSaverToast(message, bgColor) {
-    // Use existing toast or create one
     let toast = document.getElementById('data-saver-toast');
     if (!toast) {
         toast = document.createElement('div');
@@ -6352,6 +6409,8 @@ function showDataSaverToast(message, bgColor) {
         toast.style.zIndex = '10001';
         toast.style.transition = 'opacity 0.3s';
         toast.style.opacity = '0';
+        toast.style.fontWeight = 'bold';
+        toast.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
         document.body.appendChild(toast);
     }
     
@@ -6367,22 +6426,155 @@ function showDataSaverToast(message, bgColor) {
 // Attach click event to the button
 document.getElementById('data-saver-toggle')?.addEventListener('click', toggleDataSaverMode);
 
-// Optional: Show data saved statistics (adds a fun element)
+// Also listen for volume button clicks - prevent unmuting if data saver is on
+const originalVolumeToggle = window.toggleMute;
+if (typeof window.toggleMute === 'function') {
+    window.toggleMute = function() {
+        if (dataSaverEnabled) {
+            showDataSaverToast('🔇 Music is disabled in Data Saver mode. Turn off Data Saver to enable music.', '#e74c3c');
+            return;
+        }
+        originalVolumeToggle();
+    };
+}
+
+// Override playMusic functions to respect data saver mode
+const originalPlayMainMusic = window.playMainMusic;
+const originalPlayBattleMusic = window.playBattleMusic;
+
+if (typeof window.playMainMusic === 'function') {
+    window.playMainMusic = function() {
+        if (!dataSaverEnabled && !isMuted) {
+            originalPlayMainMusic();
+        }
+    };
+}
+
+if (typeof window.playBattleMusic === 'function') {
+    window.playBattleMusic = function() {
+        if (!dataSaverEnabled && !isMuted) {
+            originalPlayBattleMusic();
+        }
+    };
+}
+
+// Optional: Show data saved statistics
 let totalDataSaved = parseInt(localStorage.getItem('pokesim_dataSaved') || '0');
 
+// Update the visible data saved counter
+function updateDataSavedCounter() {
+    const savedMB = parseInt(localStorage.getItem('pokesim_dataSaved') || '0');
+    const counterSpan = document.getElementById('data-saved-amount');
+    if (counterSpan) {
+        counterSpan.innerText = savedMB;
+        
+        // Change color based on amount saved
+        if (savedMB >= 50) {
+            counterSpan.style.color = '#2ecc71';
+            counterSpan.style.fontWeight = 'bold';
+        } else if (savedMB >= 20) {
+            counterSpan.style.color = '#f39c12';
+        } else {
+            counterSpan.style.color = 'white';
+        }
+    }
+}
+
+// Call this whenever data is saved
 function trackDataSaved(mb) {
     if (dataSaverEnabled) {
         totalDataSaved += mb;
         localStorage.setItem('pokesim_dataSaved', totalDataSaved);
+        updateDataSavedCounter(); // ← Update the visible counter
         
         // Show achievement every 10MB saved
         if (totalDataSaved > 0 && totalDataSaved % 10 < 1) {
-            setTimeout(() => {
-                showDataSaverToast(`💾 You've saved ${totalDataSaved}MB of data!`, '#3498db');
-            }, 1000);
+            showDataSaverToast(`💾 Amazing! You've saved ${totalDataSaved}MB of data!`, '#3498db');
+            
+            // Add confetti effect for big milestones
+            if (totalDataSaved >= 100) {
+                showMiniConfetti();
+            }
         }
     }
 }
+
+// Optional: Add mini confetti for big milestones
+function showMiniConfetti() {
+    for (let i = 0; i < 30; i++) {
+        const confetti = document.createElement('div');
+        confetti.innerHTML = '💾';
+        confetti.style.position = 'fixed';
+        confetti.style.left = Math.random() * 100 + '%';
+        confetti.style.top = '-20px';
+        confetti.style.fontSize = (10 + Math.random() * 20) + 'px';
+        confetti.style.opacity = '1';
+        confetti.style.pointerEvents = 'none';
+        confetti.style.zIndex = '10002';
+        confetti.style.transition = 'all 2s ease-out';
+        document.body.appendChild(confetti);
+        
+        setTimeout(() => {
+            confetti.style.transform = `translateY(${window.innerHeight + 50}px) rotate(${Math.random() * 360}deg)`;
+            confetti.style.opacity = '0';
+        }, 10);
+        
+        setTimeout(() => confetti.remove(), 2000);
+    }
+}
+
+// Initialize counter on page load
+updateDataSavedCounter();
+
+// Also add a reset button for testing (optional, hidden from regular users)
+// Add this to your admin panel or as a hidden feature
+function resetDataSavedCounter() {
+    if (confirm('Reset data saved counter?')) {
+        localStorage.setItem('pokesim_dataSaved', '0');
+        updateDataSavedCounter();
+        showDataSaverToast('Data saved counter reset to 0', '#e74c3c');
+    }
+}
+
+// Track approximate data saved from music (estimate)
+function trackMusicDataSaved() {
+    if (dataSaverEnabled) {
+        // Each music file is ~1-2MB
+        // Each battle typically loads 1-2 music files
+        trackDataSaved(1.5); // Approximate MB saved
+    }
+}
+
+// Add this to your existing script section
+// Optimize audio loading with Service Worker caching
+(function initAudioWithCache() {
+    // Check if audio is already cached
+    caches.open('pokesim-audio-v1').then(cache => {
+        cache.keys().then(keys => {
+            const cachedAudioCount = keys.filter(key => key.url.match(/\.(mp3|wav)$/)).length;
+            if (cachedAudioCount > 0) {
+                console.log(`🎵 ${cachedAudioCount} audio files cached - no downloads needed!`);
+            }
+        });
+    });
+    
+    // Optional: Pre-cache audio when user enables music
+    window.preCacheAudio = async function() {
+        const audioUrls = ['music1.mp3', 'music2.mp3', 'music3.mp3', 'music4.mp3', 'music5.mp3'];
+        const cache = await caches.open('pokesim-audio-v1');
+        
+        let cached = 0;
+        for (const url of audioUrls) {
+            const response = await fetch(url);
+            if (response.ok) {
+                await cache.put(url, response);
+                cached++;
+            }
+        }
+        console.log(`🎵 Pre-cached ${cached} audio files`);
+        return cached;
+    };
+})();
 </script>
 
 

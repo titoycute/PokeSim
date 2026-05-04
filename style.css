@@ -2366,3 +2366,35 @@ body.data-saver-mode .hit-shockwave {
 body.data-saver-mode .music-prompt {
     animation: none !important;
 }
+
+/* Data Saver Mode - Music disabled indicator */
+body.data-saver-mode #volume-toggle {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+body.data-saver-mode #volume-toggle:hover::after {
+    content: " (Disabled in Data Saver)";
+    font-size: 0.7rem;
+    position: absolute;
+    background: rgba(0,0,0,0.8);
+    padding: 2px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+/* Optional: Show a visual indicator that music is disabled */
+body.data-saver-mode::after {
+    content: "📱 Data Saver: Music OFF";
+    position: fixed;
+    bottom: 10px;
+    left: 10px;
+    background: rgba(0,0,0,0.7);
+    color: #2ecc71;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    z-index: 9999;
+    pointer-events: none;
+    font-weight: bold;
+}

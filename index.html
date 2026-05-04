@@ -1164,7 +1164,6 @@ function getSpecialFormBonuses(pokemonName, pokemonId) {
     if (name === 'terapagos-terastal' || name.includes('terapagos-terastal') || pokemonId === 10276) {
         return { atk: 10, def: 10, spd: 10 };
     }
-    
     // ----- Gigantamax / Dynamax -----
     if (name.includes('-gmax') || name === 'dynamax') {
         atk = 10; def = 10; spd = 10;
@@ -1476,35 +1475,91 @@ async function cachedFetch(url) {
     function toggleMute() { isMuted = !isMuted; const v = document.getElementById('volume-toggle'); if (isMuted) { bgMusic.pause(); battleMusic.pause(); v.innerText = '🔇'; } else { if (currentBattle && document.getElementById('battle-area') && !document.getElementById('battle-area').classList.contains('hidden')) battleMusic.play().catch(e=>{}); else bgMusic.play().catch(e=>{}); v.innerText = '🔊'; } }
     document.getElementById('volume-toggle').onclick = toggleMute;
 
-    function getStaticSpriteUrl(id) { return [`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`, `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`]; }
-    function getBattleSpriteUrl(pokemonName, id, side='front') {
-         if (typeof pokemonName !== 'string') {
+    function getStaticSpriteUrl(id) {
+    if (dataSaverEnabled) {
+        // ✅ Use smallest sprite in data saver mode
+        return [`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`];
+    }
+    return [
+        `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`,
+        `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`
+    ];
+}
+    
+    function getBattleSpriteUrl(pokemonName, id, side = 'front') {
+    if (typeof pokemonName !== 'string') {
         console.warn("getBattleSpriteUrl received invalid name:", pokemonName);
-        pokemonName = String(pokemonName); 
+        pokemonName = String(pokemonName);
     }
     const name = pokemonName.toLowerCase()
         .replace('-mega-x', '-megax')
         .replace('-mega-y', '-megay');
     const base = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown`;
     const official = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
-
-    if(side==='back') return [`https://play.pokemonshowdown.com/sprites/ani-back/${name}.gif`, `${base}/back/${id}.gif`, official];
-    else return [`https://play.pokemonshowdown.com/sprites/ani/${name}.gif`, `${base}/${id}.gif`, official];
+    const defaultSprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
+    
+    // ✅ DATA SAVER MODE: Use only the smallest default PNG
+    if (dataSaverEnabled) {
+        if (side === 'back') {
+            return [`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/${id}.png`];
+        } else {
+            return [defaultSprite];
+        }
+    }
+    
+    // Normal mode - try high-quality first
+    if (side === 'back') {
+        return [
+            `https://play.pokemonshowdown.com/sprites/ani-back/${name}.gif`,
+            `${base}/back/${id}.gif`,
+            official,
+            `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/${id}.png`
+        ];
+    } else {
+        return [
+            `https://play.pokemonshowdown.com/sprites/ani/${name}.gif`,
+            `${base}/${id}.gif`,
+            official,
+            defaultSprite
+        ];
+    }
 }
+
 
 function getShinyBattleSpriteUrl(pokemonName, id, side = 'front') {
     const name = pokemonName.toLowerCase()
         .replace('-mega-x', '-megax')
         .replace('-mega-y', '-megay');
     const officialShiny = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/shiny/${id}.png`;
+    const defaultShiny = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/${id}.png`;
     
+    // ✅ DATA SAVER MODE: Use only the smallest default PNG
+    if (dataSaverEnabled) {
+        if (side === 'back') {
+            return [`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/shiny/${id}.png`];
+        } else {
+            return [defaultShiny];
+        }
+    }
+    
+    // Normal mode
     if (side === 'back') {
-        return [`https://play.pokemonshowdown.com/sprites/ani-back-shiny/${name}.gif`, officialShiny, `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/shiny/${id}.png` ];
+        return [
+            `https://play.pokemonshowdown.com/sprites/ani-back-shiny/${name}.gif`,
+            officialShiny,
+            `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/shiny/${id}.png`
+        ];
     } else {
-        return [`https://play.pokemonshowdown.com/sprites/ani-shiny/${name}.gif`, officialShiny, `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/shiny/${id}.gif` ];
+        return [
+            `https://play.pokemonshowdown.com/sprites/ani-shiny/${name}.gif`,
+            officialShiny,
+            `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/shiny/${id}.gif`,
+            defaultShiny
+        ];
     }
 }
-    // Find this function in your code and update it
+
+// Find this function in your code and update it
 // Find this function in map.html
 function loadImageWithFallback(img, urls) {
     // ✅ If data saver is enabled, skip high-quality images
@@ -3404,10 +3459,20 @@ function updatePlayerLabel() {
         const isShiny = cachedActivePokemon.isShiny || false;
 
         let spriteUrl;
-        if (isShiny) {
-            spriteUrl = `https://play.pokemonshowdown.com/sprites/ani-shiny/${name}.gif`;
+        
+        // ✅ DATA SAVER MODE: Use smaller PNG sprites
+        if (dataSaverEnabled) {
+            if (isShiny) {
+                spriteUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/${id}.png`;
+            } else {
+                spriteUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
+            }
         } else {
-            spriteUrl = `https://play.pokemonshowdown.com/sprites/ani/${name}.gif`;
+            if (isShiny) {
+                spriteUrl = `https://play.pokemonshowdown.com/sprites/ani-shiny/${name}.gif`;
+            } else {
+                spriteUrl = `https://play.pokemonshowdown.com/sprites/ani/${name}.gif`;
+            }
         }
 
         companion.src = spriteUrl;

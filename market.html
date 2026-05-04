@@ -2218,6 +2218,11 @@ async function buildAuctionCard(a, now) {
     specialBadgeHtml = `<span class="card-badge special-badge" style="${specialInfo.style}">${specialInfo.text}</span>`;
   }
 
+  let teraBadge = '';
+if (a.isTerastal) {
+  teraBadge = `<span class="card-badge terastal-badge" style="background:linear-gradient(135deg,#6c5ce7,#a29bfe);color:white;">💠 TERA</span>`;
+}
+
   // --- Bidders list (unchanged) ---
   const bids = a.bids || [];
   let biddersHtml = '';
@@ -2255,6 +2260,7 @@ async function buildAuctionCard(a, now) {
       <span class="card-badge auction-badge">🔨 Auction</span>
       ${a.isShiny ? '<span class="card-badge shiny-badge">✨ SHINY</span>' : ''}
       ${specialBadgeHtml}
+       ${teraBadge}
     </div>
     <div class="card-body">
       <div class="poke-name">${esc(a.name.toUpperCase())}</div>
@@ -2356,7 +2362,9 @@ async function openAuctionPostModal(existing = null) {
         <label class="chk-label"><input type="checkbox" id="auc-def" ${existing?.bonusStats?.def ? 'checked' : ''} ${!isAdmin ? 'disabled' : ''}> 🛡️ DEF</label>
         <label class="chk-label"><input type="checkbox" id="auc-spd" ${existing?.bonusStats?.spd ? 'checked' : ''} ${!isAdmin ? 'disabled' : ''}> 🏃 SPD</label>
         <label class="chk-label"><input type="checkbox" id="auc-shiny" ${existing?.isShiny ? 'checked' : ''} ${!isAdmin ? 'disabled' : ''}> ✨ Shiny</label>
-      </div>
+        <label class="chk-label"><input type="checkbox" id="auc-terastal" ${existing?.isTerastal ? 'checked' : ''} ${!isAdmin ? 'disabled' : ''}> 💠 Terastal</label> <!-- ✅ ADD THIS -->
+        </div>
+        </div>
     </div>
     <div class="form-group" id="auc-moves-container" style="${!isAdmin ? 'display:none' : ''}">
       <label>Moves (Admin Only)</label>
@@ -2405,6 +2413,7 @@ async function openAuctionPostModal(existing = null) {
           pokemonId: pid, name: p.name, types: p.types.map(t => t.type.name),
           level: parseInt(body.querySelector('#auc-level').value),
           moves: selMoves, isShiny: body.querySelector('#auc-shiny').checked,
+           isTerastal: body.querySelector('#auc-terastal')?.checked || false,
           bonusStats: { atk: body.querySelector('#auc-atk').checked, def: body.querySelector('#auc-def').checked, spd: body.querySelector('#auc-spd').checked },
           isSpecial: sp.is_legendary || sp.is_mythical
         };
@@ -2413,7 +2422,7 @@ async function openAuctionPostModal(existing = null) {
         const invId = body.querySelector('#auc-inventory-select').value;
         const pSnap = await getDoc(doc(db, 'users', currentUser.uid, 'pokemon', invId));
         const pd = pSnap.data();
-        finalData = { ...pd, originalId: invId };
+        finalData = { ...pd, originalId: invId,  isTerastal: pd.isTerastal || false  };
       } else {
         // Player Edit: Preserve existing pokemon data
         finalData = { ...existing };
@@ -2745,18 +2754,25 @@ async function submitBid(auction, existingBid = null) {
 
       // 4. Update the auction bids array
       let newBids = aData.bids || [];
-      const newBidObj = {
-        bidId: existingBid ? existingBid.bidId : Date.now().toString(),
-        userId: currentUser.uid,
-        trainerName: userData?.trainerName || currentUser.email,
-        coins: coins,
-        pokemon: bidSelectedPokemon.map(p => ({
-          pokemonId: p.pokemonId, name: p.name, level: p.level,
-          types: p.types, moves: p.moves, bonusStats: p.bonusStats,
-          isShiny: p.isShiny || false, originalId: p.id
-        })),
-        timestamp: new Date()
-      };
+      // Inside submitBid(), when creating newBidObj:
+const newBidObj = {
+  bidId: existingBid ? existingBid.bidId : Date.now().toString(),
+  userId: currentUser.uid,
+  trainerName: userData?.trainerName || currentUser.email,
+  coins: coins,
+  pokemon: bidSelectedPokemon.map(p => ({
+    pokemonId: p.pokemonId, 
+    name: p.name, 
+    level: p.level,
+    types: p.types, 
+    moves: p.moves, 
+    bonusStats: p.bonusStats,
+    isShiny: p.isShiny || false,
+    isTerastal: p.isTerastal || false,  // ✅ ADD THIS LINE
+    originalId: p.id
+  })),
+  timestamp: new Date()
+};
 
       if (existingBid) {
         // Replace old bid index
@@ -2793,7 +2809,7 @@ async function acceptBid(auction,bid){
       for(const lb of losers){
         if(lb.coins>0)tx.update(doc(db,'users',lb.userId),{coins:increment(lb.coins+(auctionSettings.transactionFee||0))});
         for(const p of(lb.pokemon||[])){
-          tx.set(doc(collection(db,'users',lb.userId,'pokemon')),{pokemonId:p.pokemonId,name:p.name,level:p.level,exp:0,moves:p.moves||[],types:p.types||[],inTeam:false,capturedAt:new Date(),bonusStats:p.bonusStats||{atk:false,def:false,spd:false},isShiny:p.isShiny||false});
+          tx.set(doc(collection(db,'users',lb.userId,'pokemon')),{pokemonId:p.pokemonId,name:p.name,level:p.level,exp:0,moves:p.moves||[],types:p.types||[],inTeam:false,capturedAt:new Date(),bonusStats:p.bonusStats||{atk:false,def:false,spd:false},isShiny:p.isShiny||false, isTerastal: auction.isTerastal || false });
         }
       }
       tx.update(doc(db,'auctions',auction.id),{status:'completed',acceptedBid:bid,completedAt:new Date()});
@@ -2802,18 +2818,63 @@ async function acceptBid(auction,bid){
   }catch(e){toast(e.message,'error');}
 }
 
-async function closeAuction(id){
-  const aSnap=await getDoc(doc(db,'auctions',id));
-  const a=aSnap.data();
-  // Refund all bidders
-  for(const b of(a.bids||[])){
-    if(b.coins>0)await updateDoc(doc(db,'users',b.userId),{coins:increment(b.coins+(auctionSettings.transactionFee||0))});
-    for(const p of(b.pokemon||[])){
-      await addDoc(collection(db,'users',b.userId,'pokemon'),{pokemonId:p.pokemonId,name:p.name,level:p.level,exp:0,moves:p.moves||[],types:p.types||[],inTeam:false,capturedAt:new Date(),bonusStats:p.bonusStats||{atk:false,def:false,spd:false},isShiny:p.isShiny||false});
+async function closeAuction(id) {
+  const aSnap = await getDoc(doc(db, 'auctions', id));
+  const a = aSnap.data();
+  
+  // ✅ Return the auctioned Pokémon to the original owner (with Terastal status)
+  const ownerId = a.createdBy;
+  const pokemonRef = doc(collection(db, 'users', ownerId, 'pokemon'));
+  await setDoc(pokemonRef, {
+    pokemonId: a.pokemonId,
+    name: a.name,
+    level: a.level,
+    exp: 0,
+    moves: a.moves || [],
+    types: a.types || [],
+    inTeam: false,
+    capturedAt: new Date(),
+    bonusStats: a.bonusStats || { atk: false, def: false, spd: false },
+    isSpecial: a.isSpecial || false,
+    isShiny: a.isShiny || false,
+    isTerastal: a.isTerastal || false  // ✅ ADD THIS LINE
+  });
+  
+  // Refund all bidders (their Pokémon already have Terastal preserved in their data)
+  for (const b of (a.bids || [])) {
+    if (b.coins > 0) {
+      await updateDoc(doc(db, 'users', b.userId), { 
+        coins: increment(b.coins + (auctionSettings.transactionFee || 0)) 
+      });
+    }
+    for (const p of (b.pokemon || [])) {
+      await addDoc(collection(db, 'users', b.userId, 'pokemon'), {
+        pokemonId: p.pokemonId,
+        name: p.name,
+        level: p.level,
+        exp: 0,
+        moves: p.moves || [],
+        types: p.types || [],
+        inTeam: false,
+        capturedAt: new Date(),
+        bonusStats: p.bonusStats || { atk: false, def: false, spd: false },
+        isShiny: p.isShiny || false,
+        isTerastal: p.isTerastal || false  // ✅ ADD THIS LINE
+      });
     }
   }
-  await updateDoc(doc(db,'auctions',id),{status:'closed'});
-  loadAuctions(); toast('Auction closed, all bids refunded.','success');
+  
+  // ✅ Refund listing fee if no bids were placed
+  if ((a.bids || []).length === 0 && (auctionSettings.transactionFee || 0) > 0) {
+    await updateDoc(doc(db, 'users', ownerId), { 
+      coins: increment(auctionSettings.transactionFee) 
+    });
+  }
+  
+  await updateDoc(doc(db, 'auctions', id), { status: 'closed' });
+  loadAuctions();
+  updateNav(); // Update owner's coin display
+  toast('Auction closed. Your Pokémon has been returned to your collection and all bids refunded.', 'success');
 }
 
 // Admin settings for auction

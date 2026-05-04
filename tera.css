@@ -308,3 +308,289 @@ body.data-saver-mode::after {
     pointer-events: none;
     font-weight: bold;
 }
+
+/* HP and EXP Bar Styles for Modals */
+.hp-bar-container, .exp-bar-container {
+    margin: 6px 0;
+}
+
+.hp-bar-label, .exp-bar-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.65rem;
+    margin-bottom: 2px;
+    color: var(--text-light);
+}
+
+.hp-bar, .exp-bar {
+    background: #e2e8f0;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.hp-fill {
+    background: var(--success);
+    height: 100%;
+    transition: width 0.3s ease;
+}
+
+.exp-fill {
+    background: #a855f7;
+    height: 100%;
+    transition: width 0.3s ease;
+}
+
+/* Dark theme overrides */
+body.dark-theme .hp-bar,
+body.dark-theme .exp-bar {
+    background: #3d4050;
+}
+
+body.dark-theme .hp-fill {
+    background: #4cd964;
+}
+
+body.dark-theme .exp-fill {
+    background: #a855f7;
+}
+
+/* ========== CARD-STYLE SCROLLABLE NAVIGATION ========== */
+.card-nav {
+    background: transparent;
+    padding: 12px 5%;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+    overflow-x: hidden;
+}
+
+/* Header with logo and hamburger */
+.nav-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    width: 100%;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 800;
+    font-size: 1.5rem;
+    color: var(--primary-dark);
+    flex-shrink: 0;
+}
+.logo img {
+    height: 40px;
+    width: auto;
+    border-radius: 12px;
+}
+
+/* Hamburger button */
+.hamburger {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 30px;
+    height: 24px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    z-index: 1100;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+.hamburger span {
+    width: 100%;
+    height: 3px;
+    background: var(--text-dark);
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+.hamburger.open span:nth-child(1) {
+    transform: translateY(10px) rotate(45deg);
+}
+.hamburger.open span:nth-child(2) {
+    opacity: 0;
+}
+.hamburger.open span:nth-child(3) {
+    transform: translateY(-10px) rotate(-45deg);
+}
+
+/* Collapsible container */
+.nav-collapsible {
+    transition: max-height 0.4s ease-out, opacity 0.2s ease;
+    overflow: hidden;
+    width: 100%;
+}
+
+/* On desktop: always expanded, hamburger hidden */
+@media (min-width: 769px) {
+    .nav-collapsible {
+        max-height: none !important;
+        opacity: 1 !important;
+    }
+    .hamburger {
+        display: none !important;
+    }
+}
+
+/* On mobile: collapsible hidden by default, hamburger visible */
+@media (max-width: 768px) {
+    .nav-collapsible {
+        max-height: 0;
+        opacity: 0;
+    }
+    .nav-collapsible.open {
+        max-height: 500px;
+        opacity: 1;
+    }
+    .hamburger {
+        display: flex;
+    }
+}
+
+/* Each card */
+.nav-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 8px 12px;
+    margin-bottom: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    width: 100%;
+    box-sizing: border-box;
+    overflow-x: auto;
+}
+.nav-card:last-child {
+    margin-bottom: 0;
+}
+
+/* Scrollable row inside card */
+.nav-row {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    scrollbar-width: thin;
+    padding: 6px 0;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+}
+.nav-row::-webkit-scrollbar {
+    height: 4px;
+}
+.nav-row::-webkit-scrollbar-track {
+    background: var(--border);
+    border-radius: 4px;
+}
+.nav-row::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 4px;
+}
+
+/* Items inside rows */
+.nav-link, .nav-item, .volume-btn, .btn-outline {
+    flex: 0 0 auto;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 40px;
+    transition: 0.2s;
+    color: var(--text-dark);
+    font-size: 0.9rem;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+.nav-link:hover, .nav-item:hover {
+    background: #eef2ff;
+    color: var(--primary);
+}
+.volume-btn {
+    background: rgba(255,255,255,0.8);
+    width: 36px;
+    height: 36px;
+    justify-content: center;
+}
+.volume-btn:hover {
+    background: white;
+    transform: scale(1.05);
+}
+#user-display {
+    background: #eef2ff;
+    padding: 4px 10px;
+    border-radius: 40px;
+    gap: 8px;
+}
+#level-display, #coin-display {
+    background: #fef9e3;
+    color: #b45309;
+    padding: 4px 12px;
+    border-radius: 40px;
+    font-weight: bold;
+    font-size: 0.85rem;
+}
+.btn-outline {
+    background: transparent;
+    border: 1px solid var(--border);
+}
+.btn-outline:hover {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+/* Dark theme adjustments */
+body.dark-theme .nav-card {
+    background: var(--card-bg);
+    border-color: var(--border);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+body.dark-theme .nav-link:hover,
+body.dark-theme .nav-item:hover {
+    background: #2d2f3e;
+    color: var(--primary);
+}
+body.dark-theme #user-display {
+    background: #2d2f3e;
+    color: var(--text-dark);
+}
+body.dark-theme #level-display,
+body.dark-theme #coin-display {
+    background: #1e2230;
+    color: #fbbf24;
+}
+body.dark-theme .volume-btn {
+    background: rgba(30,35,50,0.8);
+}
+body.dark-theme .volume-btn:hover {
+    background: var(--primary);
+    color: white;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .nav-card {
+        padding: 6px 10px;
+    }
+    .nav-link, .nav-item {
+        padding: 4px 10px;
+        font-size: 0.8rem;
+    }
+    .volume-btn {
+        width: 32px;
+        height: 32px;
+    }
+}

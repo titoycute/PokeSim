@@ -1752,30 +1752,68 @@ body.dark-theme #summary-details {
 
     <!-- Game Screen (exploration + battle) -->
     <div id="game-screen" class="hidden">
-        <div style="background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 12px 5%; display: flex; justify-content: space-between; align-items: center;">
-    <div class="logo"><img src="PokeSim Word.png" alt="PokeSim"></div>
-    <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
-        <div id="level-display" style="background: #fef9e3; color: #b45309; padding: 4px 12px; border-radius: 40px; font-weight: bold; font-size: 0.85rem;">
-            ⭐ Lv. <span id="trainer-level">0</span>
-        </div>
-        <div id="coin-display" style="background: #e8f5e9; color: #2e7d32; padding: 4px 12px; border-radius: 40px; font-weight: bold; font-size: 0.85rem;">
-            💰 <span id="coin-amount">0</span>
-        </div>
-        
-        <!-- ✅ ADD AUTO-CATCH TOGGLE BUTTON HERE -->
-        <button id="auto-catch-toggle" class="btn btn-outline" style="border-radius: 40px; padding: 6px 12px;">
-            🎯 Auto-Catch: Loading...
+       <!-- Enhanced Navigation with Hamburger Menu -->
+<nav class="card-nav">
+    <div class="nav-header">
+        <div class="logo"><img src="PokeSim Word.png" alt="PokeSim"></div>
+        <button id="nav-toggle" class="hamburger" aria-label="Menu">
+            <span></span><span></span><span></span>
         </button>
-        
-        <!-- ✅ Data Saver Toggle Button -->
-        <button id="data-saver-toggle" class="btn btn-outline" style="background: #4a5568; color: white; border-radius: 40px; padding: 6px 12px;">
-            📱 Data Saver: OFF
-        </button>
-        
-        <button id="back-to-maps-btn" class="btn btn-outline"><i class="fas fa-arrow-left"></i> Change Map</button>
-        <button id="volume-toggle" class="volume-btn" style="background: none; border: none; font-size: 1.2rem;">🔊</button>
     </div>
-</div>
+
+    <div id="nav-collapsible" class="nav-collapsible">
+        <!-- Card 1: Map & Location -->
+        <div class="nav-card">
+            <div class="nav-row">
+                <div id="current-map-name-display" class="nav-link" style="font-weight: bold; background: var(--primary); color: white;">
+                    <i class="fas fa-map-marker-alt"></i> Loading map...
+                </div>
+                <button id="back-to-maps-btn" class="nav-link">
+                    <i class="fas fa-arrow-left"></i> Change Map
+                </button>
+                <a href="index.html" class="nav-link">
+                    <i class="fas fa-home"></i> Main Game
+                </a>
+            </div>
+        </div>
+
+        <!-- Card 2: Controls & Settings -->
+        <div class="nav-card">
+            <div class="nav-row">
+                <button id="auto-catch-toggle" class="nav-link" style="border-radius: 40px; padding: 6px 12px;">
+                    🎯 Auto-Catch: Loading...
+                </button>
+                <button id="data-saver-toggle" class="nav-link" style="background: #4a5568; color: white; border-radius: 40px; padding: 6px 12px;">
+                    📱 Data Saver: OFF
+                </button>
+                <button id="volume-toggle" class="volume-btn nav-item" title="Mute/Unmute">🔊</button>
+                <button id="theme-toggle" class="volume-btn nav-item" title="Dark/Light mode">🌙</button>
+            </div>
+        </div>
+
+        <!-- Card 3: User Info -->
+        <div class="nav-card">
+            <div class="nav-row user-row">
+                <div id="user-display" class="nav-item">
+                    <i class="fas fa-user"></i> <span id="trainer-name">Trainer</span>
+                </div>
+                <div id="level-display" class="nav-item">
+                    ⭐ Lv. <span id="trainer-level">0</span>
+                </div>
+                <div id="coin-display" class="nav-item">
+                    💰 <span id="coin-amount">0</span>
+                </div>
+                <button id="logout-btn" class="btn btn-outline nav-item">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- Keep the map name display for the main area -->
+<div id="current-map-name" style="text-align:center; margin: 10px 0;"></div>
+
         <div id="view-explore">
     <div style="text-align: center; margin: 10px 0;">
         <h2 id="current-map-name" style="margin: 0;"></h2>
@@ -2580,31 +2618,53 @@ let navCacheTimestamp = 0;
 const NAV_CACHE_TTL = 300000; // 5 minutes
 
 async function updateNavDisplay(forceRefresh = false) {
-    const user = auth.currentUser;
-    if (!user) return;
+    if (!auth.currentUser) return;
     const now = Date.now();
     if (!forceRefresh && cachedNavData && (now - navCacheTimestamp) < NAV_CACHE_TTL) {
         // Use cached data
     } else {
-        const userDoc = await getDoc(doc(db, "users", user.uid));
+        const userDoc = await getDoc(doc(db, "users", auth.currentUser.uid));
         cachedNavData = userDoc.data();
         navCacheTimestamp = now;
     }
+    const data = cachedNavData;
+    
+    // Update all display elements
+    const trainerNameSpan = document.getElementById('trainer-name');
+    if (trainerNameSpan) trainerNameSpan.textContent = data?.trainerName || auth.currentUser.email.split('@')[0];
+    
     const levelSpan = document.getElementById('trainer-level');
-    if (levelSpan) levelSpan.innerText = cachedNavData?.totalLevels || 0;
+    if (levelSpan) levelSpan.innerText = data?.totalLevels || 0;
+    
     const coinSpan = document.getElementById('coin-amount');
-    if (coinSpan) coinSpan.innerText = cachedNavData?.coins?.toLocaleString() || '0';
+    if (coinSpan) coinSpan.innerText = (data?.coins || 0).toLocaleString();
+    
+    // Update the map name display
+   document.getElementById('current-map-name').innerText = map.name;
+    
+    // Update the nav display with current map name
+    const mapNameDisplay = document.getElementById('current-map-name-display');
+    if (mapNameDisplay) {
+        mapNameDisplay.innerHTML = `<i class="fas fa-map-marker-alt"></i> ${map.name}`;
+    }
+    
+    currentMap = map;
+    document.getElementById('map-selection-container').classList.add('hidden');
+    document.getElementById('game-screen').classList.remove('hidden');
+    
+    isAdmin = data?.role === 'admin';
 }
 
-    async function updateUserTotalLevels(userId, delta) {
+async function updateUserTotalLevels(userId, delta) {
         await updateDoc(doc(db, "users", userId), { totalLevels: increment(delta) });
     }
-    async function updateUserTotalEncounters(userId, delta) {
+
+async function updateUserTotalEncounters(userId, delta) {
         await updateDoc(doc(db, "users", userId), { totalEncounters: increment(delta) });
     }
 
     // ========== BATTLE FUNCTIONS (with shiny support) ==========
-   async function getMoveDetails(moves) {
+async function getMoveDetails(moves) {
     return Promise.all(moves.slice(0, 4).map(async m => {
         try {
             const url = m.move ? m.move.url : m.url;
@@ -2616,7 +2676,7 @@ async function updateNavDisplay(forceRefresh = false) {
     }));
 }
 
-    function addBattleLog(m) { const log = document.getElementById('battle-log'); if(log) { log.innerHTML += `<div>> ${m}</div>`; log.scrollTop = log.scrollHeight; } }
+function addBattleLog(m) { const log = document.getElementById('battle-log'); if(log) { log.innerHTML += `<div>> ${m}</div>`; log.scrollTop = log.scrollHeight; } }
 
 function showPreBattleSelectModal(team) {
     return new Promise((resolve) => {
@@ -2626,17 +2686,17 @@ function showPreBattleSelectModal(team) {
         
         listDiv.innerHTML = '';
         
-       const instruction = document.createElement('div');
-instruction.style.background = 'var(--card-bg)';
-instruction.style.border = '1px solid var(--border)';
-instruction.style.borderRadius = '12px';
-instruction.style.padding = '8px 12px';
-instruction.style.marginBottom = '12px';
-instruction.style.fontSize = '0.8rem';
-instruction.style.textAlign = 'center';
-instruction.style.color = 'var(--text-dark)';
-instruction.innerHTML = '💡 <strong>Tip:</strong> Press number keys <kbd style="background:var(--border); padding:2px 6px; border-radius:6px; font-weight:bold;">1</kbd>–<kbd style="background:var(--border); padding:2px 6px; border-radius:6px; font-weight:bold;">6</kbd> to choose your Pokémon.';
-listDiv.appendChild(instruction);
+        const instruction = document.createElement('div');
+        instruction.style.background = 'var(--card-bg)';
+        instruction.style.border = '1px solid var(--border)';
+        instruction.style.borderRadius = '12px';
+        instruction.style.padding = '8px 12px';
+        instruction.style.marginBottom = '12px';
+        instruction.style.fontSize = '0.8rem';
+        instruction.style.textAlign = 'center';
+        instruction.style.color = 'var(--text-dark)';
+        instruction.innerHTML = '💡 <strong>Tip:</strong> Press number keys <kbd style="background:var(--border); padding:2px 6px; border-radius:6px; font-weight:bold;">1</kbd>–<kbd style="background:var(--border); padding:2px 6px; border-radius:6px; font-weight:bold;">6</kbd> to choose your Pokémon.';
+        listDiv.appendChild(instruction);
         
         const buttons = [];
         team.forEach((p, idx) => {
@@ -2646,6 +2706,7 @@ listDiv.appendChild(instruction);
             btn.style.display = 'flex';
             btn.style.alignItems = 'center';
             btn.style.gap = '12px';
+            btn.style.textAlign = 'left';
             btn.style.padding = '10px';
             btn.style.width = '100%';
             btn.style.justifyContent = 'flex-start';
@@ -2674,14 +2735,35 @@ listDiv.appendChild(instruction);
             const typeBadgesHtml = generateTypeBadges(p.types);
             let shinyBadge = '';
             if (p.isShiny) shinyBadge = '<span style="background: #ffcc00; color: #333; padding: 2px 6px; border-radius: 20px; font-size: 0.6rem; margin-left: 8px;">✨ SHINY</span>';
-
+            
             let teraBadge = p.isTerastal ? '<span style="background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.6rem; font-weight: bold; margin-left: 5px; border: 1px solid white;">💠 TERA</span>' : '';
-
+            
+            let hpBarColor = '#48bb78';
+            if (hpPct < 25) hpBarColor = '#f56565';
+            else if (hpPct < 50) hpBarColor = '#ed8936';
+            
             textDiv.innerHTML = `
                 <strong>${p.name.toUpperCase()} ${bonusIcons}</strong> ${shinyBadge} ${teraBadge}<br>
                 <div style="margin: 4px 0;">${typeBadgesHtml}</div>
-                <small>Lvl ${p.level} — HP: ${p.currentHp}/${p.maxHp} (${hpPct}%)</small><br>
-                <small>XP: ${currentXP}/${neededXP} (${xpPercent}%)</small>
+                <div style="margin: 6px 0;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.65rem; margin-bottom: 2px;">
+                        <span>❤️ HP</span>
+                        <span>${p.currentHp}/${p.maxHp} (${hpPct}%)</span>
+                    </div>
+                    <div style="background: #e2e8f0; height: 6px; border-radius: 10px; overflow: hidden;">
+                        <div style="width: ${hpPct}%; background: ${hpBarColor}; height: 100%;"></div>
+                    </div>
+                </div>
+                <div style="margin: 6px 0;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.65rem; margin-bottom: 2px;">
+                        <span>⭐ EXP</span>
+                        <span>${currentXP}/${neededXP} (${xpPercent}%)</span>
+                    </div>
+                    <div style="background: #e2e8f0; height: 6px; border-radius: 10px; overflow: hidden;">
+                        <div style="width: ${xpPercent}%; background: #a855f7; height: 100%;"></div>
+                    </div>
+                </div>
+                <small>Lvl ${p.level}</small>
             `;
             btn.appendChild(textDiv);
             
@@ -2749,7 +2831,7 @@ listDiv.appendChild(instruction);
     });
 }
 
-   
+
 async function getBadgeInfo(badgeIds) {
     const cleanIds = (badgeIds || []).filter(id => id && id.trim() !== "");
     if (cleanIds.length === 0) return [];
@@ -2824,7 +2906,8 @@ async function showSwitchPokemonModal(availablePokemon, isForced = false) {
             btn.dataset.shortcut = (idx + 1).toString();
             
             const img = document.createElement('img');
-            img.src = getStaticSpriteUrl(p.pokemonId)[0];
+            const spriteUrl = getStaticSpriteUrl(p.pokemonId)[0];
+            img.src = spriteUrl;
             img.style.width = '50px';
             img.style.height = '50px';
             img.style.objectFit = 'contain';
@@ -2835,25 +2918,50 @@ async function showSwitchPokemonModal(availablePokemon, isForced = false) {
             if (p.bonusStats?.atk) bonusIcons += '⚔️';
             if (p.bonusStats?.def) bonusIcons += '🛡️';
             if (p.bonusStats?.spd) bonusIcons += '🏃';
+            
             let shinyBadge = '';
             if (p.isShiny) shinyBadge = '<span style="background:#ffcc00;color:#333;padding:2px 6px;border-radius:20px;font-size:0.6rem;margin-left:8px;">✨ SHINY</span>';
+            
             let teraBadge = p.isTerastal ? '<span style="background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.6rem; font-weight: bold; margin-left: 5px; border: 1px solid white;">💠 TERA</span>' : '';
-
-            // ✅ FIXED: These 3 variables were missing, causing a ReferenceError crash
+            
             const textDiv = document.createElement('div');
             textDiv.style.flex = '1';
             textDiv.style.textAlign = 'left';
             const hpPct = Math.floor((p.currentHp / p.maxHp) * 100);
+            const neededXP = getExpNeededForNextLevel(p.level);
+            const currentXP = p.exp || 0;
+            const xpPercent = Math.floor((currentXP / neededXP) * 100);
             const typeBadgesHtml = generateTypeBadges(p.types);
-
+            
+            let hpBarColor = '#48bb78';
+            if (hpPct < 25) hpBarColor = '#f56565';
+            else if (hpPct < 50) hpBarColor = '#ed8936';
+            
             textDiv.innerHTML = `
                 <strong>${p.name.toUpperCase()} ${bonusIcons}</strong> ${shinyBadge} ${teraBadge}<br>
                 <div style="margin: 4px 0;">${typeBadgesHtml}</div>
-                <small>Lvl ${p.level} — HP: ${p.currentHp}/${p.maxHp} (${hpPct}%)</small>
+                <div style="margin: 6px 0;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.65rem; margin-bottom: 2px;">
+                        <span>❤️ HP</span>
+                        <span>${p.currentHp}/${p.maxHp} (${hpPct}%)</span>
+                    </div>
+                    <div style="background: #e2e8f0; height: 6px; border-radius: 10px; overflow: hidden;">
+                        <div style="width: ${hpPct}%; background: ${hpBarColor}; height: 100%;"></div>
+                    </div>
+                </div>
+                <div style="margin: 6px 0;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.65rem; margin-bottom: 2px;">
+                        <span>⭐ EXP</span>
+                        <span>${currentXP}/${neededXP} (${xpPercent}%)</span>
+                    </div>
+                    <div style="background: #e2e8f0; height: 6px; border-radius: 10px; overflow: hidden;">
+                        <div style="width: ${xpPercent}%; background: #a855f7; height: 100%;"></div>
+                    </div>
+                </div>
+                <small>Lvl ${p.level}</small>
             `;
             btn.appendChild(textDiv);
             
-            // Number badge
             const numberBadge = document.createElement('span');
             numberBadge.style.marginLeft = '8px';
             numberBadge.style.background = 'rgba(0,0,0,0.2)';
@@ -2917,6 +3025,7 @@ async function showSwitchPokemonModal(availablePokemon, isForced = false) {
         modal.classList.remove('hidden');
     });
 }
+
 async function handlePlayerFaint(battle) {
     const faintedId = battle.player ? battle.player.id : null;
     const available = battle.playerTeam.filter(p => p.currentHp > 0 && p.id !== faintedId);
@@ -4009,7 +4118,7 @@ crackOverlay.remove();
         setTimeout(() => { if (btn) btn.disabled = false; isProcessing = false; }, 1000);
     }
 
-    function showSwitchModal(availablePokemon, currentId) {
+function showSwitchModal(availablePokemon, currentId) {
     return new Promise((resolve) => {
         const modal = document.getElementById('switch-pokemon-modal');
         const listDiv = document.getElementById('switch-pokemon-list');
@@ -4017,20 +4126,19 @@ crackOverlay.remove();
         
         listDiv.innerHTML = '';
         
-        // Instruction line
-       const instruction = document.createElement('div');
-instruction.style.background = 'var(--card-bg)';
-instruction.style.border = '1px solid var(--border)';
-instruction.style.borderRadius = '12px';
-instruction.style.padding = '8px 12px';
-instruction.style.marginBottom = '12px';
-instruction.style.fontSize = '0.8rem';
-instruction.style.textAlign = 'center';
-instruction.style.color = 'var(--text-dark)';
-instruction.innerHTML = '💡 <strong>Tip:</strong> Press number keys <kbd style="background:var(--border); padding:2px 6px; border-radius:6px; font-weight:bold;">1</kbd>–<kbd style="background:var(--border); padding:2px 6px; border-radius:6px; font-weight:bold;">6</kbd> to switch quickly.';
-listDiv.appendChild(instruction);
+        const instruction = document.createElement('div');
+        instruction.style.background = 'var(--card-bg)';
+        instruction.style.border = '1px solid var(--border)';
+        instruction.style.borderRadius = '12px';
+        instruction.style.padding = '8px 12px';
+        instruction.style.marginBottom = '12px';
+        instruction.style.fontSize = '0.8rem';
+        instruction.style.textAlign = 'center';
+        instruction.style.color = 'var(--text-dark)';
+        instruction.innerHTML = '💡 <strong>Tip:</strong> Press number keys <kbd style="background:var(--border); padding:2px 6px; border-radius:6px; font-weight:bold;">1</kbd>–<kbd style="background:var(--border); padding:2px 6px; border-radius:6px; font-weight:bold;">6</kbd> to switch quickly.';
+        listDiv.appendChild(instruction);
         
-        cancelBtn.classList.remove('hidden'); // ensure visible
+        cancelBtn.classList.remove('hidden');
         
         const buttons = [];
         availablePokemon.forEach((p, idx) => {
@@ -4048,7 +4156,8 @@ listDiv.appendChild(instruction);
             btn.dataset.shortcut = (idx + 1).toString();
             
             const img = document.createElement('img');
-            img.src = getStaticSpriteUrl(p.pokemonId)[0];
+            const spriteUrl = getStaticSpriteUrl(p.pokemonId)[0];
+            img.src = spriteUrl;
             img.style.width = '50px';
             img.style.height = '50px';
             img.style.objectFit = 'contain';
@@ -4062,17 +4171,43 @@ listDiv.appendChild(instruction);
             let shinyBadge = '';
             if (p.isShiny) shinyBadge = '<span style="background:#ffcc00;color:#333;padding:2px 6px;border-radius:20px;font-size:0.6rem;margin-left:8px;">✨ SHINY</span>';
             
-             let teraBadge = p.isTerastal ? '<span style="background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.6rem; font-weight: bold; margin-left: 5px; border: 1px solid white;">💠 TERA</span>' : '';
+            let teraBadge = p.isTerastal ? '<span style="background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.6rem; font-weight: bold; margin-left: 5px; border: 1px solid white;">💠 TERA</span>' : '';
             
             const textDiv = document.createElement('div');
             textDiv.style.flex = '1';
             textDiv.style.textAlign = 'left';
             const hpPct = Math.floor((p.currentHp / p.maxHp) * 100);
+            const neededXP = getExpNeededForNextLevel(p.level);
+            const currentXP = p.exp || 0;
+            const xpPercent = Math.floor((currentXP / neededXP) * 100);
             const typeBadgesHtml = generateTypeBadges(p.types);
+            
+            let hpBarColor = '#48bb78';
+            if (hpPct < 25) hpBarColor = '#f56565';
+            else if (hpPct < 50) hpBarColor = '#ed8936';
+            
             textDiv.innerHTML = `
                 <strong>${p.name.toUpperCase()} ${bonusIcons}</strong> ${shinyBadge} ${teraBadge}<br>
                 <div style="margin: 4px 0;">${typeBadgesHtml}</div>
-                <small>Lvl ${p.level} — HP: ${p.currentHp}/${p.maxHp} (${hpPct}%)</small>
+                <div style="margin: 6px 0;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.65rem; margin-bottom: 2px;">
+                        <span>❤️ HP</span>
+                        <span>${p.currentHp}/${p.maxHp} (${hpPct}%)</span>
+                    </div>
+                    <div style="background: #e2e8f0; height: 6px; border-radius: 10px; overflow: hidden;">
+                        <div style="width: ${hpPct}%; background: ${hpBarColor}; height: 100%;"></div>
+                    </div>
+                </div>
+                <div style="margin: 6px 0;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.65rem; margin-bottom: 2px;">
+                        <span>⭐ EXP</span>
+                        <span>${currentXP}/${neededXP} (${xpPercent}%)</span>
+                    </div>
+                    <div style="background: #e2e8f0; height: 6px; border-radius: 10px; overflow: hidden;">
+                        <div style="width: ${xpPercent}%; background: #a855f7; height: 100%;"></div>
+                    </div>
+                </div>
+                <small>Lvl ${p.level}</small>
             `;
             btn.appendChild(textDiv);
             
@@ -4139,6 +4274,7 @@ listDiv.appendChild(instruction);
         modal.classList.remove('hidden');
     });
 }
+
 
 async function attemptSwitch() {
     if (!currentBattle || isProcessing) return;
@@ -6674,6 +6810,29 @@ if (typeof window.toggleMute === 'function') {
         originalToggleMute();
     };
 }
+
+// ========== MOBILE NAVIGATION TOGGLE ==========
+const navToggle = document.getElementById('nav-toggle');
+const navCollapsible = document.getElementById('nav-collapsible');
+
+if (navToggle && navCollapsible) {
+    navToggle.addEventListener('click', () => {
+        navCollapsible.classList.toggle('open');
+        navToggle.classList.toggle('open');
+    });
+
+    // Optional: Close menu when a link/button inside is clicked (on mobile)
+    const navLinks = navCollapsible.querySelectorAll('.nav-link, .nav-item, .btn-outline, .volume-btn');
+    navLinks.forEach(link => {
+        link.addEventListener('click', () => {
+            if (window.innerWidth <= 768) {
+                navCollapsible.classList.remove('open');
+                navToggle.classList.remove('open');
+            }
+        });
+    });
+}
+
 </script>
 </body>
 </html>

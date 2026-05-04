@@ -2806,7 +2806,7 @@ function renderBidSlots(body, auction) {
   container.innerHTML = '';
 
   // Get IDs of Pokémon already in slots to prevent duplicates
-  const selectedIds = bidSelectedPokemon.map(p => p.id);
+  const selectedIds = bidSelectedPokemon.map(p => p.id); // ✅ Keep this for reference
 
   for (let i = 0; i < max; i++) {
     const slot = document.createElement('div');
@@ -2816,13 +2816,13 @@ function renderBidSlots(body, auction) {
       slot.className = 'bid-slot filled';
       slot.innerHTML = `
         <img src="${spriteUrl(p.pokemonId, p.isShiny)}" onerror="this.src='${spriteStatic(p.pokemonId)}'" alt="${p.name}">
-        <div class="slot-name">${p.name.substr(0, 8).toUpperCase()}</div>
+        <div class="slot-name">${p.name.substring(0, 8).toUpperCase()}</div>
         <button class="remove-slot" data-idx="${i}">✕</button>
       `;
       slot.querySelector('.remove-slot').onclick = (e) => {
         e.stopPropagation();
         bidSelectedPokemon.splice(parseInt(e.target.dataset.idx), 1);
-        renderBidSlots(body, auction); // Re-render to update the list of available IDs
+        renderBidSlots(body, auction);
       };
     } else {
       // EMPTY SLOT
@@ -2843,7 +2843,6 @@ function renderBidSlots(body, auction) {
     container.appendChild(slot);
   }
 }
-
 
 async function openPokePicker(callback, excludeIds = []) {
   _pokePickerCallback = callback;

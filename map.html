@@ -1851,7 +1851,7 @@ body.dark-theme #summary-details {
                             <div class="hp-bar">
                             <div id="e-hp-fill" class="hp-fill">
                             </div></div>
-                             <div id="e-hp-text" style="font-size:0.7rem; margin-top:4px;"></div>
+                            <div id="e-hp-text" style="font-size:0.7rem; margin-top:4px;"></div>
                         </div>
                     </div>
                     <div class="side player-side">
@@ -4542,15 +4542,17 @@ function renderBattleUI() {
     if (!currentBattle) return;
     const b = currentBattle;
 
-    // ----- Enemy Sprite -----
+    // ========== ENEMY SPRITE ==========
     const enemySprite = document.getElementById('e-sprite-btl');
+    
+    // Clear existing effects first
+    stopTerastalCanvas('tera-canvas-enemy');
     if (enemySprite) {
         enemySprite.classList.remove('terastal-sprite');
         enemySprite.style.filter = '';
         enemySprite.style.removeProperty('--tera-filter-low');
         enemySprite.style.removeProperty('--tera-filter-high');
     }
-    stopTerastalCanvas('tera-canvas-enemy');
     
     if (b.wild.isShiny) {
         loadImageWithFallback(enemySprite, getShinyBattleSpriteUrl(b.wild.name, b.wild.pokemonId, 'front'));
@@ -4568,7 +4570,7 @@ function renderBattleUI() {
     }
     enemySprite.onclick = () => showInfo(b.wild.pokemonId);
 
-    // ----- Player Sprite (CRITICAL - from index.html) -----
+    // ========== PLAYER SPRITE ==========
     const playerSprite = document.getElementById('p-sprite-btl');
     
     // CRITICAL: Stop player Terastal animation BEFORE making any changes
@@ -4589,7 +4591,7 @@ function renderBattleUI() {
         loadImageWithFallback(playerSprite, getBattleSpriteUrl(b.player.name, b.player.pokemonId, 'back'));
     }
 
-    // Apply Terastal effect ONLY if the NEW player Pokémon has isTerastal = true
+    // Apply Terastal effect ONLY if the player Pokémon has isTerastal = true
     if (b.player.isTerastal === true) {
         const teraColor = TERA_TYPE_COLORS[b.player.types[0]] || '#aa88ff';
         playerSprite.style.setProperty('--tera-filter-low', `drop-shadow(0 0 8px ${teraColor})`);
@@ -4597,171 +4599,167 @@ function renderBattleUI() {
         playerSprite.classList.add('terastal-sprite');
         startTerastalCanvas('tera-canvas-player', playerSprite, teraColor);
     }
-    // If isTerastal is false, do NOTHING - no glow, no canvas, no filters
     playerSprite.onclick = () => showInfo(b.player.pokemonId);
 
-    // ----- Enemy Stat Box -----
-        // ----- Enemy Stat Box (with Shiny and Tera badges in header row) -----
-        // ----- Enemy Stat Box (combine Terastal with special badge) -----
-   // ----- Enemy Stat Box (Enhanced with all badges) -----
-const enemyStatBox = document.querySelector('#battle-area .enemy-side .stat-box');
-if (enemyStatBox) {
-    const shinyIcon = b.wild.isShiny ? '✨ ' : '';
-    const hpPercent = (b.wild.currentHp / b.wild.maxHp) * 100;
-    
-    let hpBarColor = 'var(--success)';
-    if (hpPercent < 25) hpBarColor = 'var(--danger)';
-    else if (hpPercent < 50) hpBarColor = 'var(--warning)';
-    
-    // Collect all badges in a single line
-    let badgesRow = '';
-    
-    // Shiny badge
-    if (b.wild.isShiny) {
-        badgesRow += '<span style="background: #ffd700; color: #333; padding: 2px 8px; border-radius: 20px; font-size: 0.6rem; font-weight: bold;">✨ SHINY</span>';
-    }
-    
-    // Terastal badge (TS)
-    if (b.wild.isTerastal) {
-        badgesRow += '<span style="background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.6rem; font-weight: bold; border: 1px solid rgba(255,255,255,0.3);">💠 TERASTAL</span>';
-    }
-    
-    // Special badge (Legendary, Mythical, etc.)
-    if (b.wild.specialBadge) {
-        let specialColor = '';
-        if (b.wild.specialCategory === 'legendary') specialColor = 'linear-gradient(135deg, #ffaa33, #cc8800)';
-        else if (b.wild.specialCategory === 'mythical') specialColor = 'linear-gradient(135deg, #ff66cc, #cc3399)';
-        else if (b.wild.specialCategory === 'paradox') specialColor = 'linear-gradient(135deg, #ff44cc, #aa22ff)';
-        else if (b.wild.specialCategory === 'ub') specialColor = 'linear-gradient(135deg, #00cc99, #008866)';
-        else if (b.wild.specialCategory === 'gmax') specialColor = 'linear-gradient(135deg, #ff4444, #cc0000)';
-        else if (b.wild.specialCategory === 'mega') specialColor = 'linear-gradient(135deg, #3399ff, #1a66cc)';
-        else specialColor = 'linear-gradient(135deg, #888, #555)';
+    // ========== ENEMY STAT BOX ==========
+    const enemyStatBox = document.querySelector('#battle-area .enemy-side .stat-box');
+    if (enemyStatBox) {
+        const shinyIcon = b.wild.isShiny ? '✨ ' : '';
+        let bonusIcons = '';
+        if (b.wild.bonusStats?.atk) bonusIcons += '⚔️ ';
+        if (b.wild.bonusStats?.def) bonusIcons += '🛡️ ';
+        if (b.wild.bonusStats?.spd) bonusIcons += '🏃 ';
         
-        badgesRow += `<span style="background: ${specialColor}; color: white; padding: 2px 8px; border-radius: 20px; font-size: 0.6rem; font-weight: bold;">${b.wild.specialBadge}</span>`;
-    }
-    
-    // Wild bonus icons
-    let bonusIcons = '';
-    if (b.wild.bonusStats?.atk) bonusIcons += '⚔️';
-    if (b.wild.bonusStats?.def) bonusIcons += '🛡️';
-    if (b.wild.bonusStats?.spd) bonusIcons += '🏃';
-    
-    enemyStatBox.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 4px;">
-            <strong>${shinyIcon}${b.wild.name.toUpperCase()}</strong>
-            <span style="font-size: 0.75rem; color: var(--text-light);">Lv. ${b.wild.level}</span>
-        </div>
-        <div style="margin: 6px 0;">${generateTypeBadges(b.wild.types)}</div>
-        ${badgesRow ? `<div style="margin: 6px 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">${badgesRow}</div>` : ''}
-        ${bonusIcons ? `<div style="margin: 4px 0; font-size: 0.8rem; color: var(--text-light);">${bonusIcons}</div>` : ''}
-        <div class="hp-bar-container" style="margin: 8px 0;">
-            <div class="hp-bar-label" style="display: flex; justify-content: space-between; font-size: 0.7rem; margin-bottom: 2px;">
-                <span>❤️ HP</span>
-                <span>${b.wild.currentHp}/${b.wild.maxHp} (${Math.floor(hpPercent)}%)</span>
-            </div>
-            <div class="hp-bar" style="background: #e2e8f0; height: 8px; border-radius: 10px; overflow: hidden;">
-                <div class="hp-fill" style="width: ${hpPercent}%; background: ${hpBarColor}; height: 100%; transition: width 0.3s;"></div>
-            </div>
-        </div>
-    `;
-}
-    // ----- Player Stat Box -----
-        // ----- Player Stat Box (combine Terastal with special badge) -----
-  // ----- Player Stat Box (Enhanced with all badges) -----
-const playerStatBox = document.querySelector('#battle-area .player-side .stat-box');
-if (playerStatBox) {
-    const shinyIcon = b.player.isShiny ? '✨ ' : '';
-    const hpPercent = (b.player.currentHp / b.player.maxHp) * 100;
-    const neededXP = getExpNeededForNextLevel(b.player.level);
-    const currentXP = b.player.exp || 0;
-    const xpPercent = Math.floor((currentXP / neededXP) * 100);
-    
-    let hpBarColor = 'var(--success)';
-    if (hpPercent < 25) hpBarColor = 'var(--danger)';
-    else if (hpPercent < 50) hpBarColor = 'var(--warning)';
-    
-    // Collect all badges
-    let badgesRow = '';
-    
-    if (b.player.isShiny) {
-        badgesRow += '<span style="background: #ffd700; color: #333; padding: 2px 8px; border-radius: 20px; font-size: 0.6rem; font-weight: bold;">✨ SHINY</span>';
-    }
-    
-    if (b.player.isTerastal) {
-        badgesRow += '<span style="background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.6rem; font-weight: bold; border: 1px solid rgba(255,255,255,0.3);">💠 TERASTAL</span>';
-    }
-    
-    if (b.player.specialBadge) {
-        let specialColor = '';
-        if (b.player.specialCategory === 'legendary') specialColor = 'linear-gradient(135deg, #ffaa33, #cc8800)';
-        else if (b.player.specialCategory === 'mythical') specialColor = 'linear-gradient(135deg, #ff66cc, #cc3399)';
-        else if (b.player.specialCategory === 'paradox') specialColor = 'linear-gradient(135deg, #ff44cc, #aa22ff)';
-        else if (b.player.specialCategory === 'ub') specialColor = 'linear-gradient(135deg, #00cc99, #008866)';
-        else if (b.player.specialCategory === 'gmax') specialColor = 'linear-gradient(135deg, #ff4444, #cc0000)';
-        else if (b.player.specialCategory === 'mega') specialColor = 'linear-gradient(135deg, #3399ff, #1a66cc)';
-        else specialColor = 'linear-gradient(135deg, #888, #555)';
+        // Terastal icon for enemy
+        const teraIcon = b.wild.isTerastal ? '<span style="background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.6rem; font-weight: bold; margin-left: 5px; border: 1px solid white;">💠 TERA</span>' : '';
         
-        badgesRow += `<span style="background: ${specialColor}; color: white; padding: 2px 8px; border-radius: 20px; font-size: 0.6rem; font-weight: bold;">${b.player.specialBadge}</span>`;
-    }
-    
-    let bonusIcons = '';
-    if (b.player.bonusStats?.atk) bonusIcons += '⚔️';
-    if (b.player.bonusStats?.def) bonusIcons += '🛡️';
-    if (b.player.bonusStats?.spd) bonusIcons += '🏃';
-    
-    playerStatBox.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 4px;">
-            <strong>${shinyIcon}${b.player.name.toUpperCase()}</strong>
-            <span style="font-size: 0.75rem; color: var(--text-light);">Lv. ${b.player.level}</span>
-        </div>
-        <div style="margin: 6px 0;">${generateTypeBadges(b.player.types)}</div>
-        ${badgesRow ? `<div style="margin: 6px 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">${badgesRow}</div>` : ''}
-        ${bonusIcons ? `<div style="margin: 4px 0; font-size: 0.8rem; color: var(--text-light);">${bonusIcons}</div>` : ''}
-        <div class="hp-bar-container" style="margin: 8px 0;">
-            <div class="hp-bar-label" style="display: flex; justify-content: space-between; font-size: 0.7rem; margin-bottom: 2px;">
-                <span>❤️ HP</span>
-                <span>${b.player.currentHp}/${b.player.maxHp} (${Math.floor(hpPercent)}%)</span>
+        // Special badge
+        let specialBadgeHtml = '';
+        if (b.wild.specialBadge) {
+            let specialColor = '#ffaa33';
+            if (b.wild.specialCategory === 'gmax') specialColor = '#ff4444';
+            else if (b.wild.specialCategory === 'mega') specialColor = '#3399ff';
+            else if (b.wild.specialCategory === 'ub') specialColor = '#00cc99';
+            else if (b.wild.specialCategory === 'paradox') specialColor = '#ff44cc';
+            else if (b.wild.specialCategory === 'mythical') specialColor = '#ff66cc';
+            specialBadgeHtml = `<span style="background: ${specialColor}; color: white; padding: 2px 8px; border-radius: 20px; font-size: 0.6rem; font-weight: bold; margin-left: 5px;">${b.wild.specialBadge}</span>`;
+        }
+        
+        const hpPercent = (b.wild.currentHp / b.wild.maxHp) * 100;
+        
+        let hpBarColor = '#48bb78';
+        if (hpPercent < 25) hpBarColor = '#f56565';
+        else if (hpPercent < 50) hpBarColor = '#ed8936';
+        
+        // Calculate total stat bonuses
+        const wildFormStats = b.wild.formBonuses || { atk: 0, def: 0, spd: 0 };
+        const wildWildStats = b.wild.wildBonuses || { atk: 0, def: 0, spd: 0 };
+        const totalAtkBonus = (wildWildStats.atk || 0) + (wildFormStats.atk || 0);
+        const totalDefBonus = (wildWildStats.def || 0) + (wildFormStats.def || 0);
+        const totalSpdBonus = (wildWildStats.spd || 0) + (wildFormStats.spd || 0);
+        
+        let statBonusesHtml = '';
+        if (totalAtkBonus > 0) statBonusesHtml += `<span style="background:#ff6b6b; padding:2px 6px; border-radius:12px; font-size:0.6rem; font-weight:bold; margin-right:4px;">⚔️</span>`;
+        if (totalDefBonus > 0) statBonusesHtml += `<span style="background:#4dabf7; padding:2px 6px; border-radius:12px; font-size:0.6rem; font-weight:bold; margin-right:4px;">🛡️</span>`;
+        if (totalSpdBonus > 0) statBonusesHtml += `<span style="background:#69db7c; padding:2px 6px; border-radius:12px; font-size:0.6rem; font-weight:bold; margin-right:4px;">🏃</span>`;
+        
+        enemyStatBox.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px;">
+                <strong style="font-size: 0.9rem;">${shinyIcon}${b.wild.name.toUpperCase()}${specialBadgeHtml}${teraIcon}</strong>
+                <span style="font-size: 0.7rem; color: var(--text-light);">Lv. ${b.wild.level}</span>
             </div>
-            <div class="hp-bar" style="background: #e2e8f0; height: 8px; border-radius: 10px; overflow: hidden;">
-                <div class="hp-fill" style="width: ${hpPercent}%; background: ${hpBarColor}; height: 100%; transition: width 0.3s;"></div>
-            </div>
-        </div>
-        <div class="exp-bar-container" style="margin: 8px 0;">
-            <div class="exp-bar-label" style="display: flex; justify-content: space-between; font-size: 0.7rem; margin-bottom: 2px;">
-                <span>⭐ EXP</span>
-                <span>${currentXP}/${neededXP} (${xpPercent}%)</span>
-            </div>
-            <div class="exp-bar" style="background: #e2e8f0; height: 6px; border-radius: 10px; overflow: hidden;">
-                <div class="exp-fill" style="width: ${xpPercent}%; background: #a855f7; height: 100%; transition: width 0.3s;"></div>
-            </div>
-        </div>
-    `;
-}
-    // ----- Move Buttons -----
-    const typeToId = { normal:1, fighting:2, flying:3, poison:4, ground:5, rock:6, bug:7, ghost:8, steel:9, fire:10, water:11, grass:12, electric:13, psychic:14, ice:15, dragon:16, dark:17, fairy:18 };
-    const movesDiv = document.getElementById('battle-moves');
-    movesDiv.innerHTML = "";
-    b.player.moves.forEach(m => {
-        const btn = document.createElement('button');
-        btn.className = "move-btn";
-        btn.style.backgroundColor = getTypeColor(m.type);
-        const typeId = typeToId[m.type];
-        const iconUrl = typeId ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/types/generation-viii/sword-shield/small/${typeId}.png` : null;
-        const fallbackEmoji = TYPE_ICONS[m.type] || '⚙️';
-        btn.innerHTML = `
-            <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
-                ${iconUrl ? `<img class="move-icon" src="${iconUrl}" alt="${m.type}" onerror="this.onerror=null; this.style.display='none'; this.parentElement.querySelector('.move-icon-fallback').style.display='inline-block';" style="width: 32px; height: 32px; object-fit: contain;">` : ''}
-                <span class="move-icon-fallback" style="display: ${iconUrl ? 'none' : 'inline-block'};">${fallbackEmoji}</span>
-                <span class="move-name">${m.name.toUpperCase()}</span>
-                <span class="move-power">${m.power}</span>
+            ${(bonusIcons || statBonusesHtml) ? `
+                <div style="margin: 4px 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 0.7rem;">
+                    ${bonusIcons ? `<span style="color: var(--text-light);">${bonusIcons}</span>` : ''}
+                 
+                </div>
+            ` : ''}
+            <div style="margin: 4px 0;">${generateTypeBadges(b.wild.types)}</div>
+            <div style="margin: 6px 0;">
+                <div style="display: flex; justify-content: space-between; font-size: 0.65rem; margin-bottom: 3px;">
+                    <span>❤️ HP</span>
+                    <span>${b.wild.currentHp}/${b.wild.maxHp} (${Math.floor(hpPercent)}%)</span>
+                </div>
+                <div class="hp-bar" style="background: #e2e8f0; height: 8px; border-radius: 10px; overflow: hidden;">
+                    <div class="hp-fill" style="width: ${hpPercent}%; background: ${hpBarColor}; height: 100%; transition: width 0.3s;"></div>
+                </div>
             </div>
         `;
-        btn.onclick = () => runTurn(m);
-        movesDiv.appendChild(btn);
-    });
+    }
+
+    // ========== PLAYER STAT BOX ==========
+    const playerStatBox = document.querySelector('#battle-area .player-side .stat-box');
+    if (playerStatBox) {
+        const shinyIcon = b.player.isShiny ? '✨ ' : '';
+        let bonusIcons = '';
+        if (b.player.bonusStats?.atk) bonusIcons += '⚔️ ';
+        if (b.player.bonusStats?.def) bonusIcons += '🛡️ ';
+        if (b.player.bonusStats?.spd) bonusIcons += '🏃 ';
+        
+        // Terastal icon for player
+        const teraIcon = b.player.isTerastal ? '<span style="background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.6rem; font-weight: bold; margin-left: 5px; border: 1px solid white;">💠 TERA</span>' : '';
+        
+        const hpPercent = (b.player.currentHp / b.player.maxHp) * 100;
+        const neededXP = getExpNeededForNextLevel(b.player.level);
+        const currentXP = b.player.exp || 0;
+        const xpPercent = Math.floor((currentXP / neededXP) * 100);
+        
+        let hpBarColor = '#48bb78';
+        if (hpPercent < 25) hpBarColor = '#f56565';
+        else if (hpPercent < 50) hpBarColor = '#ed8936';
+        
+        // Calculate stat bonuses from form and wild
+        const playerFormStats = getSpecialFormBonuses(b.player.name, b.player.pokemonId);
+        const playerWildStats = b.player.bonusStats || { atk: false, def: false, spd: false };
+        const totalAtkBonus = (playerWildStats.atk ? 25 : 0) + (playerFormStats.atk || 0);
+        const totalDefBonus = (playerWildStats.def ? 25 : 0) + (playerFormStats.def || 0);
+        const totalSpdBonus = (playerWildStats.spd ? 25 : 0) + (playerFormStats.spd || 0);
+        
+        let statBonusesHtml = '';
+        if (totalAtkBonus > 0) statBonusesHtml += `<span style="background:#ff6b6b; padding:2px 6px; border-radius:12px; font-size:0.6rem; font-weight:bold; margin-right:4px;">⚔️</span>`;
+        if (totalDefBonus > 0) statBonusesHtml += `<span style="background:#4dabf7; padding:2px 6px; border-radius:12px; font-size:0.6rem; font-weight:bold; margin-right:4px;">🛡️</span>`;
+        if (totalSpdBonus > 0) statBonusesHtml += `<span style="background:#69db7c; padding:2px 6px; border-radius:12px; font-size:0.6rem; font-weight:bold; margin-right:4px;">🏃</span>`;
+        
+        playerStatBox.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px;">
+                <strong style="font-size: 0.9rem;">${shinyIcon}${b.player.name.toUpperCase()}${teraIcon}</strong>
+                <span style="font-size: 0.7rem; color: var(--text-light);">Lv. ${b.player.level}</span>
+            </div>
+            ${(bonusIcons || statBonusesHtml) ? `
+                <div style="margin: 4px 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 0.7rem;">
+                    ${bonusIcons ? `<span style="color: var(--text-light);">${bonusIcons}</span>` : ''}
+                 
+                </div>
+            ` : ''}
+            <div style="margin: 4px 0;">${generateTypeBadges(b.player.types)}</div>
+            <div style="margin: 6px 0;">
+                <div style="display: flex; justify-content: space-between; font-size: 0.65rem; margin-bottom: 3px;">
+                    <span>❤️ HP</span>
+                    <span>${b.player.currentHp}/${b.player.maxHp} (${Math.floor(hpPercent)}%)</span>
+                </div>
+                <div class="hp-bar" style="background: #e2e8f0; height: 8px; border-radius: 10px; overflow: hidden;">
+                    <div class="hp-fill" style="width: ${hpPercent}%; background: ${hpBarColor}; height: 100%; transition: width 0.3s;"></div>
+                </div>
+            </div>
+            <div style="margin: 6px 0;">
+                <div style="display: flex; justify-content: space-between; font-size: 0.65rem; margin-bottom: 3px;">
+                    <span>⭐ XP</span>
+                    <span>${currentXP}/${neededXP} (${xpPercent}%)</span>
+                </div>
+                <div class="exp-bar" style="background: #e2e8f0; height: 6px; border-radius: 10px; overflow: hidden;">
+                    <div class="exp-fill" style="width: ${xpPercent}%; background: #a855f7; height: 100%; transition: width 0.3s;"></div>
+                </div>
+            </div>
+        `;
+    }
+
+    // ========== MOVE BUTTONS ==========
+    const typeToId = { normal:1, fighting:2, flying:3, poison:4, ground:5, rock:6, bug:7, ghost:8, steel:9, fire:10, water:11, grass:12, electric:13, psychic:14, ice:15, dragon:16, dark:17, fairy:18 };
+    const movesDiv = document.getElementById('battle-moves');
+    if (movesDiv) {
+        movesDiv.innerHTML = "";
+        b.player.moves.forEach(m => {
+            const btn = document.createElement('button');
+            btn.className = "move-btn";
+            btn.style.backgroundColor = getTypeColor(m.type);
+            const typeId = typeToId[m.type];
+            const iconUrl = typeId ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/types/generation-viii/sword-shield/small/${typeId}.png` : null;
+            const fallbackEmoji = TYPE_ICONS[m.type] || '⚙️';
+            btn.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
+                    ${iconUrl ? `<img class="move-icon" src="${iconUrl}" alt="${m.type}" onerror="this.onerror=null; this.style.display='none'; this.parentElement.querySelector('.move-icon-fallback').style.display='inline-block';" style="width: 32px; height: 32px; object-fit: contain;">` : ''}
+                    <span class="move-icon-fallback" style="display: ${iconUrl ? 'none' : 'inline-block'};">${fallbackEmoji}</span>
+                    <span class="move-name">${m.name.toUpperCase()}</span>
+                    <span class="move-power">${m.power}</span>
+                </div>
+            `;
+            btn.onclick = () => runTurn(m);
+            movesDiv.appendChild(btn);
+        });
+    }
+    
     renderTeamIcons();
 }
-
     async function trackRecord(id, name) {
     try {
         const userId = auth.currentUser.uid;

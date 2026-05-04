@@ -3144,3 +3144,142 @@ body.data-saver-mode #player-companion {
         padding: 6px 10px !important;
     }
 }
+
+/* ========== POKEDEX RECORDS - CAUGHT STATUS ========== */
+.records-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+    position: relative;
+}
+
+.records-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+}
+
+/* Not caught card styling */
+.records-card-not-caught {
+    opacity: 0.85;
+    border-color: #6b7280;
+}
+
+.records-card-not-caught .records-card-name {
+    color: #6b7280;
+}
+
+.records-card-img {
+    background: #f8fafc;
+    padding: 8px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+}
+
+.records-card-img img {
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+    image-rendering: pixelated;
+    transition: filter 0.3s;
+}
+
+/* Silhouette effect for not caught */
+.records-card-not-caught .records-card-img img {
+    filter: brightness(0) contrast(0) drop-shadow(0 0 3px rgba(0,0,0,0.3));
+    opacity: 0.8;
+}
+
+/* Dark mode silhouette */
+.dark-theme .records-card-not-caught .records-card-img img {
+    filter: brightness(0) contrast(0) drop-shadow(0 0 3px rgba(255,255,255,0.2));
+    opacity: 0.6;
+}
+
+.records-card-info {
+    padding: 8px;
+}
+
+.records-card-name {
+    font-weight: 700;
+    font-size: 0.7rem;
+    color: var(--primary-dark);
+    margin-bottom: 4px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.records-card-not-caught .records-card-name {
+    color: #6b7280;
+}
+
+.records-card-types {
+    display: flex;
+    justify-content: center;
+    gap: 3px;
+    flex-wrap: wrap;
+    margin-bottom: 4px;
+}
+
+.records-card-types .type-badge {
+    font-size: 0.55rem;
+    padding: 1px 4px;
+}
+
+.records-card-stats {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.55rem;
+    color: var(--text-light);
+    text-align: center;
+    border-top: 1px solid var(--border);
+    padding-top: 4px;
+    margin-top: 4px;
+}
+
+.records-card-stats span {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.records-card-badge {
+    text-align: center;
+    margin-top: 6px;
+    font-size: 0.55rem;
+    font-weight: bold;
+}
+
+.records-caught-badge {
+    background: var(--success);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 20px;
+    display: inline-block;
+}
+
+.records-not-caught-badge {
+    background: #6b7280;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 20px;
+    display: inline-block;
+}
+
+/* Dark mode adjustments */
+.dark-theme .records-card-img {
+    background: #1e2230;
+}
+
+.dark-theme .records-card-not-caught .records-card-name {
+    color: #9ca3af;
+}
+
+.dark-theme .records-card-not-caught {
+    border-color: #4a5568;
+}

@@ -5729,51 +5729,79 @@ async function releasePokemon(id,name) {
 }
     };
 
-    const renderRecordChunk = async () => {
-        const tableContainer = document.getElementById('records-table-container');
-        const footer = document.getElementById('records-footer');
-        const chunk = filteredUserRecords.slice(0, recordsDisplayLimit);
-        
-        if (chunk.length === 0) {
-            tableContainer.innerHTML = "<p style='text-align:center;'>No Pokémon found.</p>";
-            footer.innerHTML = "";
-            return;
-        }
-        
-        footer.innerHTML = `<p style="font-size:0.7rem; color:var(--primary);">⌛ Processing Cards...</p>`;
+const renderRecordChunk = async () => {
+    const tableContainer = document.getElementById('records-table-container');
+    const footer = document.getElementById('records-footer');
+    const chunk = filteredUserRecords.slice(0, recordsDisplayLimit);
+    
+    if (chunk.length === 0) {
+        tableContainer.innerHTML = "<p style='text-align:center;'>No Pokémon found.</p>";
+        footer.innerHTML = "";
+        return;
+    }
+    
+    footer.innerHTML = `<p style="font-size:0.7rem; color:var(--primary);">⌛ Processing Cards...</p>`;
 
-        const enriched = await Promise.all(chunk.map(async (record) => {
-            try {
-                const pData = await getCachedJson(`https://pokeapi.co/api/v2/pokemon/${record.id}`, pokeDataCache);
-                return { ...record, types: pData.types.map(t => t.type.name), sprite: pData.sprites.front_default };
-            } catch (err) {
-                return { ...record, types: ['?'], sprite: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${record.id}.png` };
-            }
-        }));
-        
-        let html = `<div class="records-card-grid">`;
-        enriched.forEach(rec => {
-            const tBadges = rec.types.map(t => `<span class="type-badge" style="background:${getTypeColor(t)}">${t.toUpperCase()}</span>`).join('');
-            html += `
-                <div class="records-card" onclick="window.showInfo(${rec.id})" style="cursor:pointer;">
-                    <div class="records-card-img"><img src="${rec.sprite}"></div>
-                    <div class="records-card-info">
-                        <div class="records-card-name">${rec.name.toUpperCase()}</div>
-                        <div class="records-card-types">${tBadges}</div>
-                        <div class="records-card-stats"><span>👁️ ${rec.count}</span><span>#${rec.id}</span></div>
-                    </div>
-                </div>`;
-        });
-        html += `</div>`;
-        tableContainer.innerHTML = html;
-        
-        if (recordsDisplayLimit < filteredUserRecords.length) {
-            footer.innerHTML = `<button id="btn-show-more-records" class="btn btn-outline">Show More</button>`;
-            document.getElementById('btn-show-more-records').onclick = () => { recordsDisplayLimit += 50; renderRecordChunk(); };
-        } else {
-            footer.innerHTML = `<p style="color:#999; font-size:0.8rem; margin-top:10px;">End of records</p>`;
+    // Get the user's owned Pokémon IDs (caught species)
+    const userPokemon = await getAllPokemon();
+    const caughtSpecies = new Set(userPokemon.map(p => p.pokemonId));
+    
+    const enriched = await Promise.all(chunk.map(async (record) => {
+        try {
+            const pData = await getCachedJson(`https://pokeapi.co/api/v2/pokemon/${record.id}`, pokeDataCache);
+            const isCaught = caughtSpecies.has(record.id);
+            
+            return { 
+                ...record, 
+                types: pData.types.map(t => t.type.name), 
+                sprite: pData.sprites.front_default,
+                isCaught: isCaught
+            };
+        } catch (err) {
+            return { 
+                ...record, 
+                types: ['?'], 
+                sprite: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${record.id}.png`,
+                isCaught: false
+            };
         }
-    };
+    }));
+    
+    let html = `<div class="records-card-grid">`;
+    enriched.forEach(rec => {
+        const tBadges = rec.types.map(t => `<span class="type-badge" style="background:${getTypeColor(t)}">${t.toUpperCase()}</span>`).join('');
+        
+        // Apply silhouette filter if not caught
+        const silhouetteStyle = !rec.isCaught ? 'filter: brightness(0) contrast(0) drop-shadow(0 0 3px rgba(0,0,0,0.3)); opacity: 0.7;' : '';
+        const caughtBadge = !rec.isCaught ? '<span class="records-not-caught-badge">❓ NOT CAUGHT</span>' : '<span class="records-caught-badge">✓ CAUGHT</span>';
+        
+        html += `
+            <div class="records-card ${!rec.isCaught ? 'records-card-not-caught' : ''}" onclick="window.showInfo(${rec.id})" style="cursor:pointer;">
+                <div class="records-card-img">
+                    <img src="${rec.sprite}" style="${silhouetteStyle}" alt="${rec.name}">
+                </div>
+                <div class="records-card-info">
+                    <div class="records-card-name">${rec.name.toUpperCase()}</div>
+                    <div class="records-card-types">${tBadges}</div>
+                    <div class="records-card-stats">
+                        <span>👁️ ${rec.count}</span>
+                        <span>#${rec.id}</span>
+                    </div>
+                    <div class="records-card-badge">${caughtBadge}</div>
+                </div>
+            </div>`;
+    });
+    html += `</div>`;
+    tableContainer.innerHTML = html;
+    
+    if (recordsDisplayLimit < filteredUserRecords.length) {
+        footer.innerHTML = `<button id="btn-show-more-records" class="btn btn-outline">Show More</button>`;
+        document.getElementById('btn-show-more-records').onclick = () => { recordsDisplayLimit += 50; renderRecordChunk(); };
+    } else {
+        footer.innerHTML = `<p style="color:#999; font-size:0.8rem; margin-top:10px;">End of records</p>`;
+    }
+};
+
 
     const startersList = [{id:1,name:"Bulbasaur"},{id:4,name:"Charmander"},{id:7,name:"Squirtle"},{id:152,name:"Chikorita"},{id:155,name:"Cyndaquil"},{id:158,name:"Totodile"},{id:252,name:"Treecko"},{id:255,name:"Torchic"},{id:258,name:"Mudkip"},{id:387,name:"Turtwig"},{id:390,name:"Chimchar"},{id:393,name:"Piplup"},{id:495,name:"Snivy"},{id:498,name:"Tepig"},{id:501,name:"Oshawott"},{id:650,name:"Chespin"},{id:653,name:"Fennekin"},{id:656,name:"Froakie"},{id:722,name:"Rowlet"},{id:725,name:"Litten"},{id:728,name:"Popplio"},{id:810,name:"Grookey"},{id:813,name:"Scorbunny"},{id:816,name:"Sobble"},{id:906,name:"Sprigatito"},{id:909,name:"Fuecoco"},{id:912,name:"Quaxly"}];
     let isStarterLoading = false;

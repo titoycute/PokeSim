@@ -202,13 +202,19 @@
 </div>
 
     <!-- Switch Pokémon Modal (during battle) -->
-    <div id="switch-pokemon-modal" class="overlay hidden">
-        <div class="modal" style="max-width: 500px;">
-            <h3>Choose a Pokémon to send out</h3>
-            <div id="switch-pokemon-list" style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;"></div>
-           <button id="cancel-switch-modal" class="btn btn-outline" style="margin-top: 20px;">Cancel</button>
+    <!-- Switch Pokémon Modal (during battle) - FIXED FOR MOBILE -->
+<div id="switch-pokemon-modal" class="overlay hidden" onclick="if(event.target===this)this.classList.add('hidden')">
+    <div class="modal" style="max-width: 500px; max-height: 85vh; display: flex; flex-direction: column; overflow: hidden;">
+        <div class="modal-header" style="padding: 15px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="margin: 0;">Choose a Pokémon to send out</h3>
+            <button class="close-x" onclick="document.getElementById('switch-pokemon-modal').classList.add('hidden')">&times;</button>
+        </div>
+        <div id="switch-pokemon-list" style="flex: 1; overflow-y: auto; padding: 15px 20px;"></div>
+        <div class="modal-footer" style="padding: 12px 20px; border-top: 1px solid var(--border);">
+            <button id="cancel-switch-modal" class="btn btn-outline" style="width: 100%;">Cancel</button>
         </div>
     </div>
+</div>
 
     <!-- Auth Screen -->
     <div id="auth-screen">
@@ -2150,169 +2156,6 @@ function renderMoveGrid(moveList, currentMoves) {
     }
 
     // ========== BATTLE & GAME FUNCTIONS ==========
-async function showSwitchPokemonModal(availablePokemon, isForced = false) {
-    return new Promise((resolve) => {
-        const modal = document.getElementById('switch-pokemon-modal');
-        const listDiv = document.getElementById('switch-pokemon-list');
-        const cancelBtn = document.getElementById('cancel-switch-modal');
-        
-        listDiv.innerHTML = '';
-        
-        const instruction = document.createElement('div');
-        instruction.style.background = 'var(--card-bg)';
-        instruction.style.border = '1px solid var(--border)';
-        instruction.style.borderRadius = '12px';
-        instruction.style.padding = '8px 12px';
-        instruction.style.marginBottom = '12px';
-        instruction.style.fontSize = '0.8rem';
-        instruction.style.textAlign = 'center';
-        instruction.style.color = 'var(--text-dark)';
-        instruction.innerHTML = '💡 <strong>Tip:</strong> Press number keys <kbd style="background:var(--border); padding:2px 6px; border-radius:6px; font-weight:bold;">1</kbd>–<kbd style="background:var(--border); padding:2px 6px; border-radius:6px; font-weight:bold;">6</kbd> to switch quickly.';
-        listDiv.appendChild(instruction);
-        
-        if (isForced) {
-            cancelBtn.disabled = true;
-            cancelBtn.style.opacity = '0.5';
-            cancelBtn.style.cursor = 'not-allowed';
-        } else {
-            cancelBtn.disabled = false;
-            cancelBtn.style.opacity = '1';
-            cancelBtn.style.cursor = 'pointer';
-        }
-        
-        const buttons = [];
-        availablePokemon.forEach((p, idx) => {
-            const btn = document.createElement('button');
-            btn.className = 'btn btn-outline';
-            btn.style.margin = '5px 0';
-            btn.style.display = 'flex';
-            btn.style.alignItems = 'center';
-            btn.style.gap = '12px';
-            btn.style.textAlign = 'left';
-            btn.style.padding = '10px';
-            btn.style.width = '100%';
-            btn.style.justifyContent = 'flex-start';
-            btn.dataset.shortcut = (idx + 1).toString();
-            
-            const img = document.createElement('img');
-            const spriteUrl = getStaticSpriteUrl(p.pokemonId)[0];
-            img.src = spriteUrl;
-            img.style.width = '50px';
-            img.style.height = '50px';
-            img.style.objectFit = 'contain';
-            img.onerror = () => { img.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.pokemonId}.png`; };
-            btn.appendChild(img);
-            
-            let bonusIcons = '';
-            if (p.bonusStats?.atk) bonusIcons += '⚔️';
-            if (p.bonusStats?.def) bonusIcons += '🛡️';
-            if (p.bonusStats?.spd) bonusIcons += '🏃';
-            
-            let shinyBadge = '';
-            if (p.isShiny) shinyBadge = '<span style="background:#ffcc00;color:#333;padding:2px 6px;border-radius:20px;font-size:0.6rem;margin-left:8px;">✨ SHINY</span>';
-            
-            let teraBadge = p.isTerastal ? '<span style="background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.6rem; font-weight: bold; margin-left: 5px; border: 1px solid white;">💠 TERA</span>' : '';
-            
-            const textDiv = document.createElement('div');
-            textDiv.style.flex = '1';
-            const hpPct = Math.floor((p.currentHp / p.maxHp) * 100);
-            const neededXP = getExpNeededForNextLevel(p.level);
-            const currentXP = p.exp || 0;
-            const xpPercent = Math.floor((currentXP / neededXP) * 100);
-            const typeBadgesHtml = generateTypeBadges(p.types);
-            
-            let hpBarColor = '#48bb78';
-            if (hpPct < 25) hpBarColor = '#f56565';
-            else if (hpPct < 50) hpBarColor = '#ed8936';
-            
-            textDiv.innerHTML = `
-                <strong>${p.name.toUpperCase()} ${bonusIcons}</strong> ${shinyBadge} ${teraBadge}<br>
-                <div style="margin: 4px 0;">${typeBadgesHtml}</div>
-                <div style="margin: 6px 0;">
-                    <div style="display: flex; justify-content: space-between; font-size: 0.65rem; margin-bottom: 2px;">
-                        <span>❤️ HP</span>
-                        <span>${p.currentHp}/${p.maxHp} (${hpPct}%)</span>
-                    </div>
-                    <div style="background: #e2e8f0; height: 6px; border-radius: 10px; overflow: hidden;">
-                        <div style="width: ${hpPct}%; background: ${hpBarColor}; height: 100%;"></div>
-                    </div>
-                </div>
-                <div style="margin: 6px 0;">
-                    <div style="display: flex; justify-content: space-between; font-size: 0.65rem; margin-bottom: 2px;">
-                        <span>⭐ EXP</span>
-                        <span>${currentXP}/${neededXP} (${xpPercent}%)</span>
-                    </div>
-                    <div style="background: #e2e8f0; height: 6px; border-radius: 10px; overflow: hidden;">
-                        <div style="width: ${xpPercent}%; background: #a855f7; height: 100%;"></div>
-                    </div>
-                </div>
-                <small>Lvl ${p.level}</small>
-            `;
-            btn.appendChild(textDiv);
-            
-            const numberBadge = document.createElement('span');
-            numberBadge.style.marginLeft = '8px';
-            numberBadge.style.background = 'rgba(0,0,0,0.2)';
-            numberBadge.style.padding = '4px 10px';
-            numberBadge.style.borderRadius = '20px';
-            numberBadge.style.fontSize = '0.8rem';
-            numberBadge.style.fontWeight = 'bold';
-            numberBadge.style.minWidth = '32px';
-            numberBadge.style.textAlign = 'center';
-            numberBadge.innerText = `${idx + 1}`;
-            btn.appendChild(numberBadge);
-            
-            btn.onclick = () => {
-                modal.classList.add('hidden');
-                removeModalKeyListener();
-                resolve(p);
-            };
-            listDiv.appendChild(btn);
-            buttons.push(btn);
-        });
-        
-        function handleModalKeydown(e) {
-            const key = e.key;
-            const num = parseInt(key);
-            if (num >= 1 && num <= buttons.length) {
-                e.preventDefault();
-                const targetBtn = buttons[num - 1];
-                if (targetBtn && !targetBtn.disabled) {
-                    targetBtn.click();
-                }
-            } else if (key === 'Escape' && !isForced) {
-                e.preventDefault();
-                modal.classList.add('hidden');
-                removeModalKeyListener();
-                resolve(null);
-            }
-        }
-        
-        function removeModalKeyListener() {
-            window.removeEventListener('keydown', handleModalKeydown);
-        }
-        
-        window.addEventListener('keydown', handleModalKeydown);
-        
-        cancelBtn.onclick = () => {
-            modal.classList.add('hidden');
-            removeModalKeyListener();
-            resolve(null);
-        };
-        
-        const observer = new MutationObserver((mutations) => {
-            mutations.forEach((mut) => {
-                if (mut.attributeName === 'class' && modal.classList.contains('hidden')) {
-                    removeModalKeyListener();
-                    observer.disconnect();
-                }
-            });
-        });
-        observer.observe(modal, { attributes: true });
-        
-        modal.classList.remove('hidden');
-    });
-}
 
 function showPreBattleSelectModal(team) {
     return new Promise((resolve) => {
@@ -4898,163 +4741,238 @@ async function createPokemonCard(p, isTeam, teamSize) {
     const isActive = isTeam && activePokemonId === p.id;
     
     // Add appropriate classes for Shiny and Tera
-    let cardClasses = `poke-card`;
+    let cardClasses = `poke-card modern-card`;
     if (p.isShiny) cardClasses += ` is-shiny`;
     if (p.isTerastal) cardClasses += ` is-terastal`;
     if (isActive) cardClasses += ` is-active`;
     div.className = cardClasses;
-
+    
+    // Calculate XP progress
     const expNeeded = getExpNeededForNextLevel(p.level);
     const prog = Math.min(100, Math.floor(((p.exp || 0) / expNeeded) * 100));
-
-    const spriteUrl = p.isShiny
+    
+    // Sprite URLs
+    const officialArt = p.isShiny
         ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/shiny/${p.pokemonId}.png`
         : `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${p.pokemonId}.png`;
     const fallbackUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.pokemonId}.png`;
-
+    const showdownUrl = p.isShiny
+        ? `https://play.pokemonshowdown.com/sprites/ani-shiny/${p.name.toLowerCase()}.gif`
+        : `https://play.pokemonshowdown.com/sprites/ani/${p.name.toLowerCase()}.gif`;
+    
+    // Type badges
     const typeBadges = (p.types || []).map(t =>
-        `<span class="type-badge" style="background:${getTypeColor(t)};font-size:0.6rem;">${t.toUpperCase()}</span>`
+        `<span class="type-badge modern-type" style="background:${getTypeColor(t)};">${t.toUpperCase()}</span>`
     ).join('');
-
-    // --- Badges (Top-right corners) ---
-    let badgesHtml = '';
-    let topOffset = 10;
     
-    // Shiny badge (if shiny)
-    if (p.isShiny) {
-        badgesHtml += `<span class="poke-card-corner-badge badge-shiny" style="right: 10px; top: ${topOffset}px;">✨ SHINY</span>`;
-        topOffset += 28;
+    // === BONUS STATS ===
+    const wildStats = p.bonusStats || { atk: false, def: false, spd: false };
+    const formStats = getSpecialFormBonuses(p.name, p.pokemonId);
+    
+    // Calculate total stats effect
+    let totalAtkBonus = (wildStats.atk ? 25 : 0) + (formStats.atk || 0);
+    let totalDefBonus = (wildStats.def ? 25 : 0) + (formStats.def || 0);
+    let totalSpdBonus = (wildStats.spd ? 25 : 0) + (formStats.spd || 0);
+    let totalHpBonus = p.isShiny ? 15 : 0;
+    
+    // Build stat lines HTML
+    let wildStatsHtml = '';
+    if (wildStats.atk || wildStats.def || wildStats.spd) {
+        wildStatsHtml = `
+            <div class="stat-line wild-stats">
+                <span class="stat-label">🌿 WILD</span>
+                ${wildStats.atk ? '<span class="stat-badge atk">⚔️ +25% ATK</span>' : ''}
+                ${wildStats.def ? '<span class="stat-badge def">🛡️ +25% DEF</span>' : ''}
+                ${wildStats.spd ? '<span class="stat-badge spd">🏃 +25% SPD</span>' : ''}
+            </div>
+        `;
     }
     
-    // Tera badge (if terastal) - positioned below shiny if both exist
-    if (p.isTerastal) {
-        const teraBadgeClass = p.isShiny ? 'badge-shiny-tera' : 'badge-tera';
-        const teraBadgeText = p.isShiny ? '✨💠 SHINY TERA' : '💠 TERA';
-        badgesHtml += `<span class="poke-card-corner-badge ${teraBadgeClass}" style="right: 10px; top: ${topOffset}px;">${teraBadgeText}</span>`;
+    let formStatsHtml = '';
+    if (formStats.atk || formStats.def || formStats.spd) {
+        formStatsHtml = `
+            <div class="stat-line form-stats">
+                <span class="stat-label">✨ FORM</span>
+                ${formStats.atk ? `<span class="stat-badge form">⚔️ +${formStats.atk}% ATK</span>` : ''}
+                ${formStats.def ? `<span class="stat-badge form">🛡️ +${formStats.def}% DEF</span>` : ''}
+                ${formStats.spd ? `<span class="stat-badge form">🏃 +${formStats.spd}% SPD</span>` : ''}
+            </div>
+        `;
     }
     
-    // Active badge
-    if (isActive) {
-        badgesHtml += `<span class="poke-card-corner-badge badge-active" style="right: 10px; top: ${topOffset + (p.isTerastal ? 28 : 0)}px;">⚡ ACTIVE</span>`;
+    let totalStatsHtml = '';
+    if (totalAtkBonus > 0 || totalDefBonus > 0 || totalSpdBonus > 0 || totalHpBonus > 0) {
+        totalStatsHtml = `
+            <div class="stat-line total-stats">
+                <span class="stat-label">⭐ TOTAL</span>
+                ${totalAtkBonus > 0 ? `<span class="stat-badge total">⚔️ +${totalAtkBonus}%</span>` : ''}
+                ${totalDefBonus > 0 ? `<span class="stat-badge total">🛡️ +${totalDefBonus}%</span>` : ''}
+                ${totalSpdBonus > 0 ? `<span class="stat-badge total">🏃 +${totalSpdBonus}%</span>` : ''}
+                ${totalHpBonus > 0 ? `<span class="stat-badge total">❤️ +${totalHpBonus}%</span>` : ''}
+            </div>
+        `;
     }
-
-    // --- Wild random bonuses (pills) ---
-    let wildPills = '';
-    if (p.bonusStats?.atk) wildPills += `<span class="bonus-pill atk">⚔️ +25% ATK</span>`;
-    if (p.bonusStats?.def) wildPills += `<span class="bonus-pill def">🛡️ +25% DEF</span>`;
-    if (p.bonusStats?.spd) wildPills += `<span class="bonus-pill spd">🏃 +25% SPD</span>`;
-
-    // --- Form bonuses (orange pills) ---
-    const formBonuses = getSpecialFormBonuses(p.name, p.pokemonId);
-    let formPills = '';
-    if (formBonuses.atk) formPills += `<span class="bonus-pill form">⚔️ ATK +${formBonuses.atk}%</span>`;
-    if (formBonuses.def) formPills += `<span class="bonus-pill form def">🛡️ DEF +${formBonuses.def}%</span>`;
-    if (formBonuses.spd) formPills += `<span class="bonus-pill form spd">🏃 SPD +${formBonuses.spd}%</span>`;
-
-    // --- Tera bonus pill (if terastal) ---
-    let teraPill = '';
-    if (p.isTerastal) {
-        teraPill = `<span class="bonus-pill tera">💠 TERASTAL POKEMON</span>`;
-    }
-
-    // --- Shiny bonus (golden pill) ---
-    let shinyPill = '';
-    if (p.isShiny) {
-        shinyPill = `<div class="shiny-bonus-pill" style="background:#ffd700; color:#b7791f; padding:2px 8px; border-radius:20px; font-size:0.6rem; font-weight:700; display:inline-block;">✨ SHINY +15% HP</div>`;
-    }
-
-    // --- Build three lines (each line is a flex container) ---
-    let wildLine = wildPills ? `<div style="display:flex; flex-wrap:wrap; gap:4px; align-items:center; margin-bottom:4px;"><span style="font-size:0.6rem; color:var(--text-light); margin-right:4px;">🌿 Wild:</span>${wildPills}</div>` : '';
-    let formLine = formPills ? `<div style="display:flex; flex-wrap:wrap; gap:4px; align-items:center; margin-bottom:4px;"><span style="font-size:0.6rem; color:var(--text-light); margin-right:4px;">✨ Form:</span>${formPills}</div>` : '';
-    let teraLine = teraPill ? `<div style="display:flex; flex-wrap:wrap; gap:4px; align-items:center; margin-bottom:4px;"><span style="font-size:0.6rem; color:var(--text-light); margin-right:4px;">💠 Special:</span>${teraPill}</div>` : '';
-    let shinyLine = shinyPill ? `<div style="display:flex; flex-wrap:wrap; gap:4px; align-items:center; margin-top:2px;">${shinyPill}</div>` : '';
-
-    const bonusSection = (wildLine || formLine || teraLine || shinyLine)
-        ? `<div class="poke-card-bonus">${wildLine}${formLine}${teraLine}${shinyLine}</div>`
-        : '';
-
+    
+    // Moves HTML
     const movePills = (p.moves || []).map(m =>
-        `<span class="poke-card-move-pill" style="background:${getTypeColor(m.type)}">${m.name.toUpperCase()}</span>`
+        `<span class="modern-move-pill" style="background:${getTypeColor(m.type)}" title="${m.name.toUpperCase()} - Power: ${m.power} | Acc: ${m.accuracy || 100}%">
+            ${m.name.toUpperCase()} ${m.power ? `(${m.power})` : ''}
+        </span>`
     ).join('');
-
-    let capturedText = '';
+    
+    // Capture details
+    let captureDetails = '';
     if (p.capturedAt) {
         const date = new Date(p.capturedAt.seconds ? p.capturedAt.seconds * 1000 : p.capturedAt).toLocaleDateString();
         const trainer = p.capturedBy || 'Unknown Trainer';
-        const map = p.capturedOnMap || 'Somewhere in PokeSim';
-        capturedText = `👤 ${trainer} · 📍 ${map} · 📅 ${date}`;
+        const map = p.capturedOnMap || 'Unknown Location';
+        captureDetails = `
+            <div class="capture-details">
+                <span><i class="fas fa-user"></i> ${trainer}</span>
+                <span><i class="fas fa-map-marker-alt"></i> ${map}</span>
+                <span><i class="fas fa-calendar"></i> ${date}</span>
+            </div>
+        `;
     }
-
+    
+    // Special badges (Shiny + Tera combo)
+    let specialBadges = '';
+    if (p.isShiny && p.isTerastal) {
+        specialBadges = '<span class="special-badge-combo">✨💠 SHINY TERA</span>';
+    } else if (p.isShiny) {
+        specialBadges = '<span class="special-badge-shiny">✨ SHINY</span>';
+    } else if (p.isTerastal) {
+        specialBadges = '<span class="special-badge-tera">💠 TERASTAL</span>';
+    }
+    
+    // Active badge
+    const activeBadge = isActive ? '<span class="active-badge-modern">⚡ ACTIVE</span>' : '';
+    
+    // XP Bar
+    let hpBarColor = '#48bb78';
+    const hpPercent = isTeam && p.currentHp ? (p.currentHp / p.maxHp) * 100 : 100;
+    if (hpPercent < 25) hpBarColor = '#f56565';
+    else if (hpPercent < 50) hpBarColor = '#ed8936';
+    
     div.innerHTML = `
-        ${badgesHtml}
-        <div class="poke-card-header">
-            <div class="poke-card-img-wrap" onclick="window.showInfo(${p.pokemonId})">
-                <img src="${spriteUrl}" onerror="this.onerror=null;this.src='${fallbackUrl}';" alt="${p.name}">
+        <div class="card-landscape">
+            <!-- LEFT SIDE: Full Pokemon Artwork -->
+            <div class="card-artwork">
+                <div class="artwork-container">
+                    <img class="artwork-img" src="${officialArt}" 
+                         onerror="this.onerror=null; this.src='${showdownUrl}'; this.onerror=()=>this.src='${fallbackUrl}';" 
+                         alt="${p.name}">
+                    <div class="artwork-types">${typeBadges}</div>
+                </div>
+                ${specialBadges}
+                ${activeBadge}
+                  <div>${totalStatsHtml}</div>
+                <div class="pokemon-level">
+                        <span class="level-badge">Lv. ${p.level}</span>
+                        ${p.isShiny ? '<span class="shiny-icon">✨</span>' : ''}
+                        ${p.isTerastal ? '<span class="tera-icon">💠</span>' : ''}
+                        
+                </div>
+              
             </div>
-            <div class="poke-card-info">
-                <div class="poke-card-name">${p.name.toUpperCase()}</div>
-                <div class="poke-card-level">Lv. ${p.level} &nbsp;·&nbsp; #${p.pokemonId}</div>
-                <div class="poke-card-types">${typeBadges}</div>
-                ${bonusSection}
-            </div>
-        </div>
-
-        <div class="poke-card-xp">
-            <div class="poke-card-xp-bar"><div class="poke-card-xp-fill" style="width:${prog}%"></div></div>
-            <div class="poke-card-xp-text">XP: ${p.exp || 0} / ${expNeeded} (${prog}%)</div>
-        </div>
-
-        <div class="poke-card-moves">${movePills}</div>
-
-        ${capturedText ? `<div class="poke-card-captured">${capturedText}</div>` : ''}
-
-        <div class="poke-card-footer mon-buttons">
-            <button class="btn btn-small btn-outline" id="edit-${p.id}">✏️ Moves</button>
-            <div style="display:flex;gap:5px;margin-left:auto;flex-wrap:wrap;">
-                ${isTeam ? `
-                    ${!isActive ? `<button class="btn btn-small btn-primary" id="act-${p.id}">⚡ Active</button>` : ''}
-                    <button class="btn btn-small btn-outline" id="mov-${p.id}" title="Move to Collection">📦</button>
-                ` : `
-                    <button class="btn btn-small btn-primary" ${teamSize >= 6 ? 'disabled' : ''} id="add-${p.id}">+ Team</button>
-                `}
-                <button class="btn btn-small btn-danger" id="rel-${p.id}" title="Release">🗑️</button>
+            
+            <!-- RIGHT SIDE: Pokemon Details -->
+            <div class="card-details">
+                <!-- Header: Name + Level -->
+                <div class="details-header">
+                    <div class="pokemon-name">
+                        <h3>${p.name.toUpperCase()}</h3>
+                        <span class="pokemon-id">#${p.pokemonId}</span>
+                    </div>
+                    
+                </div>
+                
+                <!-- Stats Section -->
+                <div class="stats-container">
+                    ${wildStatsHtml}
+                    ${formStatsHtml}
+                </div>
+                
+                <!-- HP/XP Bars -->
+                <div class="progress-bars">
+                    <div class="xp-bar-container">
+                        <div class="bar-label">⭐ XP</div>
+                        <div class="bar-track">
+                            <div class="bar-fill xp-fill-modern" style="width: ${prog}%;"></div>
+                        </div>
+                        <div class="bar-value">${p.exp || 0}/${expNeeded}</div>
+                    </div>
+                </div>
+                
+                <!-- Moves Section -->
+                <div class="moves-container">
+                    <div class="moves-label">🎯 MOVESET</div>
+                    <div class="moves-grid">
+                        ${movePills || '<span class="no-moves">No moves assigned</span>'}
+                    </div>
+                </div>
+                
+                <!-- Capture Info -->
+                ${captureDetails}
+                
+                <!-- Action Buttons -->
+                <div class="action-buttons">
+                    <button class="action-btn evolve-btn" data-action="evolve" title="Evolve">
+                        <i class="fas fa-arrow-up"></i> Evolve
+                    </button>
+                    <button class="action-btn moves-btn" data-action="moves" title="Edit Moves">
+                        <i class="fas fa-fist-raised"></i> Moves
+                    </button>
+                    ${isTeam ? `
+                        <button class="action-btn active-btn" data-action="active" title="Set Active">
+                            <i class="fas fa-crown"></i> Active
+                        </button>
+                        <button class="action-btn move-btn" data-action="move" title="Move to Collection">
+                            <i class="fas fa-archive"></i> Bench
+                        </button>
+                    ` : `
+                        <button class="action-btn add-btn" data-action="add" title="Add to Team" ${teamSize >= 6 ? 'disabled' : ''}>
+                            <i class="fas fa-plus"></i> Team
+                        </button>
+                    `}
+                    <button class="action-btn release-btn" data-action="release" title="Release">
+                        <i class="fas fa-trash-alt"></i> Release
+                    </button>
+                </div>
             </div>
         </div>
     `;
-
-    // Wire up buttons (same as before)
-    div.querySelector(`#edit-${p.id}`).onclick = () => openMoveEditor(p.id, p.name, p.pokemonId, p.moves, p.level);
-    div.querySelector(`#rel-${p.id}`).onclick = () => releasePokemon(p.id, p.name);
-
+    
+    // Wire up buttons
+    div.querySelector('[data-action="moves"]').onclick = () => openMoveEditor(p.id, p.name, p.pokemonId, p.moves, p.level);
+    div.querySelector('[data-action="release"]').onclick = () => releasePokemon(p.id, p.name);
+    
     if (isTeam) {
-        const actBtn = div.querySelector(`#act-${p.id}`);
-        if (actBtn) actBtn.onclick = () => setActivePokemon(p.id);
-        const movBtn = div.querySelector(`#mov-${p.id}`);
-        if (movBtn) movBtn.onclick = async () => {
+        const activeBtn = div.querySelector('[data-action="active"]');
+        if (activeBtn && !isActive) activeBtn.onclick = () => setActivePokemon(p.id);
+        if (isActive && activeBtn) activeBtn.disabled = true;
+        
+        const moveBtn = div.querySelector('[data-action="move"]');
+        if (moveBtn) moveBtn.onclick = async () => {
             if (teamSize <= 1) { alert("Must have at least one Pokémon in team."); return; }
             await updateDoc(doc(db, "users", auth.currentUser.uid, "pokemon", p.id), { inTeam: false });
             trackWrite(); invalidateTeamCache(); refreshTeamView();
         };
     } else {
-        const addBtn = div.querySelector(`#add-${p.id}`);
+        const addBtn = div.querySelector('[data-action="add"]');
         if (addBtn) addBtn.onclick = async () => {
             if (teamSize >= 6) { alert("Team is full!"); return; }
             await updateDoc(doc(db, "users", auth.currentUser.uid, "pokemon", p.id), { inTeam: true });
             trackWrite(); invalidateTeamCache(); refreshTeamView();
         };
     }
-
+    
     // Evolve button
-    const evoBtn = document.createElement('button');
-    evoBtn.className = 'btn btn-outline btn-small';
-    evoBtn.innerHTML = '🔄 Evolve';
-    evoBtn.style.cssText = 'background:#fef9e3;color:#b45309;';
-    evoBtn.onclick = async (e) => { e.stopPropagation(); await attemptEvolution(p.id, p.pokemonId); };
-    div.querySelector('.mon-buttons').appendChild(evoBtn);
-
+    const evolveBtn = div.querySelector('[data-action="evolve"]');
+    if (evolveBtn) evolveBtn.onclick = async () => { await attemptEvolution(p.id, p.pokemonId); };
+    
     return div;
-}
-// ========== SPECIAL EVOLUTION HELPERS (MEGA, PRIMAL, G-MAX) ==========
+}// ========== SPECIAL EVOLUTION HELPERS (MEGA, PRIMAL, G-MAX) ==========
 
 
 const formIdCache = {};
@@ -5204,10 +5122,9 @@ async function attemptEvolution(pokemonId, speciesId) {
         return;
     }
 
-    // 2. Gather all possible evolutions (normal + special)
-     const baseId = await getBaseSpeciesId(pokemon.pokemonId);
-    let normalTargets = await getAllEvolutionTargets(pokemon);
-    let specialTargets = await getSpecialEvolutionTargets(pokemon);
+    // 2. Gather all possible evolutions
+    const normalTargets = await getAllEvolutionTargets(pokemon);
+    const specialTargets = await getSpecialEvolutionTargets(pokemon);
 
     const allTargets = [
         ...normalTargets.map(t => ({ ...t, isSpecial: false })),
@@ -5219,32 +5136,63 @@ async function attemptEvolution(pokemonId, speciesId) {
         return;
     }
 
-    // 3. Show selection modal with selectable cards + Evolve button
+    // 3. Show selection modal with proper sprite loading
     const modal = document.getElementById('evolution-select-modal');
     const grid = document.getElementById('evolution-options-grid');
-    grid.innerHTML = '';  // ✅ Clear old cards
+    grid.innerHTML = '';
+    
+    // Show loading state
+    grid.innerHTML = '<div style="text-align:center; padding:20px;"><div class="pokeball-loader" style="margin:0 auto;"></div><p style="margin-top:10px;">Loading evolution options...</p></div>';
+    
+    let selectedTarget = null;
 
-    let selectedTarget = null;   // ✅ Fresh variable each time
-
+    // Process targets with proper sprite loading
     for (const target of allTargets) {
         const card = document.createElement('div');
         card.className = 'starter-card';
         card.style.opacity = target.met ? '1' : '0.6';
         card.style.cursor = target.met ? 'pointer' : 'not-allowed';
         card.style.transition = 'all 0.2s';
-
+        card.style.padding = '15px';
+        card.style.textAlign = 'center';
+        
+        // Create image element with proper loading
         const img = document.createElement('img');
-        loadImageWithFallback(img, getBattleSpriteUrl(target.targetId, 'front'));
-        img.style.width = '80px';
-        img.style.height = '80px';
+        img.style.width = '100px';
+        img.style.height = '100px';
+        img.style.objectFit = 'contain';
+        img.style.imageRendering = 'pixelated';
+        img.style.margin = '0 auto';
+        
+        // Load sprite with fallback
+        const targetId = target.targetId;
+        const targetNameFormatted = target.targetName;
+        
+        // Try to load official artwork first, then showdown, then fallback
+        const officialUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${targetId}.png`;
+        const showdownUrl = `https://play.pokemonshowdown.com/sprites/ani/${targetNameFormatted.toLowerCase()}.gif`;
+        const fallbackUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${targetId}.png`;
+        
+        img.src = officialUrl;
+        img.onerror = () => {
+            img.src = showdownUrl;
+            img.onerror = () => {
+                img.src = fallbackUrl;
+            };
+        };
+        
         card.appendChild(img);
-
+        
+        // Name
         const nameDiv = document.createElement('div');
-        nameDiv.innerHTML = `<strong>${(target.displayName || target.targetName).toUpperCase()}</strong>`;
+        nameDiv.innerHTML = `<strong style="font-size:0.85rem;">${(target.displayName || target.targetName).toUpperCase()}</strong>`;
+        nameDiv.style.marginTop = '8px';
         card.appendChild(nameDiv);
-
+        
+        // Requirements
         const reqDiv = document.createElement('div');
-        reqDiv.style.fontSize = '0.7rem';
+        reqDiv.style.fontSize = '0.65rem';
+        reqDiv.style.marginTop = '4px';
         let reqText = '';
         if (target.requiredLevel) reqText += `Lv.${target.requiredLevel} `;
         if (target.requiredItem) reqText += `+ ${target.requiredItem} `;
@@ -5252,55 +5200,65 @@ async function attemptEvolution(pokemonId, speciesId) {
         if (target.isSpecial) reqText = `Special (Lv.${target.requiredLevel})`;
         if (!reqText) reqText = 'Evolve';
         reqDiv.innerText = reqText;
+        reqDiv.style.color = 'var(--text-light)';
         card.appendChild(reqDiv);
-
+        
+        // Status badge
         const statusSpan = document.createElement('span');
         statusSpan.className = target.met ? 'about-badge free' : 'about-badge danger';
         statusSpan.innerText = target.met ? '✓ Available' : '❌ Locked';
-        statusSpan.style.marginTop = '8px';
+        statusSpan.style.fontSize = '0.6rem';
+        statusSpan.style.marginTop = '6px';
         statusSpan.style.display = 'inline-block';
         card.appendChild(statusSpan);
-
+        
         if (target.met) {
             card.onclick = () => {
-                // Remove highlight from all cards
                 document.querySelectorAll('#evolution-options-grid .starter-card').forEach(c => {
                     c.style.border = '2px solid transparent';
                     c.style.backgroundColor = '';
                 });
                 card.style.border = '2px solid var(--primary)';
                 card.style.backgroundColor = 'rgba(59,76,202,0.15)';
-                selectedTarget = target;   // ✅ Assign current target
-                // Enable evolve button
+                selectedTarget = target;
                 const evolveBtn = document.getElementById('confirm-evolution-select');
                 if (evolveBtn) evolveBtn.disabled = false;
             };
         }
-
+        
         grid.appendChild(card);
     }
+    
+    // Remove loading text if any
+    const loadingDiv = grid.querySelector('.pokeball-loader')?.parentElement;
+    if (loadingDiv && allTargets.length > 0) {
+        loadingDiv.remove();
+    }
 
-    // ✅ Remove any existing dynamic button (to avoid stale closure)
-    const oldBtn = document.getElementById('confirm-evolution-select');
-    if (oldBtn) oldBtn.remove();
+    // Create confirm button if not exists
+    let confirmBtn = document.getElementById('confirm-evolution-select');
+    if (!confirmBtn) {
+        confirmBtn = document.createElement('button');
+        confirmBtn.id = 'confirm-evolution-select';
+        confirmBtn.className = 'btn btn-primary';
+        confirmBtn.textContent = '✨ Evolve ✨';
+        confirmBtn.disabled = true;
+        confirmBtn.style.marginTop = '20px';
+        confirmBtn.style.width = '100%';
+        modal.querySelector('.modal').appendChild(confirmBtn);
+    } else {
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = '✨ Evolve ✨';
+    }
 
-    // ✅ Create fresh button
-    const confirmBtn = document.createElement('button');
-    confirmBtn.id = 'confirm-evolution-select';
-    confirmBtn.className = 'btn btn-primary';
-    confirmBtn.textContent = '✨ Evolve ✨';
-    confirmBtn.disabled = true;
-    confirmBtn.style.marginTop = '20px';
-    confirmBtn.style.width = '100%';
-    modal.querySelector('.modal').appendChild(confirmBtn);
-
-    // ✅ Attach event handler with fresh closure using the current selectedTarget
+    // Attach event handler
     confirmBtn.onclick = async () => {
         if (!selectedTarget) {
             showToast("Please select an evolution first.");
             return;
         }
         modal.classList.add('hidden');
+        
         let targetData;
         try {
             let url = `https://pokeapi.co/api/v2/pokemon/${selectedTarget.targetId}`;
@@ -5313,18 +5271,19 @@ async function attemptEvolution(pokemonId, speciesId) {
             return;
         }
         await performEvolution(pokemon, selectedTarget.targetId, selectedTarget.targetName, targetData);
-        // No need to reset selectedTarget – modal is closed and a new one will be created next time
     };
 
-    // Cancel button resets nothing (just closes)
+    // Cancel button
     const cancelBtn = document.getElementById('cancel-evo-select');
-    cancelBtn.onclick = () => {
-        modal.classList.add('hidden');
-        // Don't need to disable anything – button is removed next open anyway
-    };
+    if (cancelBtn) {
+        cancelBtn.onclick = () => {
+            modal.classList.add('hidden');
+        };
+    }
 
     modal.classList.remove('hidden');
 }
+
 
 async function showEvolutionConfirmation(pokemon, target) {
     return new Promise((resolve) => {

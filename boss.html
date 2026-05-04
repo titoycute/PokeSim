@@ -1925,13 +1925,22 @@ async function renderRaidList(raids) {
 </button>
  <button class="btn btn-outline btn-sm view-rewards-btn" data-id="${raid.id}" data-rewards='${JSON.stringify(raid.rewardTiers||[])}'>🎁 Rewards</button>
 
+
 ${isAdmin ? `
-               
-                <button class="btn btn-outline btn-sm edit-boss-btn" data-id="${raid.id}">✏️ Edit</button>
-                <button class="btn btn-danger btn-sm delete-boss-btn" data-id="${raid.id}">🗑️ Delete</button>
-                <button class="btn btn-warning btn-sm toggle-active-btn" data-id="${raid.id}" data-active="${isActive}" style="background: ${isActive ? '#f39c12' : '#2ecc71'}; color: white; border: none;">${isActive ? '🔒 Deactivate' : '✅ Activate'}</button>
-                <button class="btn btn-warning btn-sm reset-boss-btn" data-id="${raid.id}" style="background: #e74c3c; color: white; border: none;">🔄 Reset All</button>
-                ` : ''}
+    <button class="btn btn-outline btn-sm edit-boss-btn" data-id="${raid.id}">✏️ Edit</button>
+    <button class="btn btn-danger btn-sm delete-boss-btn" data-id="${raid.id}">🗑️ Delete</button>
+    <button class="btn btn-warning btn-sm toggle-active-btn" data-id="${raid.id}" data-active="${isActive}" style="background: ${isActive ? '#f39c12' : '#2ecc71'}; color: white; border: none;">${isActive ? '🔒 Deactivate' : '✅ Activate'}</button>
+    <button class="btn btn-warning btn-sm reset-boss-btn" data-id="${raid.id}" style="background: #e74c3c; color: white; border: none;">🔄 Reset All</button>
+    
+    <!-- ADD THIS DISTRIBUTE REWARDS BUTTON -->
+  <button class="btn distribute-rewards-btn" 
+        data-id="${raid.id}" 
+        data-name="${escapeHtml(raid.customName || raid.name)}"
+        style="background: linear-gradient(135deg, #f6ad55, #ed8936); color: white; border: none; padding: 5px 12px; border-radius: 40px; font-size: 0.75rem; font-weight: bold; cursor: pointer;"
+        ${raid.rewardsDistributedAt ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''}>
+        🎁 ${raid.rewardsDistributedAt ? 'Already Rewarded' : 'Distribute Rewards'}
+    </button>
+` : ''}
             </div>
         </div>`;
     }).join('');
@@ -2026,7 +2035,23 @@ ${isAdmin ? `
     if (isAdmin) {
         checkAndDeactivateExpiredBosses();
     }
+    document.querySelectorAll('.distribute-rewards-btn').forEach(btn => {
+    btn.onclick = async (e) => {
+        e.stopPropagation();
+        if (btn.disabled) {
+            toast('Rewards already distributed for this boss!', 'warning');
+            return;
+        }
+        const raidId = btn.dataset.id;
+        const raidName = btn.dataset.name;
+        console.log('🎁 DISTRIBUTE BUTTON CLICKED!', { raidId, raidName });
+        await distributeRewardsForBoss(raidId, raidName);
+    };
+});
 }
+
+// At the VERY END of renderRaidList function, add this:
+
 
 function attachLeaderboardPreview(raidId){ 
     if(leaderboardUnsubs.has(raidId)) leaderboardUnsubs.get(raidId)(); 
@@ -2061,7 +2086,13 @@ async function showFullLeaderboard(raidId){
     document.getElementById('leaderboard-modal').classList.remove('hidden'); 
 }
 
-function showRewardsModal(tiers) {
+async function showRewardsModal(tiers) {
+    const modal = document.getElementById('rewards-modal');
+    const body = document.getElementById('rewards-modal-body');
+    
+    body.innerHTML = '<div style="text-align:center; padding:20px;"><div class="loading-spinner"></div><p>Fetching Reward Details...</p></div>';
+    modal.classList.remove('hidden');
+
     const rankLabels = {
         '1st':  { icon: '🥇', label: '1st Place',       color: '#ffd700' },
         '2nd':  { icon: '🥈', label: '2nd Place',       color: '#c0c0c0' },
@@ -2071,37 +2102,86 @@ function showRewardsModal(tiers) {
         'participation': { icon: '🎖️', label: 'Participation', color: '#68d391' }
     };
 
-    let html = '';
+    // 1. GROUP TIERS BY RANK
+    const groupedRewards = {};
+    tiers.forEach(tier => {
+        if (!groupedRewards[tier.rank]) groupedRewards[tier.rank] = [];
+        groupedRewards[tier.rank].push(tier);
+    });
+
+    // 2. DEFINE SORT ORDER
+    const rankOrder = ['1st', '2nd', '3rd', '4th', '5th', 'participation'];
+    let html = '<div style="display:flex; flex-direction:column; gap:12px;">';
+
     if (!tiers.length) {
-        html = '<p style="text-align:center; color:var(--text-light); padding:20px;">No rewards configured for this raid.</p>';
+        html = '<p style="text-align:center; color:var(--text-light); padding:20px;">No rewards configured.</p>';
     } else {
-        html = '<div style="display:flex; flex-direction:column; gap:12px;">';
-        for (const tier of tiers) {
-            const meta = rankLabels[tier.rank] || { icon: '🎁', label: tier.rank, color: '#a0aec0' };
-            const isCoins = tier.rewardType === 'coins';
+        // Loop through ranks in order
+        for (const rankKey of rankOrder) {
+            if (!groupedRewards[rankKey]) continue;
+
+            const items = groupedRewards[rankKey];
+            const meta = rankLabels[rankKey] || { icon: '🎁', label: rankKey, color: '#a0aec0' };
+            
+            let combinedContentHtml = '';
+
+            // 3. PROCESS EACH ITEM IN THIS RANK
+            for (const item of items) {
+                if (item.rewardType === 'coins') {
+                    combinedContentHtml += `
+                        <div style="padding: 8px 0; border-bottom: 1px solid rgba(0,0,0,0.05); display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 1.2rem;">💰</span>
+                            <strong style="color:var(--text-light);">${(item.rewardAmount||0).toLocaleString()} Coins</strong>
+                        </div>`;
+                } else {
+                    try {
+                        const p = await fetchPokemon(item.rewardId);
+                        const urls = item.isShiny 
+                            ? getShinyBattleSpriteUrl(p.name, item.rewardId, 'front')
+                            : getBattleSpriteUrl(item.rewardId, 'front');
+                        const spriteUrl = urls[0];
+
+                        combinedContentHtml += `
+                            <div style="padding: 10px 0; border-bottom: 1px solid rgba(0,0,0,0.05); display: flex; align-items: center; gap: 12px;">
+                                <img src="${spriteUrl}" style="width: 50px; height: 50px; object-fit: contain; image-rendering: pixelated;" onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${item.rewardId}.png'">
+                                <div style="flex: 1;">
+                                    <div style="font-weight: bold; color: var(--text-dark); text-transform: uppercase; font-size: 0.9rem;">
+                                        ${p.name} <span style="color: var(--text-light); font-weight: normal; font-size: 0.75rem;">Lv.${item.rewardAmount||50}</span>
+                                    </div>
+                                    <div style="margin-top: 4px; display: flex; gap: 4px; flex-wrap: wrap;">
+                                        ${item.isShiny ? '<span style="background:#ffd700; color:#333; padding:1px 6px; border-radius:10px; font-size:0.55rem; font-weight:bold;">✨ SHINY</span>' : ''}
+                                        ${item.isTerastal ? '<span style="background:#aa88ff; color:white; padding:1px 6px; border-radius:10px; font-size:0.55rem; font-weight:bold;">💠 TERASTAL</span>' : ''}
+                                        ${item.bonusStats?.atk ? '<span title="Attack Bonus">⚔️</span>' : ''}
+                                        ${item.bonusStats?.def ? '<span title="Defense Bonus">🛡️</span>' : ''}
+                                        ${item.bonusStats?.spd ? '<span title="Speed Bonus">🏃</span>' : ''}
+                                    </div>
+                                </div>
+                            </div>`;
+                    } catch (e) {
+                        combinedContentHtml += `<div style="padding:8px 0;">🎁 Pokémon #${item.rewardId} (Data Error)</div>`;
+                    }
+                }
+            }
+
+            // Remove the last border-bottom for a cleaner look
+            combinedContentHtml = combinedContentHtml.replace(/border-bottom: 1px solid rgba\(0,0,0,0.05\);(?!.*border-bottom)/, "border-bottom: none;");
+
             html += `
-            <div style="display:flex; align-items:center; gap:14px; background:var(--bg); border-radius:16px; padding:12px 16px; border-left:4px solid ${meta.color};">
-                <div style="font-size:1.8rem;">${meta.icon}</div>
-                <div style="flex:1;">
-                    <div style="font-weight:700; font-size:0.85rem; color:${meta.color};">${meta.label}</div>
-                    <div style="font-size:0.8rem; color:var(--text-dark); margin-top:2px;">
-                        ${isCoins
-                            ? `💰 <strong>${(tier.rewardAmount||0).toLocaleString()} Coins</strong>`
-                            : `🎁 Pokémon <strong>#${tier.rewardId}</strong> — Lv.${tier.rewardAmount||50}
-                               ${tier.isShiny ? '<span style="background:#ffd700;color:#333;padding:1px 6px;border-radius:10px;font-size:0.65rem;">✨ SHINY</span>' : ''}
-                               ${tier.bonusStats?.atk ? '⚔️' : ''}${tier.bonusStats?.def ? '🛡️' : ''}${tier.bonusStats?.spd ? '🏃' : ''}`
-                        }
-                    </div>
+            <div style="background:var(--card-bg); border-radius:16px; border: 1px solid var(--border); border-left: 6px solid ${meta.color}; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+                <div style="background: ${meta.color}15; padding: 10px 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid ${meta.color}30;">
+                    <span style="font-size: 1.4rem;">${meta.icon}</span>
+                    <span style="font-weight: 800; font-size: 0.9rem; color: ${meta.color}; text-transform: uppercase; letter-spacing: 0.5px;">${meta.label}</span>
+                </div>
+                <div style="padding: 0 16px;">
+                    ${combinedContentHtml}
                 </div>
             </div>`;
         }
         html += '</div>';
     }
 
-    document.getElementById('rewards-modal-body').innerHTML = html;
-    document.getElementById('rewards-modal').classList.remove('hidden');
+    body.innerHTML = html;
 }
-
 // ---------- BATTLE LOGIC ----------
 function getTypeId(type){ const map={normal:1,fighting:2,flying:3,poison:4,ground:5,rock:6,bug:7,ghost:8,steel:9,fire:10,water:11,grass:12,electric:13,psychic:14,ice:15,dragon:16,dark:17,fairy:18}; return map[type]||1; }
 
@@ -2127,6 +2207,259 @@ function hideBattleScreen() {
     if (currentRaidBattle) currentRaidBattle = null;
     if (currentTurnTimeout) clearTimeout(currentTurnTimeout);
     battleProcessing = false;
+}
+
+// ========== FIXED PER-BOSS REWARD DISTRIBUTION ==========
+async function distributeRewardsForBoss(raidId, bossName) {
+    console.log('🔍 [DEBUG] distributeRewardsForBoss called!');
+    console.log('🔍 [DEBUG] raidId:', raidId);
+    console.log('🔍 [DEBUG] bossName:', bossName);
+    console.log('🔍 [DEBUG] isAdmin:', isAdmin);
+    console.log('🔍 [DEBUG] currentUser:', currentUser?.uid);
+    
+    if (!isAdmin) {
+        toast('Only admins can distribute rewards', 'error');
+        console.log('❌ [DEBUG] Not admin, exiting');
+        return;
+    }
+    
+    // Confirm with admin
+    if (!confirm(`🎁 Distribute rewards for "${bossName}"?\n\nThis will reward ALL players who participated in this raid based on their damage ranking.\n\nThis action CANNOT be undone!\n\nContinue?`)) {
+        console.log('❌ [DEBUG] User cancelled confirmation');
+        return;
+    }
+    
+    toast('📦 Processing rewards... please wait', 'info');
+    console.log('✅ [DEBUG] Confirmation passed, starting reward distribution...');
+    
+    try {
+        // Get boss data
+        const raidRef = doc(db, 'raid_bosses', raidId);
+        const raidSnap = await getDoc(raidRef);
+        
+        console.log('📊 [DEBUG] Boss exists?', raidSnap.exists());
+        
+        if (!raidSnap.exists()) {
+            toast('Boss not found!', 'error');
+            return;
+        }
+        
+        const raid = raidSnap.data();
+        console.log('📊 [DEBUG] Boss data:', raid);
+        console.log('📊 [DEBUG] rewardsDistributedAt:', raid.rewardsDistributedAt);
+        console.log('📊 [DEBUG] rewardTiers:', raid.rewardTiers);
+        
+        // Check if already distributed
+        if (raid.rewardsDistributedAt) {
+            toast('Rewards already distributed for this boss!', 'warning');
+            console.log('❌ [DEBUG] Already distributed');
+            return;
+        }
+        
+        if (!raid.rewardTiers || raid.rewardTiers.length === 0) {
+            toast('No reward tiers configured for this boss!', 'error');
+            console.log('❌ [DEBUG] No reward tiers');
+            return;
+        }
+        
+        // Get all participants
+        const participantsQuery = query(
+            collection(db, 'raid_participants'), 
+            where('raidId', '==', raidId), 
+            orderBy('totalDamage', 'desc')
+        );
+        
+        const participantsSnap = await getDocs(participantsQuery);
+        console.log('📊 [DEBUG] Participants count:', participantsSnap.size);
+        
+        const participants = [];
+        participantsSnap.forEach(doc => {
+            participants.push({
+                id: doc.id,
+                userId: doc.data().userId,
+                trainerName: doc.data().trainerName || 'Unknown',
+                totalDamage: doc.data().totalDamage || 0
+            });
+        });
+        console.log('📊 [DEBUG] Participants list:', participants);
+        
+        if (participants.length === 0) {
+            toast('No participants found for this boss!', 'error');
+            return;
+        }
+        
+        // Build reward assignments
+        const rewardAssignments = [];
+        const assignedUsers = new Set();
+        
+        for (const tier of raid.rewardTiers) {
+            console.log(`📊 [DEBUG] Processing tier: ${tier.rank} - Type: ${tier.rewardType}`);
+            
+            if (tier.rank === 'participation') {
+                for (let i = 5; i < participants.length; i++) {
+                    const player = participants[i];
+                    if (!assignedUsers.has(player.userId)) {
+                        assignedUsers.add(player.userId);
+                        rewardAssignments.push({
+                            userId: player.userId,
+                            trainerName: player.trainerName,
+                            rank: 'participation',
+                            tier: tier,
+                            damage: player.totalDamage
+                        });
+                    }
+                }
+                continue;
+            }
+            
+            let targetPlayer = null;
+            switch (tier.rank) {
+                case '1st': targetPlayer = participants[0]; break;
+                case '2nd': targetPlayer = participants[1]; break;
+                case '3rd': targetPlayer = participants[2]; break;
+                case '4th': targetPlayer = participants[3]; break;
+                case '5th': targetPlayer = participants[4]; break;
+            }
+            
+            if (targetPlayer && !assignedUsers.has(targetPlayer.userId)) {
+                assignedUsers.add(targetPlayer.userId);
+                rewardAssignments.push({
+                    userId: targetPlayer.userId,
+                    trainerName: targetPlayer.trainerName,
+                    rank: tier.rank,
+                    tier: tier,
+                    damage: targetPlayer.totalDamage
+                });
+            }
+        }
+        
+        console.log('📊 [DEBUG] Reward assignments:', rewardAssignments);
+        
+        if (rewardAssignments.length === 0) {
+            toast('No players qualified for rewards!', 'warning');
+            return;
+        }
+        
+        // Show confirmation
+        let winnersList = '📋 WINNERS:\n\n';
+        for (const reward of rewardAssignments) {
+            const rewardDesc = reward.tier.rewardType === 'coins' 
+                ? `💰 ${(reward.tier.rewardAmount || 0).toLocaleString()} Coins`
+                : `🎁 Pokémon #${reward.tier.rewardId || '?'} (Lv.${reward.tier.rewardAmount || 50})`;
+            winnersList += `🏆 ${reward.rank.toUpperCase()}: ${reward.trainerName} → ${rewardDesc}\n`;
+        }
+        
+        winnersList += `\n📊 Total players to reward: ${rewardAssignments.length}\n\nProceed?`;
+        
+        if (!confirm(winnersList)) {
+            toast('Distribution cancelled', 'warning');
+            return;
+        }
+        
+        // Process rewards
+        let successCount = 0;
+        let failCount = 0;
+        const errors = [];
+        
+        for (const reward of rewardAssignments) {
+            try {
+                const tier = reward.tier;
+                const userId = reward.userId;
+                
+                console.log(`📊 [DEBUG] Processing reward for ${reward.trainerName} (${userId})`);
+                
+                if (tier.rewardType === 'coins') {
+                    const coinAmount = tier.rewardAmount || 5000;
+                    const userRef = doc(db, 'users', userId);
+                    await updateDoc(userRef, {
+                        coins: increment(coinAmount)
+                    });
+                    successCount++;
+                    console.log(`✅ Awarded ${coinAmount} coins to ${reward.trainerName}`);
+                    toast(`Awarded ${coinAmount} coins to ${reward.trainerName}`, 'success');
+                    
+                } else if (tier.rewardType === 'pokemon' && tier.rewardId) {
+                    const pokemonId = parseInt(tier.rewardId);
+                    const pokemonData = await fetchPokemon(pokemonId);
+                    const rewardLevel = tier.rewardAmount || 50;
+                    
+                    let rewardMoves = [];
+                    if (pokemonData.moves && pokemonData.moves.length > 0) {
+                        const rawMoves = pokemonData.moves.slice(0, 4);
+                        for (const m of rawMoves) {
+                            try {
+                                const moveDetail = await cachedFetch(m.move.url);
+                                rewardMoves.push({
+                                    name: moveDetail.name,
+                                    type: moveDetail.type.name,
+                                    power: moveDetail.power || 40,
+                                    accuracy: moveDetail.accuracy || 100
+                                });
+                            } catch (e) {
+                                rewardMoves.push({ name: 'tackle', type: 'normal', power: 40, accuracy: 100 });
+                            }
+                        }
+                    }
+                    
+                    while (rewardMoves.length < 4) {
+                        rewardMoves.push({ name: 'tackle', type: 'normal', power: 40, accuracy: 100 });
+                    }
+                    
+                    const newPokemon = {
+                        pokemonId: pokemonId,
+                        name: pokemonData.name,
+                        level: rewardLevel,
+                        exp: 0,
+                        moves: rewardMoves,
+                        types: pokemonData.types.map(t => t.type.name),
+                        inTeam: false,
+                        capturedAt: new Date(),
+                        capturedBy: 'Raid Reward',
+                        capturedOnMap: `World Boss: ${bossName}`,
+                        bonusStats: tier.bonusStats || { atk: false, def: false, spd: false },
+                        isShiny: tier.isShiny || false,
+                        isTerastal: tier.isTerastal || false
+                    };
+                    
+                    await addDoc(collection(db, 'users', userId, 'pokemon'), newPokemon);
+                    successCount++;
+                    console.log(`✅ Awarded ${pokemonData.name} to ${reward.trainerName}`);
+                    toast(`Awarded ${pokemonData.name} to ${reward.trainerName}`, 'success');
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+            } catch (err) {
+                failCount++;
+                errors.push(`${reward.trainerName}: ${err.message}`);
+                console.error(`❌ Reward failed for ${reward.userId}:`, err);
+            }
+        }
+        
+        // Mark boss as rewarded
+        await updateDoc(raidRef, {
+            rewardsDistributedAt: serverTimestamp(),
+            rewardsDistributedBy: currentUser.uid,
+            rewardsDistributedDate: new Date().toISOString()
+        });
+        
+        const resultMsg = `✅ Rewards distributed for "${bossName}"!\n\n✅ Successful: ${successCount}\n❌ Failed: ${failCount}`;
+        toast(resultMsg, failCount > 0 ? 'warning' : 'success');
+        console.log(`📊 [DEBUG] Distribution complete. Success: ${successCount}, Failed: ${failCount}`);
+        
+        if (failCount > 0) {
+            console.error('Distribution errors:', errors);
+            setTimeout(() => {
+                alert(`⚠️ Some rewards failed to distribute:\n\n${errors.slice(0, 10).join('\n')}\n\nCheck console for details.`);
+            }, 1000);
+        }
+        
+        loadRaids();
+        
+    } catch (err) {
+        console.error('❌ [DEBUG] Distribution error:', err);
+        toast('Failed to distribute rewards: ' + err.message, 'error');
+    }
 }
 
 function addBattleLog(msg) {
@@ -3082,7 +3415,8 @@ if (existing?.expiryDate) {
                                     <label><input type="checkbox" class="reward-pokemon-def" data-idx="${idx}" ${tier.bonusStats?.def ? 'checked' : ''}> 🛡️ +25% DEF</label>
                                     <label><input type="checkbox" class="reward-pokemon-spd" data-idx="${idx}" ${tier.bonusStats?.spd ? 'checked' : ''}> 🏃 +25% SPD</label>
                                     <label><input type="checkbox" class="reward-pokemon-shiny" data-idx="${idx}" ${tier.isShiny ? 'checked' : ''}> ✨ Shiny</label>
-                                </div>
+                                    <label><input type="checkbox" class="reward-pokemon-tera" data-idx="${idx}" ${tier.isTerastal ? 'checked' : ''}> 💠 Terastal</label>
+                                    </div>
                             </div>
                             <div class="reward-pokemon-preview" data-idx="${idx}" style="min-height: 120px;"></div>
                         </div>
@@ -3122,7 +3456,7 @@ if (existing?.expiryDate) {
             input.removeEventListener('change', handlePokemonLevelChange);
             input.addEventListener('change', handlePokemonLevelChange);
         });
-        document.querySelectorAll('.reward-pokemon-atk, .reward-pokemon-def, .reward-pokemon-spd, .reward-pokemon-shiny').forEach(checkbox => {
+        document.querySelectorAll('.reward-pokemon-atk, .reward-pokemon-def, .reward-pokemon-spd, .reward-pokemon-shiny, .reward-pokemon-tera').forEach(checkbox => {
             checkbox.removeEventListener('change', handlePokemonBonusChange);
             checkbox.addEventListener('change', handlePokemonBonusChange);
         });
@@ -3160,6 +3494,7 @@ if (existing?.expiryDate) {
         if (e.target.classList.contains('reward-pokemon-def')) rewardTiers[idx].bonusStats.def = e.target.checked;
         if (e.target.classList.contains('reward-pokemon-spd')) rewardTiers[idx].bonusStats.spd = e.target.checked;
         if (e.target.classList.contains('reward-pokemon-shiny')) rewardTiers[idx].isShiny = e.target.checked;
+        if (e.target.classList.contains('reward-pokemon-tera')) rewardTiers[idx].isTerastal = e.target.checked;
         updateRewardPokemonPreview(idx);
     }
     async function handleLoadPokemon(e) {
@@ -3283,7 +3618,19 @@ document.getElementById('distribute-rewards-btn').onclick=async()=>{
                 const pokeId=parseInt(tier.rewardId); 
                 if(pokeId){ 
                     const pData=await fetchPokemon(pokeId); 
-                    const newPokemon={ pokemonId:pData.id, name:pData.name, level:tier.rewardAmount||50, exp:0, moves:pData.moves.slice(0,4).map(m=>({name:m.move.name,type:'normal',power:40})), types:pData.types.map(t=>t.type.name), inTeam:false, capturedAt:new Date(), bonusStats:{}, isShiny:false }; 
+                    const newPokemon = { 
+                        pokemonId: pData.id, 
+                        name: pData.name, 
+                        level: tier.rewardAmount || 50, 
+                        exp: 0, 
+                        moves: pData.moves.slice(0, 4).map(m => ({name: m.move.name, type: 'normal', power: 40})), 
+                        types: pData.types.map(t => t.type.name), 
+                        inTeam: false, 
+                        capturedAt: new Date(), 
+                        bonusStats: tier.bonusStats || {}, 
+                        isShiny: tier.isShiny || false,
+                        isTerastal: tier.isTerastal || false // Added Terastal support
+                    };
                     await addDoc(collection(db,'users',uid,'pokemon'), newPokemon); 
                 } 
             } 
@@ -3528,6 +3875,8 @@ async function loadGlobalCustomSprites() {
     }
 }
 
+
+
 document.getElementById('apply-custom-sprite')?.addEventListener('click', async () => {
     const pokemonId = parseInt(document.getElementById('custom-sprite-id').value);
     const customUrl = document.getElementById('custom-sprite-url').value.trim();
@@ -3554,6 +3903,7 @@ document.getElementById('apply-custom-sprite')?.addEventListener('click', async 
     loadRaids();
     if (currentRaidBattle) renderBattleUI();
 });
+
 
 
 </script>

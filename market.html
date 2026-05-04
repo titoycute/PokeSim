@@ -1154,31 +1154,77 @@ async function loadShop() {
 
 async function buyShop(id, price) {
     if (!currentUser) { toast('Please log in.', 'error'); return; }
-    // ✅ Prevent double-buy: disable all buy buttons while processing
+    
     const allBuyBtns = document.querySelectorAll('#shop-listings .btn-primary');
     allBuyBtns.forEach(b => b.disabled = true);
+    
     try {
-        const coins = (await getDoc(doc(db, 'users', currentUser.uid))).data()?.coins || 0;
-        if (coins < price) { toast(`Need ${price} coins. You have ${coins}.`, 'error'); allBuyBtns.forEach(b => b.disabled = false); return; }
         let purchased;
-        await runTransaction(db, async tx => {
-      const ref=doc(db,'market_shop_listings',id);
-      const snap=await tx.get(ref); if(!snap.exists())throw new Error('Listing gone.');
-      const l=snap.data(); if(l.stock<=0)throw new Error('Out of stock.');
-      purchased=l;
-      const np={pokemonId:l.pokemonId,name:l.name,level:l.level,exp:0,moves:l.moves,types:l.types,inTeam:false,capturedAt:new Date(),bonusStats:l.bonusStats,isShiny:l.isShiny||false};
-      tx.set(doc(collection(db,'users',currentUser.uid,'pokemon')),np);
-      tx.update(doc(db,'users',currentUser.uid),{coins:increment(-price)});
-      l.stock===1?tx.delete(ref):tx.update(ref,{stock:increment(-1)});
-    });
-    showReward({...purchased,exp:0},'💰 Purchase Complete!','Added to your collection!');
-    invalidatePokeCache(); updateNav(true); loadShop();
-  }catch(e){toast(e.message,'error');}
-   finally {
-        // ✅ Always re-enable after processing
-        document.querySelectorAll('#shop-listings .btn-primary').forEach(b => b.disabled = false);
+        
+        await runTransaction(db, async (tx) => {
+            // 1. Get the listing
+            const listingRef = doc(db, 'market_shop_listings', id);
+            const listingSnap = await tx.get(listingRef);
+            
+            if (!listingSnap.exists()) throw new Error('Listing no longer exists.');
+            const listing = listingSnap.data();
+            if (listing.stock <= 0) throw new Error('Out of stock.');
+            
+            // 2. Check if user has enough coins
+            const userRef = doc(db, 'users', currentUser.uid);
+            const userSnap = await tx.get(userRef);
+            const coins = userSnap.data()?.coins || 0;
+            if (coins < price) throw new Error(`Need ${price} coins. You have ${coins}.`);
+            
+            purchased = listing;
+            
+            // 3. Deduct coins from buyer
+            tx.update(userRef, { coins: increment(-price) });
+            
+            // 4. Add Pokémon to buyer's collection
+            const newPokemonRef = doc(collection(db, 'users', currentUser.uid, 'pokemon'));
+            tx.set(newPokemonRef, {
+                pokemonId: listing.pokemonId,
+                name: listing.name,
+                level: listing.level,
+                exp: 0,
+                moves: listing.moves,
+                types: listing.types,
+                inTeam: false,
+                capturedAt: new Date(),
+                bonusStats: listing.bonusStats || { atk: false, def: false, spd: false },
+                isShiny: listing.isShiny || false,
+                isSpecial: listing.isSpecial || false,
+                isTerastal: listing.isTerastal || false
+            });
+            
+            // 5. Update or delete the listing (ONLY modify stock field)
+            if (listing.stock === 1) {
+                tx.delete(listingRef);
+            } else {
+                tx.update(listingRef, { stock: listing.stock - 1 });
+            }
+        });
+        
+        // Show success
+        showReward({
+            ...purchased,
+            exp: 0,
+            isTerastal: purchased.isTerastal || false
+        }, '💰 Purchase Complete!', `${purchased.name.toUpperCase()} has been added to your collection!`);
+        
+        invalidatePokeCache();
+        updateNav(true);
+        loadShop(); // Refresh
+        
+    } catch (e) {
+        console.error('Buy error:', e);
+        toast(e.message || 'Purchase failed. Please try again.', 'error');
+    } finally {
+        allBuyBtns.forEach(b => b.disabled = false);
     }
 }
+
 async function deleteShopListing(id){
   if(!confirm('Delete this listing?'))return;
   await deleteDoc(doc(db,'market_shop_listings',id));

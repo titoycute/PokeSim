@@ -310,6 +310,63 @@ body.dark-theme #toast.error { background: var(--danger); }
 .shiny-badge { top: 8px; right: 8px; }
 .special-badge { top: 30px; right: 8px; }
 
+
+/* Add to your styles */
+.move-pill {
+  cursor: help;
+  position: relative;
+}
+
+.move-pill:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #333;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  white-space: nowrap;
+  z-index: 10;
+  pointer-events: none;
+}
+
+body.dark-theme .auction-card .description {
+  background: rgba(255,255,255,0.08);
+  color: var(--text-dark);
+}
+
+/* Custom scrollbar for bids list */
+.bidders-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.bidders-list::-webkit-scrollbar-track {
+  background: var(--border);
+  border-radius: 10px;
+}
+
+.bidders-list::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: 10px;
+}
+
+.bidders-list::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-dark);
+}
+
+/* Make sure loader is on top */
+#loader-modal {
+  z-index: 10000;
+}
+
+#loader-modal .modal-box {
+  background: var(--card-bg);
+  border: 2px solid var(--primary);
+}
+
 </style>
 </head>
 <body>
@@ -511,6 +568,17 @@ body.dark-theme #toast.error { background: var(--danger); }
   </div>
 </div>
 
+
+<!-- LOADER MODAL -->
+<div id="loader-modal" class="modal-overlay hidden" onclick="if(event.target===this)closeModal('loader-modal')">
+  <div class="modal-box sm" style="text-align:center;" onclick="event.stopPropagation()">
+    <div style="padding: 30px;">
+      <div style="width: 48px; height: 48px; border: 4px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 20px;"></div>
+      <h3 id="loader-title" style="margin-bottom: 10px;">Processing...</h3>
+      <p id="loader-message" style="color: var(--text-light); font-size: 0.85rem;">Teka lang, this may take a moment.</p>
+    </div>
+  </div>
+</div>
 <!-- ══════════════════════════════════════════════
      SCRIPT
 ══════════════════════════════════════════════ -->
@@ -900,6 +968,19 @@ function getSpecialBadgeInfo(pokemonId, pokemonName) {
     return null;
 }
 
+
+// Loader control functions
+function showLoader(title = 'Processing...', message = 'Please wait, this may take a moment.') {
+  const modal = document.getElementById('loader-modal');
+  document.getElementById('loader-title').textContent = title;
+  document.getElementById('loader-message').textContent = message;
+  modal.classList.remove('hidden');
+}
+
+function hideLoader() {
+  const modal = document.getElementById('loader-modal');
+  modal.classList.add('hidden');
+}
 
 // ──────────── USER POKEMON (session cached) ────────────
 let _userPokeCache = null;
@@ -2174,7 +2255,7 @@ async function buildAuctionCard(a, now) {
   const timeLeftStr = endDate ? getTimeLeft(endDate) : 'No end time';
   const isOwn = a.createdBy === currentUser?.uid;
 
-  // --- Sprite URLs ---
+  // --- Sprite URLs (same as before) ---
   const showdownUrl = a.isShiny
     ? `https://play.pokemonshowdown.com/sprites/ani-shiny/${a.name.toLowerCase()}.gif`
     : `https://play.pokemonshowdown.com/sprites/ani/${a.name.toLowerCase()}.gif`;
@@ -2185,71 +2266,88 @@ async function buildAuctionCard(a, now) {
   const mainOnError = `this.onerror=null; this.src='${officialUrl}'; this.onerror=()=>this.src='${defaultUrl}';`;
   const miniOnError = `this.onerror=null; this.src='${defaultUrl}';`;
 
-  // --- Wild bonuses (pills) ---
+  // --- Wild bonuses, Form bonuses, Shiny bonus (same as before) ---
   let wildPills = '';
   if (a.bonusStats?.atk) wildPills += `<span class="bonus-pill atk">⚔️ +25% ATK</span>`;
   if (a.bonusStats?.def) wildPills += `<span class="bonus-pill def">🛡️ +25% DEF</span>`;
   if (a.bonusStats?.spd) wildPills += `<span class="bonus-pill spd">🏃 +25% SPD</span>`;
 
-  // --- Form bonuses (orange pills) ---
   const formBonuses = getSpecialFormBonuses(a.name, a.pokemonId);
   let formPills = '';
   if (formBonuses.atk) formPills += `<span class="bonus-pill form">⚔️ ATK +${formBonuses.atk}%</span>`;
   if (formBonuses.def) formPills += `<span class="bonus-pill form def">🛡️ DEF +${formBonuses.def}%</span>`;
   if (formBonuses.spd) formPills += `<span class="bonus-pill form spd">🏃 SPD +${formBonuses.spd}%</span>`;
 
-  // --- Shiny HP bonus (golden pill) ---
   let shinyPill = '';
   if (a.isShiny) {
     shinyPill = `<div class="shiny-bonus-pill">✨ SHINY +15% HP</div>`;
   }
 
-  // --- Build three lines ---
   let wildLine = wildPills ? `<div style="display:flex; flex-wrap:wrap; gap:4px; align-items:center; margin-bottom:4px;"><span style="font-size:0.6rem; color:var(--text-light); margin-right:4px;">🌿 Wild:</span>${wildPills}</div>` : '';
   let formLine = formPills ? `<div style="display:flex; flex-wrap:wrap; gap:4px; align-items:center; margin-bottom:4px;"><span style="font-size:0.6rem; color:var(--text-light); margin-right:4px;">✨ Form:</span>${formPills}</div>` : '';
   let shinyLine = shinyPill ? `<div style="display:flex; flex-wrap:wrap; gap:4px; align-items:center; margin-top:2px;">${shinyPill}</div>` : '';
 
   const bonusSection = (wildLine || formLine || shinyLine) ? `<div class="poke-card-bonus" style="margin: 6px 0;">${wildLine}${formLine}${shinyLine}</div>` : '';
 
-  // --- Special badge (Mega, Gmax, etc.) ---
+  let teraBadge = '';
+  if (a.isTerastal) {
+    teraBadge = `<span class="card-badge terastal-badge" style="background:linear-gradient(135deg,#6c5ce7,#a29bfe);color:white;">💠 TERA</span>`;
+  }
+
   const specialInfo = getSpecialBadgeInfo(a.pokemonId, a.name);
   let specialBadgeHtml = '';
   if (specialInfo) {
     specialBadgeHtml = `<span class="card-badge special-badge" style="${specialInfo.style}">${specialInfo.text}</span>`;
   }
 
-  let teraBadge = '';
-if (a.isTerastal) {
-  teraBadge = `<span class="card-badge terastal-badge" style="background:linear-gradient(135deg,#6c5ce7,#a29bfe);color:white;">💠 TERA</span>`;
-}
+  // --- Description ---
+  let descriptionHtml = '';
+  if (a.description && a.description.trim()) {
+    descriptionHtml = `
+      <div style="background:rgba(0,0,0,0.05); border-radius:10px; padding:8px; margin:8px 0; font-size:.75rem; color:var(--text-dark); border-left:3px solid var(--warning);">
+        <i class="fas fa-align-left" style="margin-right:4px; opacity:0.7;"></i>
+        ${esc(a.description)}
+      </div>
+    `;
+  }
 
-  // --- Bidders list (unchanged) ---
+  // --- UPDATED: Show ALL bids in a SCROLLABLE container ---
   const bids = a.bids || [];
   let biddersHtml = '';
-  for (const b of bids.slice(-5).reverse()) {
-    let pokeHtml = '';
-    for (const p of (b.pokemon || [])) {
-      const pokeShowdown = p.isShiny
-        ? `https://play.pokemonshowdown.com/sprites/ani-shiny/${p.name.toLowerCase()}.gif`
-        : `https://play.pokemonshowdown.com/sprites/ani/${p.name.toLowerCase()}.gif`;
-      const pokeOfficial = p.isShiny
-        ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/shiny/${p.pokemonId}.png`
-        : `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${p.pokemonId}.png`;
-      const pokeDefault = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.pokemonId}.png`;
-      const pokeOnError = `this.onerror=null; this.src='${pokeOfficial}'; this.onerror=()=>this.src='${pokeDefault}';`;
-      pokeHtml += `<img src="${pokeShowdown}" onerror="${pokeOnError}" style="width:20px;height:20px;image-rendering:pixelated;">`;
+  
+  if (bids.length === 0) {
+    biddersHtml = '<div style="font-size:.78rem;text-align:center;padding:16px;">No bids yet. Be the first!</div>';
+  } else {
+    // Show all bids, newest first (reverse order)
+    const sortedBids = [...bids].reverse();
+    
+    for (const b of sortedBids) {
+      let pokeHtml = '';
+      for (const p of (b.pokemon || [])) {
+        const pokeShowdown = p.isShiny
+          ? `https://play.pokemonshowdown.com/sprites/ani-shiny/${p.name.toLowerCase()}.gif`
+          : `https://play.pokemonshowdown.com/sprites/ani/${p.name.toLowerCase()}.gif`;
+        const pokeOfficial = p.isShiny
+          ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/shiny/${p.pokemonId}.png`
+          : `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${p.pokemonId}.png`;
+        const pokeDefault = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.pokemonId}.png`;
+        const pokeOnError = `this.onerror=null; this.src='${pokeOfficial}'; this.onerror=()=>this.src='${pokeDefault}';`;
+        pokeHtml += `<img src="${pokeShowdown}" onerror="${pokeOnError}" style="width:20px;height:20px;image-rendering:pixelated;" title="${p.name.toUpperCase()} Lv.${p.level}">`;
+      }
+     // In the biddersHtml generation loop:
+const isCurrentUserBid = b.userId === currentUser?.uid;
+biddersHtml += `
+  <div class="bidder-item view-bid-btn" style="cursor:pointer; padding:8px; border-bottom:1px solid var(--border); ${isCurrentUserBid ? 'background:rgba(59,76,202,0.1);' : ''}" data-bidid="${b.bidId}" data-auctionid="${a.id}">
+    <div class="bidder-avatar" style="${isCurrentUserBid ? 'background:var(--success);' : ''}">${(b.trainerName || '?').charAt(0).toUpperCase()}</div>
+    <div style="flex:1;">
+      <div style="font-weight:700; font-size:.8rem;">${esc(b.trainerName || 'Unknown')} ${isCurrentUserBid ? '<span style="color:var(--success);"> (Your Bid)</span>' : ''}</div>
+      <div style="font-size:.7rem; margin-top:2px;">💰 ${b.coins.toLocaleString()} Coins ${pokeHtml ? `+ ${pokeHtml}` : ''}</div>
+      <div style="font-size:.6rem; color:var(--text-light);">${b.timestamp ? new Date(b.timestamp.toDate ? b.timestamp.toDate() : b.timestamp).toLocaleString() : 'Just now'}</div>
+    </div>
+    ${(isAdmin || a.createdBy === currentUser?.uid) && !isCurrentUserBid ? `<button class="btn btn-success btn-sm accept-bid-btn" data-bid='${JSON.stringify(b)}' data-auctionid="${a.id}" style="margin-left:8px;">✔ Accept</button>` : ''}
+  </div>`;
     }
-    biddersHtml += `
-      <div class="bidder-item view-bid-btn" style="cursor:pointer;" data-bidid="${b.bidId}" data-auctionid="${a.id}">
-        <div class="bidder-avatar">${(b.trainerName || '?').charAt(0).toUpperCase()}</div>
-        <div style="flex:1;">
-          <div style="font-weight:700">${esc(b.trainerName || 'Unknown')} ${b.userId === currentUser?.uid ? '<small>(You)</small>' : ''}</div>
-          <div style="font-size:.7rem;">💰 ${b.coins.toLocaleString()} ${pokeHtml ? `+ ${pokeHtml}` : ''}</div>
-        </div>
-        ${(isAdmin || a.createdBy === currentUser?.uid) ? `<button class="btn btn-success btn-sm accept-bid-btn" data-bid='${JSON.stringify(b)}' data-auctionid="${a.id}">✔ Accept</button>` : ''}
-      </div>`;
   }
-  if (!biddersHtml) biddersHtml = '<div style="font-size:.78rem;text-align:center;">No bids yet.</div>';
 
   card.innerHTML = `
     <div class="auction-timer"><i class="fas fa-clock"></i> <span class="auction-time-left" data-end="${endDate?.toISOString()||''}">${timeLeftStr}</span></div>
@@ -2257,10 +2355,10 @@ if (a.isTerastal) {
       <img src="${officialUrl}" onerror="${miniOnError}"
            style="position:absolute; top:4px; left:4px; width:28px; height:28px; object-fit:contain; image-rendering:pixelated; z-index:3; border-radius:6px; background:rgba(0,0,0,0.4); padding:2px;">
       <img src="${showdownUrl}" onerror="${mainOnError}" style="width:110px;">
-      <span class="card-badge auction-badge">🔨 Trade Auction</span>
+      <span class="card-badge auction-badge">🔨 Auction</span>
       ${a.isShiny ? '<span class="card-badge shiny-badge">✨ SHINY</span>' : ''}
       ${specialBadgeHtml}
-       ${teraBadge}
+      ${teraBadge}
     </div>
     <div class="card-body">
       <div class="poke-name">${esc(a.name.toUpperCase())}</div>
@@ -2268,10 +2366,26 @@ if (a.isTerastal) {
       <div class="level-row">Lv.${a.level}</div>
       ${bonusSection}
       <div class="moves-row">${(a.moves||[]).map(m=>`<span class="move-pill" style="background:${typeColor(m.type)}">${m.name.toUpperCase()}</span>`).join('')}</div>
+      
+      ${descriptionHtml}
+      
       <div class="bid-section">
-        <div class="bid-row">Starting bid: 💰 ${(a.startingBid||0).toLocaleString()}</div>
-        <div class="bid-row">Total bids: ${bids.length}</div>
-        <div class="bidders-list">${biddersHtml}</div>
+        <div class="bid-row" style="margin-bottom:8px;">
+          <span class="bid-label">Starting bid:</span>
+          <span class="bid-value">💰 ${(a.startingBid||0).toLocaleString()} Coins</span>
+        </div>
+        <div class="bid-row" style="margin-bottom:8px;">
+          <span class="bid-label">Total bids:</span>
+          <span class="bid-value">${bids.length}</span>
+        </div>
+        
+        <!-- SCROLLABLE BIDS CONTAINER -->
+        <div style="margin-top:10px;">
+          <div class="bid-label" style="margin-bottom:6px;">📋 Recent Bids:</div>
+          <div class="bidders-list" style="max-height: 250px; overflow-y: auto; border:1px solid var(--border); border-radius:8px; background:var(--bg);">
+            ${biddersHtml}
+          </div>
+        </div>
       </div>
     </div>
     <div class="card-footer">
@@ -2286,12 +2400,20 @@ if (a.isTerastal) {
     auctionTimers[a.id] = iv;
   }
   card.querySelector('.bid-btn')?.addEventListener('click', () => openBidModal(a));
-  card.querySelectorAll('.view-bid-btn').forEach(btn => btn.addEventListener('click', () => showBidDetailsModal(a.bids.find(b => b.bidId === btn.dataset.bidid), a)));
-  card.querySelectorAll('.accept-bid-btn').forEach(btn => btn.addEventListener('click', async () => { if (confirm('Accept this bid?')) await acceptBid(a, JSON.parse(btn.dataset.bid)); }));
+  card.querySelectorAll('.view-bid-btn').forEach(btn => btn.addEventListener('click', () => {
+    const bid = a.bids.find(b => b.bidId === btn.dataset.bidid);
+    if (bid) showBidDetailsModal(bid, a);
+  }));
+  card.querySelectorAll('.accept-bid-btn').forEach(btn => btn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    if (confirm('Accept this bid?')) await acceptBid(a, JSON.parse(btn.dataset.bid));
+  }));
   card.querySelector('.edit-auction-btn')?.addEventListener('click', () => openAuctionPostModal(a));
   card.querySelector('.close-auction-btn')?.addEventListener('click', async () => { if (confirm('Close auction?')) await closeAuction(a.id); });
   return card;
 }
+
+
 
 function getTimeLeft(end){
   const diff=end-new Date();
@@ -2472,7 +2594,6 @@ async function openAuctionPostModal(existing = null) {
 function showBidDetailsModal(bid, auction) {
   const isMyBid = bid.userId === currentUser.uid;
   const bodyHtml = `
-
     <div style="text-align:center; margin-bottom:20px;">
       <div class="bidder-avatar" style="width:60px; height:60px; font-size:1.5rem; margin:0 auto 10px;">${bid.trainerName.charAt(0).toUpperCase()}</div>
       <h4 style="margin:0;">${esc(bid.trainerName)}</h4>
@@ -2480,18 +2601,45 @@ function showBidDetailsModal(bid, auction) {
     </div>
     
     <div style="font-weight:700; font-size:.85rem; margin-bottom:10px; color:var(--text-light); border-bottom:1px solid var(--border); padding-bottom:5px;">POKÉMON OFFERED (${bid.pokemon?.length || 0})</div>
-    
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+
+    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:10px;">
       ${(bid.pokemon || []).map(p => `
-        <div style="background:#f8fafc; border:1px solid var(--border); border-radius:12px; padding:8px; display:flex; align-items:center; gap:10px;">
-          <img src="${spriteUrl(p.pokemonId, p.isShiny)}" style="width:40px; height:40px; image-rendering:pixelated;">
-          <div>
-            <div style="font-weight:800; font-size:.75rem;">${p.name.toUpperCase()} ${p.isShiny ? '✨' : ''}</div>
-            <div style="font-size:.65rem; color:var(--text-light);">Lv.${p.level} · ${bonusIcons(p.bonusStats)}</div>
+        <div style="background:var(--card-bg); border:1px solid var(--border); border-radius:12px; padding:10px;">
+          <!-- Sprite and basic info -->
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+            <img src="${spriteUrl(p.pokemonId, p.isShiny)}" style="width:40px; height:40px; image-rendering:pixelated;">
+            <div>
+              <div style="font-weight:800; font-size:.8rem;">
+                ${p.name.toUpperCase()} 
+                ${p.isShiny ? '✨' : ''} 
+                ${p.isTerastal ? '💠' : ''}
+              </div>
+              <div style="font-size:.65rem; color:var(--text-light);">Lv.${p.level}</div>
+            </div>
+          </div>
+          
+          <!-- Types -->
+          <div style="display:flex; gap:3px; flex-wrap:wrap; margin-bottom:6px;">
+            ${(p.types || []).map(t => `
+              <span class="type-badge" style="background:${typeColor(t)}; font-size:.55rem; padding:1px 5px;">
+                ${t.toUpperCase()}
+              </span>
+            `).join('')}
+          </div>
+          
+          <!-- Moves -->
+          <div style="display:flex; gap:3px; flex-wrap:wrap;">
+            ${(p.moves || []).map(m => `
+              <span class="move-pill" style="background:${typeColor(m.type)}; font-size:.55rem; padding:1px 5px;" 
+                    data-tooltip="${m.name.toUpperCase()} - ${m.type.toUpperCase()} | Power: ${m.power || '?'} | Acc: ${m.accuracy || '?'}%">
+                ${m.name.toUpperCase().substring(0,8)}${m.name.length > 8 ? '…' : ''}
+              </span>
+            `).join('')}
+            ${(p.moves?.length || 0) === 0 ? '<span style="font-size:.6rem; color:var(--text-light);">No moves</span>' : ''}
           </div>
         </div>
       `).join('')}
-    </div>
+    </div>  <!-- ✅ This closing div was missing -->
     
     ${isMyBid ? `
       <div style="margin-top:20px; padding-top:15px; border-top:1px solid var(--border); display:flex; gap:10px;">
@@ -2515,7 +2663,7 @@ function showBidDetailsModal(bid, auction) {
       openBidModal(auction, bid);
     };
     
-    // NEW CANCEL LISTENER
+    // Cancel listener
     document.getElementById('cancel-my-bid-btn').onclick = () => {
       if(confirm("Are you sure you want to cancel your bid? All coins and Pokémon will be returned.")) {
         cancelMyBid(auction, bid);
@@ -2525,7 +2673,8 @@ function showBidDetailsModal(bid, auction) {
 }
 
 async function cancelMyBid(auction, bid) {
-  const toastMsg = toast('Cancelling bid...', '');
+  showLoader('Canceling Your Bid...', 'Returning your coins and Pokémon to your collection...');
+  
   try {
     await runTransaction(db, async (tx) => {
       const uRef = doc(db, 'users', currentUser.uid);
@@ -2537,30 +2686,38 @@ async function cancelMyBid(auction, bid) {
       if (!aSnap.exists()) throw new Error("Auction no longer exists.");
       const aData = aSnap.data();
       
-      // 1. Refund exactly what was bid (coins only — Pokémon are restored separately below)
-tx.update(uRef, { coins: increment(bid.coins) });
+      // Verify this is the current user's bid
+      const existingBid = (aData.bids || []).find(b => b.bidId === bid.bidId);
+      if (!existingBid) throw new Error("Bid not found");
+      if (existingBid.userId !== currentUser.uid) throw new Error("Cannot cancel another user's bid");
       
-      // 3. Restore Pokémon to User's Collection
+      // 1. Refund coins
+      tx.update(uRef, { coins: increment(bid.coins) });
+      
+      // 2. Restore Pokémon to User's Collection and remove auction flags
       for (const p of (bid.pokemon || [])) {
-        const restoreRef = doc(collection(db, 'users', currentUser.uid, 'pokemon'));
-        tx.set(restoreRef, {
-          ...p,
-          inTeam: false,
-          capturedAt: new Date(),
-          exp: 0 // Reset XP to 0 or preserve if saved in bid
+        const restoreRef = doc(db, 'users', currentUser.uid, 'pokemon', p.originalId);
+        tx.update(restoreRef, { 
+          inAuction: false,
+          auctionId: null,
+          bidAmount: null
         });
       }
       
-      // 4. Remove this specific bid from the auction's bids array
+      // 3. Remove this specific bid from the auction
       const updatedBids = (aData.bids || []).filter(b => b.bidId !== bid.bidId);
       tx.update(aRef, { bids: updatedBids });
     });
 
-    closeModal('shop-modal');
+    hideLoader();
+    closeModal('shop-modal'); // Close bid details modal
     loadAuctions();
-    updateNav();
-    toast('Bid cancelled and items returned!', 'success');
+    updateNav(true);
+    invalidatePokeCache();
+    toast('✅ Bid cancelled and items returned successfully!', 'success');
+    
   } catch (e) {
+    hideLoader();
     console.error(e);
     toast(e.message, 'error');
   }
@@ -2568,56 +2725,79 @@ tx.update(uRef, { coins: increment(bid.coins) });
 
 // Player places bid
 let bidAuction=null, bidSelectedPokemon=[];
+
 async function openBidModal(auction, existingBid = null) { 
-  bidAuction=auction;
+  bidAuction = auction;
+  
+  // ✅ Check if user already has a bid
+  let userExistingBid = null;
+  if (!existingBid) {
+    userExistingBid = (auction.bids || []).find(b => b.userId === currentUser?.uid);
+  }
+  
+  // If user has a bid and we're not editing, use that as existingBid
+  if (userExistingBid && !existingBid) {
+    existingBid = userExistingBid;
+  }
+  
   bidSelectedPokemon = existingBid ? [...existingBid.pokemon.map(p => ({...p, id: p.originalId}))] : [];
-  const coins=(await getDoc(doc(db,'users',currentUser.uid))).data()?.coins||0;
-  const totalLvl=userData?.totalLevels||0;
+  const coins = (await getDoc(doc(db, 'users', currentUser.uid))).data()?.coins || 0;
+  const totalLvl = userData?.totalLevels || 0;
 
   // Check min level
-  if(auctionSettings.minLevel&&totalLvl<auctionSettings.minLevel){
-    toast(`You need total level ${auctionSettings.minLevel} to bid.`,'error'); return;
+  if (auctionSettings.minLevel && totalLvl < auctionSettings.minLevel) {
+    toast(`You need total level ${auctionSettings.minLevel} to bid.`, 'error');
+    return;
   }
 
-  const body=document.getElementById('auction-bid-body');
-  body.innerHTML=`
+  const body = document.getElementById('auction-bid-body');
+  body.innerHTML = `
     <div style="background:#f8fafc;border-radius:12px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:12px;">
-      <img src="${auction.isShiny?shinySprite(auction.name):spriteUrl(auction.pokemonId)}" onerror="this.src='${spriteStatic(auction.pokemonId)}'" style="width:64px;height:64px;object-fit:contain;image-rendering:pixelated;">
+      <img src="${auction.isShiny ? shinySprite(auction.name) : spriteUrl(auction.pokemonId)}" onerror="this.src='${spriteStatic(auction.pokemonId)}'" style="width:64px;height:64px;object-fit:contain;image-rendering:pixelated;">
       <div>
-        <div style="font-weight:800">${esc((auction.name||'').toUpperCase())} ${auction.isShiny?'✨':''}</div>
-        <div>${typeBadges(auction.types||[])}</div>
-        <div style="font-size:.75rem;color:var(--text-light);">Lv.${auction.level} · Starting bid: 💰${(auction.startingBid||0).toLocaleString()}</div>
+        <div style="font-weight:800">${esc((auction.name || '').toUpperCase())} ${auction.isShiny ? '✨' : ''}</div>
+        <div>${typeBadges(auction.types || [])}</div>
+        <div style="font-size:.75rem;color:var(--text-light);">Lv.${auction.level} · Starting bid: 💰${(auction.startingBid || 0).toLocaleString()}</div>
       </div>
     </div>
-    ${auctionSettings.transactionFee?`<div style="background:#fff5f5;border:1px solid #fed7d7;border-radius:10px;padding:8px 12px;font-size:.8rem;color:var(--danger);margin-bottom:12px;"><i class="fas fa-info-circle"></i> Transaction fee: <strong>${auctionSettings.transactionFee} coins</strong> will be deducted when you place a bid.</div>`:''}
+    ${existingBid ? `
+      <div style="background:#fff3e0; border:1px solid #f6d860; border-radius:10px; padding:8px 12px; margin-bottom:12px; font-size:.8rem; color:var(--warning);">
+        <i class="fas fa-edit"></i> You already have a bid! You can edit it below.
+      </div>
+    ` : ''}
+    ${auctionSettings.transactionFee ? `<div style="background:#fff5f5;border:1px solid #fed7d7;border-radius:10px;padding:8px 12px;font-size:.8rem;color:var(--danger);margin-bottom:12px;"><i class="fas fa-info-circle"></i> Transaction fee: <strong>${auctionSettings.transactionFee} coins</strong> will be deducted when you place a bid.</div>` : ''}
     <div style="font-size:.82rem;font-weight:700;color:var(--text-light);margin-bottom:8px;">YOUR BID</div>
     <div class="form-group">
       <label>Coins to bid (You have: 💰${coins.toLocaleString()})</label>
-      <input type="number" id="bid-coins" value="${auction.startingBid||0}" min="0">
+      <input type="number" id="bid-coins" value="${existingBid ? existingBid.coins : auction.startingBid}" min="0">
     </div>
     
     <div class="form-group">
-      <label>Add Pokémon to bid (max ${auction.maxPokemon||5})</label>
+      <label>Add Pokémon to bid (max ${auction.maxPokemon || 5})</label>
       <div id="bid-pokemon-slots" class="bid-pokemon-slots">
-        ${Array.from({length:auction.maxPokemon||5}).map((_,i)=>`<div class="bid-slot add-slot" data-slot="${i}"><i class="fas fa-plus"></i><div style="font-size:.65rem;margin-top:3px;">Add</div></div>`).join('')}
+        ${Array.from({length: auction.maxPokemon || 5}).map((_, i) => `<div class="bid-slot add-slot" data-slot="${i}"><i class="fas fa-plus"></i><div style="font-size:.65rem;margin-top:3px;">Add</div></div>`).join('')}
       </div>
     </div>`;
 
   // Slot click → open picker
   body.querySelectorAll('.bid-slot.add-slot').forEach(s => {
-  s.onclick = () => openPokePicker((poke) => {
-    if (bidSelectedPokemon.length >= (auction.maxPokemon || 5)) {
-      toast('Max Pokémon reached.', 'error');
-      return;
-    }
-    bidSelectedPokemon.push(poke);
-    renderBidSlots(body, auction);
-  }, bidSelectedPokemon.map(p => p.id)); // <-- Add this here too
-});
+    s.onclick = () => openPokePicker((poke) => {
+      if (bidSelectedPokemon.length >= (auction.maxPokemon || 5)) {
+        toast('Max Pokémon reached.', 'error');
+        return;
+      }
+      bidSelectedPokemon.push(poke);
+      renderBidSlots(body, auction);
+    }, bidSelectedPokemon.map(p => p.id));
+  });
 
+  renderBidSlots(body, auction);
   document.getElementById('auction-bid-modal').classList.remove('hidden');
   document.getElementById('bid-coins').value = existingBid ? existingBid.coins : auction.startingBid;
-  document.getElementById('auction-bid-confirm').onclick = async () => submitBid(auction, existingBid);
+  
+  document.getElementById('auction-bid-confirm').onclick = async () => {
+    await submitBid(auction, existingBid);
+  };
 }
 
 function renderBidSlots(body, auction) {
@@ -2668,21 +2848,25 @@ function renderBidSlots(body, auction) {
 async function openPokePicker(callback, excludeIds = []) {
   _pokePickerCallback = callback;
   const owned = await getUserPokemon();
-  const body = document.getElementById('poke-picker-body');
   
-  // FILTER: Only show Pokémon NOT in the exclude list
-  const available = owned.filter(p => !excludeIds.includes(p.id));
-
+  // Filter out Pokémon that are already in an auction bid
+  const available = owned.filter(p => 
+    !excludeIds.includes(p.id) && 
+    !p.inAuction  // ✅ Don't show Pokémon already in auction
+  );
+  
+  const bodyElement = document.getElementById('poke-picker-body'); // ✅ Define bodyElement here
+  
   if (!available.length) {
-    body.innerHTML = `<div class="empty-state">
+    bodyElement.innerHTML = `<div class="empty-state">
       <i class="fas fa-question-circle"></i>
-      <p>${owned.length > 0 ? 'All your Pokémon are already in slots.' : 'No Pokémon available.'}</p>
+      <p>${owned.length > 0 ? 'All your Pokémon are already in auction bids.' : 'No Pokémon available to bid.'}</p>
     </div>`;
     document.getElementById('poke-picker-modal').classList.remove('hidden');
     return;
   }
 
-  body.innerHTML = `<div style="display:flex;flex-direction:column;gap:8px;">
+  bodyElement.innerHTML = `<div style="display:flex;flex-direction:column;gap:8px;">
     ${available.map(p => `
     <div class="mon-item-pick" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#f8fafc;border:1px solid var(--border);border-radius:12px;cursor:pointer;transition:.15s;" data-id="${p.id}">
       <img src="${spriteUrl(p.pokemonId, p.isShiny)}" onerror="this.src='${spriteStatic(p.pokemonId)}'" style="width:48px;height:48px;object-fit:contain;image-rendering:pixelated;">
@@ -2693,7 +2877,7 @@ async function openPokePicker(callback, excludeIds = []) {
     </div>`).join('')}
   </div>`;
 
-  body.querySelectorAll('.mon-item-pick').forEach(el => {
+  bodyElement.querySelectorAll('.mon-item-pick').forEach(el => {
     el.onclick = () => {
       const p = available.find(x => x.id === el.dataset.id);
       if (p && _pokePickerCallback) { _pokePickerCallback(p); }
@@ -2715,8 +2899,16 @@ async function submitBid(auction, existingBid = null) {
   const totalDeduct = coins + (bidSelectedPokemon.length > 0 ? fee : 0);
   const btn = document.getElementById('auction-bid-confirm');
   
+  // Show loader
+  showLoader(
+    existingBid ? 'Updating Your Bid...' : 'Placing Your Bid...',
+    existingBid 
+      ? 'Updating your bid and returning previous items...' 
+      : 'Processing your bid, please wait...'
+  );
+  
   btn.disabled = true; 
-  btn.innerHTML = 'Processing Bid...';
+  btn.innerHTML = 'Processing...';
 
   try {
     await runTransaction(db, async (tx) => {
@@ -2725,76 +2917,127 @@ async function submitBid(auction, existingBid = null) {
       const uSnap = await tx.get(uRef);
       const aSnap = await tx.get(aRef);
 
+      if (!aSnap.exists()) throw new Error('Auction no longer exists');
+      
       const uData = uSnap.data();
       const aData = aSnap.data();
+      
+      // Check if auction is still open
+      if (aData.status !== 'open') throw new Error('This auction is no longer open');
+      
+      // Check end time
+      if (aData.endTime && aData.endTime.toDate() < new Date()) {
+        throw new Error('This auction has already ended');
+      }
+      
+      // Check for existing user bid
+      const existingUserBid = (aData.bids || []).find(b => b.userId === currentUser.uid);
+      
+      if (existingUserBid && !existingBid) {
+        throw new Error('You already have an active bid on this auction. Please edit your existing bid instead.');
+      }
+      
+      if (existingUserBid && existingBid && existingUserBid.bidId !== existingBid.bidId) {
+        throw new Error('You can only edit your own bid.');
+      }
 
-      // 1. If EDITING: Refund the old bid first
+      // Prepare bid data BEFORE modifications
+      let currentCoins = uData.coins || 0;
+      let oldPokemonList = [];
+      
+      // If editing, calculate refund amounts and get old Pokémon
       if (existingBid) {
-        // Return old coins
-        const oldTotal = existingBid.coins + (existingBid.pokemon.length > 0 ? fee : 0);
-        tx.update(uRef, { coins: increment(oldTotal) });
-        
-        // Return old Pokémon to user's collection
-        for (const p of existingBid.pokemon) {
-          const restoreRef = doc(collection(db, 'users', currentUser.uid, 'pokemon'));
-          tx.set(restoreRef, { ...p, inTeam: false, capturedAt: new Date() });
+        const oldCoinsRefund = existingBid.coins + (existingBid.pokemon.length > 0 ? fee : 0);
+        currentCoins += oldCoinsRefund;
+        oldPokemonList = [...existingBid.pokemon];
+      }
+      
+      // Validate user has enough coins
+      if (currentCoins < totalDeduct) {
+        throw new Error(`Insufficient coins. Need ${totalDeduct.toLocaleString()}, have ${currentCoins.toLocaleString()}.`);
+      }
+      
+      // Validate Pokémon are still owned by user
+      for (const p of bidSelectedPokemon) {
+        const pokeRef = doc(db, 'users', currentUser.uid, 'pokemon', p.id);
+        const pokeSnap = await tx.get(pokeRef);
+        if (!pokeSnap.exists()) {
+          throw new Error(`Pokémon ${p.name} is no longer in your collection`);
         }
       }
-
-      // 2. Perform validation AFTER refunding (so user has their coins/pokes back)
-      // Check coins again with updated balance
-      const currentCoins = (uData.coins || 0) + (existingBid ? (existingBid.coins + (existingBid.pokemon.length > 0 ? fee : 0)) : 0);
-      if (currentCoins < totalDeduct) throw new Error('Insufficient coins for this bid.');
-
-      // 3. Deduct NEW bid items
-      tx.update(uRef, { coins: increment(-totalDeduct) });
-      for (const p of bidSelectedPokemon) {
-        tx.delete(doc(db, 'users', currentUser.uid, 'pokemon', p.id));
-      }
-
-      // 4. Update the auction bids array
-      let newBids = aData.bids || [];
-      // Inside submitBid(), when creating newBidObj:
-const newBidObj = {
-  bidId: existingBid ? existingBid.bidId : Date.now().toString(),
-  userId: currentUser.uid,
-  trainerName: userData?.trainerName || currentUser.email,
-  coins: coins,
-  pokemon: bidSelectedPokemon.map(p => ({
-    pokemonId: p.pokemonId, 
-    name: p.name, 
-    level: p.level,
-    types: p.types, 
-    moves: p.moves, 
-    bonusStats: p.bonusStats,
-    isShiny: p.isShiny || false,
-    isTerastal: p.isTerastal || false,  // ✅ ADD THIS LINE
-    originalId: p.id
-  })),
-  timestamp: new Date()
-};
-
+      
+      // STEP 1: Return old bid items (if editing)
       if (existingBid) {
-        // Replace old bid index
-        const idx = newBids.findIndex(b => b.bidId === existingBid.bidId);
-        newBids[idx] = newBidObj;
-      } else {
-        newBids.push(newBidObj);
+        // Return coins
+        tx.update(uRef, { coins: increment(existingBid.coins + (existingBid.pokemon.length > 0 ? fee : 0)) });
+        
+        // Return old Pokémon (mark them as not in auction)
+        for (const p of existingBid.pokemon) {
+          const restoreRef = doc(db, 'users', currentUser.uid, 'pokemon', p.originalId);
+          tx.update(restoreRef, { 
+            inAuction: false,  // Track if in auction
+            auctionId: null
+          });
+        }
       }
+      
+      // STEP 2: Deduct new bid items
+      tx.update(uRef, { coins: increment(-totalDeduct) });
+      
+      // Mark selected Pokémon as being in auction
+      for (const p of bidSelectedPokemon) {
+        const pokeRef = doc(db, 'users', currentUser.uid, 'pokemon', p.id);
+        tx.update(pokeRef, { 
+          inAuction: true,
+          auctionId: auction.id,
+          bidAmount: coins
+        });
+      }
+      
+      // STEP 3: Update auction bids
+      let newBids = (aData.bids || []).filter(b => b.userId !== currentUser.uid);
+      
+      const newBidObj = {
+        bidId: existingBid ? existingBid.bidId : Date.now().toString(),
+        userId: currentUser.uid,
+        trainerName: userData?.trainerName || currentUser.email,
+        coins: coins,
+        pokemon: bidSelectedPokemon.map(p => ({
+          pokemonId: p.pokemonId, 
+          name: p.name, 
+          level: p.level,
+          types: p.types, 
+          moves: p.moves, 
+          bonusStats: p.bonusStats,
+          isShiny: p.isShiny || false,
+          isTerastal: p.isTerastal || false,
+          originalId: p.id  // Keep reference to original document
+        })),
+        timestamp: new Date()
+      };
 
+      newBids.push(newBidObj);
       tx.update(aRef, { bids: newBids });
     });
 
+    // Success! Close modals and refresh
+    hideLoader();
     closeModal('auction-bid-modal');
     loadAuctions();
-    updateNav();
-    toast(existingBid ? 'Bid updated!' : 'Bid placed!', 'success');
+    updateNav(true);
+    invalidatePokeCache(); // Clear cache to refresh Pokémon list
+    toast(existingBid ? '✅ Bid updated successfully!' : '✅ Bid placed successfully!', 'success');
+    
   } catch (e) {
-    toast(e.message, 'error');
+    hideLoader();
+    console.error('Bid error:', e);
+    toast(e.message || 'Failed to place bid. Please try again.', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'Submit Bid';
   }
-  btn.disabled = false;
-  btn.innerHTML = 'Submit Bid';
 }
+
 
 async function acceptBid(auction,bid){
   try{

@@ -3096,17 +3096,52 @@ async function resolveBattle(win) {
         const playerPrefEnabled = localStorage.getItem('pokesim_autoCatch') === 'true';
         const mapAutoCatchEnabled = currentMap?.autoCatchEnabled === true;
        if (mapAutoCatchEnabled && playerPrefEnabled && encounterCount >= autoCatchThreshold && !alreadyClaimed && !alreadyOwned) {
-            addBattleLog(`🎉 NEW DISCOVERY: ${b.wild.name.toUpperCase()} joins your team!`);
+    addBattleLog(`🎉 NEW DISCOVERY: ${b.wild.name.toUpperCase()} joins your team!`);
 
-            const trainerName = await getTrainerName();
-            const newPokemon = {
-                pokemonId: b.wild.pokemonId, name: b.wild.name, level: b.wild.level, exp: 0,
-                moves: b.wild.moves, types: b.wild.types, inTeam: false, capturedAt: new Date(),
-                capturedBy: trainerName, capturedOnMap: currentMap?.name || "Discovery",
-                bonusStats: b.wild.bonusStats, isShiny: b.wild.isShiny, isTerastal: b.wild.isTerastal || false
-            };
-
-            await addDoc(collection(db, "users", userId, "pokemon"), newPokemon);
+    const trainerName = await getTrainerName();
+    
+    // ✅ FIX: Extract wild bonuses (the random encounter stats)
+    const wildBonuses = b.wild.wildBonuses || { atk: 0, def: 0, spd: 0 };
+    const formBonuses = b.wild.formBonuses || { atk: 0, def: 0, spd: 0 };
+    
+    // ✅ Store as booleans (what the collection view expects)
+    const bonusStats = {
+        atk: (wildBonuses.atk > 0),   // true if wild had +25% ATK
+        def: (wildBonuses.def > 0),   // true if wild had +25% DEF
+        spd: (wildBonuses.spd > 0)    // true if wild had +25% SPD
+    };
+    
+    // Also store the form bonuses separately if you want to preserve them
+    const hasFormBonus = (formBonuses.atk > 0) || (formBonuses.def > 0) || (formBonuses.spd > 0);
+    
+    const newPokemon = {
+        pokemonId: b.wild.pokemonId,
+        name: b.wild.name,
+        level: b.wild.level,
+        exp: 0,
+        moves: b.wild.moves,
+        types: b.wild.types,
+        inTeam: false,
+        capturedAt: new Date(),
+        capturedBy: trainerName,
+        capturedOnMap: currentMap?.name || "Discovery",
+        bonusStats: bonusStats,           // ✅ Stores booleans: { atk: true, def: false, spd: true }
+        isShiny: b.wild.isShiny,
+        isTerastal: b.wild.isTerastal || false,
+        // Optional: Store the original percentages for display purposes
+        wildStatsOriginal: {
+            atkPct: wildBonuses.atk,
+            defPct: wildBonuses.def,
+            spdPct: wildBonuses.spd
+        },
+        formStatsOriginal: {
+            atkPct: formBonuses.atk,
+            defPct: formBonuses.def,
+            spdPct: formBonuses.spd
+        }
+    };
+    
+    await addDoc(collection(db, "users", userId, "pokemon"), newPokemon);
             ownedPokemonIds.add(b.wild.pokemonId);
             await updateDoc(recordRef, { autoCaught: true }); // SET PERMANENT FLAG
             await updateUserTotalLevels(userId, b.wild.level);

@@ -3084,9 +3084,10 @@ async function resolveBattle(win) {
         // Single read – reuse for both check and update
         const recordRef = doc(db, "users", userId, "records", b.wild.pokemonId.toString());
         const recordSnap = await getDoc(recordRef);
-        const encounterCount = recordSnap.exists() ? recordSnap.data().count : 0;
+        const currentEncounterCount = recordSnap.exists() ? recordSnap.data().count || 0 : 0;
+        const encounterNumberAfterThis = currentEncounterCount + 1;
       
-        // === FIXED AUTO-CATCH: ONE-TIME POKEDEX REWARD ===
+        // === FIXED AUTO-CATCH: ONE-TIME POKEDEX REWARD (EXACT ENCOUNTER # ONLY) ===
         const autoCatchEnabled = currentMap?.autoCatchEnabled === true;
         const autoCatchThreshold = currentMap?.autoCatchThreshold || 5;
         const recordData = recordSnap.exists() ? recordSnap.data() : {};
@@ -3095,56 +3096,63 @@ async function resolveBattle(win) {
         const alreadyOwned = ownedPokemonIds.has(b.wild.pokemonId);
         const playerPrefEnabled = localStorage.getItem('pokesim_autoCatch') === 'true';
         const mapAutoCatchEnabled = currentMap?.autoCatchEnabled === true;
-       if (mapAutoCatchEnabled && playerPrefEnabled && encounterCount >= autoCatchThreshold && !alreadyClaimed && !alreadyOwned) {
-    addBattleLog(`🎉 NEW DISCOVERY: ${b.wild.name.toUpperCase()} joins your team!`);
 
-    const trainerName = await getTrainerName();
-    
-    // ✅ FIX: Extract wild bonuses (the random encounter stats)
-    const wildBonuses = b.wild.wildBonuses || { atk: 0, def: 0, spd: 0 };
-    const formBonuses = b.wild.formBonuses || { atk: 0, def: 0, spd: 0 };
-    
-    // ✅ Store as booleans (what the collection view expects)
-    const bonusStats = {
-        atk: (wildBonuses.atk > 0),   // true if wild had +25% ATK
-        def: (wildBonuses.def > 0),   // true if wild had +25% DEF
-        spd: (wildBonuses.spd > 0)    // true if wild had +25% SPD
-    };
-    
-    // Also store the form bonuses separately if you want to preserve them
-    const hasFormBonus = (formBonuses.atk > 0) || (formBonuses.def > 0) || (formBonuses.spd > 0);
-    
-    const newPokemon = {
-        pokemonId: b.wild.pokemonId,
-        name: b.wild.name,
-        level: b.wild.level,
-        exp: 0,
-        moves: b.wild.moves,
-        types: b.wild.types,
-        inTeam: false,
-        capturedAt: new Date(),
-        capturedBy: trainerName,
-        capturedOnMap: currentMap?.name || "Discovery",
-        bonusStats: bonusStats,           // ✅ Stores booleans: { atk: true, def: false, spd: true }
-        isShiny: b.wild.isShiny,
-        isTerastal: b.wild.isTerastal || false,
-        // Optional: Store the original percentages for display purposes
-        wildStatsOriginal: {
-            atkPct: wildBonuses.atk,
-            defPct: wildBonuses.def,
-            spdPct: wildBonuses.spd
-        },
-        formStatsOriginal: {
-            atkPct: formBonuses.atk,
-            defPct: formBonuses.def,
-            spdPct: formBonuses.spd
+        // Check if they've already passed the threshold without claiming
+        const hasPassedThreshold = currentEncounterCount >= autoCatchThreshold;
+        const missedChance = recordData.missedChance === true;
+
+        // ✅ OPTION A: ONE CHANCE ONLY - If they passed threshold without claiming, they lose their chance forever
+        if (mapAutoCatchEnabled && hasPassedThreshold && !alreadyClaimed && !alreadyOwned && !missedChance) {
+            // They missed their chance - mark as expired
+            await updateDoc(recordRef, { 
+                autoCaught: false,
+                missedChance: true,
+                missedAtEncounter: currentEncounterCount
+            });
+            addBattleLog(`⚠️ You've encountered ${b.wild.name.toUpperCase()} ${currentEncounterCount} times with Auto-Catch OFF. The reward chance has expired!`);
         }
-    };
-    
-    await addDoc(collection(db, "users", userId, "pokemon"), newPokemon);
+
+        // Only trigger on EXACT threshold number, with player preference ON, and not claimed/passed
+        if (mapAutoCatchEnabled && playerPrefEnabled && !alreadyClaimed && !alreadyOwned && encounterNumberAfterThis === autoCatchThreshold && !missedChance) {
+            addBattleLog(`🎉 ENCOUNTER #${autoCatchThreshold} DEFEAT! ${b.wild.name.toUpperCase()} automatically joins your team!`);
+
+            const trainerName = await getTrainerName();
+            
+            // Extract wild bonuses
+            const wildBonuses = b.wild.wildBonuses || { atk: 0, def: 0, spd: 0 };
+            const formBonuses = b.wild.formBonuses || { atk: 0, def: 0, spd: 0 };
+            
+            const newPokemon = {
+                pokemonId: b.wild.pokemonId,
+                name: b.wild.name,
+                level: b.wild.level,
+                exp: 0,
+                moves: b.wild.moves,
+                types: b.wild.types,
+                inTeam: false,
+                capturedAt: new Date(),
+                capturedBy: trainerName,
+                capturedOnMap: currentMap?.name || "Discovery",
+                bonusStats: {
+                    atk: (wildBonuses.atk > 0),
+                    def: (wildBonuses.def > 0),
+                    spd: (wildBonuses.spd > 0)
+                },
+                isShiny: b.wild.isShiny,
+                isTerastal: b.wild.isTerastal || false
+            };
+
+            await addDoc(collection(db, "users", userId, "pokemon"), newPokemon);
             ownedPokemonIds.add(b.wild.pokemonId);
-            await updateDoc(recordRef, { autoCaught: true }); // SET PERMANENT FLAG
             await updateUserTotalLevels(userId, b.wild.level);
+            
+            // Mark as claimed at exact encounter number
+            await updateDoc(recordRef, { 
+                autoCaught: true,
+                autoCaughtAtEncounter: autoCatchThreshold,
+                autoCaughtOnDefeat: true
+            });
+            
             invalidateTeamCache();
 
             stopBattleMusic();
@@ -3156,21 +3164,25 @@ async function resolveBattle(win) {
             autoCatchModal.className = 'overlay';
             autoCatchModal.innerHTML = `
                 <div class="modal" style="max-width: 400px; text-align: center; border: 4px solid var(--success);">
-                    <h2>✨ POKÉDEX REWARD! ✨</h2>
+                    <h2>✨ ${autoCatchThreshold}th ENCOUNTER REWARD! ✨</h2>
                     <img src="${getStaticSpriteUrl(b.wild.pokemonId)[0]}" style="width: 120px;">
-                    <p>You tracked <b>${b.wild.name.toUpperCase()}</b> ${encounterCount} times!</p>
-                    <p style="font-size: 0.8rem; color: var(--text-light);">It has joined your team as a one-time reward.</p>
+                    <p>You defeated <b>${b.wild.name.toUpperCase()}</b> on your ${autoCatchThreshold}th encounter!</p>
+                    <p style="font-size: 0.8rem; color: var(--text-light);">It has joined your team as a one-time reward!</p>
                     <button class="btn btn-primary" id="close-auto-catch" style="margin-top:15px; width:100%;">Continue</button>
                 </div>`;
             document.body.appendChild(autoCatchModal);
-            document.getElementById('close-auto-catch').onclick = () => { autoCatchModal.remove(); endBattleCleanup(); };
+            document.getElementById('close-auto-catch').onclick = () => { 
+                autoCatchModal.remove(); 
+                endBattleCleanup(); 
+            };
             return;
         }
+        
         // ---- Normal win: distribute XP among participants ----
         const xpMultiplier = currentMap?.xpMultiplier || 1.0;
-const coinMultiplier = currentMap?.coinMultiplier || 1.0;
-const totalBaseXP = Math.floor(b.wild.level * 30 * xpMultiplier);
-const coins = Math.floor(b.wild.level * 10 * coinMultiplier);
+        const coinMultiplier = currentMap?.coinMultiplier || 1.0;
+        const totalBaseXP = Math.floor(b.wild.level * 30 * xpMultiplier);
+        const coins = Math.floor(b.wild.level * 10 * coinMultiplier);
         const participants = Array.from(b.participants); // Set of IDs that entered battle
 
         // Fallback (should never happen)
@@ -4637,70 +4649,56 @@ function renderBattleUI() {
     playerSprite.onclick = () => showInfo(b.player.pokemonId);
 
     // ========== ENEMY STAT BOX ==========
-    const enemyStatBox = document.querySelector('#battle-area .enemy-side .stat-box');
-    if (enemyStatBox) {
-        const shinyIcon = b.wild.isShiny ? '✨ ' : '';
-        let bonusIcons = '';
-        if (b.wild.bonusStats?.atk) bonusIcons += '⚔️ ';
-        if (b.wild.bonusStats?.def) bonusIcons += '🛡️ ';
-        if (b.wild.bonusStats?.spd) bonusIcons += '🏃 ';
-        
-        // Terastal icon for enemy
-        const teraIcon = b.wild.isTerastal ? '<span style="background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.6rem; font-weight: bold; margin-left: 5px; border: 1px solid white;">💠 TERA</span>' : '';
-        
-        // Special badge
-        let specialBadgeHtml = '';
-        if (b.wild.specialBadge) {
-            let specialColor = '#ffaa33';
-            if (b.wild.specialCategory === 'gmax') specialColor = '#ff4444';
-            else if (b.wild.specialCategory === 'mega') specialColor = '#3399ff';
-            else if (b.wild.specialCategory === 'ub') specialColor = '#00cc99';
-            else if (b.wild.specialCategory === 'paradox') specialColor = '#ff44cc';
-            else if (b.wild.specialCategory === 'mythical') specialColor = '#ff66cc';
-            specialBadgeHtml = `<span style="background: ${specialColor}; color: white; padding: 2px 8px; border-radius: 20px; font-size: 0.6rem; font-weight: bold; margin-left: 5px;">${b.wild.specialBadge}</span>`;
-        }
-        
-        const hpPercent = (b.wild.currentHp / b.wild.maxHp) * 100;
-        
-        let hpBarColor = '#48bb78';
-        if (hpPercent < 25) hpBarColor = '#f56565';
-        else if (hpPercent < 50) hpBarColor = '#ed8936';
-        
-        // Calculate total stat bonuses
-        const wildFormStats = b.wild.formBonuses || { atk: 0, def: 0, spd: 0 };
-        const wildWildStats = b.wild.wildBonuses || { atk: 0, def: 0, spd: 0 };
-        const totalAtkBonus = (wildWildStats.atk || 0) + (wildFormStats.atk || 0);
-        const totalDefBonus = (wildWildStats.def || 0) + (wildFormStats.def || 0);
-        const totalSpdBonus = (wildWildStats.spd || 0) + (wildFormStats.spd || 0);
-        
-        let statBonusesHtml = '';
-        if (totalAtkBonus > 0) statBonusesHtml += `<span style="background:#ff6b6b; padding:2px 6px; border-radius:12px; font-size:0.6rem; font-weight:bold; margin-right:4px;">⚔️</span>`;
-        if (totalDefBonus > 0) statBonusesHtml += `<span style="background:#4dabf7; padding:2px 6px; border-radius:12px; font-size:0.6rem; font-weight:bold; margin-right:4px;">🛡️</span>`;
-        if (totalSpdBonus > 0) statBonusesHtml += `<span style="background:#69db7c; padding:2px 6px; border-radius:12px; font-size:0.6rem; font-weight:bold; margin-right:4px;">🏃</span>`;
-        
-        enemyStatBox.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px;">
-                <strong style="font-size: 0.9rem;">${shinyIcon}${b.wild.name.toUpperCase()}${specialBadgeHtml}${teraIcon}</strong>
-                <span style="font-size: 0.7rem; color: var(--text-light);">Lv. ${b.wild.level}</span>
-            </div>
-            ${(bonusIcons || statBonusesHtml) ? `
-                <div style="margin: 4px 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 0.7rem;">
-                    ${bonusIcons ? `<span style="color: var(--text-light);">${bonusIcons}</span>` : ''}
-                 
-                </div>
-            ` : ''}
-            <div style="margin: 4px 0;">${generateTypeBadges(b.wild.types)}</div>
-            <div style="margin: 6px 0;">
-                <div style="display: flex; justify-content: space-between; font-size: 0.65rem; margin-bottom: 3px;">
-                    <span>❤️ HP</span>
-                    <span>${b.wild.currentHp}/${b.wild.maxHp} (${Math.floor(hpPercent)}%)</span>
-                </div>
-                <div class="hp-bar" style="background: #e2e8f0; height: 8px; border-radius: 10px; overflow: hidden;">
-                    <div class="hp-fill" style="width: ${hpPercent}%; background: ${hpBarColor}; height: 100%; transition: width 0.3s;"></div>
-                </div>
-            </div>
-        `;
+    // ========== ENEMY STAT BOX (SIMPLIFIED) ==========
+const enemyStatBox = document.querySelector('#battle-area .enemy-side .stat-box');
+if (enemyStatBox && currentBattle) {
+    const b = currentBattle;
+    
+    // Badge icons
+    const shinyIcon = b.wild.isShiny ? '✨ ' : '';
+    const teraIcon = b.wild.isTerastal ? '💠 ' : '';
+    
+    // Wild stat badge (single combined badge)
+    let wildStatBadge = '';
+    const hasAtkBonus = (b.wild.wildBonuses?.atk > 0) || (b.wild.formBonuses?.atk > 0);
+    const hasDefBonus = (b.wild.wildBonuses?.def > 0) || (b.wild.formBonuses?.def > 0);
+    const hasSpdBonus = (b.wild.wildBonuses?.spd > 0) || (b.wild.formBonuses?.spd > 0);
+    
+    if (hasAtkBonus || hasDefBonus || hasSpdBonus) {
+        let badgeText = '';
+        if (hasAtkBonus) badgeText += '⚔️';
+        if (hasDefBonus) badgeText += '🛡️';
+        if (hasSpdBonus) badgeText += '🏃';
+        wildStatBadge = `<span style="color: white; padding: 2px 8px; border-radius: 20px; font-size: 0.65rem; font-weight: bold; margin-left: 6px;">${badgeText}</span>`;
     }
+    
+    // HP calculation
+    const hpPercent = (b.wild.currentHp / b.wild.maxHp) * 100;
+    let hpBarColor = '#48bb78';
+    if (hpPercent < 25) hpBarColor = '#f56565';
+    else if (hpPercent < 50) hpBarColor = '#ed8936';
+    
+    enemyStatBox.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px;">
+            <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
+                <strong style="font-size: 0.95rem;">${shinyIcon}${teraIcon}${b.wild.name.toUpperCase()}</strong>
+            </div>
+            <span style="font-size: 0.75rem; color: var(--text-light); font-weight: bold;">Lv. ${b.wild.level}</span>
+           
+        </div>
+        <div style="margin: 6px 0 4px 0;">${generateTypeBadges(b.wild.types)}</div>
+         ${wildStatBadge}
+        <div style="margin: 6px 0;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.7rem; margin-bottom: 3px;">
+                <span>❤️ HP</span>
+                <span>${b.wild.currentHp}/${b.wild.maxHp}</span>
+            </div>
+            <div class="hp-bar" style="background: #e2e8f0; height: 8px; border-radius: 10px; overflow: hidden;">
+                <div class="hp-fill" style="width: ${hpPercent}%; background: ${hpBarColor}; height: 100%; transition: width 0.3s;"></div>
+            </div>
+        </div>
+    `;
+}
 
     // ========== PLAYER STAT BOX ==========
     const playerStatBox = document.querySelector('#battle-area .player-side .stat-box');
@@ -4747,6 +4745,7 @@ function renderBattleUI() {
                 </div>
             ` : ''}
             <div style="margin: 4px 0;">${generateTypeBadges(b.player.types)}</div>
+            
             <div style="margin: 6px 0;">
                 <div style="display: flex; justify-content: space-between; font-size: 0.65rem; margin-bottom: 3px;">
                     <span>❤️ HP</span>
@@ -4795,24 +4794,31 @@ function renderBattleUI() {
     
     renderTeamIcons();
 }
-    async function trackRecord(id, name) {
+
+async function trackRecord(id, name) {
     try {
         const userId = auth.currentUser.uid;
         const batch = writeBatch(db);
         batch.update(doc(db, "users", userId), { totalEncounters: increment(1) });
-        batch.set(doc(db, "users", userId, "records", id.toString()), {
+        
+        // Use increment for count to ensure atomic operations
+        const recordRef = doc(db, "users", userId, "records", id.toString());
+        batch.set(recordRef, {
             name: name,
             count: increment(1),
             pokemonId: parseInt(id)
         }, { merge: true });
+        
         await batch.commit();
+        
         // Update local cache
         const current = encounterCountsCache.get(id) || 0;
         encounterCountsCache.set(id, current + 1);
         encounterCacheTimestamp = Date.now();
     } catch (err) { console.error(err); }
 }
-    async function isSpeciesOwned(pokemonId) {
+
+async function isSpeciesOwned(pokemonId) {
         return ownedPokemonIds.has(pokemonId);
         const q = query(collection(db, "users", auth.currentUser.uid, "pokemon"), where("pokemonId", "==", pokemonId));
         const snap = await getDocs(q);
@@ -5116,53 +5122,53 @@ async function startBattle() {
             encounterCount = await getEncounterCount(wildId);
         }
 
-        // --- AUTO-CATCH PROGRESS UI ---
-        const recordRef = doc(db, "users", auth.currentUser.uid, "records", wildId.toString());
-        const recordSnap = await getDoc(recordRef);
-        const recordData = recordSnap.exists() ? recordSnap.data() : {};
-        const rewardClaimed = recordData.autoCaught === true;
-        const autoCatchThreshold = currentMap?.autoCatchThreshold || 5;
-        const mapAutoCatchEnabled = currentMap?.autoCatchEnabled === true;
-        const playerAutoCatchPref = localStorage.getItem('pokesim_autoCatch') !== 'false';
-        const autoCatchActive = mapAutoCatchEnabled && playerAutoCatchPref;
+       
+// --- AUTO-CATCH PROGRESS UI ---
+const recordRef = doc(db, "users", auth.currentUser.uid, "records", wildId.toString());
+const recordSnap = await getDoc(recordRef);
+const recordData = recordSnap.exists() ? recordSnap.data() : {};
+const rewardClaimed = recordData.autoCaught === true;
+const missedChance = recordData.missedChance === true;
+const autoCatchThreshold = currentMap?.autoCatchThreshold || 5;
+const mapAutoCatchEnabled = currentMap?.autoCatchEnabled === true;
+const playerAutoCatchPref = localStorage.getItem('pokesim_autoCatch') !== 'false';
+const autoCatchActive = mapAutoCatchEnabled && playerAutoCatchPref;
 
-        let statusText = '';
-        if (rewardClaimed) {
-            statusText = `<br><span style="color:var(--success); font-weight:bold;">✅ Pokedex Reward Claimed</span>`;
-        } else if (owned) {
-            statusText = `<br><span style="color:var(--text-light);">Species already in collection</span>`;
-        } else if (autoCatchActive) {
-            const rem = autoCatchThreshold - encounterCount;
-            statusText = rem > 0 
-                ? `<br><span style="color:#f39c12;">🔍 Track ${rem} more for a free catch!</span>`
-                : `<br><span style="color:var(--success); font-weight:bold;">✨ Victory = Guaranteed Catch!</span>`;
-        } else {
-            statusText = `<br><span style="color:var(--danger);">🎯 Auto-catch disabled - use Catch button</span>`;
-        }
+let statusText = '';
+if (rewardClaimed) {
+    statusText = `<br><span style="color:var(--success); font-weight:bold;">✅ Pokedex Reward Claimed (Encounter #${recordData.autoCaughtAtEncounter || '?'})</span>`;
+} else if (missedChance) {
+    statusText = `<br><span style="color:var(--danger); font-weight:bold;">❌ REWARD CHANCE EXPIRED! You passed encounter #${autoCatchThreshold} without claiming.</span>`;
+} else if (owned) {
+    statusText = `<br><span style="color:var(--text-light);">Species already in collection</span>`;
+} else if (!mapAutoCatchEnabled) {
+    statusText = `<br><span style="color: #95a5a6;">⚙️ Auto-catch not available on this map</span>`;
+} else if (!playerAutoCatchPref) {
+    statusText = `<br><span style="color: #e74c3c;">❌ Auto-catch DISABLED (Enable in menu)</span>`;
+} else {
+    // Player has Auto-Catch ON
+    const encountersNeeded = autoCatchThreshold - encounterCount;
+    if (encountersNeeded > 1) {
+        statusText = `<br><span style="color:#f39c12;">🔍 Track ${encountersNeeded} more encounters with Auto-Catch ON for guaranteed catch!</span>`;
+    } else if (encountersNeeded === 1) {
+        statusText = `<br><span style="color:#2ecc71; font-weight:bold;">⚡ NEXT ENCOUNTER = GUARANTEED CATCH! ⚡</span>`;
+    } else {
+        // encounterCount >= threshold, but not claimed yet
+        statusText = `<br><span style="color:#3498db;">⚠️ Defeat this Pokémon on your ${autoCatchThreshold}th encounter (this is encounter #${encounterCount + 1}) to claim reward!</span>`;
+    }
+}
 
-        // ✅ AUTO-CATCH STATUS DISPLAY (MOVED TO CORRECT LOCATION)
-        let autoCatchStatusHtml = '';
-        if (!mapAutoCatchEnabled) {
-            autoCatchStatusHtml = '<span style="color: #95a5a6;">⚙️ Auto-catch not available on this map</span>';
-        } else if (playerAutoCatchPref) {
-            autoCatchStatusHtml = '<span style="color: #2ecc71;">✅ Auto-catch ACTIVE (will join after enough encounters)</span>';
-        } else {
-            autoCatchStatusHtml = '<span style="color: #e74c3c;">❌ Auto-catch DISABLED (use Catch button)</span>';
-        }
-        
-        // Set the auto-catch status AFTER the element exists
-        const autoCatchStatusEl = document.getElementById('preview-auto-catch-status');
-        if (autoCatchStatusEl) {
-            autoCatchStatusEl.innerHTML = autoCatchStatusHtml;
-        }
+// Set the auto-catch status
+const autoCatchStatusEl = document.getElementById('preview-auto-catch-status');
+if (autoCatchStatusEl) {
+    autoCatchStatusEl.innerHTML = statusText;
+}
 
         const allTypes = ['normal','fire','water','electric','grass','ice','fighting','poison','ground','flying','psychic','bug','rock','ghost','dragon','dark','steel','fairy'];
         const wildTypes = wildData.types.map(t => t.type.name);
         const weaknesses = allTypes.filter(t => getTypeEffectiveness(t, wildTypes) > 1);
         
         document.getElementById('preview-weaknesses').innerHTML = weaknesses.length > 0 ? `<strong>Weaknesses:</strong> ${weaknesses.map(t => `<span class="type-badge" style="background: ${getTypeColor(t)};">${t.toUpperCase()}</span>`).join(' ')}` : `<strong>Weaknesses:</strong> None (or neutral)`;
-        document.getElementById('preview-capture-status').innerHTML = owned ? `<span style="color: var(--success);">✓ Already captured</span>` : `<span style="color: var(--danger);">✗ Not yet captured</span>`;
-        document.getElementById('preview-encounter-count').innerHTML = `📖 Encountered ${encounterCount} times ${statusText}`;
         
         // Calculate level
         let wildLevel;
